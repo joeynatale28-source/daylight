@@ -150,7 +150,28 @@ Deno.serve(async(req:Request)=>{
   const result=await admin.from("subscriptions").delete().eq("id",id).eq("user_id",user.id);
   return result.error?respond({error:"Cannot remove subscription"},503):respond({removed:true});
  }
- if(action!=="add"&&action!=="refresh")return respond({error:"Unknown action"},400);
+ if(action==="update") {
+  const id=String(body.id||"");
+  const patch:Record<string,string>={};
+  if(body.name!==undefined){
+   const name=String(body.name||"").trim().slice(0,120);
+   if(!name)return respond({error:"Calendar name cannot be empty"},400);
+   patch.name=name;
+  }
+  if(body.color!==undefined){
+   const color=String(body.color);
+   if(!["blue","violet","green","amber","rose","teal","plum","gray"].includes(color))
+    return respond({error:"Invalid calendar color"},400);
+   patch.color=color;
+  }
+  if(!Object.keys(patch).length)return respond({error:"Nothing to update"},400);
+  const result=await admin.from("subscriptions").update(patch)
+   .eq("id",id).eq("user_id",user.id).select().maybeSingle();
+  return result.error?respond({error:"Unable to update calendar"},503):
+   result.data?respond({subscription:result.data}):respond({error:"Subscription not found"},404);
+ }
+ if(action!=="add"&&action!=="refresh"&&action!=="preview")
+  return respond({error:"Unknown action"},400);
  let record:any=null,feedURL="";
  try {
   if(action==="refresh"){
@@ -158,17 +179,24 @@ Deno.serve(async(req:Request)=>{
    const result=await admin.from("subscriptions").select("*").eq("id",id).eq("user_id",user.id).maybeSingle();
    if(result.error||!result.data)return respond({error:"Subscription not found"},404);
    record=result.data;feedURL=record.url;
-   if(record.last_fetched_at && Date.now()-Date.parse(record.last_fetched_at)<3*3600000)
+   if(!body.force && record.last_fetched_at && Date.now()-Date.parse(record.last_fetched_at)<3*3600000)
     return respond({subscription:record,unchanged:true});
   }else{
    feedURL=safeURL(body.url);
    const exists=await admin.from("subscriptions").select("id").eq("user_id",user.id).eq("url",feedURL).maybeSingle();
-   if(exists.data)return respond({error:"Already subscribed to that URL"},409);
+   if(exists.data&&action==="add")return respond({error:"Already subscribed to that URL"},409);
   }
   const fetched=await fetchICS(feedURL);
   const parsed=parseFeed(fetched.text);
+  if(action==="preview") {
+   if(!parsed.events.length) return respond({error:"This calendar has no events in the supported date range"},422);
+   return respond({name:parsed.name||new URL(feedURL).hostname,
+    imported:parsed.events.length,skipped:parsed.skipped,source_host:new URL(feedURL).hostname});
+  }
   const name=String(body.name||record?.name||parsed.name||new URL(feedURL).hostname).trim().slice(0,120);
-  const fields={name,url:feedURL,color:record?.color||"teal",cached_events:parsed.events,
+  const chosen=String(body.color||record?.color||"teal");
+  const color=["blue","violet","green","amber","rose","teal","plum","gray"].includes(chosen)?chosen:"teal";
+  const fields={name,url:feedURL,color,cached_events:parsed.events,
    skipped_count:parsed.skipped,last_fetched_at:new Date().toISOString(),
    last_error:null,last_error_at:null,etag:fetched.etag};
   const response=record
