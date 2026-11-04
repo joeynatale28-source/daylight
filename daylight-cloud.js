@@ -63,6 +63,12 @@
     state.miniCursor = dt(BOOT_TODAY.getFullYear(), BOOT_TODAY.getMonth(), 1);
     state.miniSelected = new Date(BOOT_TODAY);
     state.defaultCalendarId = null;
+    state.themeMode = 'system';
+    state.reduceMotion = false;
+    state.remind15 = true;
+    state.dailySummary = false;
+    state.sidebarRail = false;
+    applySettingsSnapshot(SETTINGS_DEFAULTS);
   }
   clearPreviewData();
 
@@ -162,6 +168,10 @@
        hard-coded profile name or the email username when a name exists). */
     state.firstName = state.profileName.split(/\s+/)[0] || 'Account';
     if (typeof settings.sidebarRail === 'boolean') state.sidebarRail = settings.sidebarRail;
+    if (typeof settings.reduceMotion === 'boolean') state.reduceMotion = settings.reduceMotion;
+    if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
+    if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
+    document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
     if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) state.view = settings.defaultView;
     var ui = payload.ui || {};
     if (typeof ui.view === 'string' && ['day','week','month','agenda'].indexOf(ui.view) !== -1) state.view = ui.view;
@@ -192,7 +202,9 @@
       feeds: state.feeds.map(function (f) { return {url:f.url,name:f.name}; }),
       settings: Object.assign({}, settingsSnapshot(), {
         themeMode:state.themeMode, firstName:state.firstName,
-        profileName:state.profileName, sidebarRail:state.sidebarRail
+        profileName:state.profileName, sidebarRail:state.sidebarRail,
+        reduceMotion:state.reduceMotion, remind15:state.remind15,
+        dailySummary:state.dailySummary
       }),
       ui: { view:state.view, section:state.section,
         cursorMs:state.cursor.getTime(), selectedMs:state.selected.getTime(),
@@ -201,7 +213,7 @@
   }
 
   function changesQueued() {
-    if (!user || loading || recovery || conflict) return;
+    if (!user || loading || recovery || conflict || (settingsState && settingsState.transactionActive)) return;
     try {
       if (JSON.stringify(workspace()) === lastSaved) return;
     } catch (e) { status('Unable to save', true); return; }
@@ -212,7 +224,7 @@
 
   async function saveWorkspace() {
     clearTimeout(saveTimer);
-    if (!user || loading || recovery || conflict) return;
+    if (!user || loading || recovery || conflict || (settingsState && settingsState.transactionActive)) return;
     if (saving) { saveAgain = true; return; }
     var serialized;
     try { serialized = JSON.stringify(workspace()); }
@@ -266,7 +278,7 @@
 
   async function loadForUser(account) {
     if (!account || recovery) return;
-    if (user && user.id === account.id && !loading) return;
+    if (user && user.id === account.id) return;
     var seq = ++sessionSequence;
     loading = true;
     conflict = false;
@@ -291,6 +303,7 @@
       document.getElementById('authRoot').innerHTML = '';
       document.getElementById('app').hidden = false;
       originalRenderAll(false);
+      document.body.classList.remove('booting');
       status('Saved to cloud');
       authState.password = '';
       authState.newPassword = '';
@@ -298,7 +311,9 @@
     } catch (error) {
       if (seq !== sessionSequence) return;
       console.error('Daylight load failed', error);
+      user = null;
       loading = true;
+      document.body.classList.remove('booting');
       document.getElementById('app').hidden = true;
       authState.mode = 'login';
       renderAuth();
@@ -322,6 +337,7 @@
     var root = document.getElementById('authRoot');
     root.innerHTML = '';
     renderAuth();
+    document.body.classList.remove('booting');
     document.getElementById('cloudStatus')?.setAttribute('hidden', '');
   }
 
@@ -468,14 +484,7 @@
       state.firstName = newName.split(' ')[0];
       renderSidebar(); /* Sidebar only: never replace the focused editor. */
       changesQueued();
-      if (client && user) {
-        client.auth.updateUser({data:{full_name:newName}}).then(function (result) {
-          if (result.error) console.warn('Daylight account name metadata was not updated:',result.error.message);
-          else if (result.data && result.data.user && user && result.data.user.id === user.id) user = result.data.user;
-        }).catch(function (error) {
-          console.warn('Daylight account name metadata update failed:',error);
-        });
-      }
+      if (settingsState && settingsState.markDirty) settingsState.markDirty();
     };
     nameInput.addEventListener('change', commitName);
     nameInput.addEventListener('blur', commitName);
@@ -485,6 +494,18 @@
     });
   };
 
+  /* Name is saved in both the workspace and Auth metadata only on Settings Save. */
+  document.addEventListener('daylight:settings-committed', function (e) {
+    var nextName = e.detail && e.detail.name;
+    var previousName = e.detail && e.detail.previousName;
+    if (!client || !user || !nextName || nextName === previousName) return;
+    client.auth.updateUser({data:{full_name:nextName}}).then(function (result) {
+      if (result.error) console.warn('Name metadata update failed:', result.error.message);
+      else if (result.data && result.data.user && user && result.data.user.id === user.id)
+        user = result.data.user;
+    }).catch(function (error) { console.warn('Name metadata update failed:', error); });
+  });
+
   /* Cloud accounts must never lose data through a legacy demo reset action. */
   resetDemoData = function () {
     toast('Demo reset is unavailable for cloud accounts. Your data is safe.');
@@ -493,6 +514,7 @@
   /* In-memory app data is never made accessible before the cloud read succeeds. */
   renderAuth();
   if (!client) {
+    document.body.classList.remove('booting');
     toast('Supabase could not load. Check your connection and reload.');
     return;
   }
@@ -503,6 +525,7 @@
       authState.mode = 'forgot-new';
       document.getElementById('app').hidden = true;
       renderAuth();
+      document.body.classList.remove('booting');
       return;
     }
     if (event === 'SIGNED_OUT') {
@@ -513,15 +536,18 @@
       setTimeout(function () { loadForUser(session.user); },0);
     }
   });
-  client.auth.getUser().then(function (result) {
+  /* Session rehydration is the only startup decision. Do not paint Login
+     while a saved token is being restored or its workspace is loading. */
+  client.auth.getSession().then(function (result) {
     if (recovery) return;
-    if (result.error || !result.data || !result.data.user) {
+    var account = result.data && result.data.session && result.data.session.user;
+    if (result.error || !account) {
       if (!user) showSignedOut();
       return;
     }
-    loadForUser(result.data.user);
+    loadForUser(account);
   }).catch(function () {
-    if (!user) showSignedOut();
+    if (!user && !recovery) showSignedOut();
   });
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && user && !loading) saveWorkspace();
