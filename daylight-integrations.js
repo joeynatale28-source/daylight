@@ -278,7 +278,7 @@
       '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div>');
     pane.appendChild(g);
     const status=g.querySelector('#mcpStatus');
-    const url=API+'daylight-mcp';
+    const url=window.DAYLIGHT_MCP_URL || API+'daylight-mcp';
     g.querySelector('#mcpUrl').value=url;
     const config=JSON.stringify({mcpServers:{daylight:{type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2);
     g.querySelector('#mcpConfig').textContent=config;
