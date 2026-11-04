@@ -2485,8 +2485,8 @@
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
-        var docs = el('<a class="side-row" href="https://joeynatale.mintlify.app" target="_blank" rel="noopener noreferrer" title="Documentation">' + icon("book", 18) + '<span class="rail-hide">Documentation</span></a>');
-        sidebarEl.appendChild(help); sidebarEl.appendChild(docs); sidebarEl.appendChild(set);
+
+        sidebarEl.appendChild(help); sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -2581,7 +2581,7 @@
           return b;
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
-        m.appendChild(item("link", "Share calendar", false, function () { window.daylightShareCalendar(cal); }));
+        m.appendChild(item("link", "Share…", false, function () { window.daylightShareCalendar(cal); }));
         m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
@@ -3434,7 +3434,14 @@
         var rows = "";
         if (!bannerKey) rows += '<div class="pop-row"><span class="pop-ic">' + icon("clock", 18) + '</span><span class="pop-main"><span class="pr-strong">' + esc(timeMain) + '</span><span class="pr-sub">' + esc(timeSub) + "</span></span></div>";
         if (ev.repeat) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span></div>";
-        if (ev.loc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' + esc(ev.loc) + "</span></div>";
+        if (ev.loc) {
+          var withCoords=Number.isFinite(Number(ev.locationLat)) && Number.isFinite(Number(ev.locationLng)) &&
+            ev.locationLat != null && ev.locationLng != null && !!ev.placeId;
+          var osmHref=withCoords ? "https://www.openstreetmap.org/?mlat="+encodeURIComponent(ev.locationLat)+
+            "&mlon="+encodeURIComponent(ev.locationLng)+"#map=17/"+encodeURIComponent(ev.locationLat)+"/"+encodeURIComponent(ev.locationLng) : "";
+          rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' +
+            (withCoords ? '<a href="'+esc(osmHref)+'" target="_blank" rel="noopener noreferrer">'+esc(ev.loc)+'</a>' : esc(ev.loc)) + '</span></div>';
+        }
         if (ev.desc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("alignLeft", 18) + '</span><span class="pop-main pop-desc">' + esc(ev.desc) + "</span></div>";
         rows += '<div class="pop-row"><span class="pop-ic">' + icon("calendar", 18) + '</span><span class="pop-main">' + esc(cal.name) + (readOnly ? '<span class="pr-sub">' + (cal.builtin ? "Built-in calendar" : "Subscribed calendar") + "</span>" : "") + (ev.declined ? '<span class="pr-sub">Declined</span>' : "") + "</span></div>";
         if (ev.reminder != null) rows += '<div class="pop-row"><span class="pop-ic">' + icon("bell", 18) + '</span><span class="pop-main">' + esc(fmtReminder(ev.reminder)) + "</span></div>";
@@ -3696,6 +3703,9 @@
           repeat: src ? src.repeat : null,
           reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
           loc: src ? src.loc : "",
+          placeId:src ? (src.placeId||null) : null,
+          locationLat:src ? (src.locationLat??null) : null,
+          locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
           dirty: false
         };
@@ -3748,6 +3758,7 @@
         titleIn.focus();
         titleIn.addEventListener("input", function () { f.title = titleIn.value; titleIn.classList.remove("err"); dlg.querySelector("#efTitleErr").classList.remove("show"); markDirty(); });
         locIn.addEventListener("input", function () { f.loc = locIn.value; markDirty(); });
+        if (window.daylightAttachPlaces) window.daylightAttachPlaces(locIn,f,markDirty);
         if (descIn) descIn.addEventListener("input", function () { f.desc = descIn.value; markDirty(); });
         allDayIn.addEventListener("change", function () {
           f.allDay = allDayIn.checked; markDirty();
@@ -3822,10 +3833,15 @@
           if (isSubscribed(calOf(f.cal))) { toast("Subscribed calendars are read-only — pick another calendar"); return; }
           closeDatePicker();
           if (isEdit) {
-            src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.desc = descIn ? descIn.value.trim() : "";
+            src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
+            src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
+            src.desc = descIn ? descIn.value.trim() : "";
             bd.remove(); renderAll(false); toast("Event updated");
           } else {
-            state.events.push(mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder }));
+            var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
+            created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
+            created.locationLng = f.locationLng ?? null;
+            state.events.push(created);
             bd.remove(); renderAll(false); toast("Event created");
           }
         });
@@ -5164,9 +5180,11 @@
         if (!document.hidden && !document.getElementById("app").hidden && refreshToday()) renderAll(false);
       });
     </script>
+    <link rel="stylesheet" href="./daylight-places.css">
     <script src="./daylight-settings.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-integrations.js"></script>
+    <script src="./daylight-places.js"></script>
   </body>
 </html>
