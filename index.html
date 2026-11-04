@@ -2466,8 +2466,11 @@
           sidebarEl.appendChild(list);
         }
         if (subCals.length) {
-          var subLabel = el('<div class="side-label rail-hide"><span>Subscribed Calendars</span></div>');
+          var subLabel = el('<div class="side-label rail-hide"><span>Subscribe and share calendars</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
+          var subAdd = el('<button class="side-label-btn add" title="Add calendar by URL" aria-label="Subscribe to a calendar URL">' + icon("plus", 16) + "</button>");
+          subAdd.addEventListener("click",function(){openSettings("data");});
+          subActions.appendChild(subAdd);
           var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscribed Calendars" : "Expand Subscribed Calendars") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
           collapseSub.addEventListener("click", function () { state.subSectionOpen = !state.subSectionOpen; renderSidebar(); });
           subActions.appendChild(collapseSub);
@@ -2485,8 +2488,7 @@
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
-        var docs = el('<a class="side-row" href="https://joeynatale.mintlify.app" target="_blank" rel="noopener noreferrer" title="Documentation">' + icon("book", 18) + '<span class="rail-hide">Documentation</span></a>');
-        sidebarEl.appendChild(help); sidebarEl.appendChild(docs); sidebarEl.appendChild(set);
+        sidebarEl.appendChild(help); sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -2556,7 +2558,15 @@
         chk.addEventListener("click", function () { animateCalendarToggle(cal); });
         row.appendChild(chk);
         var name = el('<span class="cal-name' + (cal.hidden ? " off" : "") + '">' + esc(cal.name) + "</span>");
-        row.appendChild(name);
+        if (cal.remoteSubscriptionId) {
+          var stack = el('<span class="dl-sub-stack"></span>');
+          stack.appendChild(name);
+          var info = cal.sourceHost || "External feed";
+          var time = cal.lastFetched ? new Date(cal.lastFetched).toLocaleString() : "Not synced";
+          var meta = el('<span class="dl-sub-meta' + (cal.lastError ? " dl-sub-error" : "") + '">' +
+            esc(info + " · " + (cal.lastError ? "Couldn't update · " : "") + time) + "</span>");
+          stack.appendChild(meta);row.classList.add("dl-sub-row");row.appendChild(stack);
+        } else row.appendChild(name);
         /* Subscribed/shared rows get NO badge and NO menu: no lock
            icon, and no rename / color / delete controls at all —
            read-only is expressed by the section they live in and by
@@ -2566,6 +2576,10 @@
           var mb = el('<button class="icon-btn cal-menu-btn" title="Calendar options — rename, color, show or hide, delete" aria-label="Options for ' + esc(cal.name) + '">' + icon("dotsV", 16) + "</button>");
           mb.addEventListener("click", function () { openCalMenu(mb, cal, row); });
           row.appendChild(mb);
+        } else if (cal.remoteSubscriptionId) {
+          var subscriptionButton = el('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for ' + esc(cal.name) + '">' + icon("dotsV",16) + '</button>');
+          subscriptionButton.addEventListener("click",function(){window.daylightSubscriptionMenu(subscriptionButton,cal);});
+          row.appendChild(subscriptionButton);
         }
         return row;
       }
@@ -2581,7 +2595,8 @@
           return b;
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
-        m.appendChild(item("link", "Share calendar", false, function () { window.daylightShareCalendar(cal); }));
+        m.appendChild(item("link", "Share…", false, function () { window.daylightShareCalendar(cal); }));
+        m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
         m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
