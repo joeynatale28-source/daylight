@@ -23,7 +23,7 @@
     get ready() { return !!user && !loading && !conflict; },
     save: function () { changesQueued(); }
   };
-  function signature(e) { return JSON.stringify([e.title,e.cal,+e.start,+e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates]); }
+  function signature(e) { return JSON.stringify([e.title,e.cal,+e.start,+e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates,e.placeId,e.placeLat,e.placeLng]); }
   function ensureMeta(e) {
     if (!e.uid) e.uid = crypto.randomUUID() + '@daylight';
     if (!e.dtstamp) e.dtstamp = new Date().toISOString();
@@ -136,7 +136,10 @@
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
           timezone: e.timezone, dtstamp:e.dtstamp, sequence:e.sequence,
-          recurrenceId:e.recurrenceId, status:e.status
+          recurrenceId:e.recurrenceId, status:e.status,
+          placeId:typeof e.placeId==='string'?e.placeId:null,
+          placeLat:e.placeLat==null?null:Number(e.placeLat),
+          placeLng:e.placeLng==null?null:Number(e.placeLng)
         };
       }).filter(function (ev) {
         /* Old snapshots duplicated built-in holidays as stored event rows.
@@ -202,7 +205,9 @@
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
-          recurrenceId:e.recurrenceId,status:e.status };
+          recurrenceId:e.recurrenceId,status:e.status,
+          placeId:e.placeId||null,placeLat:e.placeLat==null?null:Number(e.placeLat),
+          placeLng:e.placeLng==null?null:Number(e.placeLng) };
       }),
       tasks: state.tasks.map(function (t) {
         return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),
