@@ -1994,7 +1994,7 @@
       /* Occurrences of an event overlapping [rs, re) — expands repeats. */
       function occurrenceStamp(value) {
         if (typeof value !== "string") return +new Date(value);
-        var m = value.match(/^(\\d{4})(\\d{2})(\\d{2})(?:T(\\d{2})(\\d{2})(\\d{2})Z?)?$/);
+        var m = value.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z?)?$/);
         if (m) return Date.UTC(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
         return +new Date(value);
       }
