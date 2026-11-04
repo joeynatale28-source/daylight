@@ -44,6 +44,17 @@ jobs:
             -H 'Content-Type: application/json' \
             -d '{"action":"autocomplete","input":"10833 W Broad"}')
           test "$status" = 401 || { echo "Expected 401, received $status"; cat /tmp/places_response.txt; exit 1; }
+      - name: Capture sample AI and Share UI in dark and light themes
+        continue-on-error: true
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.26.1
+          node tests/capture-ui.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daylight-ui-dark-light
+          path: ui-screenshots/
+          if-no-files-found: ignore
       - name: Install MCP dependencies
         working-directory: mcp
         run: npm install --no-audit --no-fund
