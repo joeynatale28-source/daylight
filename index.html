@@ -3026,17 +3026,11 @@
           adRow.appendChild(cell);
         });
         wrap.appendChild(adRow);
-        if (occs.length === 0) {
-          var emptyFor = numDays === 1 ? days[0] : null;
-          /* Day view's empty state is visual only — the icon badge
-             and the New event button, with no "No events" wording.
-             Week keeps its titled version. */
-          wrap.appendChild(buildEmptyState(numDays === 1 ? {
-            icon: "calendar",
-            btnLabel: "New event",
-            hint: false,
-            onBtn: function () { openEventForm(null, emptyFor); }
-          } : {
+        /* Even when Day view has no events, render the complete timeline,
+           all-day area and current-time indicator. Empty slots remain clickable.
+           Week view retains its existing empty-state treatment. */
+        if (occs.length === 0 && numDays !== 1) {
+          wrap.appendChild(buildEmptyState({
             icon: "calendar",
             title: "No events",
             sub: "Nothing is scheduled this week.",
