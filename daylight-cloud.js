@@ -511,10 +511,10 @@
     toast('Demo reset is unavailable for cloud accounts. Your data is safe.');
   };
 
-  /* In-memory app data is never made accessible before the cloud read succeeds. */
-  renderAuth();
+  /* Resolve the session before constructing any login UI.
+     Returning users never build the login screen at all. */
   if (!client) {
-    document.body.classList.remove('booting');
+    showSignedOut();
     toast('Supabase could not load. Check your connection and reload.');
     return;
   }
