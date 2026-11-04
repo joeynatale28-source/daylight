@@ -291,6 +291,11 @@
         width: 24px; height: 24px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
       }
+      .mini-day.edge-month .num {
+        width: auto; min-width: 24px; max-width: 100%;
+        padding: 0 2px; white-space: nowrap; font-size: 9px;
+        letter-spacing: -0.03em; border-radius: 999px;
+      }
       .mini-day.today .num { background: var(--today-disc-bg); color: var(--today-disc-text); font-weight: 600; }
       /* Selected mini date: Google's soft filled circle in the accent —
          the filled pale disc stays reserved for today alone. */
@@ -463,6 +468,11 @@
         width: 28px; height: 28px; border-radius: 50%; font-size: 12.5px; font-weight: 500;
         display: inline-flex; align-items: center; justify-content: center; align-self: flex-start;
         transition: background 150ms var(--ease-out);
+      }
+      /* Label the first visible day of an adjacent month as "Dec 1", not "1". */
+      .day-num.edge-month {
+        width: auto; min-width: 28px; max-width: 100%; padding: 0 6px;
+        border-radius: 999px; white-space: nowrap; font-size: 11.5px;
       }
       .day-num:hover { background: var(--hover); }
       .day-cell.out .day-num { color: var(--faint); }
@@ -731,8 +741,14 @@
          radius + overflow), with the action icons as small translucent
          circular buttons overlaid on the banner's top-right. */
       .popover.has-banner { padding: 0 0 16px; overflow: hidden; }
-      .pop-banner { position: relative; height: 132px; background: var(--surface2); }
+      .pop-banner { position: relative; height: 132px; background: var(--surface2); overflow: hidden; }
       .pop-banner img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+      /* Holiday illustrations include a pale bottom edge in the source artwork.
+         Enlarge within the clipped header so that edge stays out of view. */
+      .pop-banner.holiday-banner img {
+        transform: scale(1.14); transform-origin: 50% 42%;
+        object-position: center 42%;
+      }
       .pop-banner-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
       .pop-banner-btn {
         width: 34px; height: 34px; border-radius: 50%; flex: none;
@@ -1989,7 +2005,12 @@
       }
       function visibleEvents() {
         return state.events.filter(function (ev) {
-          var c = calOf(ev.cal); if (!c || c.hidden) return false;
+          /* Older workspaces persisted a second copy of the built-in holiday feed.
+             Built-in holidays come from usHolidaysForYear(), never from saved events. */
+          if (ev.cal === "holidays") return false;
+          var c = state.calendars.find(function (item) { return item.id === ev.cal; });
+          if (!c || c.hidden) return false;
+          if (c.builtin || (c.subscribed && String(c.name).trim().toLowerCase() === "us holidays")) return false;
           if (ev.declined && !state.showDeclined) return false;
           return true;
         });
@@ -2046,7 +2067,9 @@
         return list;
       }
       function builtinCal() {
-        for (var i = 0; i < state.calendars.length; i++) if (state.calendars[i].builtin) return state.calendars[i];
+        /* There is exactly one authoritative built-in US Holidays calendar. */
+        for (var i = 0; i < state.calendars.length; i++)
+          if (state.calendars[i].id === "holidays") return state.calendars[i];
         return null;
       }
       function occsInRange(rs, re) {
@@ -2564,6 +2587,10 @@
           }
         });
       }
+      function calendarDayLabel(date, displayedMonth) {
+        return date.getDate() === 1 && date.getMonth() !== displayedMonth
+          ? MONTHS_S[date.getMonth()] + " 1" : String(date.getDate());
+      }
       function renderMiniCal() {
         /* Decoupled: the mini calendar has its OWN cursor (state.miniCursor)
            and its OWN selection (state.miniSelected). Browsing it with the
@@ -2590,7 +2617,7 @@
           for (var d = 0; d < 7; d++) {
             (function (date) {
               var inMonth = date.getMonth() === mc.getMonth();
-              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
+              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + calendarDayLabel(date, mc.getMonth()) + "</span></button>");
               b.addEventListener("click", function () {
                 state.section = "calendar";
                 state.miniSelected = sod(date);
@@ -2798,7 +2825,7 @@
                 return a.start - b.start;
               });
               var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"></div>');
-              var num = el('<button class="day-num" title="' + esc(fmtDateLong(date)) + '">' + date.getDate() + "</button>");
+              var num = el('<button class="day-num' + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + '" title="' + esc(fmtDateLong(date)) + '">' + calendarDayLabel(date, m) + "</button>");
               num.addEventListener("click", function () { drillToDay(date); });
               cell.appendChild(num);
               var add = el('<button class="cell-add" title="Add event" aria-label="Add event on ' + esc(fmtDateLong(date)) + '">' + icon("plus", 14) + "</button>");
@@ -3354,7 +3381,7 @@
           bBtns += '<button class="pop-banner-btn" data-act="close" title="Close" aria-label="Close">' + icon("x", 16) + "</button>";
           var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ)) + "</div>";
           p = el('<div class="popover has-banner" role="dialog" aria-label="Event details">' +
-            '<div class="pop-banner"><img src="' + BANNER_DATA[bannerKey] + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
+            '<div class="pop-banner' + ((ev.builtin || (cal && cal.id === "holidays")) ? " holiday-banner" : "") + '"><img src="' + BANNER_DATA[bannerKey] + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
             '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + calLine + "</div></div>" +
             '<div class="pop-rows">' + rows + "</div></div></div>");
           var bImg = p.querySelector(".pop-banner img");
