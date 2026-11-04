@@ -77,6 +77,9 @@
   }
 
   function normalizeCalendarList(raw, holidayIds) {
+    /* New/legacy accounts without a saved calendar list need all defaults,
+       not just the built-in holiday calendar. */
+    if (!Array.isArray(raw) || !raw.length) return seedCalendars();
     var output = [], seen = Object.create(null);
     (Array.isArray(raw) ? raw : []).forEach(function (item) {
       if (!item || typeof item !== 'object' || item.id == null) return;
