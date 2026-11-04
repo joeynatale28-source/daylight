@@ -15,7 +15,7 @@
     : null;
   var user = null, revision = 0, hasRow = false, saving = false;
   var loading = true, recovery = /(?:^|[&#?])type=recovery(?:[&#&]|$)/.test(location.href);
-  var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0;
+  var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false;
   var lastStatus = '';
   var originalBuildAuth = buildAuthFormInner;
   var originalRenderAll = renderAll;
@@ -169,7 +169,7 @@
   }
 
   function changesQueued() {
-    if (!user || loading || recovery) return;
+    if (!user || loading || recovery || conflict) return;
     try {
       if (JSON.stringify(workspace()) === lastSaved) return;
     } catch (e) { status('Unable to save', true); return; }
@@ -180,7 +180,7 @@
 
   async function saveWorkspace() {
     clearTimeout(saveTimer);
-    if (!user || loading || recovery) return;
+    if (!user || loading || recovery || conflict) return;
     if (saving) { saveAgain = true; return; }
     var serialized;
     try { serialized = JSON.stringify(workspace()); }
@@ -196,6 +196,7 @@
           .eq('user_id', saveUser).eq('revision', revision).select('revision');
         if (result.error) throw result.error;
         if (!result.data || result.data.length !== 1) {
+          conflict = true;
           status('Sync conflict — reload to review', true);
           toast('Your calendar changed on another device. Reload to review before saving.', {
             label:'Reload', fn:function () { location.reload(); }
@@ -221,7 +222,7 @@
       saveAgain = true;
     } finally {
       saving = false;
-      if (saveAgain && user && user.id === saveUser && !loading) {
+      if (saveAgain && !conflict && user && user.id === saveUser && !loading) {
         saveAgain = false;
         clearTimeout(saveTimer);
         saveTimer = setTimeout(saveWorkspace, 2500);
@@ -236,6 +237,7 @@
     if (user && user.id === account.id && !loading) return;
     var seq = ++sessionSequence;
     loading = true;
+    conflict = false;
     clearTimeout(saveTimer);
     user = account;
     status('Loading calendar…');
@@ -276,7 +278,7 @@
   function showSignedOut() {
     sessionSequence++;
     user = null; hasRow = false; revision = 0; lastSaved = '';
-    loading = true; saving = false; saveAgain = false;
+    loading = true; saving = false; saveAgain = false; conflict = false;
     clearTimeout(saveTimer);
     clearPreviewData();
     document.getElementById('app').hidden = true;
