@@ -297,7 +297,7 @@
       if(!name||name.length>100||!scopes.length){status.textContent='Enter a name and choose a scope';return;}
       const raw=tokenRaw(),hashed=await tokenHash(raw);
       const {error}=await db.from('mcp_tokens').insert({user_id:cloud.user.id,name,scopes,
-        token_prefix:raw.slice(0,8),token_hash:hashed});
+        token_prefix:raw.slice(7,15),token_hash:hashed});
       if(error)return showError(status,error);
       const once=g.querySelector('#mcpOnce');
       once.innerHTML='<p class="inline-note">Copy this token now. It will not appear again.</p>'+
