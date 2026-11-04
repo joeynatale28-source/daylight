@@ -222,7 +222,8 @@
           '<br><span class="fr-sub">'+esc(s.url||'')+
           (s.last_error?' · Couldn’t update: '+esc(s.last_error):' · Last fetched: '+esc(s.last_fetched_at?new Date(s.last_fetched_at).toLocaleString():'Never'))+
           (s.skipped_count?' · '+s.skipped_count+' skipped':'')+
-          '</span></span>'+btn('Refresh','refreshOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
+          '</span></span>'+btn('Refresh','refreshOne')+btn('Manage','manageOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
+        card.querySelector('#manageOne').onclick=()=>manageSubscription({id:'subscription:'+s.id,name:s.name},card.querySelector('#manageOne'));
         card.querySelector('#refreshOne').onclick=async()=>{
           try{
             status.textContent='Refreshing…';
@@ -241,13 +242,40 @@
       });
     }
     g.querySelector('#subAdd').onclick=async()=>{
-      const b=g.querySelector('#subAdd');b.disabled=true;status.textContent='Validating and importing calendar…';
+      const b=g.querySelector('#subAdd'),url=g.querySelector('#subUrl').value.trim();
+      b.disabled=true;status.textContent='Checking calendar feed…';
       try{
-        const result=await call('ical-subscribe',{action:'add',url:g.querySelector('#subUrl').value.trim(),
-          name:g.querySelector('#subName').value.trim()});
-        await loadSubscriptions();draw();
-        g.querySelector('#subUrl').value='';g.querySelector('#subName').value='';
-        status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
+        const preview=await call('ical-subscribe',{action:'preview',url});
+        const nameInput=g.querySelector('#subName');
+        if(!nameInput.value.trim())nameInput.value=preview.name||preview.source_host||'Calendar feed';
+        g.querySelector('#subPreview')?.remove();
+        let chosen='teal';
+        const confirm=html('<div class="set-group" id="subPreview"><p class="inline-note">'+
+          esc(preview.imported)+' events found. Confirm the name and color before subscribing.</p>'+
+          '<div class="menu-swatches" id="subColors"></div>'+
+          '<div style="margin-top:12px">'+btn('Save subscription','subConfirm','btn-primary')+'</div></div>');
+        SWATCH_ORDER.forEach(color=>{
+          const swatch=html('<button class="swatch'+(color===chosen?' sel':'')+
+            '" style="background:'+PALETTE[color].dot+'" aria-label="'+esc(COLOR_NAMES[color])+
+            '" title="'+esc(COLOR_NAMES[color])+'"></button>');
+          swatch.onclick=()=>{
+            chosen=color;
+            confirm.querySelectorAll('.swatch').forEach(node=>node.classList.remove('sel'));
+            swatch.classList.add('sel');
+          };
+          confirm.querySelector('#subColors').append(swatch);
+        });
+        g.append(confirm);status.textContent='';
+        confirm.querySelector('#subConfirm').onclick=async()=>{
+          const button=confirm.querySelector('#subConfirm');button.disabled=true;
+          status.textContent='Subscribing…';
+          try{
+            const result=await call('ical-subscribe',{action:'add',url,name:nameInput.value.trim(),color:chosen});
+            await loadSubscriptions();draw();confirm.remove();
+            g.querySelector('#subUrl').value='';nameInput.value='';
+            status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
+          }catch(error){showError(status,error);}finally{button.disabled=false;}
+        };
       }catch(e){showError(status,e);}
       finally{b.disabled=false;}
     };
