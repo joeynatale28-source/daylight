@@ -17,6 +17,22 @@
   var loading = true, recovery = /(?:^|[&#?])type=recovery(?:[&#&]|$)/.test(location.href);
   var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false;
   var lastStatus = '';
+  window.daylightCloud = {
+    get client() { return client; },
+    get user() { return user; },
+    get ready() { return !!user && !loading && !conflict; },
+    save: function () { changesQueued(); }
+  };
+  function signature(e) { return JSON.stringify([e.title,e.cal,+e.start,+e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates]); }
+  function ensureMeta(e) {
+    if (!e.uid) e.uid = crypto.randomUUID() + '@daylight';
+    if (!e.dtstamp) e.dtstamp = new Date().toISOString();
+    if (!e.timezone) e.timezone = state.useDeviceTz ? deviceTz() : (state.tzLabel || 'America/New_York');
+    if (!Number.isInteger(e.sequence)) e.sequence = 0;
+    var sig = signature(e);
+    if (e._lastSig && sig !== e._lastSig) { e.sequence++; e.dtstamp = new Date().toISOString(); }
+    e._lastSig = sig;
+  }
   var originalBuildAuth = buildAuthFormInner;
   var originalRenderAll = renderAll;
   var originalRenderSidebar = renderSidebar;
@@ -131,7 +147,9 @@
           desc: String(e.desc || ''), repeat: e.repeat || null,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
-          exdates: e.exdates, feedKey: e.feedKey
+          exdates: e.exdates, feedKey: e.feedKey,
+          timezone: e.timezone, dtstamp:e.dtstamp, sequence:e.sequence,
+          recurrenceId:e.recurrenceId, status:e.status
         };
       }).filter(function (ev) {
         /* Old snapshots duplicated built-in holidays as stored event rows.
@@ -153,6 +171,7 @@
         };
       }).filter(Boolean);
     }
+    state.events.forEach(ensureMeta);
     state.feeds = Array.isArray(payload.feeds)
       ? payload.feeds.filter(function (f) { return f && typeof f.url === 'string'; })
       : [];
@@ -185,15 +204,18 @@
   function workspace() {
     return {
       version: 2,
-      calendars: state.calendars.map(function (c) {
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId; }).map(function (c) {
         return { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
       }),
-      events: state.events.map(function (e) {
+      events: state.events.filter(function (e) { return !e.feedSubscriptionId; }).map(function (e) {
+        ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
-          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey };
+          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
+          timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
+          recurrenceId:e.recurrenceId,status:e.status };
       }),
       tasks: state.tasks.map(function (t) {
         return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),
@@ -303,6 +325,7 @@
       document.getElementById('authRoot').innerHTML = '';
       document.getElementById('app').hidden = false;
       originalRenderAll(false);
+      document.dispatchEvent(new Event('daylight:workspace-ready'));
       document.body.classList.remove('booting');
       status('Saved to cloud');
       authState.password = '';
@@ -328,6 +351,7 @@
     loading = true; saving = false; saveAgain = false; conflict = false;
     clearTimeout(saveTimer);
     clearPreviewData();
+    document.dispatchEvent(new Event('daylight:workspace-signed-out'));
     document.getElementById('app').hidden = true;
     authState.mode = 'login';
     authState.password = '';

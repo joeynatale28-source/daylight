@@ -1992,18 +1992,35 @@
       function ribbonOf(cal) { return "inset 4px 0 0 " + dotOf(cal); }
 
       /* Occurrences of an event overlapping [rs, re) — expands repeats. */
+      function occurrenceStamp(value) {
+        if (typeof value !== "string") return +new Date(value);
+        var m = value.match(/^(\d{4})(\d{2})(\d{2})(?:T(\d{2})(\d{2})(\d{2})Z?)?$/);
+        if (m) return Date.UTC(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
+        return +new Date(value);
+      }
       function occurrences(ev, rs, re) {
         var out = [];
+        if (String(ev.status||"").toUpperCase()==="CANCELLED") return out;
         var dur = ev.end - ev.start;
         var cur = new Date(ev.start);
+        /* The origin of a moved RECURRENCE-ID exception must disappear;
+           otherwise the old occurrence and its replacement both render. */
+        var exceptions = ev.uid && !ev.recurrenceId
+          ? state.events.filter(function(other) {
+              return other!==ev && other.cal===ev.cal && other.uid===ev.uid && other.recurrenceId;
+            }) : [];
+        var omitted = new Set((Array.isArray(ev.exdates) ? ev.exdates : []).map(occurrenceStamp));
+        exceptions.forEach(function(ex) { omitted.add(occurrenceStamp(ex.recurrenceId)); });
+        var ruleFreq = String(ev.rrule||"").match(/(?:^|;)FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(?:;|$)/i);
+        var frequency = ev.recurrenceId ? null : (ev.repeat || (ruleFreq ? ruleFreq[1].toLowerCase() : null));
         /* Fast-forward daily/weekly series that start long before
            the range: jump in whole periods to just before the range
            (one period of safety margin, wall-clock preserving), so
            an old series still lands in view instead of exhausting
            the iteration guard before it ever arrives. Monthly and
            yearly series are covered by the larger guard alone. */
-        if (ev.repeat === "daily" || ev.repeat === "weekly") {
-          var stepDays = ev.repeat === "daily" ? 1 : 7;
+        if (frequency === "daily" || frequency === "weekly") {
+          var stepDays = frequency === "daily" ? 1 : 7;
           var gapSteps = Math.floor((rs.getTime() - dur - cur.getTime()) / (stepDays * DAY_MS)) - 1;
           if (gapSteps > 0) cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + gapSteps * stepDays, cur.getHours(), cur.getMinutes());
         }
@@ -2011,12 +2028,12 @@
         while (guard++ < 6000) {
           var cEnd = new Date(cur.getTime() + dur);
           if (cur >= re) break;
-          if (cEnd > rs) out.push({ ev: ev, start: new Date(cur), end: cEnd });
-          if (!ev.repeat) break;
-          if (ev.repeat === "weekly") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7, cur.getHours(), cur.getMinutes());
-          else if (ev.repeat === "daily") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, cur.getHours(), cur.getMinutes());
-          else if (ev.repeat === "monthly") cur = new Date(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), cur.getHours(), cur.getMinutes());
-          else if (ev.repeat === "yearly") cur = new Date(cur.getFullYear() + 1, cur.getMonth(), cur.getDate(), cur.getHours(), cur.getMinutes());
+          if (cEnd > rs && !omitted.has(+cur)) out.push({ ev: ev, start: new Date(cur), end: cEnd });
+          if (!frequency) break;
+          if (frequency === "weekly") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7, cur.getHours(), cur.getMinutes());
+          else if (frequency === "daily") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 1, cur.getHours(), cur.getMinutes());
+          else if (frequency === "monthly") cur = new Date(cur.getFullYear(), cur.getMonth() + 1, cur.getDate(), cur.getHours(), cur.getMinutes());
+          else if (frequency === "yearly") cur = new Date(cur.getFullYear() + 1, cur.getMonth(), cur.getDate(), cur.getHours(), cur.getMinutes());
           else break;
         }
         return out;
@@ -2507,10 +2524,36 @@
         });
         return n;
       }
+      function animateCalendarToggle(cal) {
+        var reduce=state.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var view=document.getElementById('viewWrap');
+        function toggle() { cal.hidden=!cal.hidden;renderSidebar();renderView(false); }
+        if(reduce||!view){toggle();return;}
+        function items() {
+          return Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function(node) {
+            return node.getAttribute('data-calendar-id')===String(cal.id);
+          });
+        }
+        if(cal.hidden){
+          toggle();
+          items().forEach(function(node) {
+            node.animate([{opacity:0,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],
+              {duration:190,easing:'cubic-bezier(.23,1,.32,1)'});
+          });
+        } else {
+          var leaving=items();
+          if(!leaving.length){toggle();return;}
+          var pending=leaving.map(function(node){
+            return node.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.96)'}],
+              {duration:130,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'}).finished.catch(function(){});
+          });
+          Promise.all(pending).then(function(){toggle();});
+        }
+      }
       function calRow(cal) {
         var row = el('<div class="cal-row"></div>');
         var chk = el('<button class="cal-check' + (cal.hidden ? " off" : "") + '" style="background:' + dotOf(cal) + ";border-color:" + dotOf(cal) + ";color:" + checkColorFor(cal.color) + '" title="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-label="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-pressed="' + (!cal.hidden) + '">' + icon("check", 13) + "</button>");
-        chk.addEventListener("click", function () { cal.hidden = !cal.hidden; renderSidebar(); renderView(false); });
+        chk.addEventListener("click", function () { animateCalendarToggle(cal); });
         row.appendChild(chk);
         var name = el('<span class="cal-name' + (cal.hidden ? " off" : "") + '">' + esc(cal.name) + "</span>");
         row.appendChild(name);
@@ -2538,7 +2581,8 @@
           return b;
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
-        m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { cal.hidden = !cal.hidden; renderSidebar(); renderView(false); }));
+        m.appendChild(item("link", "Share calendar", false, function () { window.daylightShareCalendar(cal); }));
+        m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
         var cur = el('<div class="menu-current"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span>Current: ' + esc(COLOR_NAMES[cal.color] || cal.color) + "</span></div>");
@@ -2636,7 +2680,7 @@
           for (var d = 0; d < 7; d++) {
             (function (date) {
               var inMonth = date.getMonth() === mc.getMonth();
-              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + calendarDayLabel(date, mc.getMonth()) + "</span></button>");
+              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
               b.addEventListener("click", function () {
                 state.section = "calendar";
                 state.miniSelected = sod(date);
@@ -2859,6 +2903,7 @@
                 var chip = el('<button class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
                   (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
                   "</button>");
+                chip.setAttribute("data-calendar-id",o.ev.cal);
                 chip.setAttribute("aria-label", o.ev.title);
                 chip.addEventListener("click", function (e) { openPopover(o, chip); e.stopPropagation(); });
                 evBox.appendChild(chip);
@@ -2950,6 +2995,7 @@
               var isStart = sameDay(o.start, date) || dayIdx === 0 || numDays === 1;
               var seg = numDays === 1 ? "" : segClass(o, date, dayIdx === 0, dayIdx === numDays - 1);
               var bar = el('<button class="allday-bar' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' + (isStart ? esc(o.ev.title) : "&nbsp;") + "</button>");
+              bar.setAttribute("data-calendar-id",o.ev.cal);
               bar.setAttribute("aria-label", o.ev.title);
               bar.addEventListener("click", function (e) { openPopover(o, bar); e.stopPropagation(); });
               cell.appendChild(bar);
@@ -3000,6 +3046,7 @@
               (height >= 44 ? '<span class="ev-time" style="display:block">' + fmtTimeRange(o.start, o.end) + "</span>" : "") +
               (o.loc && height >= 66 ? '<span class="ev-loc" style="display:block">' + esc(o.loc) + "</span>" : "") +
               "</button>");
+            card.setAttribute("data-calendar-id",o.ev.cal);
             if (height < 58) card.querySelector(".ev-title").style.webkitLineClamp = "1";
             card.addEventListener("click", function (e) { openPopover(o, card); e.stopPropagation(); });
             colEl.appendChild(card);
@@ -3344,6 +3391,9 @@
         var m = el('<div class="menu" role="menu" style="width:204px"></div>');
         var del = el('<button class="menu-item danger">' + icon("trash", 16) + "<span>Delete event</span></button>");
         del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev); });
+        var exportItem = el('<button class="menu-item">' + icon("download",16) + '<span>Export event (.ics)</span></button>');
+        exportItem.addEventListener("click",function(){closePopMenu();window.daylightExportEvent(ev);});
+        m.appendChild(exportItem);
         m.appendChild(del);
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
@@ -3899,6 +3949,7 @@
           ["notifications", "bell", "Notifications"],
           ["shortcuts", "keyboard", "Shortcuts"],
           ["data", "sync", "Data & sync"],
+          ["ai", "settings", "AI access"],
           ["about", "info", "About"]
         ];
         var pane = el('<div class="settings-pane"></div>');
@@ -3930,7 +3981,7 @@
           var x = el('<button class="icon-btn settings-close" title="Close settings">' + icon("x", 17) + "</button>");
           x.addEventListener("click", close);
           pane.appendChild(x);
-          var fn = { general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, data: paneData, about: paneAbout }[settingsState.section];
+          var fn = { general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, data: paneData, ai: window.daylightAiPane, about: paneAbout }[settingsState.section];
           fn(pane, close);
           bindDropdowns(pane);
           /* Switches are icon-only controls: give each one its row's visible
@@ -5116,5 +5167,6 @@
     <script src="./daylight-settings.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
+    <script src="./daylight-integrations.js"></script>
   </body>
 </html>
