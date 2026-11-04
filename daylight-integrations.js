@@ -175,6 +175,31 @@
       '</div><div style="display:flex;gap:8px">'+btn('Add calendar by URL','subAdd','btn-primary')+btn('Refresh subscriptions','subReload')+'</div>'+
       '<div id="subStatus" role="status" style="margin:10px 0"></div><div id="subList"></div></div>');
     pane.insertBefore(g,pane.firstElementChild.nextElementSibling||null);
+    const importGroup=html('<div class="set-group"><div class="set-group-title">Import iCalendar (.ics)</div>'+
+      '<p class="pane-sub">Import events into a calendar you own. Re-importing the same file matches events by UID.</p>'+
+      '<div class="field"><label for="icsCalendar">Destination calendar</label><select class="text-input" id="icsCalendar"></select></div>'+
+      '<input class="text-input" type="file" id="icsFile" accept=".ics,text/calendar">'+
+      '<div style="margin-top:10px">'+btn('Import .ics','icsImport','btn-primary')+'</div>'+
+      '<div class="inline-note" id="icsResult" role="status"></div></div>');
+    pane.insertBefore(importGroup,g.nextSibling);
+    const selector=importGroup.querySelector('#icsCalendar');
+    state.calendars.filter(c=>!c.subscribed&&!c.builtin).forEach(c=>{
+      const option=document.createElement('option');option.value=c.id;option.textContent=c.name;
+      selector.appendChild(option);
+    });
+    importGroup.querySelector('#icsImport').onclick=async()=>{
+      const file=importGroup.querySelector('#icsFile').files?.[0];
+      const result=importGroup.querySelector('#icsResult');
+      if(!file||!selector.value){result.textContent='Choose a .ics file and an owned calendar';return;}
+      if(file.size>2500000){result.textContent='Maximum file size: 2.5 MB';return;}
+      try{
+        const imported=await call('ical-import',{action:'import',calendar_id:selector.value,ics:await file.text()});
+        result.textContent=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped. Reloading…';
+        // The Edge Function uses a compare-and-swap workspace revision.
+        // Reload rather than risk overwriting imported data with an older open snapshot.
+        location.reload();
+      }catch(e){showError(result,e);}
+    };
     const status=g.querySelector('#subStatus'),list=g.querySelector('#subList');
     function draw(){
       list.innerHTML='';
@@ -264,7 +289,7 @@
       const [tokens,settings,audit]=await Promise.all([
         db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
         db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_workspace_audit').select('tool,result,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(15)
+        db.from('mcp_audit_log').select('tool,action,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(15)
       ]);
       if(tokens.error)showError(status,tokens.error);
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
@@ -285,7 +310,7 @@
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
       const history=g.querySelector('#mcpAudit');history.innerHTML='';
       (audit.data||[]).forEach(a=>{
-        history.appendChild(html('<div class="feed-row">'+esc(a.tool)+' · '+esc(a.result)+' · '+esc(new Date(a.created_at).toLocaleString())+'</div>'));
+        history.appendChild(html('<div class="feed-row">'+esc(a.tool)+' · '+esc(a.action)+' · '+esc(new Date(a.created_at).toLocaleString())+'</div>'));
       });
       if(!history.children.length)history.innerHTML=note('No AI actions recorded yet');
     }
