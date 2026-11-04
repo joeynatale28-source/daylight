@@ -30,7 +30,7 @@ async function token(name:string,scopes:string[]){
 }
 async function connect(token:string){
   const client=new Client({name:'daylight-smoke',version:'1.0.0'});
-  const transport=new StreamableHTTPClientTransport(new URL(endpoint),{
+  const transport=new StreamableHTTPClientTransport(new URL(endpoint!),{
     requestInit:{headers:{Authorization:'Bearer '+token}}
   });
   await client.connect(transport);
