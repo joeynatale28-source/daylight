@@ -74,7 +74,7 @@
       const matches=state.calendars.find(c=>c.id===calId);
       if(matches)return;
       const colorKeys=['teal','blue','violet','green','amber','rose'];
-      const color=colorKeys[rows.indexOf(s)%colorKeys.length];
+      const color=PALETTE[s.color]?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
       state.calendars.push({id:calId,name:s.name||'Calendar feed',color,hidden:false,
         subscribed:true,builtin:false,remoteSubscriptionId:s.id});
       remoteIds.add(calId);
@@ -121,7 +121,7 @@
       try{
         const data=await call('ical-feed',{action:'status',calendar_id:cal.id});
         enabled=!!data.enabled;
-        info.innerHTML=note(enabled?'Sharing is enabled · '+(data.prefix||'')+'••••••••':'Sharing is off. Only you can access this calendar.');
+        info.innerHTML=note(enabled?'Sharing enabled · '+(data.prefix||'')+'•••••••• · The full link is not recoverable. Reset it to get a new one.':'Sharing is off. Only you can access this calendar.');
         body.querySelector('#shareEnable').hidden=enabled;
         body.querySelector('#shareReset').hidden=!enabled;
         body.querySelector('#shareDisable').hidden=!enabled;
@@ -150,10 +150,13 @@
         catch(e){showError(info,e);}
       }
     });
-    body.querySelector('#shareDisable').onclick=async()=>{
-      try{await call('ical-feed',{action:'disable',calendar_id:cal.id});links.innerHTML='';await loadStatus();toast('Calendar sharing disabled');}
-      catch(e){showError(info,e);}
-    };
+    body.querySelector('#shareDisable').onclick=()=>openConfirm({
+      title:'Disable sharing?',body:'Apps using the current link will stop syncing. The shared URL will return Not Found.',
+      confirmLabel:'Disable sharing',danger:true,fn:async()=>{
+        try{await call('ical-feed',{action:'disable',calendar_id:cal.id});links.innerHTML='';await loadStatus();toast('Calendar sharing disabled');}
+        catch(e){showError(info,e);}
+      }
+    });
     body.querySelector('#shareExport').onclick=async()=>{
       try{
         const result=await call('ical-feed',{action:'export',calendar_id:cal.id});
@@ -223,7 +226,7 @@
         card.querySelector('#refreshOne').onclick=async()=>{
           try{
             status.textContent='Refreshing…';
-            await call('ical-subscribe',{action:'refresh',id:s.id});
+            await call('ical-subscribe',{action:'refresh',id:s.id,force:true});
             await loadSubscriptions();draw();status.textContent='Subscription checked';
           }catch(e){showError(status,e);}
         };
@@ -251,7 +254,7 @@
     g.querySelector('#subReload').onclick=async()=>{
       status.textContent='Checking feeds…';
       try{
-        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id});
+        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id,force:true});
         await loadSubscriptions();draw();status.textContent='Feeds checked';
       }catch(e){showError(status,e);}
     };
@@ -358,5 +361,78 @@
     load().catch(e=>showError(status,e));
   }
   window.daylightAiPane=aiPane;
+  // Manage subscribed calendars from their existing sidebar rows.
+  function manageSubscription(cal,anchor) {
+    const subscription=subscriptionRows.find(s=>'subscription:'+s.id===cal.id);
+    if(!subscription)return;
+    function refresh(){
+      call('ical-subscribe',{action:'refresh',id:subscription.id,force:true})
+        .then(()=>loadSubscriptions()).then(()=>toast('Subscription checked'))
+        .catch(error=>toast(error.message||'Could not update subscription'));
+    }
+    function rename(){
+      const content=html('<div class="field"><label for="renameSubscription">Calendar name</label>'+
+        '<input class="text-input" id="renameSubscription"></div>'+
+        '<div style="display:flex;gap:8px;justify-content:flex-end">'+btn('Save','saveSubscriptionName','btn-primary')+'</div>'+
+        '<p class="inline-note" id="renameError"></p>');
+      content.querySelector('input').value=subscription.name;
+      const dialog=modal('Rename subscription',content);
+      content.querySelector('#saveSubscriptionName').onclick=async()=>{
+        try{
+          await call('ical-subscribe',{action:'update',id:subscription.id,name:content.querySelector('input').value});
+          dialog.close();await loadSubscriptions();toast('Subscription renamed');
+        }catch(error){showError(content.querySelector('#renameError'),error);}
+      };
+      content.querySelector('input').focus();
+    }
+    function colors(){
+      const content=html('<div class="menu-swatches" id="subscriptionSwatches"></div><div id="swatchError"></div>');
+      const dialog=modal('Calendar color',content);
+      SWATCH_ORDER.forEach(key=>{
+        const swatch=html('<button class="swatch" aria-label="Set color to '+esc(COLOR_NAMES[key])+
+          '" title="'+esc(COLOR_NAMES[key])+'" style="background:'+PALETTE[key].dot+'"></button>');
+        if(subscription.color===key)swatch.classList.add('sel');
+        swatch.onclick=async()=>{
+          try{await call('ical-subscribe',{action:'update',id:subscription.id,color:key});
+            dialog.close();await loadSubscriptions();toast('Calendar color updated');}
+          catch(error){showError(content.querySelector('#swatchError'),error);}
+        };
+        content.querySelector('#subscriptionSwatches').append(swatch);
+      });
+    }
+    function remove(){
+      openConfirm({title:'Unsubscribe from '+subscription.name+'?',
+        body:'This removes the subscribed calendar and all cached events from Daylight. The source calendar is not affected.',
+        confirmLabel:'Unsubscribe',danger:true,fn:async()=>{
+          try{await call('ical-subscribe',{action:'remove',id:subscription.id});
+            await loadSubscriptions();toast('Calendar unsubscribed');}
+          catch(error){toast(error.message||'Could not unsubscribe');}
+        }});
+    }
+    openMenu(anchor,[
+      {icon:'sync',label:'Refresh now',fn:refresh},
+      {icon:'pencil',label:'Rename',fn:rename},
+      {icon:'droplet',label:'Change color',fn:colors},
+      {sep:true},{icon:'trash',label:'Unsubscribe',fn:remove}
+    ],{align:'right'});
+  }
+  const oldCalRow=calRow;
+  calRow=function(cal){
+    const row=oldCalRow(cal);
+    if(!cal.remoteSubscriptionId)return row;
+    const sub=subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);
+    if(!sub)return row;
+    const meta=html('<div class="rail-hide" style="font-size:10px;color:var(--muted);margin:0 2px 0 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>');
+    let host='External calendar';
+    try{host=new URL(sub.url).hostname;}catch{}
+    const time=sub.last_fetched_at?new Date(sub.last_fetched_at).toLocaleDateString():'Never';
+    meta.textContent=(sub.last_error?"Couldn't update · ":"")+host+' · '+time;
+    meta.title=sub.last_error||('Last updated '+time);
+    const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
+    menu.onclick=()=>manageSubscription(cal,menu);
+    row.append(meta,menu);return row;
+  };
+  window.daylightOpenSubscriptions=function(){openSettings('data');};
+
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 })();
