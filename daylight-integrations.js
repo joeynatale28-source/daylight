@@ -111,8 +111,20 @@
       ]);
       if(!own()||cloud.user.id!==uid)return;
       const rows=result.subscriptions||[];
-      materialize(rows);
+      if(JSON.stringify(rows)!==JSON.stringify(subscriptionRows))materialize(rows);
       try{localStorage.setItem(key,JSON.stringify(rows));}catch{}
+      // Stale-while-revalidate: fetch existing sources concurrently after painting.
+      // Each backend call is independently bounded and keeps the last-good cache on failure.
+      if(!loadSubscriptions.lastRefresh || Date.now()-loadSubscriptions.lastRefresh>10*60*1000){
+        loadSubscriptions.lastRefresh=Date.now();
+        Promise.allSettled(rows.map(s=>Promise.race([
+          call('ical-subscribe',{action:'refresh',id:s.id}),
+          new Promise((_,reject)=>setTimeout(()=>reject(Error('Feed refresh timeout')),7500))
+        ]))).then(results=>{
+          if(own()&&cloud.user.id===uid&&results.some(r=>r.status==='fulfilled'&&!r.value.unchanged))
+            loadSubscriptions();
+        });
+      }
     }catch(e){console.warn('Subscription refresh failed; cached events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);

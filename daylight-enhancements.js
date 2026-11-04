@@ -62,6 +62,8 @@ window.daylightColorPicker=function(host,initial,onChange){
  function make(key,label){const b=document.createElement("button");b.type="button";b.className="dl-color-item";b.style.background=window.PALETTE?.[key]?.dot||key;b.title=label||key;b.setAttribute("aria-label","Color "+(label||key));b.setAttribute("aria-pressed",String(key===selected));b.onclick=()=>{selected=key;onChange(key);paint()};host.append(b)}
  function paint(){host.querySelectorAll(".dl-color-item:not(.dl-color-plus)").forEach(b=>b.setAttribute("aria-pressed",String(b.title===selected)))}
  colors.forEach(key=>make(key));
+ if(initial&&!colors.includes(initial)&&!saved.includes(initial))
+   make(initial,"Current color");
  if(saved.length){const label=document.createElement("div");label.className="dl-color-label";label.textContent="Your colors";label.style.gridColumn="1/-1";host.append(label);saved.forEach(key=>make(key))}
  const plus=document.createElement("button");plus.type="button";plus.className="dl-color-item dl-color-plus";plus.textContent="+";plus.title="Create custom color";plus.setAttribute("aria-label","Create custom color");plus.onclick=()=>custom(key=>{selected=key;onChange(key);window.daylightColorPicker(host,selected,onChange)},/^#/.test(selected)?selected:"#FF7A00");host.append(plus);
 };
