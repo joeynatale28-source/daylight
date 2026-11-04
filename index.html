@@ -2834,6 +2834,7 @@
         renderAll(animate !== false, dir);
       }
       function renderAll(animate, dir) {
+        document.body.classList.toggle("dl-reduce-motion",!!state.reduceMotion);
         refreshToday();
         renderHeader(); renderSidebar(); renderView(animate, dir);
       }
@@ -3458,7 +3459,7 @@
         if (ev.repeat) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span></div>";
         if (ev.loc) {
           var withCoords=Number.isFinite(Number(ev.locationLat)) && Number.isFinite(Number(ev.locationLng)) &&
-            ev.locationLat != null && ev.locationLng != null && !!ev.placeId;
+            ev.locationLat != null && ev.locationLng != null;
           var osmHref=withCoords ? "https://www.openstreetmap.org/?mlat="+encodeURIComponent(ev.locationLat)+
             "&mlon="+encodeURIComponent(ev.locationLng)+"#map=17/"+encodeURIComponent(ev.locationLat)+"/"+encodeURIComponent(ev.locationLng) : "";
           rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' +
