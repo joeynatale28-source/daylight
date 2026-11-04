@@ -128,6 +128,7 @@ try {
   await page.route('**/supabase.min.js',route=>route.fulfill({
     status:200,contentType:'text/javascript',body:'/* Session-bound test Supabase fixture loaded by addInitScript */'
   }));
+  await new Promise(resolve=>setTimeout(resolve,500));
   await page.goto('http://127.0.0.1:'+port+'/index.html',{waitUntil:'domcontentloaded'});
   await page.waitForFunction(()=>!!window.daylightCloud?.ready,{timeout:20000});
   const screenshot=async(label,theme)=>{
@@ -181,6 +182,7 @@ try {
   await page.locator('#mcpReveal').waitFor();
   assert.match(await page.locator('#mcpReveal').inputValue(),/^dl_mcp_[a-f0-9]{64}$/);
   await page.evaluate(()=>document.querySelector('#mcpReveal')?.closest('.backdrop')?.remove());
+  await page.locator('#mcpTokens .dl-token-row').first().waitFor();
   assert.equal(await page.locator('#mcpTokens .dl-token-row').count(),1);
   if(errors.length)throw Error('Browser page errors: '+errors.join(' | '));
   console.log('PASS: AI, share, subscriptions and address UI rendered; keyboard and mouse commit coordinates; free text saved; screenshots written');
