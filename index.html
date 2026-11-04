@@ -2507,10 +2507,36 @@
         });
         return n;
       }
+      function animateCalendarToggle(cal) {
+        var reduce=state.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var view=document.getElementById('viewWrap');
+        function toggle() { cal.hidden=!cal.hidden;renderSidebar();renderView(false); }
+        if(reduce||!view){toggle();return;}
+        function items() {
+          return Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function(node) {
+            return node.getAttribute('data-calendar-id')===String(cal.id);
+          });
+        }
+        if(cal.hidden){
+          toggle();
+          items().forEach(function(node) {
+            node.animate([{opacity:0,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],
+              {duration:190,easing:'cubic-bezier(.23,1,.32,1)'});
+          });
+        } else {
+          var leaving=items();
+          if(!leaving.length){toggle();return;}
+          var pending=leaving.map(function(node){
+            return node.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.96)'}],
+              {duration:130,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'}).finished.catch(function(){});
+          });
+          Promise.all(pending).then(function(){toggle();});
+        }
+      }
       function calRow(cal) {
         var row = el('<div class="cal-row"></div>');
         var chk = el('<button class="cal-check' + (cal.hidden ? " off" : "") + '" style="background:' + dotOf(cal) + ";border-color:" + dotOf(cal) + ";color:" + checkColorFor(cal.color) + '" title="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-label="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-pressed="' + (!cal.hidden) + '">' + icon("check", 13) + "</button>");
-        chk.addEventListener("click", function () { cal.hidden = !cal.hidden; renderSidebar(); renderView(false); });
+        chk.addEventListener("click", function () { animateCalendarToggle(cal); });
         row.appendChild(chk);
         var name = el('<span class="cal-name' + (cal.hidden ? " off" : "") + '">' + esc(cal.name) + "</span>");
         row.appendChild(name);
@@ -2539,7 +2565,7 @@
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
         m.appendChild(item("link", "Share calendar", false, function () { window.daylightShareCalendar(cal); }));
-        m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { cal.hidden = !cal.hidden; renderSidebar(); renderView(false); }));
+        m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
         var cur = el('<div class="menu-current"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span>Current: ' + esc(COLOR_NAMES[cal.color] || cal.color) + "</span></div>");
@@ -2860,6 +2886,7 @@
                 var chip = el('<button class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
                   (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
                   "</button>");
+                chip.setAttribute("data-calendar-id",o.ev.cal);
                 chip.setAttribute("aria-label", o.ev.title);
                 chip.addEventListener("click", function (e) { openPopover(o, chip); e.stopPropagation(); });
                 evBox.appendChild(chip);
@@ -2951,6 +2978,7 @@
               var isStart = sameDay(o.start, date) || dayIdx === 0 || numDays === 1;
               var seg = numDays === 1 ? "" : segClass(o, date, dayIdx === 0, dayIdx === numDays - 1);
               var bar = el('<button class="allday-bar' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' + (isStart ? esc(o.ev.title) : "&nbsp;") + "</button>");
+              bar.setAttribute("data-calendar-id",o.ev.cal);
               bar.setAttribute("aria-label", o.ev.title);
               bar.addEventListener("click", function (e) { openPopover(o, bar); e.stopPropagation(); });
               cell.appendChild(bar);
@@ -3001,6 +3029,7 @@
               (height >= 44 ? '<span class="ev-time" style="display:block">' + fmtTimeRange(o.start, o.end) + "</span>" : "") +
               (o.loc && height >= 66 ? '<span class="ev-loc" style="display:block">' + esc(o.loc) + "</span>" : "") +
               "</button>");
+            card.setAttribute("data-calendar-id",o.ev.cal);
             if (height < 58) card.querySelector(".ev-title").style.webkitLineClamp = "1";
             card.addEventListener("click", function (e) { openPopover(o, card); e.stopPropagation(); });
             colEl.appendChild(card);
