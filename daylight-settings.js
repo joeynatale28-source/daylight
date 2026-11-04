@@ -57,6 +57,9 @@
       ".settings-pane{padding-bottom:104px}",
       ".settings-savebar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar[hidden]{display:none!important}",
+      ".settings-savebar:not([hidden]){animation:settingsBarIn 190ms cubic-bezier(0.23,1,0.32,1)}",
+      "@keyframes settingsBarIn{from{opacity:0;transform:translate(-50%,8px) scale(.97)}to{opacity:1;transform:translate(-50%,0) scale(1)}}",
+      "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}",
       ".settings-savebar .savebar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}",
       ".settings-savebar button{border:0;border-radius:999px;font:inherit;padding:8px 13px;white-space:nowrap;cursor:pointer}",
       ".settings-savebar button[data-discard]{color:var(--muted);background:var(--gray-2)}",
@@ -81,14 +84,16 @@
     var rail = el('<div class="settings-rail"><div class="sr-title">Settings</div></div>');
     var pane = el('<div class="settings-pane"></div>');
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden>' +
-      '<span class="savebar-message">You haven&#39;t saved your changes</span>' +
+      '<span class="savebar-message">You have unsaved changes</span>' +
       '<span class="savebar-actions"><button type="button" data-discard>Discard</button>' +
       '<button type="button" data-save>Save changes</button></span></div>');
 
     function isDirty() { return JSON.stringify(snapshot()) !== originalJSON; }
     function markDirty() {
       if (!settingsState.transactionActive || !bd.isConnected) return;
-      bar.hidden = !isDirty();
+      const dirty=isDirty();
+      bar.hidden=!dirty;
+      bar.setAttribute("aria-hidden",String(!dirty));
     }
     settingsState.markDirty = markDirty;
 

@@ -74,7 +74,7 @@
       const matches=state.calendars.find(c=>c.id===calId);
       if(matches)return;
       const colorKeys=['teal','blue','violet','green','amber','rose'];
-      const color=PALETTE[s.color]?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
+      const color=(PALETTE[s.color]||/^#[0-9a-f]{6}$/i.test(String(s.color||"")))?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
       state.calendars.push({id:calId,name:s.name||'Calendar feed',color,hidden:false,
         subscribed:true,builtin:false,remoteSubscriptionId:s.id});
       remoteIds.add(calId);
@@ -97,11 +97,23 @@
   async function loadSubscriptions() {
     if(!own())return;
     const uid=cloud.user.id;
+    const key='daylight-subscription-cache:'+uid;
+    if(!subscriptionRows.length){
+      try{
+        const cached=JSON.parse(localStorage.getItem(key)||'null');
+        if(Array.isArray(cached))materialize(cached);
+      }catch(e){console.warn('Cached subscriptions unavailable',e);}
+    }
     try{
-      const result=await call('ical-subscribe',{action:'list'});
+      const result=await Promise.race([
+        call('ical-subscribe',{action:'list'}),
+        new Promise((_,reject)=>setTimeout(()=>reject(Error('Subscription refresh timeout')),8000))
+      ]);
       if(!own()||cloud.user.id!==uid)return;
-      materialize(result.subscriptions||[]);
-    }catch(e){console.warn('Subscription refresh failed; existing events remain',e);}
+      const rows=result.subscriptions||[];
+      materialize(rows);
+      try{localStorage.setItem(key,JSON.stringify(rows));}catch{}
+    }catch(e){console.warn('Subscription refresh failed; cached events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);
   document.addEventListener('daylight:workspace-ready',()=>{
@@ -200,11 +212,9 @@
   function feedPane(pane) {
     const existing=pane.querySelector('.set-group');
     if(existing)existing.remove();
-    const g=html('<div class="set-group"><div class="set-group-title">Subscribe and share calendars</div>'+
-      '<p class="pane-sub">Add a read-only iCalendar feed. Other calendar events are updated through Supabase and retain their original time zones.</p>'+
-      '<div class="field"><label for="subName">Calendar name (optional)</label><input class="text-input" id="subName" placeholder="Use the feed’s calendar name"></div>'+
-      '<div class="field"><label for="subUrl">Calendar URL</label><input class="text-input" id="subUrl" placeholder="https://example.com/calendar.ics">'+
-      '</div><div style="display:flex;gap:8px">'+btn('Add calendar by URL','subAdd','btn-primary')+btn('Refresh subscriptions','subReload')+'</div>'+
+    const g=html('<div class="set-group"><div class="set-group-title">Subscribed calendars</div>'+
+      '<p class="pane-sub">Add new feeds using the + button in the sidebar. Manage existing feeds here.</p>'+
+      '<div style="display:flex;gap:8px">'+btn('Refresh subscriptions','subReload')+'</div>'+
       '<div id="subStatus" role="status" style="margin:10px 0"></div><div id="subList"></div></div>');
     pane.insertBefore(g,pane.firstElementChild.nextElementSibling||null);
     const importGroup=html('<div class="set-group"><div class="set-group-title">Import iCalendar (.ics)</div>'+
@@ -261,44 +271,6 @@
         list.appendChild(card);
       });
     }
-    g.querySelector('#subAdd').onclick=async()=>{
-      const b=g.querySelector('#subAdd'),url=g.querySelector('#subUrl').value.trim();
-      b.disabled=true;status.textContent='Checking calendar feed…';
-      try{
-        const preview=await call('ical-subscribe',{action:'preview',url});
-        const nameInput=g.querySelector('#subName');
-        if(!nameInput.value.trim())nameInput.value=preview.name||preview.source_host||'Calendar feed';
-        g.querySelector('#subPreview')?.remove();
-        let chosen='teal';
-        const confirm=html('<div class="set-group" id="subPreview"><p class="inline-note">'+
-          esc(preview.imported)+' events found. Confirm the name and color before subscribing.</p>'+
-          '<div class="menu-swatches" id="subColors"></div>'+
-          '<div style="margin-top:12px">'+btn('Save subscription','subConfirm','btn-primary')+'</div></div>');
-        SWATCH_ORDER.forEach(color=>{
-          const swatch=html('<button class="swatch'+(color===chosen?' sel':'')+
-            '" style="background:'+PALETTE[color].dot+'" aria-label="'+esc(COLOR_NAMES[color])+
-            '" title="'+esc(COLOR_NAMES[color])+'"></button>');
-          swatch.onclick=()=>{
-            chosen=color;
-            confirm.querySelectorAll('.swatch').forEach(node=>node.classList.remove('sel'));
-            swatch.classList.add('sel');
-          };
-          confirm.querySelector('#subColors').append(swatch);
-        });
-        g.append(confirm);status.textContent='';
-        confirm.querySelector('#subConfirm').onclick=async()=>{
-          const button=confirm.querySelector('#subConfirm');button.disabled=true;
-          status.textContent='Subscribing…';
-          try{
-            const result=await call('ical-subscribe',{action:'add',url,name:nameInput.value.trim(),color:chosen});
-            await loadSubscriptions();draw();confirm.remove();
-            g.querySelector('#subUrl').value='';nameInput.value='';
-            status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
-          }catch(error){showError(status,error);}finally{button.disabled=false;}
-        };
-      }catch(e){showError(status,e);}
-      finally{b.disabled=false;}
-    };
     g.querySelector('#subReload').onclick=async()=>{
       status.textContent='Checking feeds…';
       try{
@@ -459,16 +431,11 @@
     function colors(){
       const content=html('<div class="dl-swatches"><div class="menu-swatches" id="subscriptionSwatches"></div><div id="swatchError"></div></div>');
       const dialog=modal('Calendar color',content);
-      SWATCH_ORDER.forEach(key=>{
-        const swatch=html('<button class="swatch" aria-label="Set color to '+esc(COLOR_NAMES[key])+
-          '" title="'+esc(COLOR_NAMES[key])+'" style="background:'+PALETTE[key].dot+'"></button>');
-        if(subscription.color===key)swatch.classList.add('sel');
-        swatch.onclick=async()=>{
-          try{await call('ical-subscribe',{action:'update',id:subscription.id,color:key});
-            dialog.close();await loadSubscriptions();toast('Calendar color updated');}
-          catch(error){showError(content.querySelector('#swatchError'),error);}
-        };
-        content.querySelector('#subscriptionSwatches').append(swatch);
+      window.daylightColorPicker(content.querySelector('#subscriptionSwatches'),subscription.color,async key=>{
+        try{
+          await call('ical-subscribe',{action:'update',id:subscription.id,color:key});
+          dialog.close();await loadSubscriptions();renderAll(false);toast('Calendar color updated');
+        }catch(error){showError(content.querySelector('#swatchError'),error);}
       });
     }
     function remove(){
@@ -493,17 +460,42 @@
     if(!cal.remoteSubscriptionId)return row;
     const sub=subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);
     if(!sub)return row;
-    const meta=html('<div class="rail-hide" style="font-size:10px;color:var(--muted);margin:0 2px 0 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>');
-    let host='External calendar';
-    try{host=new URL(sub.url).hostname;}catch{}
-    const time=sub.last_fetched_at?new Date(sub.last_fetched_at).toLocaleDateString():'Never';
-    meta.textContent=(sub.last_error?"Couldn't update · ":"")+host+' · '+time;
-    meta.title=sub.last_error||('Last updated '+time);
     const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
     menu.onclick=()=>manageSubscription(cal,menu);
-    row.append(meta,menu);return row;
+    row.append(menu);return row;
   };
   window.daylightOpenSubscriptions=function(){openSettings('data');};
 
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
+
+  // Reachable before Settings has ever been opened.
+    window.daylightSubscribeDialog=function(){
+      const content=html('<div class="dl-subscribe-form">'+
+        '<div class="field"><label for="dl-sub-name">Name (optional)</label><input class="text-input" id="dl-sub-name" placeholder="Use the calendar feed name"></div>'+
+        '<div class="field"><label for="dl-sub-url">iCal URL</label><input class="text-input" id="dl-sub-url" placeholder="https://example.com/calendar.ics" autocomplete="off"></div>'+
+        '<div class="field"><label>Calendar color</label><div class="dl-color-grid" id="dl-sub-colors"></div></div>'+
+        '<p class="inline-note" role="status" id="dl-sub-feedback"></p>'+
+        '<div style="display:flex;justify-content:flex-end">'+btn('Subscribe','dl-sub-save','btn-primary')+'</div></div>');
+      const dlg=modal('Subscribe to a calendar',content);
+      let color='teal';
+      window.daylightColorPicker(content.querySelector('#dl-sub-colors'),color,k=>{color=k});
+      const feedback=content.querySelector('#dl-sub-feedback'),button=content.querySelector('#dl-sub-save');
+      content.querySelector('#dl-sub-url').focus();
+      button.onclick=async()=>{
+        let url=content.querySelector('#dl-sub-url').value.trim();
+        if(/^webcal:\/\//i.test(url))url='https://'+url.slice(9);
+        let parsed;
+        try{parsed=new URL(url);if(parsed.protocol!=='https:')throw Error('Invalid protocol')}
+        catch{feedback.textContent='Enter a valid HTTPS or webcal URL.';feedback.style.color='var(--danger)';return}
+        button.disabled=true;feedback.style.color='var(--muted)';feedback.textContent='Checking calendar feed…';
+        try{
+          const preview=await call('ical-subscribe',{action:'preview',url});
+          const name=content.querySelector('#dl-sub-name').value.trim()||preview.name||preview.source_host||'Calendar feed';
+          feedback.textContent='Subscribing…';
+          await call('ical-subscribe',{action:'add',url,name,color});
+          dlg.close();await loadSubscriptions();renderAll(false);toast('Calendar subscribed');
+        }catch(err){showError(feedback,err)}finally{button.disabled=false}
+      };
+    };
+
 })();

@@ -1945,7 +1945,7 @@
         }
         var w = writableCalendars(); return w.length ? w[0].id : state.calendars[0].id;
       }
-      function checkColorFor(colorKey) { return colorKey === "amber" ? "#171717" : "#ffffff"; }
+      function checkColorFor(colorKey) { if(/^#[0-9a-f]{6}$/i.test(colorKey)){var c=parseInt(colorKey.slice(1),16);return ((c>>16)*.299+((c>>8)&255)*.587+(c&255)*.114)>160?"#151515":"#fff";} return colorKey === "amber" ? "#171717" : "#ffffff"; }
       function fmtGoogleWhen(occ) {
         var ev = occ.ev;
         var startDay = DOWS[occ.start.getDay()] + ", " + MONTHS[occ.start.getMonth()] + " " + occ.start.getDate();
@@ -2004,9 +2004,17 @@
       /* Event blocks take the palette's tint step for their calendar;
          the 4px left ribbon (ribbonOf) and the selected state use the
          full-saturation colour. */
-      function tintOf(cal) { var p = PALETTE[cal.color] || PALETTE.blue; return effectiveTheme() === "light" ? p.light : p.dark; }
-      function tintTextOf(cal) { var p = PALETTE[cal.color] || PALETTE.blue; return effectiveTheme() === "light" ? p.lightText : p.darkText; }
-      function dotOf(cal) { return (PALETTE[cal.color] || PALETTE.blue).dot; }
+      function tintOf(cal) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.light : p.dark; }
+      function tintTextOf(cal) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.lightText : p.darkText; }
+      function daylightPalette(key) {
+        if (PALETTE[key]) return PALETTE[key];
+        if (typeof key==="string" && /^#[0-9a-f]{6}$/i.test(key)) {
+          var hex=key.toUpperCase();
+          return PALETTE[key]={dot:hex,light:"color-mix(in srgb, "+hex+" 14%, #fff)",dark:"color-mix(in srgb, "+hex+" 24%, #17191d)",lightText:"#202026",darkText:"#fff"};
+        }
+        return PALETTE.blue;
+      }
+      function dotOf(cal) { return daylightPalette(cal.color).dot; }
       function ribbonOf(cal) { return "inset 4px 0 0 " + dotOf(cal); }
 
       /* Occurrences of an event overlapping [rs, re) — expands repeats. */
@@ -2483,11 +2491,11 @@
           ownedCals.forEach(function (cal) { list.appendChild(calRow(cal)); });
           sidebarEl.appendChild(list);
         }
-        if (subCals.length) {
+        if (true) {
           var subLabel = el('<div class="side-label rail-hide"><span>Subscribe and share calendars</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
           var addSubscription = el('<button class="side-label-btn add" title="Subscribe by URL" aria-label="Subscribe by URL">' + icon("plus",16) + '</button>');
-          addSubscription.addEventListener("click",function(){openSettings("data");});
+          addSubscription.addEventListener("click",function(){window.daylightSubscribeDialog();});
           subActions.appendChild(addSubscription);
           var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscribed Calendars" : "Expand Subscribed Calendars") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
           collapseSub.addEventListener("click", function () { state.subSectionOpen = !state.subSectionOpen; renderSidebar(); });
@@ -2610,18 +2618,10 @@
         var cur = el('<div class="menu-current"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span>Current: ' + esc(COLOR_NAMES[cal.color] || cal.color) + "</span></div>");
         m.appendChild(cur);
         var swWrap = el('<div class="menu-swatches"></div>');
-        SWATCH_ORDER.forEach(function (k) {
-          var b = el('<button class="swatch' + (cal.color === k ? " sel" : "") + '" style="background:' + PALETTE[k].dot + '" title="' + esc(COLOR_NAMES[k]) + '" aria-label="Set color to ' + esc(COLOR_NAMES[k]) + '"></button>');
-          b.addEventListener("click", function () {
-            cal.color = k;
-            swWrap.querySelectorAll(".swatch").forEach(function (s) { s.classList.remove("sel"); });
-            b.classList.add("sel");
-            cur.querySelector(".pop-dot").style.background = PALETTE[k].dot;
-            cur.querySelector("span:last-child").textContent = "Current: " + COLOR_NAMES[k];
-            renderSidebar(); renderView(false);
-            toast("Calendar color updated");
-          });
-          swWrap.appendChild(b);
+        window.daylightColorPicker(swWrap,cal.color,function (key) {
+          cal.color=key;cur.querySelector(".pop-dot").style.background=dotOf(cal);
+          cur.querySelector("span:last-child").textContent="Current: "+(COLOR_NAMES[key]||key);
+          renderSidebar();renderView(false);
         });
         m.appendChild(swWrap);
         m.appendChild(el('<div class="menu-sep"></div>'));
@@ -2858,7 +2858,14 @@
         }
         if (state.view === "week" || state.view === "day") {
           var sc = viewWrap.querySelector(".tg-scroll");
-          if (sc) sc.scrollTop = Math.max(0, 6.5 * hourPx() - 8);
+          if(sc){
+            var days=state.view==="day"?[sod(state.cursor)]:weekDays(state.cursor);
+            var relevant=occsInRange(days[0],addDays(days[days.length-1],1)).filter(function(o){return !o.ev.allDay;});
+            var today=days.some(function(d){return sameDay(d,TODAY);});
+            var anchor=today?(new Date().getHours()+new Date().getMinutes()/60-1):Number(state.workStart||9);
+            relevant.forEach(function(o){var hour=o.start.getHours()+o.start.getMinutes()/60;if(hour<anchor)anchor=hour;});
+            sc.scrollTop=Math.max(0,anchor*hourPx());
+          }
         }
       }
       function drillToDay(date) {
@@ -2912,7 +2919,7 @@
               });
               var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"></div>');
               var num = el('<button class="day-num' + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + '" title="' + esc(fmtDateLong(date)) + '">' + calendarDayLabel(date, m) + "</button>");
-              num.addEventListener("click", function () { drillToDay(date); });
+              num.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null,date); });
               cell.appendChild(num);
               var add = el('<button class="cell-add" title="Add event" aria-label="Add event on ' + esc(fmtDateLong(date)) + '">' + icon("plus", 14) + "</button>");
               add.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null, date); });
@@ -2933,14 +2940,13 @@
               });
               if (dayOccs.length > MAX) {
                 var more = el('<button class="more-link">+' + (dayOccs.length - MAX) + " more</button>");
-                more.addEventListener("click", function () { drillToDay(date); });
+                more.addEventListener("click", function (e) { e.stopPropagation(); drillToDay(date); });
                 evBox.appendChild(more);
               }
               cell.appendChild(evBox);
-              cell.addEventListener("click", function () {
-                state.selected = sod(date); renderSidebar();
-                viewWrap.querySelectorAll(".day-cell.sel").forEach(function (c) { c.classList.remove("sel"); });
-                cell.classList.add("sel");
+              cell.addEventListener("click", function (e) {
+                if(e.target.closest("button"))return;
+                state.selected=sod(date);openEventForm(null,date);
               });
               row.appendChild(cell);
             })(cellDate, colIdx);
@@ -3068,6 +3074,12 @@
             card.addEventListener("click", function (e) { openPopover(o, card); e.stopPropagation(); });
             colEl.appendChild(card);
           });
+          colEl.addEventListener("click",function(e){
+            if(e.target.closest("button"))return;
+            var box=colEl.getBoundingClientRect();
+            var minute=Math.max(0,Math.min(1410,Math.floor((e.clientY-box.top)/hourPx()*2)*30));
+            var chosen=new Date(date);chosen.slotMinutes=minute;openEventForm(null,chosen);
+          });
           body.appendChild(colEl);
         });
         if (todayInRange) {
@@ -3113,7 +3125,7 @@
               : fmtTimeRange(o.start, o.end);
             var card = el('<button class="agenda-card">' +
               '<span class="ac-dot" style="background:' + dotOf(cal) + '"></span>' +
-              '<span><span class="ac-title">' + esc(o.ev.title) + '</span><span class="ac-meta" style="display:flex">' + icon("clock", 13) + "<span>" + esc(meta) + "</span>" +
+              '<span><span class="ac-title">' + esc(o.ev.title) + '</span><span class="ac-meta" style="display:flex"><span class="agenda-cal-name">' + esc(cal.name) + '</span>' + icon("clock", 13) + "<span>" + esc(meta) + "</span>" +
               (o.loc ? icon("pin", 13) + "<span>" + esc(o.loc) + "</span>" : "") +
               "</span></span></button>");
             card.addEventListener("click", function (e) { openPopover(o, card); e.stopPropagation(); });
@@ -3623,14 +3635,10 @@
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" style="margin-left:0" data-ok>Create calendar</button></div></div></div>');
         overlayRoot.appendChild(bd);
         var sw = bd.querySelector("#ncSwatches");
-        SWATCH_ORDER.forEach(function (k) {
-          var b = el('<button class="swatch' + (k === chosen ? " sel" : "") + '" style="background:' + PALETTE[k].dot + '" title="' + k + '"></button>');
-          b.addEventListener("click", function () { chosen = k; sw.querySelectorAll(".swatch").forEach(function (s) { s.classList.remove("sel"); }); b.classList.add("sel"); });
-          sw.appendChild(b);
-        });
+        window.daylightColorPicker(sw,chosen,function(key){chosen=key;});
         var input = bd.querySelector("#ncName");
         input.focus();
-        function close() { bd.remove(); }
+        function close() { if(window.daylightExit)window.daylightExit(bd);else bd.remove(); }
         bd.querySelector("[data-x]").addEventListener("click", close);
         bd.querySelector("[data-cancel]").addEventListener("click", close);
         bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
@@ -3715,8 +3723,8 @@
           allDay: src ? src.allDay : false,
           sDate: base ? sod(base.start) : sod(presetDate || state.selected),
           eDate: base ? sod(base.end) : sod(presetDate || state.selected),
-          sMin: base && !base.allDay ? base.start.getHours() * 60 + base.start.getMinutes() : nextHour * 60,
-          eMin: base && !base.allDay ? base.end.getHours() * 60 + base.end.getMinutes() : nextHour * 60 + state.defaultDuration,
+          sMin: base && !base.allDay ? base.start.getHours() * 60 + base.start.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60),
+          eMin: base && !base.allDay ? base.end.getHours() * 60 + base.end.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60) + state.defaultDuration,
           repeat: src ? src.repeat : null,
           reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
           loc: src ? src.loc : "",
@@ -5217,5 +5225,6 @@
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-integrations.js"></script>
     <script src="./daylight-places.js"></script>
+    <script src="./daylight-enhancements.js"></script>
   </body>
 </html>

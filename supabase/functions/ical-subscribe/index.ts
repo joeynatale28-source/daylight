@@ -150,6 +150,33 @@ Deno.serve(async(req:Request)=>{
   const result=await admin.from("subscriptions").delete().eq("id",id).eq("user_id",user.id);
   return result.error?respond({error:"Cannot remove subscription"},503):respond({removed:true});
  }
+ if(action==="update"){
+  const id=String(body.id||"");
+  const update:Record<string,unknown>={};
+  if(body.name!==undefined){
+   const name=String(body.name||"").trim().slice(0,120);
+   if(!name)return respond({error:"Calendar name cannot be empty"},400);
+   update.name=name;
+  }
+  if(body.color!==undefined){
+   const color=String(body.color||"");
+   if(!(/^[a-z]{2,20}$/.test(color)||/^#[0-9a-f]{6}$/i.test(color)))
+    return respond({error:"Invalid calendar color"},400);
+   update.color=color;
+  }
+  if(!Object.keys(update).length)return respond({error:"No changes supplied"},400);
+  const result=await admin.from("subscriptions").update(update).eq("id",id).eq("user_id",user.id).select().maybeSingle();
+  if(result.error)return respond({error:"Could not update subscription"},503);
+  return result.data?respond({subscription:result.data}):respond({error:"Subscription not found"},404);
+ }
+ if(action==="preview"){
+  try{
+   const url=safeURL(body.url);
+   const fetched=await fetchICS(url);
+   const parsed=parseFeed(fetched.text);
+   return respond({name:parsed.name||new URL(url).hostname,source_host:new URL(url).hostname,imported:parsed.events.length,skipped:parsed.skipped});
+  }catch(err){return respond({error:err instanceof Error?err.message:"Could not load calendar feed"},400)}
+ }
  if(action!=="add"&&action!=="refresh")return respond({error:"Unknown action"},400);
  let record:any=null,feedURL="";
  try {
@@ -158,7 +185,7 @@ Deno.serve(async(req:Request)=>{
    const result=await admin.from("subscriptions").select("*").eq("id",id).eq("user_id",user.id).maybeSingle();
    if(result.error||!result.data)return respond({error:"Subscription not found"},404);
    record=result.data;feedURL=record.url;
-   if(record.last_fetched_at && Date.now()-Date.parse(record.last_fetched_at)<3*3600000)
+   if(!body.force && record.last_fetched_at && Date.now()-Date.parse(record.last_fetched_at)<3*3600000)
     return respond({subscription:record,unchanged:true});
   }else{
    feedURL=safeURL(body.url);
@@ -168,7 +195,9 @@ Deno.serve(async(req:Request)=>{
   const fetched=await fetchICS(feedURL);
   const parsed=parseFeed(fetched.text);
   const name=String(body.name||record?.name||parsed.name||new URL(feedURL).hostname).trim().slice(0,120);
-  const fields={name,url:feedURL,color:record?.color||"teal",cached_events:parsed.events,
+  const requestedColor=String(body.color||"teal");
+  const safeColor=/^#[0-9a-f]{6}$/i.test(requestedColor)||/^[a-z]{2,20}$/.test(requestedColor)?requestedColor:"teal";
+  const fields={name,url:feedURL,color:record?.color||safeColor,cached_events:parsed.events,
    skipped_count:parsed.skipped,last_fetched_at:new Date().toISOString(),
    last_error:null,last_error_at:null,etag:fetched.etag};
   const response=record
