@@ -5102,7 +5102,8 @@
         });
       }
       applyTheme();
-      renderAuth();
+      /* Authentication is rendered only after Supabase resolves the session,
+         eliminating an unnecessary login render and flash during reload. */
       /* Keep "today" honest while the app sits open: re-derive it
          once a minute and whenever the app returns to the
          foreground, re-rendering only if the day actually rolled
