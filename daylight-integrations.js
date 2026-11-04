@@ -15,7 +15,7 @@
       '</button></div><div class="dialog-body"></div></div></div>');
     bd.querySelector('.dialog-body').appendChild(body);
     overlayRoot.appendChild(bd);
-    function close(){ bd.remove(); }
+    function close(){ if(window.daylightExit)window.daylightExit(bd);else bd.remove(); }
     bd.querySelector('[data-close]').addEventListener('click',close);
     bd.addEventListener('mousedown',e=>{if(e.target===bd)close();});
     return {root:bd,close};
@@ -104,6 +104,16 @@
     }catch(e){console.warn('Subscription refresh failed; existing events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);
+  document.addEventListener('daylight:workspace-ready',()=>{
+    const summary=sessionStorage.getItem('daylight-ics-last-result');
+    if(!summary)return;
+    sessionStorage.removeItem('daylight-ics-last-result');
+    setTimeout(()=>{
+      openSettings('data');
+      const result=document.getElementById('icsResult');
+      if(result)result.textContent=summary;
+    },50);
+  });
   document.addEventListener('daylight:workspace-signed-out',()=>{
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
@@ -168,6 +178,15 @@
     return dialog;
   }
   window.daylightShareCalendar=shareDialog;
+  window.daylightExportCalendar=async function(cal){
+    if(!own()||!cal||cal.builtin||cal.subscribed)return;
+    try{
+      const ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
+      download((cal.name||'calendar').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',ics);
+      toast('Calendar exported');
+    }catch(error){toast(error.message||'Export failed');}
+  };
+
   window.daylightExportEvent=async function(event) {
     if(!own())return;
     const calendar=calendarRow(event.cal);
@@ -207,9 +226,10 @@
       if(file.size>2500000){result.textContent='Maximum file size: 2.5 MB';return;}
       try{
         const imported=await call('ical-import',{action:'import',calendar_id:selector.value,ics:await file.text()});
-        result.textContent=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped. Reloading…';
-        // The Edge Function uses a compare-and-swap workspace revision.
-        // Reload rather than risk overwriting imported data with an older open snapshot.
+        const summary=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped.';
+        result.textContent=summary+' Reloading to display the imported events…';
+        sessionStorage.setItem('daylight-ics-last-result',summary);
+        // Reload the revisioned snapshot to avoid overwriting the imported events.
         location.reload();
       }catch(e){showError(result,e);}
     };
