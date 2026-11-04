@@ -53,7 +53,7 @@ function parse(text:string,calendarId:string) {
      const recurrenceId=part.getFirstProperty('recurrence-id');
      // RFC 5545 GEO is independent of vendor-specific OSM references.
      const geoRaw=part.getFirstProperty('geo')?.getFirstValue();
-     const geoMatch=String(geoRaw||'').match(/^(-?\\d+(?:\\.\\d+)?)\\s*;\\s*(-?\\d+(?:\\.\\d+)?)$/);
+     const geoMatch=String(geoRaw||'').match(/^(-?\d+(?:\.\d+)?)\s*;\s*(-?\d+(?:\.\d+)?)$/);
      const geoLat=geoMatch?Number(geoMatch[1]):null;
      const geoLng=geoMatch?Number(geoMatch[2]):null;
      const validGeo=geoLat!==null&&geoLng!==null&&Math.abs(geoLat)<=90&&Math.abs(geoLng)<=180;
