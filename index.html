@@ -2902,6 +2902,16 @@
         var occs = occsInRange(start, rangeEnd);
         for (var w = 0; w < 6; w++) {
           var rowStart = addDays(start, w * 7);
+          var spans=[];
+          occs.forEach(function(o){
+            if(!isMultiDay(o))return;
+            var positions=dows.map(function(day,i){return {i:i,date:addDays(rowStart,(day-state.weekStart+7)%7)}})
+              .filter(function(x){return sod(o.start)<=x.date&&sod(o.end)>=x.date});
+            if(!positions.length)return;
+            if(spans.some(function(x){return x.o.ev.id===o.ev.id&&+x.o.start===+o.start}))return;
+            spans.push({o:o,first:positions[0].i,last:positions[positions.length-1].i});
+          });
+          spans.sort(function(a,b){return a.o.start-b.o.start});
           var row = el('<div class="month-week' + (state.weekNumbers ? " has-wn" : "") + '"></div>');
           row.style.gridTemplateColumns = colTpl;
           if (state.weekNumbers) row.appendChild(el('<div class="wn-cell">' + isoWeek(addDays(rowStart, 3)) + "</div>"));
@@ -2911,7 +2921,7 @@
             if (colIdx < 0) continue;
             (function (date, colIdx) {
               var inMonth = date.getMonth() === m;
-              var dayOccs = occs.filter(function (o) { return sod(o.start) <= date && sod(o.end) >= date; });
+              var dayOccs = occs.filter(function (o) { return !isMultiDay(o) && sod(o.start) <= date && sod(o.end) >= date; });
               dayOccs.sort(function (a, b) {
                 var am = (a.ev.allDay || isMultiDay(a)) ? 0 : 1, bm = (b.ev.allDay || isMultiDay(b)) ? 0 : 1;
                 if (am !== bm) return am - bm;
@@ -2925,6 +2935,7 @@
               add.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null, date); });
               cell.appendChild(add);
               var evBox = el('<div class="cell-events"></div>');
+              if(spans.length)evBox.style.paddingTop=spans.length*25+"px";
               var MAX = (window.innerWidth <= 700 ? 2 : 3) + (state.density === "compact" ? 1 : 0);
               dayOccs.slice(0, MAX).forEach(function (o) {
                 var cal = calOf(o.ev.cal);
@@ -2950,6 +2961,25 @@
               });
               row.appendChild(cell);
             })(cellDate, colIdx);
+          }
+          if(spans.length){
+            row.style.position="relative";
+            var layer=el('<div class="dl-month-span-layer"></div>');
+            spans.forEach(function(sp,lane){
+              var o=sp.o,cal=calOf(o.ev.cal);
+              var bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+              var key=String(o.ev.id)+':'+(+o.start);
+              bar.dataset.spanKey=key;
+              bar.setAttribute("aria-label",o.ev.title);
+              bar.style.left='calc('+(state.weekNumbers?'30px + ':'')+'(100%'+(state.weekNumbers?' - 30px':'')+') * '+sp.first+'/'+dows.length+')';
+              bar.style.width='calc((100%'+(state.weekNumbers?' - 30px':'')+') * '+(sp.last-sp.first+1)+'/'+dows.length+' - 2px)';
+              bar.style.top=(34+lane*25)+'px';
+              bar.addEventListener("mouseenter",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add("dl-span-active")})});
+              bar.addEventListener("mouseleave",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.remove("dl-span-active")})});
+              bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
+              layer.appendChild(bar);
+            });
+            row.appendChild(layer);
           }
           grid.appendChild(row);
         }
@@ -3015,22 +3045,38 @@
         wrap.appendChild(head);
         var adRow = el('<div class="allday-row" style="grid-template-columns:' + gridCols + '"></div>');
         adRow.appendChild(el('<div class="allday-label">All-day</div>'));
-        days.forEach(function (date, dayIdx) {
-          var cell = el('<div class="allday-cell"></div>');
-          occs.filter(function (o) { return o.ev.allDay && sod(o.start) <= date && sod(o.end) >= date; })
-            .sort(function (a, b) { return a.start - b.start; })
-            .forEach(function (o) {
-              var cal = calOf(o.ev.cal);
-              var isStart = sameDay(o.start, date) || dayIdx === 0 || numDays === 1;
-              var seg = numDays === 1 ? "" : segClass(o, date, dayIdx === 0, dayIdx === numDays - 1);
-              var bar = el('<button class="allday-bar' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' + (isStart ? esc(o.ev.title) : "&nbsp;") + "</button>");
+        var weekSpans=occs.filter(function(o){return numDays>1&&o.ev.allDay&&isMultiDay(o)});
+        days.forEach(function(date){
+          var cell=el('<div class="allday-cell"></div>');
+          if(weekSpans.length)cell.style.paddingTop=(weekSpans.length*27+3)+"px";
+          occs.filter(function(o){return o.ev.allDay&&!isMultiDay(o)&&sod(o.start)<=date&&sod(o.end)>=date})
+            .forEach(function(o){
+              var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
               bar.setAttribute("data-calendar-id",o.ev.cal);
-              bar.setAttribute("aria-label", o.ev.title);
-              bar.addEventListener("click", function (e) { openPopover(o, bar); e.stopPropagation(); });
+              bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
               cell.appendChild(bar);
             });
           adRow.appendChild(cell);
         });
+        if(weekSpans.length){
+          adRow.style.position="relative";
+          var layer=el('<div class="dl-week-span-layer"></div>');
+          weekSpans.forEach(function(o,i){
+            var positions=days.map(function(d,k){return sod(o.start)<=d&&sod(o.end)>=d?k:-1}).filter(function(k){return k>=0});
+            if(!positions.length)return;
+            var cal=calOf(o.ev.cal),bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+            var key=String(o.ev.id)+':'+(+o.start);
+            bar.dataset.spanKey=key;bar.setAttribute("aria-label",o.ev.title);
+            bar.style.left='calc((100% - 64px) * '+positions[0]+'/'+numDays+' + 64px)';
+            bar.style.width='calc((100% - 64px) * '+(positions[positions.length-1]-positions[0]+1)+'/'+numDays+' - 3px)';
+            bar.style.top=(3+i*27)+'px';
+            bar.addEventListener("mouseenter",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add("dl-span-active")})});
+            bar.addEventListener("mouseleave",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.remove("dl-span-active")})});
+            bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
+            layer.appendChild(bar);
+          });
+          adRow.appendChild(layer);
+        }
         wrap.appendChild(adRow);
         /* Even when Day view has no events, render the complete timeline,
            all-day area and current-time indicator. Empty slots remain clickable.
@@ -5224,7 +5270,13 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-integrations.js"></script>
-    <script src="./daylight-places.js"></script>
+<style>
+.dl-month-span-layer,.dl-week-span-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
+.dl-continuous-bar{position:absolute;pointer-events:auto;height:23px;border-radius:6px;padding:2px 8px 2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;transition:filter 160ms cubic-bezier(.23,1,.32,1),box-shadow 160ms cubic-bezier(.23,1,.32,1)}
+.dl-continuous-bar:hover,.dl-continuous-bar.dl-span-active{filter:brightness(1.15);outline:1px solid currentColor;outline-offset:-1px}
+@media(prefers-reduced-motion:reduce){.dl-continuous-bar{transition:none}}
+</style>
+        <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
   </body>
 </html>
