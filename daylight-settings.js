@@ -99,7 +99,7 @@
       settingsState.markDirty = null;
       settingsState.viewSelect = null;
       settingsState.redrawPane = null;
-      bd.remove();
+      if(window.daylightExit)window.daylightExit(bd);else bd.remove();
       renderAll(false);
       if (save) {
         document.dispatchEvent(new CustomEvent("daylight:settings-committed", {
@@ -126,6 +126,7 @@
       ["notifications", "bell", "Notifications"],
       ["shortcuts", "keyboard", "Shortcuts"],
       ["data", "sync", "Data & sync"],
+      ["ai", "settings", "AI access"],
       ["about", "info", "About"]
     ].forEach(function (s) {
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
@@ -159,7 +160,7 @@
       var fn = {
         general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        data: paneData, about: paneAbout
+        data: paneData, ai: window.daylightAiPane, about: paneAbout
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
