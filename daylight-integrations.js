@@ -15,7 +15,7 @@
       '</button></div><div class="dialog-body"></div></div></div>');
     bd.querySelector('.dialog-body').appendChild(body);
     overlayRoot.appendChild(bd);
-    function close(){ bd.remove(); }
+    function close(){if(window.daylightDismissSurface)window.daylightDismissSurface(bd);else bd.remove();}
     bd.querySelector('[data-close]').addEventListener('click',close);
     bd.addEventListener('mousedown',e=>{if(e.target===bd)close();});
     return {root:bd,close};
@@ -352,6 +352,7 @@
         const result=await call('ical-import',{action:'import',calendar_id:chosen.id,ics:await file.text()});
         const message=result.added+' added, '+result.updated+' updated, '+result.skipped+' skipped.';
         sessionStorage.setItem('daylight:last-ical-import',message);
+        sessionStorage.setItem('daylight:import-pending','yes');
         feedback.textContent=message;
         // Reload after a compare-and-swap write so the open workspace cannot overwrite the import.
         location.reload();
