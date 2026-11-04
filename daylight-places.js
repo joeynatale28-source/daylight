@@ -16,11 +16,12 @@ window.daylightAttachPlaces=function(input,draft,dirty){
  const list=document.createElement('div');list.className='dl-osm-options';list.id=id;
  list.setAttribute('role','listbox');list.hidden=true;
  parent.append(spinner,list);
- let seq=0,timer=0,results=[],active=-1;
- function close(){list.hidden=true;results=[];active=-1;list.textContent='';input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');}
+ let seq=0,timer=0,results=[],active=-1,hover=-1;
+ function close(){list.hidden=true;results=[];active=-1;hover=-1;list.textContent='';input.setAttribute('aria-expanded','false');input.removeAttribute('aria-activedescendant');}
  function highlight(i,keyboard){
-  active=i;
-  list.querySelectorAll('[role=option]').forEach((option,index)=>option.setAttribute('aria-selected',String(index===i)));
+  if(keyboard)active=i;else hover=i;
+  const visual=hover>=0?hover:active;
+  list.querySelectorAll('[role=option]').forEach((option,index)=>option.setAttribute('aria-selected',String(index===visual)));
   if(keyboard){const option=document.getElementById(id+'-'+i);if(option){input.setAttribute('aria-activedescendant',option.id);option.scrollIntoView({block:'nearest'});}}
  }
  function commit(i){
@@ -38,7 +39,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
   el.append(strong,document.createTextNode(value.slice(offset+query.length)));
  }
  function render(query){
-  list.textContent='';active=-1;
+  list.textContent='';active=-1;hover=-1;
   results.forEach((item,index)=>{
    const button=document.createElement('button');button.type='button';button.className='dl-osm-option';
    button.id=id+'-'+index;button.setAttribute('role','option');button.setAttribute('aria-selected','false');
@@ -50,6 +51,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
    button.addEventListener('pointerdown',e=>e.preventDefault());
    button.addEventListener('click',()=>commit(index));
    button.addEventListener('pointerenter',()=>highlight(index,false));
+   button.addEventListener('pointerleave',()=>highlight(-1,false));
    list.append(button);
   });
   const credit=document.createElement('div');credit.className='dl-osm-credit';
