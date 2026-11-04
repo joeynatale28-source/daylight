@@ -1,0 +1,3 @@
+create policy mcp_grants_oauth_no_insert on public.mcp_grants as restrictive for insert to authenticated with check ((select auth.jwt() ->> 'client_id') is null);
+create policy mcp_grants_oauth_no_update on public.mcp_grants as restrictive for update to authenticated using ((select auth.jwt() ->> 'client_id') is null) with check ((select auth.jwt() ->> 'client_id') is null);
+create policy mcp_grants_oauth_no_delete on public.mcp_grants as restrictive for delete to authenticated using ((select auth.jwt() ->> 'client_id') is null);

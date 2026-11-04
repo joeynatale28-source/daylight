@@ -166,3 +166,61 @@ Live sign-in tests, Apple/Google iCalendar clients, MCP Inspector,
 two-user account isolation, and screenshot evidence for authenticated
 settings in both themes require separate test accounts and were not
 established by these automated checks. Do not claim those tests passed.
+
+## November 4 UI and OAuth update
+
+The live application is static HTML/JavaScript, not React. The updated sidebar has
+full wrapped subscription names, a direct Subscribe-by-URL dialog, and the
+new owned-calendar dialog. Calendar color pickers now offer 24 rainbow presets,
+neutral swatches, a custom saturation/brightness square, hue slider and validated
+hex entry, with reusable custom colors. The selected color is stored in the owned
+calendar snapshot or as a subscribed calendar's Daylight-side override. The
+`ical-subscribe` Edge Function implements authenticated preview, update,
+forced refresh, and custom color persistence.
+
+Month view uses continuous per-week span bars for multi-day events, with
+shared highlighting across each span. Day/Week view anchors to current time or
+earliest earlier event; clicking empty month days or Day/Week slots creates an
+event on the selected date/time. Settings exposes its Save/Discard bar as soon
+as the current transaction differs from the saved snapshot.
+
+### OAuth MCP setup (production configuration required)
+
+**The code and database migrations do not themselves enable the hosted
+Supabase Auth OAuth server.** Open the Daylight Supabase Dashboard:
+1. Authentication -> JWT Signing Keys: migrate/rotate to an asymmetric ES256
+   or RS256 signing key, maintaining existing session compatibility.
+2. Authentication -> OAuth Server: enable it, allow dynamic client
+   registration, and set Authorization Path to `/oauth/consent`.
+3. Authentication -> URL Configuration: set Site URL to
+   `https://joeynatale28-source.github.io/daylight/` and allow that redirect.
+   GitHub Pages' `404.html` routes direct navigation to
+   `/daylight/oauth/consent?authorization_id=...` back into the app, retaining
+   the authorization ID in the URL query. Confirm the final consent URL in
+   the browser before connecting clients.
+4. Use `https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/mcp` as
+   the ChatGPT/Claude OAuth MCP server URL. The OAuth resource endpoint is
+   on the Supabase project origin (no custom-domain proxy).
+5. For developer tokens, keep using the legacy endpoint
+   `https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/daylight-mcp`.
+
+The new OAuth endpoint uses `withOAuthProtectedResource()` and
+`withSupabase({auth:'user'})`. The user-scoped client calls a constrained
+`mcp_workspace_tool` Postgres RPC, which checks the JWT's user and OAuth
+`client_id`, checks an active `mcp_grants` row on every call, enforces
+read/write/delete separately, and performs a revision-checked workspace mutation.
+Direct OAuth access to `workspace_snapshots` stays blocked by its restrictive
+RLS policy; `mcp_grants` allows OAuth client reads but forbids an OAuth token
+from escalating its own permissions. The RPC is a privileged, narrowly scoped
+security boundary and must remain reviewed before adding new tools. Audit
+events are written to `mcp_workspace_audit`.
+
+The OAuth consent UI runs at `/oauth/consent` (with the Pages routing
+fallback) and saves the three checked permissions before approving through
+Supabase Auth. Connected apps are managed in Settings -> AI access.
+The old static header tokens remain available only as local developer tokens.
+
+**Testing limits:** A successful Edge Function deployment does not establish
+that the hosted OAuth Server/JWKS/dynamic registration settings are enabled,
+that ChatGPT or Claude can connect, or that the flow has been tested with a
+real signed-in account. Those require an authorized manual connection test.

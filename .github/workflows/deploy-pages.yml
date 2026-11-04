@@ -11,6 +11,8 @@ on:
       - daylight-places.js
       - daylight-places.css
       - daylight-enhancements.js
+      - daylight-oauth.js
+      - 404.html
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -37,12 +39,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js _site/
+          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js 404.html _site/
           test -s _site/index.html
           test -s _site/daylight-cloud.js
           test -s _site/daylight-settings.js
           test -s _site/daylight-integrations.js
           test -s _site/daylight-places.js
+          test -s _site/daylight-oauth.js
+          test -s _site/404.html
           test -s _site/daylight-enhancements.js
           test -s _site/daylight-places.css
 

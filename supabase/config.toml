@@ -1,0 +1,8 @@
+# Local Supabase configuration; hosted Auth toggles must be enabled in the Dashboard.
+[auth.oauth_server]
+enabled = true
+authorization_url_path = "/oauth/consent"
+allow_dynamic_registration = true
+
+[functions.mcp]
+verify_jwt = false

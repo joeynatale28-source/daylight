@@ -1,0 +1,11 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><title>daylight — authorizing</title></head><body>
+<p>Opening daylight authorization…</p>
+<script>
+(function(){
+  var p=new URLSearchParams(location.search);
+  if(location.pathname.replace(/\/$/,"").endsWith("/oauth/consent")){
+    var id=p.get("authorization_id")||"";
+    location.replace("/daylight/?oauth_consent=1"+(id?"&authorization_id="+encodeURIComponent(id):""));
+  }else{document.body.textContent="This daylight page does not exist."}
+})();
+</script></body></html>
