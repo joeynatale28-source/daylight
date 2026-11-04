@@ -323,7 +323,7 @@
   }
   function aiPane(pane) {
     paneHead(pane,'AI access','Approve AI calendar access with revocable, scoped tokens.');
-    const g=html('<div class="set-group"><div class="set-group-title">Create access token</div>'+
+    const g=html('<div class="dl-ai-wrap"><div class="set-group"><div class="set-group-title">Create access token</div>'+
       '<div class="field"><label for="mcpName">Token name</label><input class="text-input" id="mcpName" placeholder="My AI client"></div>'+
       row('Read access','List calendars, events, and tasks.',switchHTML('mcpRead',true))+
       row('Write access','Create and edit calendars, events, and tasks.',switchHTML('mcpWrite',false))+
@@ -336,7 +336,7 @@
       '<p class="pane-sub">Connect a Streamable HTTP MCP client with your own token.</p>'+
       '<input class="text-input" readonly id="mcpUrl"><pre id="mcpConfig" style="white-space:pre-wrap;font-size:12px"></pre>'+
       btn('Copy server URL','mcpCopyUrl')+' '+btn('Copy client config','mcpCopy')+'</div>'+ 
-      '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div>');
+      '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div></div>');
     pane.appendChild(g);
     const status=g.querySelector('#mcpStatus');
     const url=window.DAYLIGHT_MCP_URL || API+'daylight-mcp';
@@ -407,9 +407,9 @@
       const {error}=await db.from('mcp_tokens').insert({user_id:cloud.user.id,name,scopes,
         token_prefix:raw.slice(7,15),token_hash:hashed});
       if(error)return showError(status,error);
-      const reveal=html('<p class="pane-sub">You won’t be able to see this again — if you lose it, revoke it and make a new one.</p>'+
+      const reveal=html('<div class="dl-token-reveal"><p class="pane-sub">You won’t be able to see this again — if you lose it, revoke it and make a new one.</p>'+
         '<div class="field"><label for="mcpRaw">Access token</label><input class="text-input" readonly id="mcpRaw"></div>'+
-        btn('Copy token','mcpCopyRaw','btn-primary'));
+        btn('Copy token','mcpCopyRaw','btn-primary')+'</div>');
       const revealDialog=modal('Your new AI access token',reveal);
       reveal.querySelector('#mcpRaw').value=raw;
       reveal.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
@@ -442,10 +442,10 @@
         .catch(error=>toast(error.message||'Could not update subscription'));
     }
     function rename(){
-      const content=html('<div class="field"><label for="renameSubscription">Calendar name</label>'+
+      const content=html('<div class="dl-subscription-rename"><div class="field"><label for="renameSubscription">Calendar name</label>'+
         '<input class="text-input" id="renameSubscription"></div>'+
         '<div style="display:flex;gap:8px;justify-content:flex-end">'+btn('Save','saveSubscriptionName','btn-primary')+'</div>'+
-        '<p class="inline-note" id="renameError"></p>');
+        '<p class="inline-note" id="renameError"></p></div>');
       content.querySelector('input').value=subscription.name;
       const dialog=modal('Rename subscription',content);
       content.querySelector('#saveSubscriptionName').onclick=async()=>{
@@ -457,7 +457,7 @@
       content.querySelector('input').focus();
     }
     function colors(){
-      const content=html('<div class="menu-swatches" id="subscriptionSwatches"></div><div id="swatchError"></div>');
+      const content=html('<div class="dl-swatches"><div class="menu-swatches" id="subscriptionSwatches"></div><div id="swatchError"></div></div>');
       const dialog=modal('Calendar color',content);
       SWATCH_ORDER.forEach(key=>{
         const swatch=html('<button class="swatch" aria-label="Set color to '+esc(COLOR_NAMES[key])+
