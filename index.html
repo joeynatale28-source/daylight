@@ -2175,7 +2175,10 @@
 
       /* ================= Menus ================= */
       var openMenuEl = null;
-      function closeMenu() { closeDropdown(); if (openMenuEl) { openMenuEl.remove(); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); } }
+      function closeMenu() { closeDropdown(); if (openMenuEl) {
+          var old=openMenuEl;openMenuEl=null;document.removeEventListener("mousedown",menuOutside,true);
+          if(window.daylightDismissSurface)window.daylightDismissSurface(old);else old.remove();
+        } }
       function menuOutside(e) { if (openMenuEl && !openMenuEl.contains(e.target)) closeMenu(); }
       function openMenu(anchor, items, opts) {
         opts = opts || {};
@@ -3381,8 +3384,14 @@
         } catch (e) {}
         selAnchor = null;
       }
-      function closePopMenu() { if (popMenuEl) { popMenuEl.remove(); popMenuEl = null; } }
-      function closePopover() { closePopMenu(); clearSelected(); if (popEl) { popEl.remove(); popEl = null; document.removeEventListener("mousedown", popOutside, true); } }
+      function closePopMenu() { if (popMenuEl) {
+          var old=popMenuEl;popMenuEl=null;
+          if(window.daylightDismissSurface)window.daylightDismissSurface(old);else old.remove();
+        } }
+      function closePopover() { closePopMenu(); clearSelected(); if (popEl) {
+          var old=popEl;popEl=null;document.removeEventListener("mousedown",popOutside,true);
+          if(window.daylightDismissSurface)window.daylightDismissSurface(old);else old.remove();
+        } }
       function popOutside(e) {
         if (popMenuEl && popMenuEl.contains(e.target)) return;
         if (popEl && popEl.contains(e.target)) { closePopMenu(); return; }
@@ -3581,8 +3590,11 @@
       /* ================= Generic dialogs ================= */
       var overlayRoot = document.getElementById("overlayRoot");
       function closeTopDialog() {
-        var kids = overlayRoot.children;
-        if (kids.length) kids[kids.length - 1].remove();
+        var kids=overlayRoot.children;
+        if(kids.length){
+          var old=kids[kids.length-1];
+          if(window.daylightDismissSurface)window.daylightDismissSurface(old);else old.remove();
+        }
       }
       function openConfirm(opts) {
         var bd = el('<div class="backdrop"><div class="dialog" style="width:400px">' +
@@ -3590,7 +3602,7 @@
           '<div class="dialog-body"><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">' + esc(opts.body) + "</p></div>" +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="' + (opts.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok>' + esc(opts.confirmLabel) + "</button></div></div></div>");
         overlayRoot.appendChild(bd);
-        function close() { bd.remove(); }
+        function close() { if(window.daylightDismissSurface)window.daylightDismissSurface(bd);else bd.remove(); }
         bd.querySelector("[data-x]").addEventListener("click", close);
         bd.querySelector("[data-cancel]").addEventListener("click", close);
         bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
@@ -3830,9 +3842,9 @@
               title: "Discard changes?",
               body: "You have unsaved changes to this event. Discarding them cannot be undone.",
               confirmLabel: "Discard", danger: true,
-              fn: function () { bd.remove(); }
+              fn: function () { (window.daylightDismissSurface?window.daylightDismissSurface(bd):bd.remove()); }
             });
-          } else bd.remove();
+          } else (window.daylightDismissSurface?window.daylightDismissSurface(bd):bd.remove());
         }
         dlg.querySelector("[data-x]").addEventListener("click", tryClose);
         dlg.querySelector("[data-cancel]").addEventListener("click", tryClose);
@@ -3856,14 +3868,14 @@
             src.placeId = f.placeId || null;
             src.placeLat = f.placeLat == null ? null : Number(f.placeLat);
             src.placeLng = f.placeLng == null ? null : Number(f.placeLng);
-            bd.remove(); renderAll(false); toast("Event updated");
+            (window.daylightDismissSurface?window.daylightDismissSurface(bd):bd.remove()); renderAll(false); toast("Event updated");
           } else {
             var createdEvent = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
             createdEvent.placeId = f.placeId || null;
             createdEvent.placeLat = f.placeLat == null ? null : Number(f.placeLat);
             createdEvent.placeLng = f.placeLng == null ? null : Number(f.placeLng);
             state.events.push(createdEvent);
-            bd.remove(); renderAll(false); toast("Event created");
+            (window.daylightDismissSurface?window.daylightDismissSurface(bd):bd.remove()); renderAll(false); toast("Event created");
           }
         });
       }
@@ -3875,7 +3887,10 @@
          the × button, or clicking the backdrop closes it. */
       var paletteEl = null;
       function closeSearch() {
-        if (paletteEl) { paletteEl.remove(); paletteEl = null; }
+        if (paletteEl) {
+          var old=paletteEl;paletteEl=null;
+          if(window.daylightDismissSurface)window.daylightDismissSurface(old);else old.remove();
+        }
         if (paletteCloseFn === closeSearch) paletteCloseFn = null;
       }
       function openSearch() {
@@ -3918,6 +3933,12 @@
         var q = inp.value.trim().toLowerCase();
         if (clearBtn) clearBtn.classList.toggle("show", q.length > 0);
         results.innerHTML = "";
+        results.classList.remove("dl-result-change");
+        if(!state.reduceMotion && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+          requestAnimationFrame(function(){
+            if(results.isConnected)results.classList.add("dl-result-change");
+          });
+        }
         if (!q) {
           results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events.</p></div>"));
           return;
@@ -4006,7 +4027,8 @@
         function close() {
           var chosen = settingsState.viewSelect && document.contains(settingsState.viewSelect) ? settingsState.viewSelect.value : settingsState.pendingView;
           settingsState.viewSelect = null;
-          bd.remove();
+          if(window.daylightDismissSurface)window.daylightDismissSurface(bd);
+          else bd.remove();
           if (chosen && chosen !== state.view) {
             state.view = chosen; state.prevView = null; renderAll(true, 1);
           } else renderAll(false);
@@ -5206,5 +5228,6 @@
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-integrations.js"></script>
     <script src="./daylight-places.js"></script>
+    <script src="./daylight-finish.js"></script>
   </body>
 </html>
