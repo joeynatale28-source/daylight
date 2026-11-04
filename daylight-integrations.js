@@ -305,17 +305,17 @@
     paneHead(pane,'AI access','Approve AI calendar access with revocable, scoped tokens.');
     const g=html('<div class="set-group"><div class="set-group-title">Create access token</div>'+
       '<div class="field"><label for="mcpName">Token name</label><input class="text-input" id="mcpName" placeholder="My AI client"></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpRead" checked> Read calendars and tasks</label></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpWrite"> Create or edit calendars and tasks</label></div>'+
+      row('Read access','List calendars, events, and tasks.',switchHTML('mcpRead',true))+
+      row('Write access','Create and edit calendars, events, and tasks.',switchHTML('mcpWrite',false))+
       btn('Create token','mcpCreate','btn-primary')+'<div id="mcpOnce"></div><div id="mcpStatus" role="status"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Active tokens</div><div id="mcpTokens"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Destructive access</div>'+
-      row('Allow AI event deletion','Off by default, even for tokens with write access.','<input type="checkbox" id="mcpDelete">')+
+      row('Allow AI event deletion','Off by default, even for tokens with write access.',switchHTML('mcpDelete',false))+
       '<div id="mcpDeleteStatus"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">MCP server</div>'+
+      '<div class="set-group"><div class="set-group-title">Connect a client</div>'+ 
       '<p class="pane-sub">Connect a Streamable HTTP MCP client with your own token.</p>'+
       '<input class="text-input" readonly id="mcpUrl"><pre id="mcpConfig" style="white-space:pre-wrap;font-size:12px"></pre>'+
-      btn('Copy client config','mcpCopy')+'</div>'+
+      btn('Copy server URL','mcpCopyUrl')+' '+btn('Copy client config','mcpCopy')+'</div>'+ 
       '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div>');
     pane.appendChild(g);
     const status=g.querySelector('#mcpStatus');
@@ -324,19 +324,20 @@
     const config=JSON.stringify({mcpServers:{daylight:{type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2);
     g.querySelector('#mcpConfig').textContent=config;
     g.querySelector('#mcpCopy').onclick=()=>copy(config);
+    g.querySelector('#mcpCopyUrl').onclick=()=>copy(url);
     const db=cloud.client;
     async function load(){
       if(!own())return;
       const [tokens,settings,audit]=await Promise.all([
         db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
         db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_audit_log').select('tool,action,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(15)
+        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
       ]);
       if(tokens.error)showError(status,tokens.error);
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
       (tokens.data||[]).forEach(t=>{
         const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
-          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'•••• · '+esc((t.scopes||[]).join(', '))+
+          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'•••• · '+esc((t.scopes||[]).join(', '))+' · Created: '+esc(new Date(t.created_at).toLocaleDateString())+
           ' · Last used: '+esc(t.last_used_at?new Date(t.last_used_at).toLocaleString():'Never')+
           '</span></span>'+btn('Revoke','revoke','btn-danger-outline')+'</div>');
         item.querySelector('#revoke').onclick=()=>openConfirm({
@@ -347,13 +348,34 @@
           }
         });list.appendChild(item);
       });
-      if(!list.children.length)list.innerHTML=note('No active AI tokens');
+      if(!list.children.length)list.innerHTML=note('No tokens yet — create one to connect an AI client.');
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
       const history=g.querySelector('#mcpAudit');history.innerHTML='';
-      (audit.data||[]).forEach(a=>{
-        history.appendChild(html('<div class="feed-row">'+esc(a.tool)+' · '+esc(a.action)+' · '+esc(new Date(a.created_at).toLocaleString())+'</div>'));
-      });
-      if(!history.children.length)history.innerHTML=note('No AI actions recorded yet');
+      const {data:legacyAudit}=await db.from('mcp_workspace_audit')
+        .select('tool,result,created_at,client_id,target_id').eq('user_id',cloud.user.id)
+        .order('created_at',{ascending:false}).limit(75);
+      const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
+        tool:a.tool,action:a.result,created_at:a.created_at,
+        token_name:a.client_id,summary:a.target_id||''
+      }))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      function showAudit(limit){
+        history.innerHTML='';
+        merged.slice(0,limit).forEach(a=>{
+          const isDelete=String(a.tool).includes('delete');
+          const item=html('<div class="feed-row" style="'+(isDelete?'color:var(--danger)':'')+'">'+
+            '<span class="fr-url">'+esc(a.tool)+' · '+esc(a.action)+
+            '<br><span class="fr-sub">'+esc(a.token_name||'AI client')+' · '+
+            esc(a.summary||'')+' · '+esc(new Date(a.created_at).toLocaleString())+
+            '</span></span></div>');
+          history.append(item);
+        });
+        if(merged.length>limit){
+          const more=html('<button class="btn-ghost" style="margin-top:8px">Show more</button>');
+          more.onclick=()=>showAudit(Math.min(limit+15,merged.length));history.append(more);
+        }
+        if(!merged.length)history.innerHTML=note('No AI actions recorded yet');
+      }
+      showAudit(15);
     }
     g.querySelector('#mcpCreate').onclick=async()=>{
       const name=g.querySelector('#mcpName').value.trim();
@@ -365,11 +387,12 @@
       const {error}=await db.from('mcp_tokens').insert({user_id:cloud.user.id,name,scopes,
         token_prefix:raw.slice(7,15),token_hash:hashed});
       if(error)return showError(status,error);
-      const once=g.querySelector('#mcpOnce');
-      once.innerHTML='<p class="inline-note">Copy this token now. It will not appear again.</p>'+
-        '<input class="text-input" readonly id="mcpRaw">'+btn('Copy token','mcpCopyRaw');
-      once.querySelector('#mcpRaw').value=raw;
-      once.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
+      const reveal=html('<p class="pane-sub">You won’t be able to see this again — if you lose it, revoke it and make a new one.</p>'+
+        '<div class="field"><label for="mcpRaw">Access token</label><input class="text-input" readonly id="mcpRaw"></div>'+
+        btn('Copy token','mcpCopyRaw','btn-primary'));
+      const revealDialog=modal('Your new AI access token',reveal);
+      reveal.querySelector('#mcpRaw').value=raw;
+      reveal.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
       g.querySelector('#mcpName').value='';
       status.textContent='Token created';load();
     };
