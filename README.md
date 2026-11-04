@@ -33,7 +33,7 @@ To use password-reset emails:
 - The initial sample UI events/tasks are cleared before the cloud workspace loads. A new account starts with empty events/tasks and default calendars.
 - A failed cloud read leaves the calendar locked instead of showing unrelated local/demo data.
 - A deleted calendar or task is persisted in the workspace JSON, not propagated to the separate legacy `dl_*` table set.
-- The reset-data button clears your current user data; it no longer restores example events.
+- The legacy demo-reset control is disabled for cloud accounts to protect saved data.
 
 **Caution:** This is snapshot-based synchronization, not a collaborative event-by-event sync engine. Large accounts and simultaneous multi-device edits will eventually warrant normalized Supabase tables and row-level mutations. Existing `dl_*` tables remain untouched.
 
