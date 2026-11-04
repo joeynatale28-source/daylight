@@ -233,87 +233,203 @@
       toast('Event exported');
     }catch(error){toast(error.message||'Unable to export event');}
   };
+  let drawFeedList=null;
+  function feedUpdated(){if(drawFeedList)drawFeedList();}
+  function findFeed(cal){return subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);}
+  async function refreshFeed(sub,trigger){
+    if(trigger){trigger.disabled=true;trigger.classList.add('dl-status-enter');}
+    try{
+      await call('ical-subscribe',{action:'refresh',id:sub.id,force:true});
+      await loadSubscriptions(false);feedUpdated();toast('Calendar feed checked');
+    }catch(e){toast(e.message||'Feed refresh failed');await loadSubscriptions(false);feedUpdated();}
+    finally{if(trigger&&trigger.isConnected)trigger.disabled=false;}
+  }
+  function renameFeed(sub){
+    const content=html('<div class="field"><label for="feedRename">Subscription name</label>'+
+      '<input id="feedRename" class="text-input" maxlength="120"></div>'+
+      '<div class="dialog-foot" style="padding:0">'+btn('Save name','feedSaveName','btn-primary')+'</div>'+
+      '<div class="inline-note" role="status" id="feedRenameError"></div>');
+    const dialog=modal('Rename subscription',content);
+    const input=content.querySelector('#feedRename');input.value=sub.name||'';
+    async function submit(){
+      const name=input.value.trim();
+      if(!name){content.querySelector('#feedRenameError').textContent='Enter a calendar name';return;}
+      try{await call('ical-subscribe',{action:'update',id:sub.id,name});
+        dialog.close();await loadSubscriptions(false);feedUpdated();}
+      catch(e){showError(content.querySelector('#feedRenameError'),e);}
+    }
+    content.querySelector('#feedSaveName').onclick=submit;
+    input.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();submit();}};
+    input.focus();input.select();
+  }
+  function colorFeed(sub){
+    const body=html('<div class="set-group"><div class="set-group-title">Choose a calendar color</div>'+
+      '<div class="menu-swatches" id="feedColorChoices" style="justify-content:flex-start"></div>'+
+      '<div class="inline-note" id="feedColorError" role="status"></div></div>');
+    const dialog=modal('Calendar color · '+sub.name,body);
+    const swatches=body.querySelector('#feedColorChoices');
+    SWATCH_ORDER.forEach(color=>{
+      const b=html('<button class="swatch'+(color===sub.color?' sel':'')+'" type="button" title="'+esc(COLOR_NAMES[color])+
+        '" aria-label="Set color to '+esc(COLOR_NAMES[color])+'" style="background:'+PALETTE[color].dot+'"></button>');
+      b.onclick=async()=>{
+        try{await call('ical-subscribe',{action:'update',id:sub.id,color});
+          dialog.close();await loadSubscriptions(false);feedUpdated();}
+        catch(e){showError(body.querySelector('#feedColorError'),e);}
+      };
+      swatches.appendChild(b);
+    });
+  }
+  function removeFeed(sub){
+    openConfirm({title:'Unsubscribe from '+sub.name+'?',
+      body:'This removes the subscribed calendar and its cached events from daylight. The original source is not affected.',
+      confirmLabel:'Unsubscribe',danger:true,fn:async()=>{
+        try{await call('ical-subscribe',{action:'remove',id:sub.id});
+          await loadSubscriptions(false);feedUpdated();toast('Unsubscribed');}
+        catch(e){toast(e.message||'Unable to unsubscribe');}
+      }});
+  }
+  function subscriptionActions(anchor,sub){
+    openMenu(anchor,[
+      {icon:'sync',label:'Refresh now',fn:()=>refreshFeed(sub,anchor)},
+      {icon:'pencil',label:'Rename',fn:()=>renameFeed(sub)},
+      {icon:'droplet',label:'Change color',fn:()=>colorFeed(sub)},
+      {sep:true},
+      {icon:'trash',label:'Unsubscribe',fn:()=>removeFeed(sub)}
+    ]);
+  }
+  window.daylightSubscriptionMenu=function(anchor,cal){
+    const sub=findFeed(cal);if(sub)subscriptionActions(anchor,sub);
+  };
   function feedPane(pane) {
+    // Retain Daylight's existing JSON import/export groups; replace only the stub feed editor.
     const existing=pane.querySelector('.set-group');
     if(existing)existing.remove();
     const g=html('<div class="set-group"><div class="set-group-title">Subscribe and share calendars</div>'+
-      '<p class="pane-sub">Add a read-only iCalendar feed. Other calendar events are updated through Supabase and retain their original time zones.</p>'+
-      '<div class="field"><label for="subName">Calendar name (optional)</label><input class="text-input" id="subName" placeholder="Use the feed’s calendar name"></div>'+
-      '<div class="field"><label for="subUrl">Calendar URL</label><input class="text-input" id="subUrl" placeholder="https://example.com/calendar.ics">'+
-      '</div><div style="display:flex;gap:8px">'+btn('Add calendar by URL','subAdd','btn-primary')+btn('Refresh subscriptions','subReload')+'</div>'+
-      '<div id="subStatus" role="status" style="margin:10px 0"></div><div id="subList"></div></div>');
+      '<p class="pane-sub">External calendar feeds are read-only. Their events remain visible if a refresh fails.</p>'+
+      '<div class="field"><label for="subUrl">Calendar URL</label>'+
+      '<input class="text-input" id="subUrl" type="url" placeholder="https://example.com/calendar.ics"></div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:8px">'+btn('Add calendar by URL','subAdd','btn-primary')+
+      btn('Refresh subscriptions','subReload')+'</div>'+
+      '<div class="inline-note" id="subStatus" role="status"></div>'+
+      '<div id="subPreview" hidden class="set-group" style="margin:12px 0 0">'+
+      '<div class="set-group-title">Confirm subscription</div>'+
+      '<p class="inline-note" id="subPreviewSummary"></p>'+
+      '<div class="field"><label for="subName">Calendar name</label><input class="text-input" maxlength="120" id="subName"></div>'+
+      '<div class="field"><label>Calendar color</label><div class="menu-swatches" id="subColors"></div></div>'+
+      btn('Save subscription','subConfirm','btn-primary')+btn('Cancel','subCancel')+'</div>'+
+      '<div id="subList" style="margin-top:14px"></div></div>');
     pane.insertBefore(g,pane.firstElementChild.nextElementSibling||null);
     const importGroup=html('<div class="set-group"><div class="set-group-title">Import iCalendar (.ics)</div>'+
-      '<p class="pane-sub">Import events into a calendar you own. Re-importing the same file matches events by UID.</p>'+
-      '<div class="field"><label for="icsCalendar">Destination calendar</label><select class="text-input" id="icsCalendar"></select></div>'+
-      '<input class="text-input" type="file" id="icsFile" accept=".ics,text/calendar">'+
-      '<div style="margin-top:10px">'+btn('Import .ics','icsImport','btn-primary')+'</div>'+
+      '<p class="pane-sub">Import into a calendar you own. Repeating the import updates matching event UIDs.</p>'+
+      '<div class="field"><label for="icsCalendar">Destination calendar</label>'+
+      '<button id="icsCalendar" type="button" class="picker-btn" aria-haspopup="menu" aria-label="Choose destination calendar">'+
+      '<span></span><span>'+icon('chevD',14)+'</span></button></div>'+
+      '<div class="field"><label for="icsFile">Choose .ics file</label>'+
+      '<input class="text-input" type="file" id="icsFile" accept=".ics,text/calendar"></div>'+
+      btn('Import .ics','icsImport','btn-primary')+
       '<div class="inline-note" id="icsResult" role="status"></div></div>');
     pane.insertBefore(importGroup,g.nextSibling);
-    const selector=importGroup.querySelector('#icsCalendar');
-    state.calendars.filter(c=>!c.subscribed&&!c.builtin).forEach(c=>{
-      const option=document.createElement('option');option.value=c.id;option.textContent=c.name;
-      selector.appendChild(option);
-    });
+    const calendarSelect=importGroup.querySelector('#icsCalendar');
+    const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin);
+    let chosen=owned[0]||null;
+    function paintChosen(){
+      calendarSelect.querySelector('span').textContent=chosen?chosen.name:'No writable calendars';
+      calendarSelect.disabled=!chosen;
+    }
+    paintChosen();
+    calendarSelect.onclick=()=>openMenu(calendarSelect,owned.map(cal=>({
+      label:cal.name,icon:'calendar',fn:()=>{chosen=cal;paintChosen();}
+    })));
+    const previousImport=sessionStorage.getItem('daylight:last-ical-import');
+    if(previousImport)importGroup.querySelector('#icsResult').textContent=previousImport;
     importGroup.querySelector('#icsImport').onclick=async()=>{
       const file=importGroup.querySelector('#icsFile').files?.[0];
-      const result=importGroup.querySelector('#icsResult');
-      if(!file||!selector.value){result.textContent='Choose a .ics file and an owned calendar';return;}
-      if(file.size>2500000){result.textContent='Maximum file size: 2.5 MB';return;}
+      const feedback=importGroup.querySelector('#icsResult');
+      if(!file||!chosen){feedback.textContent='Choose an .ics file and a writable calendar';return;}
+      if(file.size>2500000){feedback.textContent='Maximum file size is 2.5 MB';return;}
+      const b=importGroup.querySelector('#icsImport');b.disabled=true;feedback.textContent='Importing…';
       try{
-        const imported=await call('ical-import',{action:'import',calendar_id:selector.value,ics:await file.text()});
-        result.textContent=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped. Reloading…';
-        // The Edge Function uses a compare-and-swap workspace revision.
-        // Reload rather than risk overwriting imported data with an older open snapshot.
+        const result=await call('ical-import',{action:'import',calendar_id:chosen.id,ics:await file.text()});
+        const message=result.added+' added, '+result.updated+' updated, '+result.skipped+' skipped.';
+        sessionStorage.setItem('daylight:last-ical-import',message);
+        feedback.textContent=message;
+        // Reload after a compare-and-swap write so the open workspace cannot overwrite the import.
         location.reload();
-      }catch(e){showError(result,e);}
+      }catch(e){showError(feedback,e);b.disabled=false;}
     };
-    const status=g.querySelector('#subStatus'),list=g.querySelector('#subList');
+    const status=g.querySelector('#subStatus'),list=g.querySelector('#subList'),
+      review=g.querySelector('#subPreview');
+    let stagedURL='',stagedColor='teal';
+    const colors=g.querySelector('#subColors');
+    function paintColors(){
+      colors.replaceChildren();
+      SWATCH_ORDER.forEach(color=>{
+        const b=html('<button type="button" class="swatch'+(stagedColor===color?' sel':'')+
+          '" title="'+esc(COLOR_NAMES[color])+'" aria-label="Use '+esc(COLOR_NAMES[color])+
+          '" style="background:'+PALETTE[color].dot+'"></button>');
+        b.onclick=()=>{stagedColor=color;paintColors();};
+        colors.appendChild(b);
+      });
+    }
+    paintColors();
     function draw(){
-      list.innerHTML='';
-      if(!subscriptionRows.length)list.appendChild(html(note('No external calendar subscriptions yet.')));
-      subscriptionRows.forEach(s=>{
-        const card=html('<div class="feed-row"><span class="fr-url">'+esc(s.name||'Calendar')+
-          '<br><span class="fr-sub">'+esc(s.url||'')+
-          (s.last_error?' · Couldn’t update: '+esc(s.last_error):' · Last fetched: '+esc(s.last_fetched_at?new Date(s.last_fetched_at).toLocaleString():'Never'))+
-          (s.skipped_count?' · '+s.skipped_count+' skipped':'')+
-          '</span></span>'+btn('Refresh','refreshOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
-        card.querySelector('#refreshOne').onclick=async()=>{
-          try{
-            status.textContent='Refreshing…';
-            await call('ical-subscribe',{action:'refresh',id:s.id});
-            await loadSubscriptions();draw();status.textContent='Subscription checked';
-          }catch(e){showError(status,e);}
-        };
-        card.querySelector('#removeOne').onclick=()=>openConfirm({
-          title:'Remove subscription?',body:'Read-only events from this feed will disappear from daylight. The original calendar is not affected.',
-          confirmLabel:'Remove',danger:true,fn:async()=>{
-            try{await call('ical-subscribe',{action:'remove',id:s.id});await loadSubscriptions();draw();toast('Subscription removed');}
-            catch(e){showError(status,e);}
-          }
-        });
+      if(!g.isConnected){drawFeedList=null;return;}
+      list.replaceChildren();
+      if(!subscriptionRows.length)list.appendChild(html(note('No subscriptions yet. Add a feed URL above.')));
+      subscriptionRows.forEach(sub=>{
+        let host='Calendar feed';try{host=new URL(sub.url).hostname;}catch{}
+        const time=sub.last_fetched_at?new Date(sub.last_fetched_at).toLocaleString():'Never';
+        const card=html('<div class="feed-row dl-status-enter"><span class="pop-dot" style="margin:0;background:'+
+          (PALETTE[sub.color]?.dot||PALETTE.teal.dot)+'"></span>'+
+          '<span class="fr-url" style="white-space:normal">'+esc(sub.name)+
+          '<br><span class="fr-sub">'+esc(host)+' · Updated '+esc(time)+
+          (sub.last_error?' · <span style="color:var(--danger)">Couldn’t update: '+esc(sub.last_error)+'</span>':' · Up to date')+
+          (sub.skipped_count?' · '+sub.skipped_count+' skipped':'')+'</span></span>'+
+          '<button class="icon-btn" type="button" aria-label="Manage '+esc(sub.name)+'" title="Subscription options">'+
+          icon('dotsV',16)+'</button></div>');
+        const b=card.querySelector('button');
+        b.onclick=()=>subscriptionActions(b,sub);
         list.appendChild(card);
       });
     }
+    drawFeedList=draw;draw();
     g.querySelector('#subAdd').onclick=async()=>{
-      const b=g.querySelector('#subAdd');b.disabled=true;status.textContent='Validating and importing calendar…';
+      const b=g.querySelector('#subAdd'),url=g.querySelector('#subUrl').value.trim();
+      if(!url){status.textContent='Enter a calendar feed URL';return;}
+      b.disabled=true;status.textContent='Checking iCalendar feed…';
       try{
-        const result=await call('ical-subscribe',{action:'add',url:g.querySelector('#subUrl').value.trim(),
-          name:g.querySelector('#subName').value.trim()});
-        await loadSubscriptions();draw();
-        g.querySelector('#subUrl').value='';g.querySelector('#subName').value='';
-        status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
-      }catch(e){showError(status,e);}
+        const preview=await call('ical-subscribe',{action:'preview',url});
+        stagedURL=url;review.hidden=false;stagedColor='teal';paintColors();
+        g.querySelector('#subName').value=preview.name||preview.source_host||'Calendar';
+        g.querySelector('#subPreviewSummary').textContent=preview.imported+' events found · '+preview.skipped+' skipped · '+preview.source_host;
+        status.textContent='Feed verified. Choose its name and color, then Save subscription.';
+        review.classList.add('dl-status-enter');
+        g.querySelector('#subName').focus();
+      }catch(e){showError(status,e);review.hidden=true;}
       finally{b.disabled=false;}
     };
-    g.querySelector('#subReload').onclick=async()=>{
-      status.textContent='Checking feeds…';
+    g.querySelector('#subCancel').onclick=()=>{review.hidden=true;stagedURL='';};
+    g.querySelector('#subConfirm').onclick=async()=>{
+      if(!stagedURL)return;
+      const button=g.querySelector('#subConfirm'),name=g.querySelector('#subName').value.trim();
+      if(!name){status.textContent='Enter a calendar name';return;}
+      button.disabled=true;status.textContent='Adding calendar…';
       try{
-        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id});
-        await loadSubscriptions();draw();status.textContent='Feeds checked';
+        const response=await call('ical-subscribe',{action:'add',url:stagedURL,name,color:stagedColor});
+        await loadSubscriptions(false);draw();
+        review.hidden=true;stagedURL='';g.querySelector('#subUrl').value='';
+        status.textContent='Added '+response.imported+' events'+(response.skipped?' · '+response.skipped+' skipped':'')+'.';
       }catch(e){showError(status,e);}
+      finally{button.disabled=false;}
     };
-    draw();
+    g.querySelector('#subReload').onclick=async()=>{
+      const b=g.querySelector('#subReload');b.disabled=true;status.textContent='Refreshing feeds…';
+      try{
+        for(const sub of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:sub.id,force:true});
+        await loadSubscriptions(false);draw();status.textContent='Subscriptions updated.';
+      }catch(e){showError(status,e);await loadSubscriptions(false);draw();}
+      finally{b.disabled=false;}
+    };
   }
   const originalData=paneData;
   paneData=function(pane,close){
