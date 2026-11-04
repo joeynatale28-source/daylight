@@ -8,6 +8,9 @@ on:
       - daylight-cloud.js
       - daylight-settings.js
       - daylight-integrations.js
+      - daylight-places.js
+      - daylight-finish.js
+      - daylight-finish.css
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -34,11 +37,14 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site
-          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js _site/
+          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-finish.js daylight-finish.css _site/
           test -s _site/index.html
           test -s _site/daylight-cloud.js
           test -s _site/daylight-settings.js
           test -s _site/daylight-integrations.js
+          test -s _site/daylight-places.js
+          test -s _site/daylight-finish.js
+          test -s _site/daylight-finish.css
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
