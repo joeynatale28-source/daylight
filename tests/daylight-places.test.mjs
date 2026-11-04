@@ -70,6 +70,16 @@ test('mouse click commits full address; later free-text editing clears place ref
     assert.equal(h.draft.locationLng,null);
   }finally{h.dispose();}
 });
+test('mouse hover does not override keyboard selection index',async()=>{
+  const h=harness();
+  try{
+    type(h,'10833 W Broad');await wait();
+    const options=h.w.document.querySelectorAll('[role=option]');
+    options[1].dispatchEvent(new h.w.Event('pointerenter',{bubbles:true}));
+    key(h,'ArrowDown');key(h,'Enter');
+    assert.equal(h.draft.placeId,'osm:way:12345');
+  }finally{h.dispose();}
+});
 test('failed suggestions do not block saving a free-text location',async()=>{
   const h=harness();
   try{
