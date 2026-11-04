@@ -2538,6 +2538,7 @@
           return b;
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
+        m.appendChild(item("link", "Share calendar", false, function () { window.daylightShareCalendar(cal); }));
         m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { cal.hidden = !cal.hidden; renderSidebar(); renderView(false); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
@@ -2636,7 +2637,7 @@
           for (var d = 0; d < 7; d++) {
             (function (date) {
               var inMonth = date.getMonth() === mc.getMonth();
-              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + calendarDayLabel(date, mc.getMonth()) + "</span></button>");
+              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
               b.addEventListener("click", function () {
                 state.section = "calendar";
                 state.miniSelected = sod(date);
@@ -3899,6 +3900,7 @@
           ["notifications", "bell", "Notifications"],
           ["shortcuts", "keyboard", "Shortcuts"],
           ["data", "sync", "Data & sync"],
+          ["ai", "settings", "AI access"],
           ["about", "info", "About"]
         ];
         var pane = el('<div class="settings-pane"></div>');
@@ -3930,7 +3932,7 @@
           var x = el('<button class="icon-btn settings-close" title="Close settings">' + icon("x", 17) + "</button>");
           x.addEventListener("click", close);
           pane.appendChild(x);
-          var fn = { general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, data: paneData, about: paneAbout }[settingsState.section];
+          var fn = { general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, data: paneData, ai: window.daylightAiPane, about: paneAbout }[settingsState.section];
           fn(pane, close);
           bindDropdowns(pane);
           /* Switches are icon-only controls: give each one its row's visible
@@ -5116,5 +5118,6 @@
     <script src="./daylight-settings.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
+    <script src="./daylight-integrations.js"></script>
   </body>
 </html>
