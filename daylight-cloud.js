@@ -131,7 +131,8 @@
           desc: String(e.desc || ''), repeat: e.repeat || null,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
-          exdates: e.exdates, feedKey: e.feedKey
+          exdates: e.exdates, feedKey: e.feedKey, timezone: e.timezone,
+          dtstamp: e.dtstamp, sequence: e.sequence || 0, recurrenceId: e.recurrenceId
         };
       }).filter(function (ev) {
         /* Old snapshots duplicated built-in holidays as stored event rows.
@@ -183,17 +184,27 @@
   }
 
   function workspace() {
+    /* iCal UIDs belong to events and survive edits, renames and exports. */
+    state.events.forEach(function (ev) {
+      if (!ev.remoteSubscription && !ev.uid) {
+        ev.uid = crypto.randomUUID() + '@daylight';
+        ev.dtstamp = new Date().toISOString();
+        ev.sequence = 0;
+      }
+    });
     return {
       version: 2,
-      calendars: state.calendars.map(function (c) {
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscription; }).map(function (c) {
         return { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
       }),
-      events: state.events.map(function (e) {
+      events: state.events.filter(function (e) { return !e.remoteSubscription; }).map(function (e) {
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
-          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey };
+          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
+          timezone:e.timezone || (state.useDeviceTz ? deviceTz() : state.tzLabel),
+          dtstamp:e.dtstamp || null, sequence:e.sequence || 0, recurrenceId:e.recurrenceId || null };
       }),
       tasks: state.tasks.map(function (t) {
         return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),
@@ -297,13 +308,17 @@
       hasRow = !!response.data;
       revision = response.data ? Number(response.data.revision) || 0 : 0;
       if (hasRow) readWorkspace(response.data.payload);
+      var missingUID = state.events.some(function (e) { return !e.uid; });
       lastSaved = JSON.stringify(workspace());
+      if (missingUID) lastSaved = '__legacy_events_need_stable_uids__';
       loading = false;
       applyTheme();
       document.getElementById('authRoot').innerHTML = '';
       document.getElementById('app').hidden = false;
       originalRenderAll(false);
       document.body.classList.remove('booting');
+      document.dispatchEvent(new CustomEvent('daylight:workspace-ready'));
+      if (missingUID) setTimeout(changesQueued, 200);
       status('Saved to cloud');
       authState.password = '';
       authState.newPassword = '';
@@ -511,6 +526,20 @@
     toast('Demo reset is unavailable for cloud accounts. Your data is safe.');
   };
 
+  /* Integration code shares the current Supabase session, never a service key. */
+  window.DaylightCloud = {
+    client: client,
+    projectUrl: URL,
+    queueSave: changesQueued,
+    ready: function () { return !!user && !loading; },
+    user: function () { return user; }
+  };
+  /* Keep the login decision silent until the workspace is restored.
+     The old animated boot overlay is removed, leaving only the normal
+     application background instead of a splash screen. */
+  var bootOverlay = document.getElementById('bootScreen');
+  if (bootOverlay) bootOverlay.remove();
+
   /* Resolve the session before constructing any login UI.
      Returning users never build the login screen at all. */
   if (!client) {
@@ -553,4 +582,8 @@
     if (document.hidden && user && !loading) saveWorkspace();
   });
   window.addEventListener('online', function () { if (user && !loading) changesQueued(); });
+  var extras = document.createElement('script');
+  extras.src = './daylight-extras.js';
+  extras.defer = true;
+  document.head.appendChild(extras);
 })();
