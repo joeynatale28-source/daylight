@@ -165,6 +165,16 @@
     return dialog;
   }
   window.daylightShareCalendar=shareDialog;
+  window.daylightExportEvent=async function(event) {
+    if(!own())return;
+    const calendar=calendarRow(event.cal);
+    if(!calendar||calendar.builtin||calendar.subscribed){toast('Subscribed events cannot be exported individually');return;}
+    try{
+      const data=await call('ical-feed',{action:'export',calendar_id:calendar.id,event_id:event.id});
+      download((event.title||'event').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',data);
+      toast('Event exported');
+    }catch(error){toast(error.message||'Unable to export event');}
+  };
   function feedPane(pane) {
     const existing=pane.querySelector('.set-group');
     if(existing)existing.remove();
