@@ -76,19 +76,38 @@
     return !isNaN(d.getTime()) ? d : null;
   }
 
+  function normalizeCalendarList(raw, holidayIds) {
+    var output = [], seen = Object.create(null);
+    (Array.isArray(raw) ? raw : []).forEach(function (item) {
+      if (!item || typeof item !== 'object' || item.id == null) return;
+      var id = String(item.id), name = String(item.name || 'Calendar');
+      var isHoliday = id === 'holidays' ||
+        ((item.builtin || item.subscribed) && name.trim().toLowerCase() === 'us holidays');
+      if (isHoliday) {
+        holidayIds[id] = true;
+        id = 'holidays';
+        name = 'US Holidays';
+      }
+      if (seen[id]) return;
+      seen[id] = true;
+      output.push({
+        id: id, name: name, color: PALETTE[item.color] ? item.color : 'blue',
+        hidden: !!item.hidden, subscribed: isHoliday || !!item.subscribed,
+        shared: !isHoliday && !!item.shared, builtin: !!isHoliday
+      });
+    });
+    if (!seen.holidays) {
+      var builtIn = seedCalendars().filter(function (c) { return c.id === 'holidays'; })[0];
+      if (builtIn) output.push(builtIn);
+    }
+    return output.length ? output : seedCalendars();
+  }
+
   function readWorkspace(payload) {
     if (!payload || typeof payload !== 'object') return;
-    if (Array.isArray(payload.calendars)) {
-      state.calendars = payload.calendars.map(function (c) {
-        return {
-          id: String(c.id), name: String(c.name || 'Calendar'),
-          color: PALETTE[c.color] ? c.color : 'blue', hidden: !!c.hidden,
-          subscribed: !!c.subscribed, shared: !!c.shared,
-          builtin: !!c.builtin || c.id === 'holidays'
-        };
-      }).filter(function (c) { return !!c.id; });
-    }
-    if (!state.calendars.length) state.calendars = seedCalendars();
+    var holidayIds = Object.create(null);
+    holidayIds.holidays = true;
+    state.calendars = normalizeCalendarList(payload.calendars, holidayIds);
     if (Array.isArray(payload.events)) {
       state.events = payload.events.map(function (e) {
         var start = dateValue(e.start != null ? e.start : e.startMs);
@@ -105,7 +124,11 @@
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey
         };
-      }).filter(Boolean);
+      }).filter(function (ev) {
+        /* Old snapshots duplicated built-in holidays as stored event rows.
+           Holiday dates now come only from usHolidaysForYear in the app. */
+        return ev && !holidayIds[ev.cal];
+      });
     }
     if (Array.isArray(payload.tasks)) {
       state.tasks = payload.tasks.map(function (t) {
@@ -127,8 +150,14 @@
     var settings = payload.settings || {};
     applySettingsSnapshot(settings);
     if (typeof settings.themeMode === 'string' && ['dark','light','system'].indexOf(settings.themeMode) !== -1) state.themeMode = settings.themeMode;
-    if (typeof settings.profileName === 'string' && settings.profileName.trim()) state.profileName = settings.profileName.trim();
-    if (typeof settings.firstName === 'string' && settings.firstName.trim()) state.firstName = settings.firstName.trim();
+    var savedFullName = typeof settings.profileName === 'string' ? settings.profileName.trim() : '';
+    var savedFirstName = typeof settings.firstName === 'string' ? settings.firstName.trim() : '';
+    var metadata = (user && user.user_metadata) || {};
+    if (savedFullName) state.profileName = savedFullName;
+    else if (savedFirstName && !metadata.full_name && !metadata.name) state.profileName = savedFirstName;
+    /* Keep the first-name and full-name fields in sync (never show a stale
+       hard-coded profile name or the email username when a name exists). */
+    state.firstName = state.profileName.split(/\s+/)[0] || 'Account';
     if (typeof settings.sidebarRail === 'boolean') state.sidebarRail = settings.sidebarRail;
     if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) state.view = settings.defaultView;
     var ui = payload.ui || {};
@@ -408,6 +437,49 @@
     originalPaneGeneral(pane, close);
     var emailInput = pane.querySelector('input[disabled]');
     if (emailInput && emailInput.type !== 'checkbox') emailInput.value = user && user.email || '';
+
+    /* The preview edited "first name" on every keystroke and reconstructed
+       the full name repeatedly, causing a visibly unstable profile. Replace
+       only that field's old event listener with a commit-on-blur editor. */
+    var oldInput = pane.querySelector('#gsName');
+    if (!oldInput) return;
+    var nameLabel = pane.querySelector('label[for="gsName"]');
+    if (nameLabel) nameLabel.textContent = 'Full name';
+    var nameField = oldInput.closest('.field');
+    var hint = nameField && nameField.querySelector('.inline-note');
+    if (hint) hint.textContent = 'Your name on this account. Changes save when you finish editing.';
+    var nameInput = oldInput.cloneNode(true);
+    oldInput.replaceWith(nameInput); /* Removes the old per-keystroke handler. */
+    nameInput.value = state.profileName || '';
+    nameInput.autocomplete = 'name';
+    nameInput.placeholder = 'Your name';
+    var commitName = function () {
+      var newName = nameInput.value.replace(/\s+/g, ' ').trim();
+      if (!newName) {
+        nameInput.value = state.profileName;
+        return;
+      }
+      nameInput.value = newName;
+      if (newName === state.profileName) return;
+      state.profileName = newName;
+      state.firstName = newName.split(' ')[0];
+      renderSidebar(); /* Sidebar only: never replace the focused editor. */
+      changesQueued();
+      if (client && user) {
+        client.auth.updateUser({data:{full_name:newName}}).then(function (result) {
+          if (result.error) console.warn('Daylight account name metadata was not updated:',result.error.message);
+          else if (result.data && result.data.user && user && result.data.user.id === user.id) user = result.data.user;
+        }).catch(function (error) {
+          console.warn('Daylight account name metadata update failed:',error);
+        });
+      }
+    };
+    nameInput.addEventListener('change', commitName);
+    nameInput.addEventListener('blur', commitName);
+    nameInput.addEventListener('keydown', function (event) {
+      if (event.key === 'Enter') { event.preventDefault(); nameInput.blur(); }
+      if (event.key === 'Escape') { nameInput.value = state.profileName; nameInput.blur(); }
+    });
   };
 
   /* Cloud accounts must never lose data through a legacy demo reset action. */
