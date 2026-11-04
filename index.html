@@ -2542,6 +2542,13 @@
         });
         m.appendChild(swWrap);
         m.appendChild(el('<div class="menu-sep"></div>'));
+        m.appendChild(item("link", "Share calendar", false, function () {
+          if (window.daylightIntegrations) window.daylightIntegrations.openShare(cal);
+        }));
+        m.appendChild(item("download", "Export calendar (.ics)", false, function () {
+          if (window.daylightIntegrations) window.daylightIntegrations.downloadCalendar(cal);
+        }));
+        m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(item("trash", "Delete calendar", true, function () { confirmDeleteCalendar(cal); }));
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
@@ -3327,6 +3334,14 @@
         var m = el('<div class="menu" role="menu" style="width:204px"></div>');
         var del = el('<button class="menu-item danger">' + icon("trash", 16) + "<span>Delete event</span></button>");
         del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev); });
+        if (!isReadOnlyEvent(ev)) {
+          var saveAs = el('<button class="menu-item">' + icon("download", 16) + '<span>Export event (.ics)</span></button>');
+          saveAs.addEventListener("click", function () {
+            closePopMenu();
+            if (window.daylightIntegrations) window.daylightIntegrations.downloadCalendar(calOf(ev.cal),ev.id);
+          });
+          m.appendChild(saveAs);
+        }
         m.appendChild(del);
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
@@ -5099,5 +5114,6 @@
     <script src="./daylight-settings.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
+    <script src="./daylight-integrations.js"></script>
   </body>
 </html>
