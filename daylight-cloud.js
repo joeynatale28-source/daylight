@@ -49,21 +49,8 @@
   var authSwitch = document.getElementById('authSwitch');
   if (authSwitch) authSwitch.remove();
 
-  function status(message, error) {
-    if (lastStatus === message) return;
-    lastStatus = message;
-    var node = document.getElementById('cloudStatus');
-    if (!node) {
-      node = document.createElement('div');
-      node.id = 'cloudStatus';
-      node.setAttribute('role', 'status');
-      node.style.cssText = 'position:fixed;bottom:15px;right:16px;z-index:150;pointer-events:none;border:1px solid var(--border,#333);border-radius:20px;padding:6px 11px;background:var(--card,#1e1e1e);color:var(--muted,#999);font:500 11px Inter,system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.08)';
-      document.body.appendChild(node);
-    }
-    node.hidden = !user;
-    node.textContent = message;
-    node.style.color = error ? 'var(--danger,#e5646e)' : 'var(--muted,#999)';
-  }
+  // Cloud saves are deliberately silent; never render a persistent status pill.
+  function status(_message,_error) { /* no visual indicator */ }
 
   function clearPreviewData() {
     state.events = [];
@@ -362,7 +349,7 @@
     root.innerHTML = '';
     renderAuth();
     document.body.classList.remove('booting');
-    document.getElementById('cloudStatus')?.setAttribute('hidden', '');
+    // No cloud-status element is rendered.
   }
 
   enterApp = async function () {
