@@ -901,6 +901,19 @@
       .swatch:hover { transform: scale(1.12); }
       .swatch.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 
+      /* Hide the login while the saved session is restored. */
+      body.booting #authRoot { visibility: hidden; pointer-events: none; }
+      #bootScreen { position: fixed; inset: 0; z-index: 3000; background: var(--surface);
+        color: var(--text); display: flex; align-items: center; justify-content: center;
+        flex-direction: column; gap: 8px; }
+      body:not(.booting) #bootScreen { display: none; }
+      .boot-mark { font-size: clamp(30px, 4vw, 42px); font-weight: 650; letter-spacing: -0.065em; line-height: 1.1; }
+      .boot-period { color: var(--accent); }
+      .boot-note { font-size: 12px; color: var(--muted); font-weight: 500; }
+      .boot-line { margin-top: 13px; width: 74px; height: 2px; border-radius: 99px; background: var(--line); overflow: hidden; position: relative; }
+      .boot-line::after { content: ""; position: absolute; inset: 0; width: 45%; border-radius: inherit; background: var(--accent); animation: boot-slide 1.15s ease-in-out infinite alternate; }
+      @keyframes boot-slide { to { transform: translateX(125%); } }
+      @media (prefers-reduced-motion: reduce) { .boot-line::after { animation: none; width: 100%; } }
       /* ---------- Settings — polished (Linear / Cron / Cal.com patterns) ----------
          Rail stays put; the pane gets clearer hierarchy: a quiet page
          intro, then grouped cards. Each group is one soft card with
@@ -1504,7 +1517,12 @@
       }
     </style>
   </head>
-  <body>
+  <body class="booting">
+    <div id="bootScreen" role="status" aria-live="polite" aria-label="Opening Daylight">
+      <div class="boot-mark">daylight<span class="boot-period">.</span></div>
+      <div class="boot-note">Opening your calendar</div>
+      <div class="boot-line" aria-hidden="true"></div>
+    </div>
     <div id="authRoot"></div>
     <div id="app" hidden>
       <aside id="sidebar" aria-label="Sidebar"></aside>
@@ -2409,7 +2427,7 @@
         sidebarEl.appendChild(nav);
         /* Two calendar sections. "My calendars" holds the calendars
            Joey owns — the only ones with rename / color / delete.
-           "Subscribe and share calendars" holds subscribed and
+           "Subscribed Calendars" holds subscribed and
            shared calendars (US Holidays today; more country-holiday
            and shared calendars land here later with no layout
            change) and renders ONLY when at least one exists. */
@@ -2431,9 +2449,9 @@
           sidebarEl.appendChild(list);
         }
         if (subCals.length) {
-          var subLabel = el('<div class="side-label rail-hide"><span>Subscribe and share calendars</span></div>');
+          var subLabel = el('<div class="side-label rail-hide"><span>Subscribed Calendars</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
-          var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscribe and share calendars" : "Expand Subscribe and share calendars") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
+          var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscribed Calendars" : "Expand Subscribed Calendars") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
           collapseSub.addEventListener("click", function () { state.subSectionOpen = !state.subSectionOpen; renderSidebar(); });
           subActions.appendChild(collapseSub);
           subLabel.appendChild(subActions);
@@ -2450,7 +2468,8 @@
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
-        sidebarEl.appendChild(help); sidebarEl.appendChild(set);
+        var docs = el('<a class="side-row" href="https://joeynatale.mintlify.site" target="_blank" rel="noopener noreferrer" title="Documentation">' + icon("book", 18) + '<span class="rail-hide">Documentation</span></a>');
+        sidebarEl.appendChild(help); sidebarEl.appendChild(docs); sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -3512,7 +3531,7 @@
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Create.</b> Use the Create button in the sidebar, press <b style='color:var(--text)'>N</b>, or use the + on any day. Click an event to see its details, edit it, or delete it.</p>" +
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Move around.</b> The header above the calendar shows the month and year — its ‹ › arrows move one month at a time, and the calendar-dot button jumps straight back to today in Month view. Click a date number to open that day: the header then shows that day's full date instead, and the arrows step one day at a time. The sidebar mini calendar's own ‹ › arrows browse months without moving the main view, and clicking one of its dates jumps there. The arrow keys page the calendar and <b style='color:var(--text)'>T</b> jumps back to today.</p>" +
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Tasks.</b> The <b style='color:var(--text)'>Tasks</b> row in the sidebar swaps the calendar for your task list — add tasks with a due date and a calendar, tick the checkbox to complete them, and use the pencil to rename or the date to move one. The <b style='color:var(--text)'>Calendar</b> row brings the calendar back.</p>" +
-          "<p style='margin:0 0 10px'><b style='color:var(--text)'>Calendars.</b> Tick a calendar's square in the sidebar to show or hide it. Calendars under <b style='color:var(--text)'>My calendars</b> have a ⋮ menu to rename, recolor, or delete them. Calendars under <b style='color:var(--text)'>Subscribe and share calendars</b>, like US Holidays, are read-only — their events show on the grid but can't be added to or edited.</p>" +
+          "<p style='margin:0 0 10px'><b style='color:var(--text)'>Calendars.</b> Tick a calendar's square in the sidebar to show or hide it. Calendars under <b style='color:var(--text)'>My calendars</b> have a ⋮ menu to rename, recolor, or delete them. Calendars under <b style='color:var(--text)'>Subscribed Calendars</b>, like US Holidays, are read-only — their events show on the grid but can't be added to or edited.</p>" +
           "<p style='margin:0'>Press <b style='color:var(--text)'>Ctrl/⌘ + K</b> to search and <b style='color:var(--text)'>Ctrl/⌘ + ,</b> for Settings, where you can change the view, time zone, density, and more.</p>" +
           '</div><div class="dialog-foot"><button class="btn-primary" style="margin-left:0" data-ok>Done</button></div></div></div>');
         overlayRoot.appendChild(bd);
@@ -5093,7 +5112,8 @@
         if (!document.hidden && !document.getElementById("app").hidden && refreshToday()) renderAll(false);
       });
     </script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
+    <script src="./daylight-settings.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
   </body>
 </html>
