@@ -12,7 +12,7 @@
     "tzLabel", "notifSound", "quietEnabled", "quietStart", "quietEnd", "summaryTime",
     "workDays", "workStart", "workEnd", "useDeviceTz", "themeMode",
     "firstName", "profileName", "reduceMotion", "remind15", "dailySummary",
-    "sidebarRail", "view", "prevView"
+    "sidebarRail", "view", "prevView", "mcpAllowDelete"
   ];
 
   function snapshot() {
@@ -103,7 +103,8 @@
       renderAll(false);
       if (save) {
         document.dispatchEvent(new CustomEvent("daylight:settings-committed", {
-          detail: { previousName: original.profileName, name: state.profileName }
+          detail: { previousName: original.profileName, name: state.profileName,
+          previousDelete: original.mcpAllowDelete, allowDelete: state.mcpAllowDelete }
         }));
       }
     }
@@ -126,6 +127,7 @@
       ["notifications", "bell", "Notifications"],
       ["shortcuts", "keyboard", "Shortcuts"],
       ["data", "sync", "Data & sync"],
+      ["ai", "key", "AI access"],
       ["about", "info", "About"]
     ].forEach(function (s) {
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
@@ -159,7 +161,7 @@
       var fn = {
         general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        data: paneData, about: paneAbout
+        data: paneData, ai: function(pane){if(window.daylightAI)window.daylightAI.render(pane);}, about: paneAbout
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
