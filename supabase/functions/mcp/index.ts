@@ -140,12 +140,12 @@ Deno.serve(pipeline(
   }else{
     return response
   }
-  const payload=JSON.stringify({jsonrpc:'2.0',id:requested.id??null,result})
+  const rpcPayload=JSON.stringify({jsonrpc:'2.0',id:requested.id??null,result})
   const accept=req.headers.get('accept')||''
   if(accept.includes('text/event-stream'))
-    return new Response('event: message\\ndata: '+payload+'\\n\\n',{status:200,headers:{
+    return new Response('event: message\\ndata: '+rpcPayload+'\\n\\n',{status:200,headers:{
       'Content-Type':'text/event-stream; charset=utf-8','Cache-Control':'no-cache','X-Accel-Buffering':'no'
     }})
-  return new Response(payload,{status:200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}})
+  return new Response(rpcPayload,{status:200,headers:{'Content-Type':'application/json','Cache-Control':'no-store'}})
  }
 ))
