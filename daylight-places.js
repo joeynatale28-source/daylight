@@ -19,9 +19,10 @@
     if(!input||input.dataset.photonBound==='true')return;
     input.dataset.photonBound='true';
     const id='dl-place-'+(++serial);
-    const host=input.parentElement;
-    if(!host)return;
-    host.classList.add('dl-places-host');
+    const host=document.createElement('span');
+    host.className='dl-places-host';
+    input.parentNode.insertBefore(host,input);
+    host.appendChild(input);
     input.autocomplete='off';
     input.setAttribute('role','combobox');
     input.setAttribute('aria-autocomplete','list');
