@@ -2468,7 +2468,7 @@
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
-        var docs = el('<a class="side-row" href="https://joeynatale.mintlify.site" target="_blank" rel="noopener noreferrer" title="Documentation">' + icon("book", 18) + '<span class="rail-hide">Documentation</span></a>');
+        var docs = el('<a class="side-row" href="https://joeynatale.mintlify.app" target="_blank" rel="noopener noreferrer" title="Documentation">' + icon("book", 18) + '<span class="rail-hide">Documentation</span></a>');
         sidebarEl.appendChild(help); sidebarEl.appendChild(docs); sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
         var pw = el(
