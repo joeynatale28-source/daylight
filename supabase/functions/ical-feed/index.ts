@@ -110,6 +110,16 @@ Deno.serve(async(req:Request)=>{
  if(found.error)return send({error:"Unable to open calendar"},503);
  const cal=(found.data?.payload?.calendars||[]).find((c:Record<string,unknown>)=>c.id===clientId&&!c.subscribed&&!c.builtin&&clientId!=="holidays");
  if(!cal)return send({error:"Calendar not found or read-only"},404);
+ if(action==="export"){
+  const contents=found.data?.payload||{};
+  const all=(contents.events||[]).filter((e:Record<string,unknown>)=>String(e.cal)===clientId);
+  const wanted=body.event_id==null?all:all.filter((e:Record<string,unknown>)=>String(e.id)===String(body.event_id));
+  if(body.event_id!=null&&!wanted.length)return send({error:"Event not found"},404);
+  const source=buildCalendar(String(cal.name||"Calendar"),wanted,new Date().toISOString(),String(contents.settings?.tzLabel||"America/New_York"));
+  const name=String(cal.name||"daylight").replace(/[^a-zA-Z0-9 _-]/g,"").slice(0,80)||"daylight";
+  return new Response(source,{headers:{...cors,"Content-Type":"text/calendar; charset=utf-8",
+   "Content-Disposition":'attachment; filename="'+name+'.ics"',"Cache-Control":"no-store"}});
+ }
  let row=await admin.from("calendars").select("id,share_feed_enabled,share_token_prefix").eq("user_id",session.user.id).eq("client_id",clientId).maybeSingle();
  if(row.error)return send({error:"Unable to load share settings"},503);
  if(!row.data){
