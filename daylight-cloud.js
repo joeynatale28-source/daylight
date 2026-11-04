@@ -49,20 +49,11 @@
   var authSwitch = document.getElementById('authSwitch');
   if (authSwitch) authSwitch.remove();
 
+  // Cloud saves stay silent. Keep error handling in the persistence path,
+  // but never insert a persistent corner status pill.
   function status(message, error) {
-    if (lastStatus === message) return;
     lastStatus = message;
-    var node = document.getElementById('cloudStatus');
-    if (!node) {
-      node = document.createElement('div');
-      node.id = 'cloudStatus';
-      node.setAttribute('role', 'status');
-      node.style.cssText = 'position:fixed;bottom:15px;right:16px;z-index:150;pointer-events:none;border:1px solid var(--border,#333);border-radius:20px;padding:6px 11px;background:var(--card,#1e1e1e);color:var(--muted,#999);font:500 11px Inter,system-ui,sans-serif;box-shadow:0 2px 12px rgba(0,0,0,.08)';
-      document.body.appendChild(node);
-    }
-    node.hidden = !user;
-    node.textContent = message;
-    node.style.color = error ? 'var(--danger,#e5646e)' : 'var(--muted,#999)';
+    document.getElementById('cloudStatus')?.remove();
   }
 
   function clearPreviewData() {
@@ -149,7 +140,8 @@
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
           timezone: e.timezone, dtstamp:e.dtstamp, sequence:e.sequence,
-          recurrenceId:e.recurrenceId, status:e.status
+          recurrenceId:e.recurrenceId, status:e.status,
+          placeId:e.placeId||null,locationLat:e.locationLat??null,locationLng:e.locationLng??null
         };
       }).filter(function (ev) {
         /* Old snapshots duplicated built-in holidays as stored event rows.
@@ -215,7 +207,8 @@
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
-          recurrenceId:e.recurrenceId,status:e.status };
+          recurrenceId:e.recurrenceId,status:e.status,
+          placeId:e.placeId||null,locationLat:e.locationLat??null,locationLng:e.locationLng??null };
       }),
       tasks: state.tasks.map(function (t) {
         return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),

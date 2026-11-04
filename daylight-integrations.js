@@ -15,7 +15,7 @@
       '</button></div><div class="dialog-body"></div></div></div>');
     bd.querySelector('.dialog-body').appendChild(body);
     overlayRoot.appendChild(bd);
-    function close(){ bd.remove(); }
+    function close(){ if(window.daylightExit)window.daylightExit(bd);else bd.remove(); }
     bd.querySelector('[data-close]').addEventListener('click',close);
     bd.addEventListener('mousedown',e=>{if(e.target===bd)close();});
     return {root:bd,close};
@@ -74,7 +74,7 @@
       const matches=state.calendars.find(c=>c.id===calId);
       if(matches)return;
       const colorKeys=['teal','blue','violet','green','amber','rose'];
-      const color=colorKeys[rows.indexOf(s)%colorKeys.length];
+      const color=PALETTE[s.color]?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
       state.calendars.push({id:calId,name:s.name||'Calendar feed',color,hidden:false,
         subscribed:true,builtin:false,remoteSubscriptionId:s.id});
       remoteIds.add(calId);
@@ -104,6 +104,16 @@
     }catch(e){console.warn('Subscription refresh failed; existing events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);
+  document.addEventListener('daylight:workspace-ready',()=>{
+    const summary=sessionStorage.getItem('daylight-ics-last-result');
+    if(!summary)return;
+    sessionStorage.removeItem('daylight-ics-last-result');
+    setTimeout(()=>{
+      openSettings('data');
+      const result=document.getElementById('icsResult');
+      if(result)result.textContent=summary;
+    },50);
+  });
   document.addEventListener('daylight:workspace-signed-out',()=>{
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
@@ -121,7 +131,7 @@
       try{
         const data=await call('ical-feed',{action:'status',calendar_id:cal.id});
         enabled=!!data.enabled;
-        info.innerHTML=note(enabled?'Sharing is enabled · '+(data.prefix||'')+'••••••••':'Sharing is off. Only you can access this calendar.');
+        info.innerHTML=note(enabled?'Sharing enabled · '+(data.prefix||'')+'•••••••• · The full link is not recoverable. Reset it to get a new one.':'Sharing is off. Only you can access this calendar.');
         body.querySelector('#shareEnable').hidden=enabled;
         body.querySelector('#shareReset').hidden=!enabled;
         body.querySelector('#shareDisable').hidden=!enabled;
@@ -150,10 +160,13 @@
         catch(e){showError(info,e);}
       }
     });
-    body.querySelector('#shareDisable').onclick=async()=>{
-      try{await call('ical-feed',{action:'disable',calendar_id:cal.id});links.innerHTML='';await loadStatus();toast('Calendar sharing disabled');}
-      catch(e){showError(info,e);}
-    };
+    body.querySelector('#shareDisable').onclick=()=>openConfirm({
+      title:'Disable sharing?',body:'Apps using the current link will stop syncing. The shared URL will return Not Found.',
+      confirmLabel:'Disable sharing',danger:true,fn:async()=>{
+        try{await call('ical-feed',{action:'disable',calendar_id:cal.id});links.innerHTML='';await loadStatus();toast('Calendar sharing disabled');}
+        catch(e){showError(info,e);}
+      }
+    });
     body.querySelector('#shareExport').onclick=async()=>{
       try{
         const result=await call('ical-feed',{action:'export',calendar_id:cal.id});
@@ -165,6 +178,15 @@
     return dialog;
   }
   window.daylightShareCalendar=shareDialog;
+  window.daylightExportCalendar=async function(cal){
+    if(!own()||!cal||cal.builtin||cal.subscribed)return;
+    try{
+      const ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
+      download((cal.name||'calendar').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',ics);
+      toast('Calendar exported');
+    }catch(error){toast(error.message||'Export failed');}
+  };
+
   window.daylightExportEvent=async function(event) {
     if(!own())return;
     const calendar=calendarRow(event.cal);
@@ -204,9 +226,10 @@
       if(file.size>2500000){result.textContent='Maximum file size: 2.5 MB';return;}
       try{
         const imported=await call('ical-import',{action:'import',calendar_id:selector.value,ics:await file.text()});
-        result.textContent=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped. Reloading…';
-        // The Edge Function uses a compare-and-swap workspace revision.
-        // Reload rather than risk overwriting imported data with an older open snapshot.
+        const summary=imported.added+' added, '+imported.updated+' updated, '+imported.skipped+' skipped.';
+        result.textContent=summary+' Reloading to display the imported events…';
+        sessionStorage.setItem('daylight-ics-last-result',summary);
+        // Reload the revisioned snapshot to avoid overwriting the imported events.
         location.reload();
       }catch(e){showError(result,e);}
     };
@@ -219,11 +242,12 @@
           '<br><span class="fr-sub">'+esc(s.url||'')+
           (s.last_error?' · Couldn’t update: '+esc(s.last_error):' · Last fetched: '+esc(s.last_fetched_at?new Date(s.last_fetched_at).toLocaleString():'Never'))+
           (s.skipped_count?' · '+s.skipped_count+' skipped':'')+
-          '</span></span>'+btn('Refresh','refreshOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
+          '</span></span>'+btn('Refresh','refreshOne')+btn('Manage','manageOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
+        card.querySelector('#manageOne').onclick=()=>manageSubscription({id:'subscription:'+s.id,name:s.name},card.querySelector('#manageOne'));
         card.querySelector('#refreshOne').onclick=async()=>{
           try{
             status.textContent='Refreshing…';
-            await call('ical-subscribe',{action:'refresh',id:s.id});
+            await call('ical-subscribe',{action:'refresh',id:s.id,force:true});
             await loadSubscriptions();draw();status.textContent='Subscription checked';
           }catch(e){showError(status,e);}
         };
@@ -238,20 +262,47 @@
       });
     }
     g.querySelector('#subAdd').onclick=async()=>{
-      const b=g.querySelector('#subAdd');b.disabled=true;status.textContent='Validating and importing calendar…';
+      const b=g.querySelector('#subAdd'),url=g.querySelector('#subUrl').value.trim();
+      b.disabled=true;status.textContent='Checking calendar feed…';
       try{
-        const result=await call('ical-subscribe',{action:'add',url:g.querySelector('#subUrl').value.trim(),
-          name:g.querySelector('#subName').value.trim()});
-        await loadSubscriptions();draw();
-        g.querySelector('#subUrl').value='';g.querySelector('#subName').value='';
-        status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
+        const preview=await call('ical-subscribe',{action:'preview',url});
+        const nameInput=g.querySelector('#subName');
+        if(!nameInput.value.trim())nameInput.value=preview.name||preview.source_host||'Calendar feed';
+        g.querySelector('#subPreview')?.remove();
+        let chosen='teal';
+        const confirm=html('<div class="set-group" id="subPreview"><p class="inline-note">'+
+          esc(preview.imported)+' events found. Confirm the name and color before subscribing.</p>'+
+          '<div class="menu-swatches" id="subColors"></div>'+
+          '<div style="margin-top:12px">'+btn('Save subscription','subConfirm','btn-primary')+'</div></div>');
+        SWATCH_ORDER.forEach(color=>{
+          const swatch=html('<button class="swatch'+(color===chosen?' sel':'')+
+            '" style="background:'+PALETTE[color].dot+'" aria-label="'+esc(COLOR_NAMES[color])+
+            '" title="'+esc(COLOR_NAMES[color])+'"></button>');
+          swatch.onclick=()=>{
+            chosen=color;
+            confirm.querySelectorAll('.swatch').forEach(node=>node.classList.remove('sel'));
+            swatch.classList.add('sel');
+          };
+          confirm.querySelector('#subColors').append(swatch);
+        });
+        g.append(confirm);status.textContent='';
+        confirm.querySelector('#subConfirm').onclick=async()=>{
+          const button=confirm.querySelector('#subConfirm');button.disabled=true;
+          status.textContent='Subscribing…';
+          try{
+            const result=await call('ical-subscribe',{action:'add',url,name:nameInput.value.trim(),color:chosen});
+            await loadSubscriptions();draw();confirm.remove();
+            g.querySelector('#subUrl').value='';nameInput.value='';
+            status.textContent='Added '+result.imported+' events'+(result.skipped?' ('+result.skipped+' skipped)':'');
+          }catch(error){showError(status,error);}finally{button.disabled=false;}
+        };
       }catch(e){showError(status,e);}
       finally{b.disabled=false;}
     };
     g.querySelector('#subReload').onclick=async()=>{
       status.textContent='Checking feeds…';
       try{
-        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id});
+        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id,force:true});
         await loadSubscriptions();draw();status.textContent='Feeds checked';
       }catch(e){showError(status,e);}
     };
@@ -272,20 +323,20 @@
   }
   function aiPane(pane) {
     paneHead(pane,'AI access','Approve AI calendar access with revocable, scoped tokens.');
-    const g=html('<div class="set-group"><div class="set-group-title">Create access token</div>'+
+    const g=html('<div class="dl-ai-wrap"><div class="set-group"><div class="set-group-title">Create access token</div>'+
       '<div class="field"><label for="mcpName">Token name</label><input class="text-input" id="mcpName" placeholder="My AI client"></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpRead" checked> Read calendars and tasks</label></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpWrite"> Create or edit calendars and tasks</label></div>'+
+      row('Read access','List calendars, events, and tasks.',switchHTML('mcpRead',true))+
+      row('Write access','Create and edit calendars, events, and tasks.',switchHTML('mcpWrite',false))+
       btn('Create token','mcpCreate','btn-primary')+'<div id="mcpOnce"></div><div id="mcpStatus" role="status"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Active tokens</div><div id="mcpTokens"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Destructive access</div>'+
-      row('Allow AI event deletion','Off by default, even for tokens with write access.','<input type="checkbox" id="mcpDelete">')+
+      row('Allow AI event deletion','Off by default, even for tokens with write access.',switchHTML('mcpDelete',false))+
       '<div id="mcpDeleteStatus"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">MCP server</div>'+
+      '<div class="set-group"><div class="set-group-title">Connect a client</div>'+ 
       '<p class="pane-sub">Connect a Streamable HTTP MCP client with your own token.</p>'+
       '<input class="text-input" readonly id="mcpUrl"><pre id="mcpConfig" style="white-space:pre-wrap;font-size:12px"></pre>'+
-      btn('Copy client config','mcpCopy')+'</div>'+
-      '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div>');
+      btn('Copy server URL','mcpCopyUrl')+' '+btn('Copy client config','mcpCopy')+'</div>'+ 
+      '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div></div>');
     pane.appendChild(g);
     const status=g.querySelector('#mcpStatus');
     const url=window.DAYLIGHT_MCP_URL || API+'daylight-mcp';
@@ -293,19 +344,20 @@
     const config=JSON.stringify({mcpServers:{daylight:{type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2);
     g.querySelector('#mcpConfig').textContent=config;
     g.querySelector('#mcpCopy').onclick=()=>copy(config);
+    g.querySelector('#mcpCopyUrl').onclick=()=>copy(url);
     const db=cloud.client;
     async function load(){
       if(!own())return;
       const [tokens,settings,audit]=await Promise.all([
         db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
         db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_audit_log').select('tool,action,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(15)
+        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
       ]);
       if(tokens.error)showError(status,tokens.error);
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
       (tokens.data||[]).forEach(t=>{
         const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
-          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'•••• · '+esc((t.scopes||[]).join(', '))+
+          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'•••• · '+esc((t.scopes||[]).join(', '))+' · Created: '+esc(new Date(t.created_at).toLocaleDateString())+
           ' · Last used: '+esc(t.last_used_at?new Date(t.last_used_at).toLocaleString():'Never')+
           '</span></span>'+btn('Revoke','revoke','btn-danger-outline')+'</div>');
         item.querySelector('#revoke').onclick=()=>openConfirm({
@@ -316,13 +368,34 @@
           }
         });list.appendChild(item);
       });
-      if(!list.children.length)list.innerHTML=note('No active AI tokens');
+      if(!list.children.length)list.innerHTML=note('No tokens yet — create one to connect an AI client.');
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
       const history=g.querySelector('#mcpAudit');history.innerHTML='';
-      (audit.data||[]).forEach(a=>{
-        history.appendChild(html('<div class="feed-row">'+esc(a.tool)+' · '+esc(a.action)+' · '+esc(new Date(a.created_at).toLocaleString())+'</div>'));
-      });
-      if(!history.children.length)history.innerHTML=note('No AI actions recorded yet');
+      const {data:legacyAudit}=await db.from('mcp_workspace_audit')
+        .select('tool,result,created_at,client_id,target_id').eq('user_id',cloud.user.id)
+        .order('created_at',{ascending:false}).limit(75);
+      const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
+        tool:a.tool,action:a.result,created_at:a.created_at,
+        token_name:a.client_id,summary:a.target_id||''
+      }))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      function showAudit(limit){
+        history.innerHTML='';
+        merged.slice(0,limit).forEach(a=>{
+          const isDelete=String(a.tool).includes('delete');
+          const item=html('<div class="feed-row" style="'+(isDelete?'color:var(--danger)':'')+'">'+
+            '<span class="fr-url">'+esc(a.tool)+' · '+esc(a.action)+
+            '<br><span class="fr-sub">'+esc(a.token_name||'AI client')+' · '+
+            esc(a.summary||'')+' · '+esc(new Date(a.created_at).toLocaleString())+
+            '</span></span></div>');
+          history.append(item);
+        });
+        if(merged.length>limit){
+          const more=html('<button class="btn-ghost" style="margin-top:8px">Show more</button>');
+          more.onclick=()=>showAudit(Math.min(limit+15,merged.length));history.append(more);
+        }
+        if(!merged.length)history.innerHTML=note('No AI actions recorded yet');
+      }
+      showAudit(15);
     }
     g.querySelector('#mcpCreate').onclick=async()=>{
       const name=g.querySelector('#mcpName').value.trim();
@@ -334,11 +407,12 @@
       const {error}=await db.from('mcp_tokens').insert({user_id:cloud.user.id,name,scopes,
         token_prefix:raw.slice(7,15),token_hash:hashed});
       if(error)return showError(status,error);
-      const once=g.querySelector('#mcpOnce');
-      once.innerHTML='<p class="inline-note">Copy this token now. It will not appear again.</p>'+
-        '<input class="text-input" readonly id="mcpRaw">'+btn('Copy token','mcpCopyRaw');
-      once.querySelector('#mcpRaw').value=raw;
-      once.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
+      const reveal=html('<div class="dl-token-reveal"><p class="pane-sub">You won’t be able to see this again — if you lose it, revoke it and make a new one.</p>'+
+        '<div class="field"><label for="mcpRaw">Access token</label><input class="text-input" readonly id="mcpRaw"></div>'+
+        btn('Copy token','mcpCopyRaw','btn-primary')+'</div>');
+      const revealDialog=modal('Your new AI access token',reveal);
+      reveal.querySelector('#mcpRaw').value=raw;
+      reveal.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
       g.querySelector('#mcpName').value='';
       status.textContent='Token created';load();
     };
@@ -358,5 +432,78 @@
     load().catch(e=>showError(status,e));
   }
   window.daylightAiPane=aiPane;
+  // Manage subscribed calendars from their existing sidebar rows.
+  function manageSubscription(cal,anchor) {
+    const subscription=subscriptionRows.find(s=>'subscription:'+s.id===cal.id);
+    if(!subscription)return;
+    function refresh(){
+      call('ical-subscribe',{action:'refresh',id:subscription.id,force:true})
+        .then(()=>loadSubscriptions()).then(()=>toast('Subscription checked'))
+        .catch(error=>toast(error.message||'Could not update subscription'));
+    }
+    function rename(){
+      const content=html('<div class="dl-subscription-rename"><div class="field"><label for="renameSubscription">Calendar name</label>'+
+        '<input class="text-input" id="renameSubscription"></div>'+
+        '<div style="display:flex;gap:8px;justify-content:flex-end">'+btn('Save','saveSubscriptionName','btn-primary')+'</div>'+
+        '<p class="inline-note" id="renameError"></p></div>');
+      content.querySelector('input').value=subscription.name;
+      const dialog=modal('Rename subscription',content);
+      content.querySelector('#saveSubscriptionName').onclick=async()=>{
+        try{
+          await call('ical-subscribe',{action:'update',id:subscription.id,name:content.querySelector('input').value});
+          dialog.close();await loadSubscriptions();toast('Subscription renamed');
+        }catch(error){showError(content.querySelector('#renameError'),error);}
+      };
+      content.querySelector('input').focus();
+    }
+    function colors(){
+      const content=html('<div class="dl-swatches"><div class="menu-swatches" id="subscriptionSwatches"></div><div id="swatchError"></div></div>');
+      const dialog=modal('Calendar color',content);
+      SWATCH_ORDER.forEach(key=>{
+        const swatch=html('<button class="swatch" aria-label="Set color to '+esc(COLOR_NAMES[key])+
+          '" title="'+esc(COLOR_NAMES[key])+'" style="background:'+PALETTE[key].dot+'"></button>');
+        if(subscription.color===key)swatch.classList.add('sel');
+        swatch.onclick=async()=>{
+          try{await call('ical-subscribe',{action:'update',id:subscription.id,color:key});
+            dialog.close();await loadSubscriptions();toast('Calendar color updated');}
+          catch(error){showError(content.querySelector('#swatchError'),error);}
+        };
+        content.querySelector('#subscriptionSwatches').append(swatch);
+      });
+    }
+    function remove(){
+      openConfirm({title:'Unsubscribe from '+subscription.name+'?',
+        body:'This removes the subscribed calendar and all cached events from Daylight. The source calendar is not affected.',
+        confirmLabel:'Unsubscribe',danger:true,fn:async()=>{
+          try{await call('ical-subscribe',{action:'remove',id:subscription.id});
+            await loadSubscriptions();toast('Calendar unsubscribed');}
+          catch(error){toast(error.message||'Could not unsubscribe');}
+        }});
+    }
+    openMenu(anchor,[
+      {icon:'sync',label:'Refresh now',fn:refresh},
+      {icon:'pencil',label:'Rename',fn:rename},
+      {icon:'droplet',label:'Change color',fn:colors},
+      {sep:true},{icon:'trash',label:'Unsubscribe',fn:remove}
+    ],{align:'right'});
+  }
+  const oldCalRow=calRow;
+  calRow=function(cal){
+    const row=oldCalRow(cal);
+    if(!cal.remoteSubscriptionId)return row;
+    const sub=subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);
+    if(!sub)return row;
+    const meta=html('<div class="rail-hide" style="font-size:10px;color:var(--muted);margin:0 2px 0 6px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></div>');
+    let host='External calendar';
+    try{host=new URL(sub.url).hostname;}catch{}
+    const time=sub.last_fetched_at?new Date(sub.last_fetched_at).toLocaleDateString():'Never';
+    meta.textContent=(sub.last_error?"Couldn't update · ":"")+host+' · '+time;
+    meta.title=sub.last_error||('Last updated '+time);
+    const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
+    menu.onclick=()=>manageSubscription(cal,menu);
+    row.append(meta,menu);return row;
+  };
+  window.daylightOpenSubscriptions=function(){openSettings('data');};
+
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 })();

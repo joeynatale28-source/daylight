@@ -51,11 +51,18 @@ function parse(text:string,calendarId:string) {
      const repeat=recurrence?.freq ? String(recurrence.freq).toLowerCase():null;
      let rrule=recurrence ? String(recurrence.toString()).replace(/^RRULE:/i,'') : null;
      const recurrenceId=part.getFirstProperty('recurrence-id');
+     // RFC 5545 GEO is independent of vendor-specific OSM references.
+     const geoRaw=part.getFirstProperty('geo')?.getFirstValue();
+     const geoMatch=String(geoRaw||'').match(/^(-?\d+(?:\.\d+)?)\s*;\s*(-?\d+(?:\.\d+)?)$/);
+     const geoLat=geoMatch?Number(geoMatch[1]):null;
+     const geoLng=geoMatch?Number(geoMatch[2]):null;
+     const validGeo=geoLat!==null&&geoLng!==null&&Math.abs(geoLat)<=90&&Math.abs(geoLng)<=180;
      parsed.push({
        cal:calendarId,uid:String(e.uid),rrule,repeat,
        recurrenceId:recurrenceId?String(recurrenceId.getFirstValue()):null,
        title:String(e.summary||'Untitled').slice(0,300),start:start.toISOString(),end:end.toISOString(),
        allDay,loc:String(e.location||'').slice(0,1500),desc:String(e.description||'').slice(0,10000),
+       placeId:null,locationLat:validGeo?geoLat:null,locationLng:validGeo?geoLng:null,
        timezone:sourceTz,sequence:Number(part.getFirstPropertyValue('sequence')||0),
        dtstamp:(part.getFirstPropertyValue('dtstamp')?.toJSDate?.()||new Date()).toISOString(),
        status:String(part.getFirstPropertyValue('status')||'CONFIRMED').toUpperCase(),

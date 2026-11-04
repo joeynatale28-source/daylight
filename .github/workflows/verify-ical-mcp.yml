@@ -3,6 +3,7 @@ on:
   push:
     branches:
       - feature/ical-mcp-integration-20261104
+      - feature/google-places-autocomplete-20261104
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,6 +19,7 @@ jobs:
         run: |
           node --check daylight-cloud.js
           node --check daylight-integrations.js
+          node --check daylight-places.js
           node --check daylight-settings.js
       - name: Syntax check embedded application script
         run: |
@@ -31,6 +33,28 @@ jobs:
           for(const script of scripts)new vm.Script(script,{filename:'index.html'});
           console.log('Checked',scripts.length,'inline scripts');
           EOF
+      - name: Install browser DOM test dependency
+        run: npm install --no-save --no-package-lock --ignore-scripts jsdom@26.1.0
+      - name: Verify Photon address UI behaviors
+        run: node --test tests/daylight-places.test.mjs
+      - name: Verify unauthenticated Photon proxy returns 401
+        run: |
+          status=$(curl --silent --show-error --max-time 15 -o /tmp/places_response.txt -w '%{http_code}' \
+            -X POST https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/places \
+            -H 'Content-Type: application/json' \
+            -d '{"action":"autocomplete","input":"10833 W Broad"}')
+          test "$status" = 401 || { echo "Expected 401, received $status"; cat /tmp/places_response.txt; exit 1; }
+      - name: Capture sample AI and Share UI in dark and light themes
+        continue-on-error: true
+        run: |
+          npm install --no-save --no-package-lock --ignore-scripts puppeteer-core@24.26.1
+          node tests/capture-ui.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: daylight-ui-dark-light
+          path: ui-screenshots/
+          if-no-files-found: ignore
       - name: Install MCP dependencies
         working-directory: mcp
         run: npm install --no-audit --no-fund
