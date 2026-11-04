@@ -67,6 +67,8 @@
     readOnlyCals.clear();remoteIds.clear();
   }
   function materialize(rows) {
+    const previousHidden=new Map(state.calendars.filter(c=>c.remoteSubscriptionId)
+      .map(c=>[c.remoteSubscriptionId,!!c.hidden]));
     removeRemote();
     subscriptionRows=rows;
     rows.forEach(s=>{
@@ -74,9 +76,13 @@
       const matches=state.calendars.find(c=>c.id===calId);
       if(matches)return;
       const colorKeys=['teal','blue','violet','green','amber','rose'];
-      const color=colorKeys[rows.indexOf(s)%colorKeys.length];
-      state.calendars.push({id:calId,name:s.name||'Calendar feed',color,hidden:false,
-        subscribed:true,builtin:false,remoteSubscriptionId:s.id});
+      const color=PALETTE[s.color]?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
+      let sourceHost='External calendar';
+      try{sourceHost=new URL(s.url).hostname;}catch{}
+      state.calendars.push({id:calId,name:s.name||'Calendar feed',color,
+        hidden:previousHidden.get(s.id)||false,
+        subscribed:true,builtin:false,remoteSubscriptionId:s.id,
+        sourceHost,lastFetched:s.last_fetched_at,lastError:s.last_error||null});
       remoteIds.add(calId);
       const events=Array.isArray(s.cached_events)?s.cached_events:[];
       events.forEach((e,i)=>{
@@ -94,16 +100,25 @@
     });
     renderAll(false);
   }
-  async function loadSubscriptions() {
+  async function loadSubscriptions(refreshDue) {
     if(!own())return;
     const uid=cloud.user.id;
     try{
-      const result=await call('ical-subscribe',{action:'list'});
+      let result=await call('ical-subscribe',{action:'list'});
+      if(refreshDue){
+        for(const sub of result.subscriptions||[]){
+          if(!sub.last_fetched_at||Date.now()-Date.parse(sub.last_fetched_at)>=3*3600000){
+            try{await call('ical-subscribe',{action:'refresh',id:sub.id});}
+            catch(error){console.warn('Subscription refresh failed',error);}
+          }
+        }
+        result=await call('ical-subscribe',{action:'list'});
+      }
       if(!own()||cloud.user.id!==uid)return;
       materialize(result.subscriptions||[]);
     }catch(e){console.warn('Subscription refresh failed; existing events remain',e);}
   }
-  document.addEventListener('daylight:workspace-ready',loadSubscriptions);
+  document.addEventListener('daylight:workspace-ready',()=>loadSubscriptions(true));
   document.addEventListener('daylight:workspace-signed-out',()=>{
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
