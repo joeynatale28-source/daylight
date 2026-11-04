@@ -901,19 +901,7 @@
       .swatch:hover { transform: scale(1.12); }
       .swatch.sel { box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--text); }
 
-      /* Hide the login while the saved session is restored. */
       body.booting #authRoot { visibility: hidden; pointer-events: none; }
-      #bootScreen { position: fixed; inset: 0; z-index: 3000; background: var(--surface);
-        color: var(--text); display: flex; align-items: center; justify-content: center;
-        flex-direction: column; gap: 8px; }
-      body:not(.booting) #bootScreen { display: none; }
-      .boot-mark { font-size: clamp(30px, 4vw, 42px); font-weight: 650; letter-spacing: -0.065em; line-height: 1.1; }
-      .boot-period { color: var(--accent); }
-      .boot-note { font-size: 12px; color: var(--muted); font-weight: 500; }
-      .boot-line { margin-top: 13px; width: 74px; height: 2px; border-radius: 99px; background: var(--line); overflow: hidden; position: relative; }
-      .boot-line::after { content: ""; position: absolute; inset: 0; width: 45%; border-radius: inherit; background: var(--accent); animation: boot-slide 1.15s ease-in-out infinite alternate; }
-      @keyframes boot-slide { to { transform: translateX(125%); } }
-      @media (prefers-reduced-motion: reduce) { .boot-line::after { animation: none; width: 100%; } }
       /* ---------- Settings — polished (Linear / Cron / Cal.com patterns) ----------
          Rail stays put; the pane gets clearer hierarchy: a quiet page
          intro, then grouped cards. Each group is one soft card with
@@ -1518,11 +1506,6 @@
     </style>
   </head>
   <body class="booting">
-    <div id="bootScreen" role="status" aria-live="polite" aria-label="Opening Daylight">
-      <div class="boot-mark">daylight<span class="boot-period">.</span></div>
-      <div class="boot-note">Opening your calendar</div>
-      <div class="boot-line" aria-hidden="true"></div>
-    </div>
     <div id="authRoot"></div>
     <div id="app" hidden>
       <aside id="sidebar" aria-label="Sidebar"></aside>
@@ -2636,7 +2619,7 @@
           for (var d = 0; d < 7; d++) {
             (function (date) {
               var inMonth = date.getMonth() === mc.getMonth();
-              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + calendarDayLabel(date, mc.getMonth()) + "</span></button>");
+              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + (!inMonth && date.getDate() === 1 ? "" : calendarDayLabel(date, mc.getMonth())) + "</span></button>");
               b.addEventListener("click", function () {
                 state.section = "calendar";
                 state.miniSelected = sod(date);
