@@ -228,7 +228,7 @@
     feedPane(pane);
   };
   function tokenRaw(){
-    const b=new Uint8Array(40);crypto.getRandomValues(b);
+    const b=new Uint8Array(32);crypto.getRandomValues(b);
     return 'dl_mcp_'+Array.from(b,x=>x.toString(16).padStart(2,'0')).join('');
   }
   async function tokenHash(token){
