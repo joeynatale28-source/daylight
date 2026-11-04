@@ -1,0 +1,84 @@
+/* Daylight finishing touches. Reuses existing tokens, spacing and panel components. */
+.dl-places-host {position:relative}
+.dl-places-host input {padding-right:34px}
+.dl-places-spinner {
+  position:absolute;right:12px;top:50%;width:15px;height:15px;margin-top:-8px;
+  border:2px solid var(--line);border-top-color:var(--muted);
+  border-radius:50%;pointer-events:none;animation:dl-spin .6s linear infinite
+}
+.dl-places-spinner[hidden],.dl-places-menu[hidden] {display:none!important}
+@keyframes dl-spin {to{transform:rotate(360deg)}}
+.dl-places-menu {
+  position:fixed;z-index:750;overflow:auto;max-height:min(285px,45dvh);
+  background:var(--menu-bg);color:var(--text);
+  border:1px solid var(--line);border-radius:var(--r-md);
+  padding:5px;box-shadow:var(--shadow-pop);transform-origin:top center
+}
+.dl-places-arriving {animation:dl-surface-in 175ms cubic-bezier(.23,1,.32,1) both}
+.dl-place-option {
+  display:flex;flex-direction:column;align-items:flex-start;text-align:left;
+  gap:2px;width:100%;border:0;border-radius:var(--r-sm);background:transparent;
+  color:var(--text);padding:10px 11px;cursor:pointer;
+}
+.dl-place-option.dl-mouse-hover,.dl-place-option.dl-key-selected,.dl-place-option:focus-visible {
+  background:var(--selected);outline:none
+}
+.dl-place-primary {font-size:13.5px;line-height:1.35;font-weight:550}
+.dl-place-primary strong {font-weight:750}
+.dl-place-secondary {font-size:11.5px;line-height:1.4;color:var(--muted)}
+.dl-places-credit {display:block;text-align:right;color:var(--muted);font-size:11px;
+  text-decoration:none;border-top:1px solid var(--line-soft);padding:8px 10px 4px}
+.dl-places-credit:hover {color:var(--text);text-decoration:underline}
+.dl-sub-stack {display:flex;flex-direction:column;flex:1;min-width:0;gap:2px}
+.dl-sub-stack .cal-name {white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.dl-sub-meta {font-size:10.5px;line-height:1.25;color:var(--muted);
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.dl-sub-error {color:var(--danger)}
+.cal-row.dl-sub-row {min-height:52px}
+#sidebar.rail .dl-sub-stack {display:none}
+.dl-status-enter {animation:dl-soft-in 165ms cubic-bezier(.23,1,.32,1) both}
+.dl-token-row {transition:opacity 125ms ease-out, transform 125ms ease-out}
+.dl-token-row.dl-removing {opacity:0;transform:scale(.98);pointer-events:none}
+.dl-token-chip {display:inline-block;border:1px solid var(--line);border-radius:30px;
+  padding:1px 7px;font-size:11px;color:var(--muted);margin:0 5px 0 0}
+.dl-token-reveal {word-break:break-all;font:12px ui-monospace,monospace;
+  background:var(--input-bg);border:1px solid var(--line);border-radius:var(--r-md);
+  padding:12px;line-height:1.5}
+.dl-audit-item {display:flex;gap:10px;align-items:center;justify-content:space-between;
+  padding:9px 0;border-bottom:1px solid var(--line-soft);font-size:12px}
+.dl-audit-item.dl-audit-delete {color:var(--danger)}
+.dl-audit-muted {color:var(--muted);font-size:11px}
+.dl-settings-share {display:flex;flex-wrap:wrap;gap:8px}
+.dl-settings-share button {max-width:100%}
+@keyframes dl-surface-in {
+  from {opacity:0;transform:scale(.96)}
+  to {opacity:1;transform:scale(1)}
+}
+@keyframes dl-surface-out {
+  from {opacity:1;transform:scale(1)}
+  to {opacity:0;transform:scale(.97)}
+}
+@keyframes dl-soft-in {from {opacity:.65;transform:translateY(3px)}to {opacity:1;transform:translateY(0)}}
+@keyframes dl-backdrop-out {from {opacity:1}to {opacity:0}}
+.palette {animation:dl-surface-in 190ms cubic-bezier(.23,1,.32,1) both}
+.palette-backdrop {animation:fadeIn 150ms cubic-bezier(.23,1,.32,1) both}
+.dl-surface-leaving {pointer-events:none!important;animation:dl-backdrop-out 120ms cubic-bezier(.23,1,.32,1) both!important}
+.dl-surface-leaving > .dialog,.dl-surface-leaving > .settings-dialog,.dl-surface-leaving > .palette {
+  animation:dl-surface-out 110ms cubic-bezier(.23,1,.32,1) both!important
+}
+.menu.dl-surface-leaving,.date-pop.dl-surface-leaving,.dl-places-menu.dl-surface-leaving {
+  animation:dl-surface-out 105ms cubic-bezier(.23,1,.32,1) both!important
+}
+.palette-results.dl-result-change {animation:dl-soft-in 140ms cubic-bezier(.23,1,.32,1) both}
+@media (prefers-reduced-motion:reduce) {
+ .dl-places-spinner,.dl-places-arriving,.dl-status-enter,.dl-token-row,
+ .dl-surface-leaving,.dl-surface-leaving > *,.palette,.palette-backdrop,
+ .dl-result-change {animation:none!important;transition:none!important}
+}
+body.dl-reduced .dl-places-spinner,body.dl-reduced .dl-places-arriving,
+body.dl-reduced .dl-status-enter,body.dl-reduced .dl-token-row,
+body.dl-reduced .dl-surface-leaving,body.dl-reduced .dl-surface-leaving > *,
+body.dl-reduced .palette,body.dl-reduced .palette-backdrop,
+body.dl-reduced .dl-result-change,body.dl-keyboard .dl-places-arriving {
+  animation:none!important;transition:none!important
+}
