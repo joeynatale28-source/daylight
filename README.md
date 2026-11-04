@@ -18,14 +18,7 @@ The new application uses Supabase email/password authentication through `auth.si
 
 The existing RLS owner policy protects `workspace_snapshots`. The browser receives only the **publishable** API key. Never place a Supabase secret key, service-role key, admin credentials, or an OAuth client secret into this repository.
 
-To use password-reset emails:
-1. In Supabase → Authentication → URL Configuration, set the Site URL to the actual HTTPS site URL.
-2. Add the exact deployment URL (including its path) to the Redirect URLs allowlist; for GitHub Pages, it is normally `https://joeynatale28-source.github.io/daylight/` if Pages is enabled. Add `http://localhost:8000/` when testing locally.
-3. Configure an SMTP provider for reliable production email delivery. The built-in service has rate limits.
-4. Disable public sign-ups under Authentication → Providers if accounts are owner-invited only (hide the form alone is not enough).
-5. Consider turning on leaked-password protection (Supabase security advisor identifies it as disabled).
-
-## Data behavior
+To use password-reset emails:\n1. In Supabase → Authentication → URL Configuration, set the Site URL to `https://joeynatale28-source.github.io/daylight/`.\n2. Add the exact same URL to the Redirect URLs allowlist. Add any local development URLs separately as needed.\n3. Configure an SMTP provider for reliable production email delivery (Supabase default emails are rate-limited).\n4. If accounts are owner-invited only, disable public sign-ups in Supabase Auth providers/settings.\n5. Consider enabling leaked-password protection (the security advisor currently warns that it is disabled).\n\n## Data behavior
 
 - On sign-in, the app reads the authenticated user's existing workspace before showing events or tasks.
 - Calendar and task changes, edits and settings save to Supabase after a short debounce.
@@ -37,19 +30,4 @@ To use password-reset emails:
 
 **Caution:** This is snapshot-based synchronization, not a collaborative event-by-event sync engine. Large accounts and simultaneous multi-device edits will eventually warrant normalized Supabase tables and row-level mutations. Existing `dl_*` tables remain untouched.
 
-## Run locally
-
-```sh
-python3 -m http.server 8000
-```
-
-Visit `http://localhost:8000/`. To host with GitHub Pages, enable Pages in the repository settings or configure a deployment workflow. Pages deployment is **not** automatically enabled by adding these files; private repository hosting is plan-dependent.
-
-## Quick checks
-
-1. Sign in with a **real** confirmed Supabase Auth email/password; a wrong password must fail.
-2. Create an event and a task, wait for “Saved to cloud”, reload, and verify they return.
-3. Sign out and verify the app is hidden. Sign in again and verify the same content loads.
-4. Try another user's account: the first user's events must not be visible.
-5. Request a password reset; follow the emailed link back to the configured deployment URL, set a new password, and sign in.
-6. Open two sessions, edit the same workspace concurrently, and verify conflict warnings prevent silent overwrites.
+## GitHub Pages deployment\n\nThe intended production site is `https://joeynatale28-source.github.io/daylight/`. The `.github/workflows/deploy-pages.yml` workflow publishes only `index.html` and `daylight-cloud.js` when `main` changes, or when run manually from GitHub Actions.\n\n**One-time repository setup:** GitHub → `daylight` → Settings → Pages → under Build and deployment, choose **GitHub Actions** as the Source. The workflow cannot turn Pages on using the default `GITHUB_TOKEN`. For a private repository, GitHub Pro or another eligible GitHub plan is required; on GitHub Free, this repository would need to be made public before GitHub Pages is available. Published Pages sites are publicly accessible even when the underlying repository is private.\n\nAfter enabling Pages, run the `Deploy Daylight to GitHub Pages` workflow from the Actions tab if the initial push did not trigger a run. Check the Actions run and the Pages Settings page to confirm it is published; do not consider it live until those checks pass.\n\nFor local development:\n\n```sh\npython3 -m http.server 8000\n```\n\nOpen `http://localhost:8000/`. Password-reset redirects for localhost must be separately allowlisted in Supabase.\n\n## Manual verification checklist\n\n1. Sign in with an **existing confirmed** Supabase Auth account, and verify a wrong password fails.\n2. Create an event and a task, wait for the “Saved to cloud” indicator, reload, and verify both return.\n3. Sign out and verify the app disappears. Sign in again and verify the saved content returns.\n4. Check with a separate account that another user’s events do not appear.\n5. Request a password reset, follow the email link back to the Pages URL, update the password, then sign in.\n6. Open two browser sessions, edit the same data concurrently, and verify a sync conflict is surfaced rather than silently overwriting another edit.\n
