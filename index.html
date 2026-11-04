@@ -1516,6 +1516,7 @@
         .auth-rule .rule-ic, .auth-rule .rule-ic svg path, .auth-hazard-wrap, .auth-eye, .auth-tip { animation: none !important; transition: none !important; }
       }
     </style>
+    <link rel="stylesheet" href="./daylight-finish.css">
   </head>
   <body class="booting">
     <div id="bootScreen" role="status" aria-live="polite" aria-label="Opening Daylight">
@@ -3449,7 +3450,13 @@
         var rows = "";
         if (!bannerKey) rows += '<div class="pop-row"><span class="pop-ic">' + icon("clock", 18) + '</span><span class="pop-main"><span class="pr-strong">' + esc(timeMain) + '</span><span class="pr-sub">' + esc(timeSub) + "</span></span></div>";
         if (ev.repeat) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span></div>";
-        if (ev.loc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' + esc(ev.loc) + "</span></div>";
+        if (ev.loc) {
+          var osmHref = window.daylightLocationURL ? window.daylightLocationURL(ev) : null;
+          var locDisplay = osmHref
+            ? '<a class="dl-location-link" href="' + esc(osmHref) + '" target="_blank" rel="noopener noreferrer">' + esc(ev.loc) + '</a>'
+            : esc(ev.loc);
+          rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' + locDisplay + "</span></div>";
+        }
         if (ev.desc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("alignLeft", 18) + '</span><span class="pop-main pop-desc">' + esc(ev.desc) + "</span></div>";
         rows += '<div class="pop-row"><span class="pop-ic">' + icon("calendar", 18) + '</span><span class="pop-main">' + esc(cal.name) + (readOnly ? '<span class="pr-sub">' + (cal.builtin ? "Built-in calendar" : "Subscribed calendar") + "</span>" : "") + (ev.declined ? '<span class="pr-sub">Declined</span>' : "") + "</span></div>";
         if (ev.reminder != null) rows += '<div class="pop-row"><span class="pop-ic">' + icon("bell", 18) + '</span><span class="pop-main">' + esc(fmtReminder(ev.reminder)) + "</span></div>";
@@ -3711,6 +3718,9 @@
           repeat: src ? src.repeat : null,
           reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
           loc: src ? src.loc : "",
+          placeId: src ? (src.placeId || null) : null,
+          placeLat: src && src.placeLat != null ? Number(src.placeLat) : null,
+          placeLng: src && src.placeLng != null ? Number(src.placeLng) : null,
           desc: src ? (src.desc || "") : "",
           dirty: false
         };
@@ -3762,7 +3772,12 @@
         syncUI();
         titleIn.focus();
         titleIn.addEventListener("input", function () { f.title = titleIn.value; titleIn.classList.remove("err"); dlg.querySelector("#efTitleErr").classList.remove("show"); markDirty(); });
-        locIn.addEventListener("input", function () { f.loc = locIn.value; markDirty(); });
+        locIn.addEventListener("input", function () {
+          f.loc = locIn.value;
+          f.placeId = null; f.placeLat = null; f.placeLng = null;
+          markDirty();
+        });
+        if (window.daylightAttachPhoton) window.daylightAttachPhoton(locIn, f);
         if (descIn) descIn.addEventListener("input", function () { f.desc = descIn.value; markDirty(); });
         allDayIn.addEventListener("change", function () {
           f.allDay = allDayIn.checked; markDirty();
@@ -3838,9 +3853,16 @@
           closeDatePicker();
           if (isEdit) {
             src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.desc = descIn ? descIn.value.trim() : "";
+            src.placeId = f.placeId || null;
+            src.placeLat = f.placeLat == null ? null : Number(f.placeLat);
+            src.placeLng = f.placeLng == null ? null : Number(f.placeLng);
             bd.remove(); renderAll(false); toast("Event updated");
           } else {
-            state.events.push(mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder }));
+            var createdEvent = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
+            createdEvent.placeId = f.placeId || null;
+            createdEvent.placeLat = f.placeLat == null ? null : Number(f.placeLat);
+            createdEvent.placeLng = f.placeLng == null ? null : Number(f.placeLng);
+            state.events.push(createdEvent);
             bd.remove(); renderAll(false); toast("Event created");
           }
         });
@@ -5183,5 +5205,6 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.57.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-integrations.js"></script>
+    <script src="./daylight-places.js"></script>
   </body>
 </html>
