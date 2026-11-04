@@ -82,3 +82,10 @@ body.dl-reduced .palette,body.dl-reduced .palette-backdrop,
 body.dl-reduced .dl-result-change,body.dl-keyboard .dl-places-arriving {
   animation:none!important;transition:none!important
 }
+
+/* Keep exiting event popovers and the calendar's own dropdowns in the same motion family. */
+.popover.dl-surface-leaving {animation:dl-surface-out 110ms cubic-bezier(.23,1,.32,1) both!important}
+.dl-location-link {color:inherit;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px}
+.dl-location-link:hover {color:var(--accent)}
+@media (prefers-reduced-motion:reduce) {.popover.dl-surface-leaving {animation:none!important}}
+body.dl-reduced .popover.dl-surface-leaving {animation:none!important}
