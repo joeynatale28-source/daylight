@@ -126,6 +126,7 @@
       ["notifications", "bell", "Notifications"],
       ["shortcuts", "keyboard", "Shortcuts"],
       ["data", "sync", "Data & sync"],
+      ["ai", "bot", "AI access"],
       ["about", "info", "About"]
     ].forEach(function (s) {
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
@@ -159,7 +160,8 @@
       var fn = {
         general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        data: paneData, about: paneAbout
+        data: paneData, ai: window.DaylightExtras ? window.DaylightExtras.paneAI : paneAbout,
+        about: paneAbout
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
