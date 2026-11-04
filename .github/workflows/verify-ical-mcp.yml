@@ -3,6 +3,8 @@ on:
   push:
     branches:
       - feature/ical-mcp-integration-20261104
+      - feature/daylight-ui-finish-photon-20261104
+      - main
   workflow_dispatch:
 permissions:
   contents: read
@@ -18,6 +20,8 @@ jobs:
         run: |
           node --check daylight-cloud.js
           node --check daylight-integrations.js
+          node --check daylight-places.js
+          node --check daylight-finish.js
           node --check daylight-settings.js
       - name: Syntax check embedded application script
         run: |
@@ -31,6 +35,20 @@ jobs:
           for(const script of scripts)new vm.Script(script,{filename:'index.html'});
           console.log('Checked',scripts.length,'inline scripts');
           EOF
+      - name: Check source hygiene and integration assets
+        run: |
+          test -s daylight-finish.css
+          test -s supabase/functions/places/index.ts
+          grep -q 'daylight-places.js' index.html
+          grep -q 'daylight-finish.js' index.html
+          grep -q 'daylight-finish.css' index.html
+          ! grep -Ei 'mintlify|joeynatale[.]mintlify[.]app' index.html daylight-cloud.js daylight-integrations.js daylight-finish.js daylight-places.js
+          ! grep -Ei 'GOOGLE_MAPS_API_KEY|places[.]googleapis[.]com|google[ -]?places' index.html daylight-cloud.js daylight-integrations.js daylight-finish.js daylight-places.js supabase/functions/places/index.ts
+      - name: Validate Photon function has mandatory auth and no Google secrets
+        run: |
+          grep -q 'admin.auth.getUser(bearer)' supabase/functions/places/index.ts
+          grep -q 'photon.komoot.io/api' supabase/functions/places/index.ts
+          grep -q 'status.*401\|401)' supabase/functions/places/index.ts
       - name: Install MCP dependencies
         working-directory: mcp
         run: npm install --no-audit --no-fund
