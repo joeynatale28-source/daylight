@@ -445,91 +445,180 @@
     return Array.from(new Uint8Array(buf),x=>x.toString(16).padStart(2,'0')).join('');
   }
   function aiPane(pane) {
-    paneHead(pane,'AI access','Approve AI calendar access with revocable, scoped tokens.');
-    const g=html('<div class="set-group"><div class="set-group-title">Create access token</div>'+
-      '<div class="field"><label for="mcpName">Token name</label><input class="text-input" id="mcpName" placeholder="My AI client"></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpRead" checked> Read calendars and tasks</label></div>'+
-      '<div class="field"><label><input type="checkbox" id="mcpWrite"> Create or edit calendars and tasks</label></div>'+
-      btn('Create token','mcpCreate','btn-primary')+'<div id="mcpOnce"></div><div id="mcpStatus" role="status"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">Active tokens</div><div id="mcpTokens"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">Destructive access</div>'+
-      row('Allow AI event deletion','Off by default, even for tokens with write access.','<input type="checkbox" id="mcpDelete">')+
-      '<div id="mcpDeleteStatus"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">MCP server</div>'+
-      '<p class="pane-sub">Connect a Streamable HTTP MCP client with your own token.</p>'+
-      '<input class="text-input" readonly id="mcpUrl"><pre id="mcpConfig" style="white-space:pre-wrap;font-size:12px"></pre>'+
-      btn('Copy client config','mcpCopy')+'</div>'+
-      '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div>');
-    pane.appendChild(g);
-    const status=g.querySelector('#mcpStatus');
-    const url=window.DAYLIGHT_MCP_URL || API+'daylight-mcp';
-    g.querySelector('#mcpUrl').value=url;
-    const config=JSON.stringify({mcpServers:{daylight:{type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2);
-    g.querySelector('#mcpConfig').textContent=config;
-    g.querySelector('#mcpCopy').onclick=()=>copy(config);
-    const db=cloud.client;
-    async function load(){
-      if(!own())return;
-      const [tokens,settings,audit]=await Promise.all([
-        db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
-        db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_audit_log').select('tool,action,created_at').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(15)
-      ]);
-      if(tokens.error)showError(status,tokens.error);
-      const list=g.querySelector('#mcpTokens');list.innerHTML='';
-      (tokens.data||[]).forEach(t=>{
-        const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
-          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'•••• · '+esc((t.scopes||[]).join(', '))+
-          ' · Last used: '+esc(t.last_used_at?new Date(t.last_used_at).toLocaleString():'Never')+
-          '</span></span>'+btn('Revoke','revoke','btn-danger-outline')+'</div>');
-        item.querySelector('#revoke').onclick=()=>openConfirm({
-          title:'Revoke AI token?',body:'This token will immediately stop working.',
-          confirmLabel:'Revoke',danger:true,fn:async()=>{
-            const {error}=await db.from('mcp_tokens').update({revoked:true}).eq('id',t.id).eq('user_id',cloud.user.id);
-            if(error)showError(status,error);else{toast('Token revoked');load();}
-          }
-        });list.appendChild(item);
-      });
-      if(!list.children.length)list.innerHTML=note('No active AI tokens');
-      g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
-      const history=g.querySelector('#mcpAudit');history.innerHTML='';
-      (audit.data||[]).forEach(a=>{
-        history.appendChild(html('<div class="feed-row">'+esc(a.tool)+' · '+esc(a.action)+' · '+esc(new Date(a.created_at).toLocaleString())+'</div>'));
-      });
-      if(!history.children.length)history.innerHTML=note('No AI actions recorded yet');
+    paneHead(pane,'AI access','Control which AI clients can read or change your daylight calendars.');
+    const url=window.DAYLIGHT_MCP_URL||API+'daylight-mcp';
+    const config=JSON.stringify({mcpServers:{daylight:{
+      type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}
+    }}},null,2);
+    const section=html(
+      '<div class="set-group"><div class="set-group-title">Connect a client</div>'+
+      '<p class="inline-note">Connecting gives an approved AI client access to the calendar tools allowed by its token.</p>'+
+      '<div class="field"><label for="mcpUrl">MCP server URL</label>'+
+      '<input class="text-input" readonly id="mcpUrl"></div>'+
+      btn('Copy server URL','mcpCopyUrl')+
+      '<div class="field" style="margin-top:12px"><label for="mcpConfig">Client configuration</label>'+
+      '<pre class="dl-token-reveal" id="mcpConfig" tabindex="0"></pre></div>'+
+      btn('Copy client config','mcpCopyConfig')+'</div>'+
+      '<div class="set-group"><div class="set-group-title">Create token</div>'+
+      '<div class="field"><label for="mcpName">Token name</label>'+
+      '<input class="text-input" maxlength="100" id="mcpName" placeholder="My AI client"></div>'+
+      row('Read','View calendars, events and tasks',
+        '<label class="switch"><input type="checkbox" id="mcpRead" checked aria-label="Allow reading calendars"><span class="track"></span><span class="knob"></span></label>')+
+      row('Write','Create and edit calendars, events and tasks',
+        '<label class="switch"><input type="checkbox" id="mcpWrite" aria-label="Allow writing calendars"><span class="track"></span><span class="knob"></span></label>')+
+      '<div style="margin-top:12px">'+btn('Create token','mcpCreate','btn-primary')+'</div>'+
+      '<div class="inline-note" id="mcpStatus" role="status"></div></div>'+
+      '<div class="set-group"><div class="set-group-title">Your tokens</div>'+
+      '<div id="mcpTokens" aria-live="polite"></div></div>'+
+      '<div class="set-group"><div class="set-group-title">Deletes</div>'+
+      row('Allow AI event deletion','Disabled by default. Write tokens can delete events only when enabled.',
+        '<label class="switch"><input type="checkbox" id="mcpDelete" aria-label="Allow AI to delete events"><span class="track"></span><span class="knob"></span></label>')+
+      '<div class="inline-note" id="mcpDeleteStatus" role="status"></div>'+
+      '<div style="margin-top:22px" class="set-group-title">AI activity</div>'+
+      '<div id="mcpAudit" aria-live="polite"></div>'+
+      '<button class="btn-ghost" type="button" id="mcpMore" hidden>Show more</button></div>'
+    );
+    pane.appendChild(section);
+    section.querySelector('#mcpUrl').value=url;
+    section.querySelector('#mcpConfig').textContent=config;
+    section.querySelector('#mcpCopyUrl').onclick=()=>copy(url);
+    section.querySelector('#mcpCopyConfig').onclick=()=>copy(config);
+    const db=cloud.client,feedback=section.querySelector('#mcpStatus');
+    let auditRows=[],shownAudit=10,allTokens=[];
+    const safeDate=x=>x?new Date(x).toLocaleString():'Never';
+    function motionOff(){
+      return state.reduceMotion||window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     }
-    g.querySelector('#mcpCreate').onclick=async()=>{
-      const name=g.querySelector('#mcpName').value.trim();
+    function renderAudit(){
+      const container=section.querySelector('#mcpAudit');
+      if(!container.isConnected)return;
+      container.replaceChildren();
+      if(!auditRows.length)container.appendChild(html(note('No AI activity yet.')));
+      auditRows.slice(0,shownAudit).forEach(record=>{
+        const deleteAction=record.tool==='delete_event'||record.action==='delete';
+        const item=html('<div class="dl-audit-item'+(deleteAction?' dl-audit-delete':'')+'">'+
+          '<span><strong>'+esc(record.tool||record.action||'Action')+'</strong>'+
+          '<span class="dl-audit-muted"> · '+esc(record.tokenName||'AI client')+
+          (record.target?' · '+esc(record.target):'')+'</span></span>'+
+          '<time class="dl-audit-muted">'+esc(safeDate(record.created_at))+'</time></div>');
+        container.appendChild(item);
+      });
+      section.querySelector('#mcpMore').hidden=auditRows.length<=shownAudit;
+    }
+    section.querySelector('#mcpMore').onclick=()=>{shownAudit+=10;renderAudit();};
+    async function load(){
+      if(!own()||!section.isConnected)return;
+      const uid=cloud.user.id;
+      const [tokenRes,settingsRes,workspaceRes,auditRes]=await Promise.all([
+        db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked')
+          .eq('user_id',uid).order('created_at',{ascending:false}),
+        db.from('user_settings').select('mcp_allow_delete').eq('user_id',uid).maybeSingle(),
+        db.from('mcp_workspace_audit').select('client_id,tool,target_id,result,created_at')
+          .eq('user_id',uid).order('created_at',{ascending:false}).limit(50),
+        db.from('mcp_audit_log').select('token_name,tool,action,summary,created_at')
+          .eq('user_id',uid).order('created_at',{ascending:false}).limit(50)
+      ]);
+      if(!section.isConnected)return;
+      if(tokenRes.error)showError(feedback,tokenRes.error);
+      if(settingsRes.error)showError(section.querySelector('#mcpDeleteStatus'),settingsRes.error);
+      allTokens=tokenRes.data||[];
+      section.querySelector('#mcpDelete').checked=!!settingsRes.data?.mcp_allow_delete;
+      const list=section.querySelector('#mcpTokens');
+      list.replaceChildren();
+      const active=allTokens.filter(t=>!t.revoked);
+      if(!active.length)list.appendChild(html(note('No tokens yet — create one to connect an AI client.')));
+      active.forEach(t=>{
+        const item=html('<div class="feed-row dl-token-row">'+
+          '<span class="fr-url" style="white-space:normal"><strong>'+esc(t.name)+'</strong>'+
+          '<br><span class="fr-sub">'+esc(t.token_prefix||'')+'••••'+
+          ' · Created '+esc(safeDate(t.created_at))+
+          ' · Last used '+esc(safeDate(t.last_used_at))+'</span>'+
+          '<br><span class="dl-token-chips"></span></span>'+
+          btn('Revoke','revoke','btn-danger-outline')+'</div>');
+        const chips=item.querySelector('.dl-token-chips');
+        (t.scopes||[]).forEach(scope=>chips.appendChild(html('<span class="dl-token-chip">'+esc(scope)+'</span>')));
+        item.querySelector('#revoke').onclick=()=>openConfirm({
+          title:'Revoke '+t.name+'?',body:'This token will immediately stop working for every connected AI client.',
+          confirmLabel:'Revoke token',danger:true,fn:async()=>{
+            const {error}=await db.from('mcp_tokens').update({revoked:true})
+              .eq('id',t.id).eq('user_id',uid);
+            if(error){showError(feedback,error);return;}
+            if(!motionOff()){item.classList.add('dl-removing');setTimeout(load,135);}
+            else load();
+          }
+        });
+        list.appendChild(item);
+      });
+      const tokenNames=new Map(allTokens.map(t=>['manual:'+t.id,t.name]));
+      auditRows=[
+        ...(workspaceRes.data||[]).map(a=>({
+          ...a,tokenName:tokenNames.get(a.client_id)||'Connected AI',
+          target:a.target_id||a.result
+        })),
+        ...(auditRes.data||[]).map(a=>({
+          ...a,tokenName:a.token_name||'Connected AI',target:a.summary||'',
+        }))
+      ].sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+      renderAudit();
+    }
+    function revealToken(token){
+      const content=html('<p class="pane-sub">You won’t be able to see this token again — if you lose it, revoke it and make a new one.</p>'+
+        '<div class="field"><label for="mcpReveal">New access token (shown once)</label>'+
+        '<input class="text-input" id="mcpReveal" readonly spellcheck="false"></div>'+
+        '<div style="display:flex;gap:8px">'+btn('Copy token','mcpCopyRaw','btn-primary')+'</div>');
+      const dialog=modal('Your new AI token',content);
+      content.querySelector('#mcpReveal').value=token;
+      content.querySelector('#mcpCopyRaw').onclick=()=>copy(token);
+      content.querySelector('#mcpReveal').focus();
+      content.querySelector('#mcpReveal').select();
+      return dialog;
+    }
+    section.querySelector('#mcpCreate').onclick=async()=>{
+      const name=section.querySelector('#mcpName').value.trim();
       const scopes=[];
-      if(g.querySelector('#mcpRead').checked)scopes.push('read');
-      if(g.querySelector('#mcpWrite').checked){scopes.push('write');if(!scopes.includes('read'))scopes.push('read');}
-      if(!name||name.length>100||!scopes.length){status.textContent='Enter a name and choose a scope';return;}
-      const raw=tokenRaw(),hashed=await tokenHash(raw);
-      const {error}=await db.from('mcp_tokens').insert({user_id:cloud.user.id,name,scopes,
-        token_prefix:raw.slice(7,15),token_hash:hashed});
-      if(error)return showError(status,error);
-      const once=g.querySelector('#mcpOnce');
-      once.innerHTML='<p class="inline-note">Copy this token now. It will not appear again.</p>'+
-        '<input class="text-input" readonly id="mcpRaw">'+btn('Copy token','mcpCopyRaw');
-      once.querySelector('#mcpRaw').value=raw;
-      once.querySelector('#mcpCopyRaw').onclick=()=>copy(raw);
-      g.querySelector('#mcpName').value='';
-      status.textContent='Token created';load();
-    };
-    g.querySelector('#mcpDelete').onchange=function(){
-      if(!this.checked){
-        db.from('user_settings').upsert({user_id:cloud.user.id,mcp_allow_delete:false}).then(({error})=>{
-          if(error)showError(g.querySelector('#mcpDeleteStatus'),error);else toast('AI deletion disabled');
-        });return;
+      if(section.querySelector('#mcpRead').checked)scopes.push('read');
+      if(section.querySelector('#mcpWrite').checked){
+        scopes.push('write');if(!scopes.includes('read'))scopes.push('read');
       }
-      this.checked=false;
-      openConfirm({title:'Allow AI deletion?',body:'AI clients holding a write token will be able to permanently delete calendar events. This is account-wide until you turn it off.',
-        confirmLabel:'Enable deletion',danger:true,fn:async()=>{
-          const {error}=await db.from('user_settings').upsert({user_id:cloud.user.id,mcp_allow_delete:true});
-          if(error)showError(g.querySelector('#mcpDeleteStatus'),error);else{g.querySelector('#mcpDelete').checked=true;toast('AI deletion enabled');}
-        }});
+      if(!name||name.length>100||!scopes.length){
+        feedback.textContent='Enter a name and choose at least one permission';return;
+      }
+      const b=section.querySelector('#mcpCreate');b.disabled=true;
+      const raw=tokenRaw(),hashed=await tokenHash(raw);
+      const {error}=await db.from('mcp_tokens').insert({
+        user_id:cloud.user.id,name,scopes,
+        token_prefix:raw.slice(7,15),token_hash:hashed
+      });
+      b.disabled=false;
+      if(error){showError(feedback,error);return;}
+      section.querySelector('#mcpName').value='';
+      feedback.textContent='Token created.';
+      revealToken(raw);
+      load();
     };
-    load().catch(e=>showError(status,e));
+    section.querySelector('#mcpDelete').onchange=async function(){
+      const toggle=this,output=section.querySelector('#mcpDeleteStatus');
+      if(!toggle.checked){
+        const {error}=await db.from('user_settings').upsert({
+          user_id:cloud.user.id,mcp_allow_delete:false
+        });
+        if(error){toggle.checked=true;showError(output,error);}
+        else output.textContent='AI event deletion disabled.';
+        return;
+      }
+      toggle.checked=false;
+      openConfirm({title:'Enable AI event deletion?',
+        body:'Any active write token will be able to permanently delete events in calendars you own. All deletions are logged.',
+        confirmLabel:'Enable deletion',danger:true,fn:async()=>{
+          const {error}=await db.from('user_settings').upsert({
+            user_id:cloud.user.id,mcp_allow_delete:true
+          });
+          if(error)showError(output,error);
+          else{toggle.checked=true;output.textContent='AI event deletion enabled.';}
+        }
+      });
+    };
+    load().catch(e=>showError(feedback,e));
   }
   window.daylightAiPane=aiPane;
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
