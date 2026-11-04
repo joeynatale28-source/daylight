@@ -3391,6 +3391,9 @@
         var m = el('<div class="menu" role="menu" style="width:204px"></div>');
         var del = el('<button class="menu-item danger">' + icon("trash", 16) + "<span>Delete event</span></button>");
         del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev); });
+        var exportItem = el('<button class="menu-item">' + icon("download",16) + '<span>Export event (.ics)</span></button>');
+        exportItem.addEventListener("click",function(){closePopMenu();window.daylightExportEvent(ev);});
+        m.appendChild(exportItem);
         m.appendChild(del);
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
