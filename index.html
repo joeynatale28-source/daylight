@@ -1515,7 +1515,25 @@
         .auth-art-float { animation: none !important; }
         .auth-rule .rule-ic, .auth-rule .rule-ic svg path, .auth-hazard-wrap, .auth-eye, .auth-tip { animation: none !important; transition: none !important; }
       }
-    </style>
+          /* Consistent fast ease-out for dialogs, menus, search, and result changes. */
+      @keyframes dl-overlay-show { from { opacity:0;transform:scale(.96); } to {opacity:1;transform:scale(1);} }
+      @keyframes dl-overlay-hide { from {opacity:1;transform:scale(1);} to {opacity:0;transform:scale(.97);} }
+      @keyframes dl-backdrop-show {from{opacity:0;}to{opacity:1;}}
+      .menu,.date-pop,.dialog,.settings-dialog,.palette,.pop,.popover,.event-popover{
+        animation:dl-overlay-show .19s cubic-bezier(.23,1,.32,1) both;
+      }
+      .backdrop,.palette-backdrop{animation:dl-backdrop-show .16s cubic-bezier(.23,1,.32,1) both;}
+      .dl-overlay-exit,.dl-overlay-exit .dialog,.dl-overlay-exit .palette,
+      .dl-overlay-exit .settings-dialog{animation:dl-overlay-hide .12s cubic-bezier(.23,1,.32,1) both!important;}
+      .palette-results>*{animation:dl-backdrop-show .13s cubic-bezier(.23,1,.32,1) both;}
+      .feed-row{transition:opacity .14s cubic-bezier(.23,1,.32,1),transform .14s cubic-bezier(.23,1,.32,1);}
+      @media(prefers-reduced-motion:reduce){
+        .menu,.date-pop,.dialog,.settings-dialog,.palette,.pop,.popover,.event-popover,
+        .backdrop,.palette-backdrop,.palette-results>*,.feed-row{animation:none!important;transition:none!important;}
+      }
+      body.dl-reduce-motion .menu,body.dl-reduce-motion .dialog,body.dl-reduce-motion .palette,
+      body.dl-reduce-motion .backdrop,body.dl-reduce-motion .palette-backdrop{animation:none!important;transition:none!important;}
+</style>
   </head>
   <body class="booting">
     <div id="bootScreen" role="status" aria-live="polite" aria-label="Opening Daylight">
@@ -2174,7 +2192,7 @@
 
       /* ================= Menus ================= */
       var openMenuEl = null;
-      function closeMenu() { closeDropdown(); if (openMenuEl) { openMenuEl.remove(); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); } }
+      function closeMenu() { closeDropdown(); if (openMenuEl) { daylightExit(openMenuEl); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); } }
       function menuOutside(e) { if (openMenuEl && !openMenuEl.contains(e.target)) closeMenu(); }
       function openMenu(anchor, items, opts) {
         opts = opts || {};
@@ -2466,8 +2484,11 @@
           sidebarEl.appendChild(list);
         }
         if (subCals.length) {
-          var subLabel = el('<div class="side-label rail-hide"><span>Subscribed Calendars</span></div>');
+          var subLabel = el('<div class="side-label rail-hide"><span>Subscribe and share calendars</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
+          var addSubscription = el('<button class="side-label-btn add" title="Subscribe by URL" aria-label="Subscribe by URL">' + icon("plus",16) + '</button>');
+          addSubscription.addEventListener("click",function(){openSettings("data");});
+          subActions.appendChild(addSubscription);
           var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscribed Calendars" : "Expand Subscribed Calendars") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
           collapseSub.addEventListener("click", function () { state.subSectionOpen = !state.subSectionOpen; renderSidebar(); });
           subActions.appendChild(collapseSub);
@@ -2582,6 +2603,7 @@
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
         m.appendChild(item("link", "Share…", false, function () { window.daylightShareCalendar(cal); }));
+        m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
         m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
@@ -3365,8 +3387,8 @@
         } catch (e) {}
         selAnchor = null;
       }
-      function closePopMenu() { if (popMenuEl) { popMenuEl.remove(); popMenuEl = null; } }
-      function closePopover() { closePopMenu(); clearSelected(); if (popEl) { popEl.remove(); popEl = null; document.removeEventListener("mousedown", popOutside, true); } }
+      function closePopMenu() { if (popMenuEl) { daylightExit(popMenuEl); popMenuEl = null; } }
+      function closePopover() { closePopMenu(); clearSelected(); if (popEl) { daylightExit(popEl); popEl = null; document.removeEventListener("mousedown", popOutside, true); } }
       function popOutside(e) {
         if (popMenuEl && popMenuEl.contains(e.target)) return;
         if (popEl && popEl.contains(e.target)) { closePopMenu(); return; }
@@ -3575,7 +3597,7 @@
           '<div class="dialog-body"><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">' + esc(opts.body) + "</p></div>" +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="' + (opts.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok>' + esc(opts.confirmLabel) + "</button></div></div></div>");
         overlayRoot.appendChild(bd);
-        function close() { bd.remove(); }
+        function close() { daylightExit(bd); }
         bd.querySelector("[data-x]").addEventListener("click", close);
         bd.querySelector("[data-cancel]").addEventListener("click", close);
         bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
@@ -3853,8 +3875,22 @@
          header search icon and Cmd/Ctrl+K both open it; Escape,
          the × button, or clicking the backdrop closes it. */
       var paletteEl = null;
+      /* Shared motion for overlays; never delays a user's next interaction. */
+      var daylightKeyboardInput = false;
+      document.addEventListener("keydown", function(){daylightKeyboardInput=true;},true);
+      document.addEventListener("pointerdown", function(){daylightKeyboardInput=false;},true);
+      function daylightExit(node){
+        if(!node)return;
+        if(state.reduceMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches || daylightKeyboardInput){
+          node.remove(); return;
+        }
+        node.classList.add("dl-overlay-exit");
+        node.style.pointerEvents="none";
+        setTimeout(function(){node.remove();},125);
+      }
+      window.daylightExit=daylightExit;
       function closeSearch() {
-        if (paletteEl) { paletteEl.remove(); paletteEl = null; }
+        if (paletteEl) { daylightExit(paletteEl); paletteEl = null; }
         if (paletteCloseFn === closeSearch) paletteCloseFn = null;
       }
       function openSearch() {
