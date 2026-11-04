@@ -1,5 +1,5 @@
 /* Daylight finishing touches. Reuses existing tokens, spacing and panel components. */
-.dl-places-host {position:relative}
+.dl-places-host {position:relative;display:block;width:100%}
 .dl-places-host input {padding-right:34px}
 .dl-places-spinner {
   position:absolute;right:12px;top:50%;width:15px;height:15px;margin-top:-8px;
