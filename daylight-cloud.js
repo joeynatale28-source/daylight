@@ -13,6 +13,7 @@
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
       })
     : null;
+  window.daylightSupabase = client; // Publishable client only; no service secret.
   var user = null, revision = 0, hasRow = false, saving = false;
   var loading = true, recovery = /(?:^|[&#?])type=recovery(?:[&#&]|$)/.test(location.href);
   var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false;
@@ -131,7 +132,8 @@
           desc: String(e.desc || ''), repeat: e.repeat || null,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
-          exdates: e.exdates, feedKey: e.feedKey
+          exdates: e.exdates, sequence:e.sequence || 0, dtstamp:e.dtstamp,
+          timezone:e.timezone, feedKey: e.feedKey
         };
       }).filter(function (ev) {
         /* Old snapshots duplicated built-in holidays as stored event rows.
@@ -183,6 +185,32 @@
   }
 
   function workspace() {
+    // Assign stable iCalendar UIDs once, retaining them through event edits.
+    state.events.forEach(function (ev) {
+      if (!ev.uid) ev.uid = crypto.randomUUID() + "@daylight";
+      if (!ev.dtstamp) ev.dtstamp = new Date().toISOString();
+      if (!Number.isInteger(ev.sequence)) ev.sequence = 0;
+    });
+    var prior = {};
+    if (lastSaved) {
+      try {
+        JSON.parse(lastSaved).events.forEach(function (e) {
+          if (e.uid) prior[e.uid] = e;
+        });
+      } catch (error) { /* no previous snapshot */ }
+    }
+    state.events.forEach(function (ev) {
+      var old = prior[ev.uid];
+      if (!old) return;
+      var signature = function (e) { return JSON.stringify([
+        e.title,e.cal,e.start instanceof Date?e.start.toISOString():e.start,
+        e.end instanceof Date?e.end.toISOString():e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates,e.declined
+      ]); };
+      if (signature(ev) !== signature(old)) {
+        ev.sequence = (Number(old.sequence) || 0) + 1;
+        if (ev.dtstamp === old.dtstamp) ev.dtstamp = new Date().toISOString();
+      }
+    });
     return {
       version: 2,
       calendars: state.calendars.map(function (c) {
@@ -193,7 +221,8 @@
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
-          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey };
+          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates,
+          sequence:e.sequence || 0, dtstamp:e.dtstamp, timezone:e.timezone, feedKey:e.feedKey };
       }),
       tasks: state.tasks.map(function (t) {
         return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),
@@ -236,7 +265,8 @@
       var result;
       if (hasRow) {
         result = await client.from('workspace_snapshots')
-          .update({payload: JSON.parse(serialized), revision:revision + 1})
+          .update({payload: JSON.parse(serialized), revision:revision + 1,
+            updated_at:new Date().toISOString()})
           .eq('user_id', saveUser).eq('revision', revision).select('revision');
         if (result.error) throw result.error;
         if (!result.data || result.data.length !== 1) {
