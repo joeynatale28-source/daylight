@@ -14,6 +14,7 @@ const bad=(message:string,status=400)=>resp({error:message},status);
 const definitions=[
  {name:'list_calendars',description:'List your Daylight calendars.',inputSchema:{type:'object',properties:{}}},
  {name:'list_events',description:'List events within a time range (ISO 8601).',inputSchema:{type:'object',properties:{start:{type:'string'},end:{type:'string'}},required:['start','end']}},
+ {name:'get_event',description:'Get an event by its ID.',inputSchema:{type:'object',properties:{id:{type:'string'}},required:['id']}},
  {name:'search_events',description:'Search calendar events by title, location, or description.',inputSchema:{type:'object',properties:{query:{type:'string'}},required:['query']}},
  {name:'list_tasks',description:'List personal to-do tasks.',inputSchema:{type:'object',properties:{}}},
  {name:'create_calendar',description:'Create a new writable calendar.',inputSchema:{type:'object',properties:{name:{type:'string'},color:{type:'string'}},required:['name']}},
@@ -64,7 +65,7 @@ function checkCalendar(doc:Obj,calId:string){
  return cal;
 }
 function checkEvent(doc:Obj,eventId:string){
- const ev=(doc.events||[]).find((x:Obj)=>x.id===eventId);
+ const ev=(doc.events||[]).find((x:Obj)=>String(x.id)===eventId);
  if(!ev)throw Error('Event not found');
  checkCalendar(doc,ev.cal);
  return ev;
@@ -85,10 +86,11 @@ async function action(user_id:string,tool:string,args:Obj,perm:Obj){
  const events=doc.events as Obj[],cals=doc.calendars as Obj[],tasks=doc.tasks as Obj[];
  if(tool==='list_calendars')return cals.map(c=>({id:c.id,name:c.name,color:c.color,visible:!c.hidden,read_only:!!c.subscribed}));
  if(tool==='list_tasks')return tasks;
+ if(tool==='get_event')return checkEvent(doc,String(args.id||''));
  if(tool==='list_events'){
   const start=+new Date(safeIso(args.start)),end=+new Date(safeIso(args.end));
   if(end<=start||end-start>365*86400000)throw Error('Choose a time window up to one year');
-  return events.filter(ev=>Number(ev.startMs)<end&&Number(ev.endMs)>start).slice(0,500);
+  return events.filter(ev=>{const s=ev.start!=null?+new Date(ev.start):Number(ev.startMs);const e=ev.end!=null?+new Date(ev.end):Number(ev.endMs);return s<end&&e>start;}).slice(0,500);
  }
  if(tool==='search_events'){
   const q=String(args.query||'').trim().toLowerCase();if(!q)throw Error('Search query required');
@@ -102,7 +104,8 @@ async function action(user_id:string,tool:string,args:Obj,perm:Obj){
  if(tool==='create_event'){
   const cal=String(args.calendar_id||'');checkCalendar(doc,cal);
   const start=+new Date(safeIso(args.starts_at)),end=+new Date(safeIso(args.ends_at));if(end<=start)throw Error('Event end must follow start');
-  const rec={id:'ev-'+id(),cal,title:requireTitle(args.title),loc:String(args.location||'').slice(0,1500),desc:String(args.description||'').slice(0,10000),allDay:!!args.all_day,startMs:start,endMs:end,rrule:null,repeat:null,exdates:[],declined:false};
+  const nextId=Math.max(100,...events.map(e=>Number(e.id)).filter(Number.isFinite))+1;
+  const rec={id:nextId,uid:id()+'@daylight',cal,title:requireTitle(args.title),loc:String(args.location||'').slice(0,1500),desc:String(args.description||'').slice(0,10000),allDay:!!args.all_day,start:new Date(start).toISOString(),end:new Date(end).toISOString(),rrule:null,repeat:null,exdates:[],declined:false,dtstamp:new Date().toISOString(),sequence:0};
   events.push(rec);await apply(user_id,doc,revision);return rec;
  }
  if(tool==='update_event'){
@@ -110,21 +113,26 @@ async function action(user_id:string,tool:string,args:Obj,perm:Obj){
   if(args.title!==undefined)rec.title=requireTitle(args.title);
   if(args.location!==undefined)rec.loc=String(args.location||'').slice(0,1500);
   if(args.description!==undefined)rec.desc=String(args.description||'').slice(0,10000);
-  if(args.starts_at!==undefined)rec.startMs=+new Date(safeIso(args.starts_at));
-  if(args.ends_at!==undefined)rec.endMs=+new Date(safeIso(args.ends_at));
-  if(rec.endMs<=rec.startMs)throw Error('Event end must follow start');
+  if(args.starts_at!==undefined)rec.start=safeIso(args.starts_at);
+  if(args.ends_at!==undefined)rec.end=safeIso(args.ends_at);
+  if(+new Date(rec.end)<=+new Date(rec.start))throw Error('Event end must follow start');
+  rec.sequence=(rec.sequence||0)+1;rec.dtstamp=new Date().toISOString();
   await apply(user_id,doc,revision);return rec;
  }
  if(tool==='delete_event'){
   const rec=checkEvent(doc,String(args.id||''));
-  doc.events=events.filter(e=>e.id!==rec.id);await apply(user_id,doc,revision);return {deleted:true,id:rec.id};
+  doc.events=events.filter(e=>String(e.id)!==String(rec.id));await apply(user_id,doc,revision);return {deleted:true,id:rec.id};
  }
  if(tool==='create_task'){
-  const rec={id:'task-'+id(),title:requireTitle(args.title),notes:String(args.notes||'').slice(0,5000),dueDate:args.due_date?String(args.due_date):null,done:false};
+  const nextId=Math.max(100,...tasks.map(t=>Number(t.id)).filter(Number.isFinite))+1;
+  const due=args.due_date?String(args.due_date):new Date().toISOString().slice(0,10);
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(due))throw Error('Due date must be YYYY-MM-DD');
+  const defaultCal=cals.find(c=>!c.subscribed)?.id||'personal';
+  const rec={id:nextId,cal:defaultCal,title:requireTitle(args.title),notes:String(args.notes||'').slice(0,5000),due:new Date(due+'T12:00:00Z').toISOString(),hasTime:false,done:false};
   tasks.push(rec);await apply(user_id,doc,revision);return rec;
  }
  if(tool==='complete_task'){
-  const rec=tasks.find(t=>t.id===String(args.id||''));if(!rec)throw Error('Task not found');rec.done=args.completed===true;
+  const rec=tasks.find(t=>String(t.id)===String(args.id||''));if(!rec)throw Error('Task not found');rec.done=args.completed===true;
   await apply(user_id,doc,revision);return rec;
  }
  throw Error('Unknown tool');
