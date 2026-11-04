@@ -186,7 +186,7 @@
 
   function workspace() {
     // Assign stable iCalendar UIDs once, retaining them through event edits.
-    state.events.forEach(function (ev) {
+    state.events.filter(function(e){return !e.source_subscription_id;}).forEach(function (ev) {
       if (!ev.uid) ev.uid = crypto.randomUUID() + "@daylight";
       if (!ev.dtstamp) ev.dtstamp = new Date().toISOString();
       if (!Number.isInteger(ev.sequence)) ev.sequence = 0;
@@ -213,11 +213,11 @@
     });
     return {
       version: 2,
-      calendars: state.calendars.map(function (c) {
+      calendars: state.calendars.filter(function(c){return !c.source_subscription_id;}).map(function (c) {
         return { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
       }),
-      events: state.events.map(function (e) {
+      events: state.events.filter(function(e){return !e.source_subscription_id;}).map(function (e) {
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
@@ -334,6 +334,7 @@
       document.getElementById('app').hidden = false;
       originalRenderAll(false);
       document.body.classList.remove('booting');
+      document.dispatchEvent(new CustomEvent('daylight:workspace-loaded', {detail:{user_id:account.id}}));
       status('Saved to cloud');
       authState.password = '';
       authState.newPassword = '';
@@ -358,6 +359,7 @@
     loading = true; saving = false; saveAgain = false; conflict = false;
     clearTimeout(saveTimer);
     clearPreviewData();
+    document.dispatchEvent(new Event('daylight:signed-out'));
     document.getElementById('app').hidden = true;
     authState.mode = 'login';
     authState.password = '';
