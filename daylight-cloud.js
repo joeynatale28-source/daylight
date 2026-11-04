@@ -410,15 +410,9 @@
     if (emailInput && emailInput.type !== 'checkbox') emailInput.value = user && user.email || '';
   };
 
-  /* The former sample-data reset must not re-add demonstration events. */
-  resetDemoData = function (redraw) {
-    state.calendars = seedCalendars();
-    state.events = []; state.tasks = []; state.feeds = [];
-    state.defaultCalendarId = null;
-    state.section = 'calendar';
-    renderAll(false);
-    if (typeof redraw === 'function') redraw();
-    toast('Calendar data cleared');
+  /* Cloud accounts must never lose data through a legacy demo reset action. */
+  resetDemoData = function () {
+    toast('Demo reset is unavailable for cloud accounts. Your data is safe.');
   };
 
   /* In-memory app data is never made accessible before the cloud read succeeds. */
