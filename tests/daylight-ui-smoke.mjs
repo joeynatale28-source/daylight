@@ -116,7 +116,7 @@ try{
  assert.ok(await page.$('.dl-continuous-bar.dl-span-selected'),'multi-day selection did not highlight the span');
  await page.screenshot({path:path.join(out,'multiday-selected.png')});
  await page.evaluate(()=>{closePopover();state.section='calendar';state.cursor=new Date(2026,11,9);state.view='week';renderAll(false)});
- const spanCountWeek=await page.$eval('.dl-week-span-layer .dl-continuous-bar',nodes=>nodes.length);
+ const spanCountWeek=(await page.$('.dl-week-span-layer .dl-continuous-bar')).length;
  assert.ok(spanCountWeek>=1,'week multi-day span missing');
  await page.screenshot({path:path.join(out,'multiday-week.png')});
  // Settings cleanup and an immediate Save/Discard indicator.
