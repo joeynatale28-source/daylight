@@ -117,7 +117,17 @@ try{
  await page.screenshot({path:path.join(out,'multiday-selected.png')});
  await page.evaluate(()=>{closePopover();state.section='calendar';state.cursor=new Date(2026,11,9);state.view='week';renderAll(false)});
  const spanCountWeek=(await page.$('.dl-week-span-layer .dl-continuous-bar')).length;
- assert.ok(spanCountWeek>=1,'week multi-day span missing');
+ const diag=await page.evaluate(()=>({
+   section:state.section,view:state.view,cursor:state.cursor.toISOString(),
+   dates:weekDays(state.cursor).map(d=>d.toDateString()),
+   events:state.events.map(e=>({title:e.title,cal:e.cal,allDay:e.allDay,start:e.start.toISOString(),end:e.end.toISOString()})),
+   className:document.querySelector('.tg-wrap')?.className,
+   spans:document.querySelectorAll('.dl-week-span-layer').length,
+   visibleEvents:visibleEvents().map(e=>e.title),
+   allDayHtml:document.querySelector('.allday-row')?.outerHTML.slice(0,1000)
+ }));
+ console.log('WEEK DEBUG',JSON.stringify(diag));
+ assert.ok(spanCountWeek>=1,'week multi-day span missing: '+JSON.stringify(diag));
  await page.screenshot({path:path.join(out,'multiday-week.png')});
  // Settings cleanup and an immediate Save/Discard indicator.
  await page.evaluate(()=>{state.view='month';renderAll(false);openSettings('calendar')});
