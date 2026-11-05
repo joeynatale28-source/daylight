@@ -116,7 +116,7 @@ try{
  assert.ok(await page.$('.dl-continuous-bar.dl-span-selected'),'multi-day selection did not highlight the span');
  await page.screenshot({path:path.join(out,'multiday-selected.png')});
  await page.evaluate(()=>{closePopover();state.section='calendar';state.cursor=new Date(2026,11,9);state.view='week';renderAll(false)});
- const spanCountWeek=(await page.$('.dl-week-span-layer .dl-continuous-bar')).length;
+ const spanCountWeek=await page.$eval('.dl-week-span-layer .dl-continuous-bar',els=>els.length);
  const diag=await page.evaluate(()=>({
    section:state.section,view:state.view,cursor:state.cursor.toISOString(),
    dates:weekDays(state.cursor).map(d=>d.toDateString()),
