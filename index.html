@@ -2976,7 +2976,12 @@
               bar.style.top=(34+lane*25)+'px';
               bar.addEventListener("mouseenter",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add("dl-span-active")})});
               bar.addEventListener("mouseleave",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.remove("dl-span-active")})});
-              bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
+              bar.addEventListener("click",function(e){
+  e.stopPropagation();openPopover(o,bar);
+  if(popEl&&popEl._occId===o.ev.id){
+    viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add('dl-span-selected')});
+  }
+});
               layer.appendChild(bar);
             });
             row.appendChild(layer);
@@ -3049,7 +3054,7 @@
         days.forEach(function(date){
           var cell=el('<div class="allday-cell"></div>');
           if(weekSpans.length)cell.style.paddingTop=(weekSpans.length*27+3)+"px";
-          occs.filter(function(o){return o.ev.allDay&&!isMultiDay(o)&&sod(o.start)<=date&&sod(o.end)>=date})
+          occs.filter(function(o){return o.ev.allDay&&(numDays===1||!isMultiDay(o))&&sod(o.start)<=date&&sod(o.end)>=date})
             .forEach(function(o){
               var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
               bar.setAttribute("data-calendar-id",o.ev.cal);
@@ -3072,7 +3077,12 @@
             bar.style.top=(3+i*27)+'px';
             bar.addEventListener("mouseenter",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add("dl-span-active")})});
             bar.addEventListener("mouseleave",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.remove("dl-span-active")})});
-            bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
+            bar.addEventListener("click",function(e){
+  e.stopPropagation();openPopover(o,bar);
+  if(popEl&&popEl._occId===o.ev.id){
+    viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add('dl-span-selected')});
+  }
+});
             layer.appendChild(bar);
           });
           adRow.appendChild(layer);
@@ -3431,6 +3441,7 @@
         anchor.classList.add("ev-selected");
       }
       function clearSelected() {
+        viewWrap.querySelectorAll('.dl-span-selected').forEach(function(n){n.classList.remove('dl-span-selected')});
         if (!selAnchor) return;
         try {
           selAnchor.style.background = selAnchorBg;
@@ -5279,7 +5290,7 @@
 <style>
 .dl-month-span-layer,.dl-week-span-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
 .dl-continuous-bar{position:absolute;pointer-events:auto;height:23px;border-radius:6px;padding:2px 8px 2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;transition:filter 160ms cubic-bezier(.23,1,.32,1),box-shadow 160ms cubic-bezier(.23,1,.32,1)}
-.dl-continuous-bar:hover,.dl-continuous-bar.dl-span-active{filter:brightness(1.15);outline:1px solid currentColor;outline-offset:-1px}
+.dl-continuous-bar:hover,.dl-continuous-bar.dl-span-active,.dl-continuous-bar.dl-span-selected{filter:brightness(1.15);outline:1px solid currentColor;outline-offset:-1px}
 @media(prefers-reduced-motion:reduce){.dl-continuous-bar{transition:none}}
 </style>
         <script src="./daylight-places.js"></script>
