@@ -182,6 +182,18 @@ window.daylightAiPane=function(pane){
   '<p class="pane-sub">Claude: add a custom connector with the server URL and leave OAuth Client ID and Secret blank. ChatGPT: use Authentication = OAuth.</p>'+
   '<div id="dl-oauth-connected" role="status">Loading connections…</div>';
  wrapper.insertBefore(primary,wrapper.firstChild);
+ const featured=document.createElement("div");
+ featured.className="set-group dl-chatgpt-featured";
+ featured.innerHTML='<div class="dl-chatgpt-identity">'+
+   '<img src="https://chatgpt.com/favicon.ico" width="42" height="42" alt="ChatGPT logo" class="dl-chatgpt-logo">'+
+   '<span class="dl-chatgpt-copy"><strong>ChatGPT Plugin</strong>'+
+     '<small>Control your Daylight calendar with ChatGPT.</small></span></div>'+
+   '<div class="dl-chatgpt-status" role="status" id="dl-chatgpt-status">'+
+     '<button class="btn-primary" type="button" id="dl-chatgpt-connect">Connect</button></div>';
+ const chatgptConnect=()=>window.open('https://chatgpt.com/plugins/plugin_asdk_app_6aebc26aea6c8191b72592d9eb7e51be','_blank','noopener,noreferrer');
+ featured.querySelector('#dl-chatgpt-connect').onclick=chatgptConnect;
+ wrapper.insertBefore(featured,wrapper.firstChild);
+
  const advanced=document.createElement("details");
  advanced.className="set-group dl-ai-advanced";
  advanced.innerHTML='<summary>Advanced connection options</summary>'+
@@ -195,18 +207,6 @@ window.daylightAiPane=function(pane){
    if(!/Recent AI activity/i.test(title))advancedBody.append(node);
  });
  wrapper.append(advanced);
-
- const featured=document.createElement("div");
- featured.className="set-group dl-chatgpt-featured";
- featured.innerHTML='<div class="dl-chatgpt-identity">'+
-   '<img src="https://chatgpt.com/favicon.ico" width="42" height="42" alt="ChatGPT logo" class="dl-chatgpt-logo">'+
-   '<span class="dl-chatgpt-copy"><strong>ChatGPT Plugin</strong>'+
-     '<small>Control your Daylight calendar with ChatGPT.</small></span></div>'+
-   '<div class="dl-chatgpt-status" role="status" id="dl-chatgpt-status">'+
-     '<button class="btn-primary" type="button" id="dl-chatgpt-connect">Connect</button></div>';
- const chatgptConnect=()=>window.open('https://chatgpt.com/plugins/plugin_asdk_app_6aebc26aea6c8191b72592d9eb7e51be','_blank','noopener,noreferrer');
- featured.querySelector('#dl-chatgpt-connect').onclick=chatgptConnect;
- wrapper.insertBefore(featured,wrapper.firstChild);
 
  const area=primary.querySelector("#dl-oauth-connected"),db=client(),uid=signed()?.id;
  if(!db||!uid)return;
