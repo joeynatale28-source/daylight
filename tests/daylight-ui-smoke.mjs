@@ -107,6 +107,62 @@ try{
  await page.waitForSelector('#efTitle',{timeout:4000});
  await page.screenshot({path:path.join(out,'new-event-dialog.png')});
  await page.evaluate(()=>document.querySelector('.backdrop .dialog [data-x]')?.click());
+
+ // Synthetic behavior verification; never touches the real account.
+ await page.evaluate(()=>{
+   state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
+   document.querySelector('.dl-continuous-bar')?.click();
+ });
+ assert.ok(await page.$('.dl-continuous-bar.dl-span-selected'),'multi-day selection did not highlight the span');
+ await page.screenshot({path:path.join(out,'multiday-selected.png')});
+ await page.evaluate(()=>{closePopover();state.view='week';renderAll(false)});
+ assert.ok((await page.$('.dl-week-span-layer .dl-continuous-bar')).length>=1,'week multi-day span missing');
+ await page.screenshot({path:path.join(out,'multiday-week.png')});
+ // Settings cleanup and an immediate Save/Discard indicator.
+ await page.evaluate(()=>{state.view='month';renderAll(false);openSettings('calendar')});
+ assert.ok(await page.$('#csWeekStart'),'Week start should live in Calendar settings');
+ assert.equal(await page.$('#csTz'),null,'Timezone must not be duplicated in Calendar settings');
+ const oldWeekends=await page.evaluate(()=>state.showWeekends);
+ await page.evaluate(()=>{
+   const input=document.querySelector('#csWeekends');
+   input.checked=!input.checked;input.dispatchEvent(new Event('change',{bubbles:true}));
+ });
+ await new Promise(resolve=>setTimeout(resolve,100));
+ assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),false,'Save bar did not appear immediately');
+ await page.screenshot({path:path.join(out,'settings-unsaved.png')});
+ await page.evaluate(()=>document.querySelector('[data-discard]').click());
+ assert.equal(await page.evaluate(()=>state.showWeekends),oldWeekends,'Discard failed to restore the setting');
+ await page.evaluate(()=>openSettings('general'));
+ assert.ok(await page.$('#gsTz'),'Timezone missing from General settings');
+ assert.equal(await page.$('#gsWeekStart'),null);
+ await page.screenshot({path:path.join(out,'settings-general.png')});
+ await page.evaluate(()=>document.querySelector('.settings-close').click());
+ await page.evaluate(()=>openSettings('data'));
+ assert.equal(await page.$('#fdUrl'),null,'Data & sync still contains legacy Add feed form');
+ await page.screenshot({path:path.join(out,'settings-data-sync.png')});
+ await page.evaluate(()=>document.querySelector('.settings-close').click());
+ // Verify custom color is applied to a practice calendar, without touching the backend.
+ await page.evaluate(()=>{
+   const host=document.createElement('div');host.id='syntheticColorHost';
+   document.body.append(host);
+   window.daylightColorPicker(host,'blue',key=>{
+     const cal=state.calendars.find(c=>c.id==='c2');cal.color=key;
+     renderAll(false);
+   });
+   host.querySelector('.dl-color-plus').click();
+   const hex=document.querySelector('#dl-color-hex');
+   hex.value='#FF7A00';hex.dispatchEvent(new Event('input',{bubbles:true}));
+   document.querySelector('[data-apply]').click();
+   host.remove();
+ });
+ assert.equal(await page.evaluate(()=>state.calendars.find(c=>c.id==='c2').color),'#FF7A00');
+ await page.screenshot({path:path.join(out,'custom-color-orange.png')});
+ // Basic render benchmarks in Chromium with 7 synthetic calendars. No live-network latency.
+ const timing=await page.evaluate(()=>{
+   const sample=(view)=>{state.view=view;const t=performance.now();renderAll(false);return +(performance.now()-t).toFixed(1)};
+   return {month_ms:sample('month'),day_ms:sample('day'),week_ms:sample('week')};
+ });
+ console.log('Synthetic 7-calendar render timings:',JSON.stringify(timing));
  if(errors.length)console.warn('Browser runtime notices:',errors.slice(0,8));
  console.log('Daylight visual smoke passed. Screenshots:',fs.readdirSync(out));
 }finally{await browser.close()}
