@@ -17,6 +17,33 @@
   var loading = true, recovery = /(?:^|[&#?])type=recovery(?:[&#&]|$)/.test(location.href);
   var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false;
   var lastStatus = '';
+  // Per-user warm snapshot. Cached data is shown only after Supabase
+  // authenticates the account, and it never changes the revision baseline.
+  function cacheKey(id){return 'daylight-warm-workspace:'+id}
+  function cacheWorkspace(id,document,rev){
+    try{
+      const serialized=JSON.stringify({payload:document,revision:rev});
+      if(serialized.length<3000000)localStorage.setItem(cacheKey(id),serialized);
+    }catch(error){console.warn('Workspace cache unavailable',error)}
+  }
+  function warmWorkspace(account,seq){
+    try{
+      const raw=localStorage.getItem(cacheKey(account.id));
+      if(!raw)return false;
+      const entry=JSON.parse(raw);
+      if(!entry||typeof entry.payload!=='object'||!Number.isFinite(Number(entry.revision)))return false;
+      clearPreviewData();
+      state.profileName=accountName(account);
+      state.firstName=state.profileName.split(/\s+/)[0];
+      readWorkspace(entry.payload);
+      applyTheme();
+      document.getElementById('authRoot').innerHTML='';
+      document.getElementById('app').hidden=false;
+      originalRenderAll(false);
+      document.dispatchEvent(new Event('daylight:workspace-preview-ready'));
+      return true;
+    }catch(error){console.warn('Warm calendar preview unavailable',error);return false}
+  }
   window.daylightCloud = {
     get client() { return client; },
     get user() { return user; },
@@ -273,6 +300,7 @@
       }
       if (!user || user.id !== saveUser) return;
       lastSaved = serialized;
+      cacheWorkspace(saveUser,JSON.parse(serialized),revision);
       status('Saved to cloud');
     } catch (error) {
       console.error('Daylight save failed', error);
@@ -300,7 +328,8 @@
     clearTimeout(saveTimer);
     user = account;
     status('Loading calendar…');
-    document.getElementById('app').hidden = true;
+    const warmShown=warmWorkspace(account,seq);
+    if(!warmShown)document.getElementById('app').hidden = true;
     try {
       var response = await client.from('workspace_snapshots')
         .select('payload,revision').eq('user_id', account.id).maybeSingle();
@@ -313,6 +342,7 @@
       revision = response.data ? Number(response.data.revision) || 0 : 0;
       if (hasRow) readWorkspace(response.data.payload);
       lastSaved = JSON.stringify(workspace());
+      if(hasRow)cacheWorkspace(account.id,response.data.payload,revision);
       loading = false;
       applyTheme();
       document.getElementById('authRoot').innerHTML = '';

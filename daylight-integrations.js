@@ -67,6 +67,9 @@
     readOnlyCals.clear();remoteIds.clear();
   }
   function materialize(rows) {
+    const former=new Map(state.calendars.filter(c=>c.remoteSubscriptionId).map(c=>[c.id,c.hidden]));
+    let stored={};
+    try{stored=JSON.parse(localStorage.getItem('daylight-feed-visibility:'+cloud.user?.id)||'{}')}catch{}
     removeRemote();
     subscriptionRows=rows;
     rows.forEach(s=>{
@@ -75,7 +78,8 @@
       if(matches)return;
       const colorKeys=['teal','blue','violet','green','amber','rose'];
       const color=(PALETTE[s.color]||/^#[0-9a-f]{6}$/i.test(String(s.color||"")))?s.color:colorKeys[rows.indexOf(s)%colorKeys.length];
-      state.calendars.push({id:calId,name:s.name||'Calendar feed',color,hidden:false,
+      state.calendars.push({id:calId,name:s.name||'Calendar feed',color,
+        hidden:former.has(calId)?former.get(calId):!!stored[calId],
         subscribed:true,builtin:false,remoteSubscriptionId:s.id});
       remoteIds.add(calId);
       const events=Array.isArray(s.cached_events)?s.cached_events:[];
@@ -111,7 +115,9 @@
       ]);
       if(!own()||cloud.user.id!==uid)return;
       const rows=result.subscriptions||[];
-      if(JSON.stringify(rows)!==JSON.stringify(subscriptionRows))materialize(rows);
+      const contentSignature=items=>JSON.stringify(items.map(x=>[x.id,x.name,x.color,x.cached_events]));
+      if(contentSignature(rows)!==contentSignature(subscriptionRows))materialize(rows);
+      else subscriptionRows=rows;
       try{localStorage.setItem(key,JSON.stringify(rows));}catch{}
       // Stale-while-revalidate: fetch existing sources concurrently after painting.
       // Each backend call is independently bounded and keeps the last-good cache on failure.
@@ -128,6 +134,13 @@
     }catch(e){console.warn('Subscription refresh failed; cached events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);
+  document.addEventListener('daylight:workspace-preview-ready',()=>{
+    if(!cloud?.user)return;
+    try{
+      const rows=JSON.parse(localStorage.getItem('daylight-subscription-cache:'+cloud.user.id)||'null');
+      if(Array.isArray(rows))materialize(rows);
+    }catch(error){console.warn('Cached feed preview unavailable',error)}
+  });
   document.addEventListener('daylight:workspace-ready',()=>{
     const summary=sessionStorage.getItem('daylight-ics-last-result');
     if(!summary)return;
@@ -265,7 +278,7 @@
           (s.last_error?' · Couldn’t update: '+esc(s.last_error):' · Last fetched: '+esc(s.last_fetched_at?new Date(s.last_fetched_at).toLocaleString():'Never'))+
           (s.skipped_count?' · '+s.skipped_count+' skipped':'')+
           '</span></span>'+btn('Refresh','refreshOne')+btn('Manage','manageOne')+btn('Remove','removeOne','btn-danger-outline')+'</div>');
-        card.querySelector('#manageOne').onclick=()=>manageSubscription({id:'subscription:'+s.id,name:s.name},card.querySelector('#manageOne'));
+        card.querySelector('#manageOne').onclick=()=>showManageSubscription(s);
         card.querySelector('#refreshOne').onclick=async()=>{
           try{
             status.textContent='Refreshing…';
@@ -285,10 +298,13 @@
     }
     g.querySelector('#subReload').onclick=async()=>{
       status.textContent='Checking feeds…';
-      try{
-        for(const s of subscriptionRows)await call('ical-subscribe',{action:'refresh',id:s.id,force:true});
-        await loadSubscriptions();draw();status.textContent='Feeds checked';
-      }catch(e){showError(status,e);}
+      const outcomes=await Promise.allSettled(subscriptionRows.map(s=>Promise.race([
+        call('ical-subscribe',{action:'refresh',id:s.id,force:true}),
+        new Promise((_,reject)=>setTimeout(()=>reject(Error('Feed refresh timed out')),8000))
+      ])));
+      await loadSubscriptions();draw();
+      const failures=outcomes.filter(x=>x.status==='rejected').length;
+      status.textContent=failures?outcomes.length-failures+' checked; '+failures+' failed (cached events kept)':'All subscriptions checked';
     };
     draw();
   }
@@ -417,7 +433,43 @@
   }
   window.daylightAiPane=aiPane;
   // Manage subscribed calendars from their existing sidebar rows.
-  function manageSubscription(cal,anchor) {
+  function showManageSubscription(sub) {
+    const card=html('<div class="dl-manage-feed">'+
+      '<div class="set-row"><span class="sw-label">Calendar</span><strong id="managedName"></strong></div>'+
+      '<div class="set-row"><span class="sw-label">Last updated</span><span id="managedUpdated"></span></div>'+
+      '<div class="set-row"><span class="sw-label">Feed status</span><span id="managedStatus"></span></div>'+
+      '<div class="field"><label>Color</label><div class="dl-color-grid" id="managedColors"></div></div>'+
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px">'+
+      btn('Refresh now','manageRefresh')+btn('Rename','manageRename')+
+      btn('Unsubscribe','manageRemove','btn-danger-outline')+'</div>'+
+      '<p class="inline-note" id="managedFeedback" role="status"></p></div>');
+    card.querySelector('#managedName').textContent=sub.name||'Subscribed calendar';
+    card.querySelector('#managedUpdated').textContent=sub.last_fetched_at?
+      new Date(sub.last_fetched_at).toLocaleString():'Never';
+    card.querySelector('#managedStatus').textContent=sub.last_error||'Up to date';
+    const dialog=modal('Manage subscription',card);
+    const target=card.querySelector('#managedFeedback');
+    window.daylightColorPicker(card.querySelector('#managedColors'),sub.color,async color=>{
+      try{await call('ical-subscribe',{action:'update',id:sub.id,color});
+        dialog.close();await loadSubscriptions();toast('Calendar color updated');}
+      catch(error){showError(target,error)}
+    });
+    card.querySelector('#manageRefresh').onclick=async()=>{
+      target.textContent='Checking calendar feed…';
+      try{await call('ical-subscribe',{action:'refresh',id:sub.id,force:true});
+        await loadSubscriptions();target.textContent='Calendar refreshed. Last updated: '+new Date().toLocaleString();}
+      catch(error){showError(target,error)}
+    };
+    card.querySelector('#manageRename').onclick=()=>{
+      dialog.close();
+      manageSubscription({id:'subscription:'+sub.id,name:sub.name},null,'rename');
+    };
+    card.querySelector('#manageRemove').onclick=()=>{
+      dialog.close();
+      manageSubscription({id:'subscription:'+sub.id,name:sub.name},null,'remove');
+    };
+  }
+    function manageSubscription(cal,anchor,direct) {
     const subscription=subscriptionRows.find(s=>'subscription:'+s.id===cal.id);
     if(!subscription)return;
     function refresh(){
@@ -459,6 +511,8 @@
           catch(error){toast(error.message||'Could not unsubscribe');}
         }});
     }
+    if(direct==='rename')return rename();
+    if(direct==='remove')return remove();
     openMenu(anchor,[
       {icon:'sync',label:'Refresh now',fn:refresh},
       {icon:'pencil',label:'Rename',fn:rename},
@@ -472,9 +526,17 @@
     if(!cal.remoteSubscriptionId)return row;
     const sub=subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);
     if(!sub)return row;
+    const visibility=html('<button class="icon-btn cal-visibility-btn" type="button" title="'+(cal.hidden?'Show':'Hide')+' subscription" aria-label="'+(cal.hidden?'Show':'Hide')+' '+esc(cal.name)+'">'+icon(cal.hidden?'eyeOff':'eye',15)+'</button>');
+    const persist=()=>{
+      let prefs={};try{prefs=JSON.parse(localStorage.getItem('daylight-feed-visibility:'+cloud.user.id)||'{}')}catch{}
+      prefs[cal.id]=!!cal.hidden;
+      try{localStorage.setItem('daylight-feed-visibility:'+cloud.user.id,JSON.stringify(prefs))}catch{}
+    };
+    row.querySelector('.cal-check')?.addEventListener('click',persist);
+    visibility.onclick=()=>{animateCalendarToggle(cal);persist()};
     const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
     menu.onclick=()=>manageSubscription(cal,menu);
-    row.append(menu);return row;
+    row.append(visibility,menu);return row;
   };
   window.daylightOpenSubscriptions=function(){openSettings('data');};
 

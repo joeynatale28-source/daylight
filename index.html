@@ -2862,7 +2862,7 @@
             var days=state.view==="day"?[sod(state.cursor)]:weekDays(state.cursor);
             var relevant=occsInRange(days[0],addDays(days[days.length-1],1)).filter(function(o){return !o.ev.allDay;});
             var today=days.some(function(d){return sameDay(d,TODAY);});
-            var anchor=today?(new Date().getHours()+new Date().getMinutes()/60-1):Number(state.workStart||9);
+            var anchor=today?(new Date().getHours()+new Date().getMinutes()/60-1):(Number(state.workStart||540)/60);
             relevant.forEach(function(o){var hour=o.start.getHours()+o.start.getMinutes()/60;if(hour<anchor)anchor=hour;});
             sc.scrollTop=Math.max(0,anchor*hourPx());
           }
@@ -4233,11 +4233,30 @@
         var gdt = el('<div class="set-group"><div class="set-group-title">Date &amp; time</div>' +
           setRowHTML("Time format", "Applies to event times, the hour gutter, and the event form.", selectHTML("gsTimeFmt", [["12h", "12-hour (2:30pm)"], ["24h", "24-hour (14:30)"]], state.timeFormat, "sm")) +
           setRowHTML("Date format", "How dates are written in lists, popovers, and the header.", selectHTML("gsDateFmt", [["mdy", "Nov 3, 2026"], ["dmy", "3 Nov 2026"], ["ymd", "2026-11-03"]], state.dateFormat, "sm")) +
-          '<p class="inline-note" style="margin-top:10px">First day of week and time zone live under <b style="color:var(--text)">Calendar → Calendar view</b>.</p>' +
+          '<p class="inline-note" style="margin-top:10px">First day of week lives under <b style="color:var(--text)">Calendar → Calendar view</b>.</p>' +
           "</div>");
         pane.appendChild(gdt);
         gdt.querySelector("#gsTimeFmt").addEventListener("change", function (e) { state.timeFormat = e.target.value; renderAll(false); });
         gdt.querySelector("#gsDateFmt").addEventListener("change", function (e) { state.dateFormat = e.target.value; renderHeader(); renderView(false); });
+
+        var tzDevice=deviceTz(), tzEntryNow=tzEntry(tzDevice);
+        var tzShown=state.useDeviceTz ? tzDevice : state.tzLabel;
+        var gtz=el('<div class="set-group"><div class="set-group-title">Time zone</div>'+
+          '<div class="set-row switch-row"><span><span class="sw-label">Use device time zone</span>'+
+          '<div class="sw-sub">Follow this device ('+esc(tzEntryNow[1])+' '+esc(tzEntryNow[2])+').</div></span>'+
+          switchHTML("gsUseDevTz",state.useDeviceTz)+'</div>'+
+          setRowHTML("Time zone",state.useDeviceTz ? "Turn off device time zone to choose manually." : "Used for events and the Day/Week time gutter.",
+            selectHTML("gsTz",tzOptions(tzShown),tzShown,"sm"))+"</div>");
+        pane.appendChild(gtz);
+        var tzBtn=gtz.querySelector("#gsTz");
+        tzBtn.disabled=state.useDeviceTz;
+        tzBtn.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false)});
+        gtz.querySelector("#gsUseDevTz").addEventListener("change",function(e){
+          state.useDeviceTz=e.target.checked;
+          renderView(false);
+          if(settingsState.redrawPane)settingsState.redrawPane();
+          if(settingsState.markDirty)settingsState.markDirty();
+        });
 
         var calOpts = writableCalendars().map(function (c) { return [c.id, c.name]; });
         var gne = el('<div class="set-group"><div class="set-group-title">New events</div>' +
@@ -4276,14 +4295,6 @@
           });
         });
 
-        var g2 = el('<div class="set-group"><div class="set-group-title">Preferences</div>' +
-          setRowHTML("Reduce motion", "Makes view transitions and popups appear instantly.", switchHTML("gsRM", state.reduceMotion)) +
-          "</div>");
-        pane.appendChild(g2);
-        g2.querySelector("#gsRM").addEventListener("change", function (e) {
-          state.reduceMotion = e.target.checked;
-          document.body.classList.toggle("reduce-motion", state.reduceMotion);
-        });
       }
       function themePreviewHTML(mode) {
         function mock(cls) {
@@ -4323,6 +4334,14 @@
           document.body.classList.toggle("density-compact", state.density === "compact");
           renderView(false);
         });
+        var motion=el('<div class="set-group"><div class="set-group-title">Motion</div>'+
+          setRowHTML("Reduce motion","Disable nonessential calendar and dialog transitions.",switchHTML("apReduceMotion",state.reduceMotion))+
+          '</div>');
+        pane.appendChild(motion);
+        motion.querySelector("#apReduceMotion").addEventListener("change",function(e){
+          state.reduceMotion=e.target.checked;
+          document.body.classList.toggle("reduce-motion",state.reduceMotion);
+        });
       }
       function paneCalendar(pane) {
         paneHead(pane, "Calendar", "How your calendar opens and what it shows.");
@@ -4330,9 +4349,6 @@
            how the grid reads lives in ONE section — weekends, declined
            events, week numbers, start-of-week, and the time zone with
            Google's "Use device time zone" toggle above the picker. */
-        var devTz = deviceTz();
-        var devEntry = tzEntry(devTz);
-        var tzShown = state.useDeviceTz ? devTz : state.tzLabel;
         var g = el('<div class="set-group"><div class="set-group-title">Calendar view</div>' +
           '<div class="field"><label for="csView">Default Calendar View</label>' + selectHTML("csView", [["month", "Month"], ["week", "Week"], ["day", "Day"], ["agenda", "Agenda"]], settingsState.pendingView || state.view, "") +
           '<p class="inline-note">The view shown when daylight opens. Changing it updates the calendar behind Settings right away.</p></div>' +
@@ -4340,8 +4356,6 @@
           '<div class="set-row switch-row"><span><span class="sw-label">Declined events</span><div class="sw-sub">Declined events stay visible on your calendar.</div></span>' + switchHTML("csSD", state.showDeclined) + "</div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Week numbers</span><div class="sw-sub">Show the ISO week number along the left edge of Month view.</div></span>' + switchHTML("csWN", state.weekNumbers) + "</div>" +
           setRowHTML("Start week on", "Changes the first column in Month, Week, and the mini calendar.", selectHTML("csWeekStart", [[0, "Sunday"], [1, "Monday"]], state.weekStart, "sm")) +
-          '<div class="set-row switch-row"><span><span class="sw-label">Use device time zone</span><div class="sw-sub">When on, daylight follows this device automatically — currently ' + esc(devEntry[1]) + " (" + esc(devEntry[2]) + '). Turn it off to pick a fixed zone below.</div></span>' + switchHTML("csUseDevTz", state.useDeviceTz) + "</div>" +
-          setRowHTML("Time zone", state.useDeviceTz ? "Turn off Use device time zone above to pick a zone yourself." : "Used for event times and shown in the gutter in Week and Day views.", selectHTML("csTz", tzOptions(tzShown), tzShown, "sm")) +
           "</div>");
         pane.appendChild(g);
         var sel = g.querySelector("#csView");
@@ -4354,14 +4368,6 @@
         g.querySelector("#csSD").addEventListener("change", function (e) { state.showDeclined = e.target.checked; renderView(false); renderSidebar(); });
         g.querySelector("#csWN").addEventListener("change", function (e) { state.weekNumbers = e.target.checked; renderView(false); });
         g.querySelector("#csWeekStart").addEventListener("change", function (e) { state.weekStart = +e.target.value; renderSidebar(); renderView(false); });
-        var tzBtn = g.querySelector("#csTz");
-        tzBtn.disabled = state.useDeviceTz;
-        tzBtn.addEventListener("change", function (e) { state.tzLabel = e.target.value; renderView(false); });
-        g.querySelector("#csUseDevTz").addEventListener("change", function (e) {
-          state.useDeviceTz = e.target.checked;
-          renderView(false);
-          if (settingsState.redrawPane) settingsState.redrawPane();
-        });
       }
       function paneNotifications(pane) {
         paneHead(pane, "Notifications", "Reminders for the events on your calendar.");
