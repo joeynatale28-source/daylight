@@ -85,7 +85,7 @@ try{
    });
    assert.equal(measure.rows,6);
    assert.ok(measure.lastBottom<=769,'sixth month row is clipped: '+JSON.stringify(measure));
-   assert.ok(measure.names.some(n=>n.text==='Hungary Creek Recreation Association'&&n.full));
+   assert.ok(measure.names.some(n=>n.text==='Hungary Creek Recreation Association'&&n.visible),'long calendar must remain visible with ellipsis');
    assert.ok(!await page.$('.cal-source'), 'origin subtitle should be absent');
    await page.evaluate(()=>openSettings('ai'));
    await page.waitForSelector('.dl-chatgpt-featured',{timeout:5000});
