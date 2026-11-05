@@ -74,7 +74,7 @@
   openSettings = function (section) {
     if (settingsState.transactionActive) return;
     closeMenu(); closePopover();
-    settingsState.section = section || settingsState.section || "general";
+    settingsState.section = (section === "data" ? "calendar" : section) || (settingsState.section === "data" ? "calendar" : settingsState.section) || "general";
     settingsState.pendingView = state.view;
     settingsState.transactionActive = true;
     var original = snapshot();
@@ -130,7 +130,6 @@
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
       ["shortcuts", "keyboard", "Shortcuts"],
-      ["data", "sync", "Data & sync"],
       ["ai", "settings", "AI access"],
       ["about", "info", "About"]
     ].forEach(function (s) {
@@ -165,7 +164,7 @@
       var fn = {
         general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        data: paneData, ai: window.daylightAiPane, about: paneAbout
+        ai: window.daylightAiPane, about: paneAbout
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
