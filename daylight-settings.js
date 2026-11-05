@@ -189,3 +189,94 @@
       intro.textContent = "Preview changes immediately. Use Save or Discard before leaving Settings.";
   };
 })();
+
+
+/* Presentation-only finish: no OAuth, MCP, grant, or authentication handlers touched. */
+(function(){
+"use strict";
+const logo="assets/chatgpt-logo-white.svg";
+const style=document.createElement("style");
+style.textContent=`
+.dl-chatgpt-logo{object-fit:contain!important;background:#17191b!important;padding:8px!important;border-radius:12px}
+#dl-oauth-client-logo img[src*="chatgpt-logo-white"]{object-fit:contain!important;padding:10px}
+.dl-ai-advanced{display:none!important}
+.dl-ai-wrap .set-group{margin-bottom:18px}
+.dl-ai-audit-row{display:flex!important;align-items:center;gap:8px;min-height:33px;font-size:12px!important;color:var(--text)!important}
+.dl-ai-audit-row img{width:16px;height:16px;flex:none;background:#17191b;border-radius:4px;padding:2px}
+.dl-ai-audit-row strong,.dl-ai-audit-row span{font-size:12px!important}
+.dl-ai-audit-row .dl-ai-action{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.dl-ai-audit-row .dl-ai-status{font-size:11px!important;color:var(--muted)}
+.day-num{cursor:pointer}
+.day-num:hover{background:var(--gray-2);border-radius:6px}
+@media(prefers-reduced-motion:reduce){.dl-ai-audit-row,.dl-chatgpt-logo{transition:none!important}}
+`;
+document.head.append(style);
+function phrase(raw){
+ const t=String(raw||"").toLowerCase();
+ if(/complete.*task|task.*complet/.test(t))return "Completed a task";
+ if(/creat.*calendar|calendar.*creat/.test(t))return "Created a calendar";
+ if(/edit.*calendar|updat.*calendar/.test(t))return "Edited a calendar";
+ if(/delet.*calendar|remov.*calendar/.test(t))return "Deleted a calendar";
+ if(/creat.*event|event.*creat/.test(t))return "Created an event";
+ if(/updat.*event|edit.*event/.test(t))return "Edited an event";
+ if(/delet.*event|remov.*event/.test(t))return "Deleted an event";
+ if(/creat.*task/.test(t))return "Created a task";
+ if(/edit.*task|updat.*task/.test(t))return "Edited a task";
+ if(/delet.*task/.test(t))return "Deleted a task";
+ if(/list|search|read|get_/.test(t))return "Viewed calendar information";
+ return "Used calendar access";
+}
+function humanAudit(history){
+ if(!history)return;
+ history.querySelectorAll(".feed-row:not([data-humanized])").forEach(row=>{
+   const text=row.innerText||row.textContent||"";
+   const head=text.split("\n")[0]||"";
+   const raw=head.split("·");
+   const action=phrase(raw.join(" "));
+   const sub=row.querySelector(".fr-sub")?.textContent||"";
+   // Audit payloads may be technical. Only include safe display names.
+   const name=sub.split(" · ").slice(1,-1).join(" · ").trim();
+   const safe=/^[\p{L}\p{N}][\p{L}\p{N} ,.!?'()&:—-]{0,100}$/u.test(name)&&!/(?:[0-9a-f]{8}-){3}[0-9a-f-]+|\b(?:id|table|column|payload|json)\b/i.test(name)?name:"";
+   const status=/error|fail/i.test(head)?"Failed":"Success";
+   row.setAttribute("data-humanized","true");
+   row.classList.add("dl-ai-audit-row");
+   row.textContent="";
+   const img=document.createElement("img");img.src=logo;img.alt="";
+   const who=document.createElement("strong");who.textContent="ChatGPT";
+   const summary=document.createElement("span");summary.className="dl-ai-action";summary.textContent=action+(safe?" — "+safe:"");
+   const result=document.createElement("span");result.className="dl-ai-status";result.textContent=status;
+   row.append(img,who,summary,result);
+ });
+}
+let queued=false;
+function tidy(){
+ queued=false;
+ const pane=document.querySelector(".settings-dialog .settings-pane");
+ if(pane){
+   const wrapper=pane.querySelector(".dl-ai-wrap");
+   if(wrapper){
+     const img=wrapper.querySelector(".dl-chatgpt-logo");
+     if(img&&img.getAttribute("src")!==logo)img.setAttribute("src",logo);
+     const advanced=wrapper.querySelector(".dl-ai-advanced");
+     if(advanced)advanced.remove();
+     const title=wrapper.querySelector("#mcpAudit")?.closest(".set-group");
+     if(title&&title.nextElementSibling)title.parentElement.append(title);
+     humanAudit(wrapper.querySelector("#mcpAudit"));
+   }
+ }
+ const consent=document.querySelector("#daylightOAuthConsent");
+ if(consent&&/chatgpt/i.test(consent.querySelector("#dl-oauth-heading")?.textContent||"")){
+   const tile=consent.querySelector("#dl-oauth-client-logo");
+   if(tile && !tile.querySelector('img[src*="chatgpt-logo-white"]')){
+     const img=document.createElement("img");img.src=logo;img.alt="ChatGPT logo";
+     tile.replaceChildren(img);
+   }
+ }
+ document.querySelectorAll('[title="Help center"],[aria-label="Help center"]').forEach(el=>el.remove());
+}
+new MutationObserver(()=>{
+ if(queued)return;queued=true;requestAnimationFrame(tidy);
+}).observe(document.body,{subtree:true,childList:true});
+document.addEventListener("daylight:workspace-ready",tidy);
+tidy();
+})();
