@@ -9,8 +9,8 @@ function hsv(h,s,v){let c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c,r=0,g=0,b=0;if(
 function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 const style=document.createElement("style");
 style.textContent=`
-.cal-row{align-items:center;min-height:34px;height:auto;gap:7px}
-.cal-row .cal-name{flex:1 1 auto;min-width:0;max-width:none;overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word;line-height:1.25}
+.cal-row{align-items:center;min-height:28px;height:30px;gap:7px}
+.cal-row .cal-name{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
 .cal-row .cal-menu-btn{flex:0 0 28px}
 .cal-row .cal-check{flex:0 0 auto}
 .dl-color-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:8px 0}
@@ -35,7 +35,30 @@ style.textContent=`
 @media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
 `;
+style.textContent += `
+/* Daylight sidebar: stable single-line labels and compact adaptive rows. */
+.cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
+.cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
+.sidebar .cal-list,.sidebar .calendars-list{min-height:0}
+.sidebar .cal-check{flex-shrink:0}
+.sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
+.sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
+`;
 document.head.append(style);
+document.addEventListener("mouseover",function(e){
+ const n=e.target.closest?.(".cal-row .cal-name");
+ if(n && !n.title)n.title=n.textContent.trim();
+});
+function fitCalendarRows(){
+ const rows=[...document.querySelectorAll(".sidebar .cal-row")];
+ if(!rows.length)return;
+ const height=window.innerHeight;
+ const rowHeight=Math.max(20,Math.min(30,Math.floor((height-455)/rows.length)));
+ document.documentElement.style.setProperty("--dl-cal-row-height",rowHeight+"px");
+}
+new MutationObserver(()=>requestAnimationFrame(fitCalendarRows)).observe(document.body,{childList:true,subtree:true});
+window.addEventListener("resize",fitCalendarRows);
+document.addEventListener("daylight:workspace-ready",fitCalendarRows);
 function remember(color){color=color.toUpperCase();if(!saved.includes(color)){saved.unshift(color);saved=saved.slice(0,30);try{localStorage.setItem(STORE,JSON.stringify(saved))}catch{}}}
 function custom(onApply,seed){
  let h=28,s=.75,v=1,hex=/^#[0-9A-F]{6}$/i.test(seed)?seed.toUpperCase():"#FF7A00";
