@@ -4442,38 +4442,9 @@
         pane.appendChild(g);
       }
       function paneData(pane, closeSettings) {
-        paneHead(pane, "Data & sync", "Calendar feeds daylight keeps up to date for you.");
-        var g = el('<div class="set-group"><div class="set-group-title">Subscriptions</div><div id="feedList"></div>' +
-          '<div class="form-grid" style="grid-template-columns:1fr auto;align-items:end"><div class="field" style="margin-bottom:0"><label for="fdUrl">Feed URL</label><span class="input-clear-wrap" style="display:block"><input class="text-input" id="fdUrl" placeholder="https://example.com/calendar.ics"><button class="input-clear" id="fdClear" title="Clear feed URL" aria-label="Clear feed URL">' + icon("x", 12) + '</button></span><div class="field-err" id="fdErr"></div></div>' +
-          '<button class="btn-primary" style="margin-left:0" id="fdAdd">Add feed</button></div></div>');
-        pane.appendChild(g);
-        var list = g.querySelector("#feedList");
-        function drawFeeds() {
-          list.innerHTML = "";
-          if (!state.feeds.length) list.appendChild(el('<div class="empty-state" style="padding:22px">' + icon("sync", 24) + "<p>No subscriptions yet</p></div>"));
-          state.feeds.forEach(function (f) {
-            var row = el('<div class="feed-row">' + icon("sync", 16) + '<span class="fr-url">' + esc(f.url) + '<br><span class="fr-sub">' + esc(f.name || "Calendar feed") + '</span></span><button class="icon-btn" title="Remove feed">' + icon("trash", 15) + "</button></div>");
-            row.querySelector(".icon-btn").addEventListener("click", function () {
-              state.feeds = state.feeds.filter(function (x) { return x !== f; });
-              drawFeeds(); toast("Feed removed");
-            });
-            list.appendChild(row);
-          });
-        }
-        drawFeeds();
-        var urlIn = g.querySelector("#fdUrl"), err = g.querySelector("#fdErr");
-        var fdClear = g.querySelector("#fdClear");
-        urlIn.addEventListener("input", function () { fdClear.classList.toggle("show", urlIn.value.length > 0); err.classList.remove("show"); urlIn.classList.remove("err"); });
-        fdClear.addEventListener("click", function () { urlIn.value = ""; fdClear.classList.remove("show"); urlIn.focus(); });
-        g.querySelector("#fdAdd").addEventListener("click", function () {
-          var v = urlIn.value.trim();
-          err.classList.remove("show"); urlIn.classList.remove("err");
-          function fail(msg) { err.textContent = msg; err.classList.add("show"); urlIn.classList.add("err"); }
-          if (!/^https?:\/\/\S+\.\S+/.test(v)) return fail("Enter a valid feed URL");
-          if (state.feeds.some(function (f) { return f.url === v; })) return fail("That feed is already subscribed");
-          state.feeds.push({ url: v, name: "Calendar feed" });
-          urlIn.value = ""; drawFeeds(); toast("Feed added");
-        });
+        paneHead(pane, "Data & sync", "Manage subscription refreshes, imports, exports and your workspace data.");
+        /* Subscription creation belongs in the sidebar. The Supabase-backed
+           feed management group is supplied by daylight-integrations.js. */
         var g2 = el('<div class="set-group"><div class="set-group-title">Your data</div>' +
           '<p class="pane-sub" style="margin:0 0 12px">Export saves your calendars, events, and settings as one JSON file. Import replaces what is here with the contents of a daylight export.</p>' +
           '<div style="display:flex;gap:9px;flex-wrap:wrap"><button class="btn-ghost" id="dtExport">' + icon("download", 15) + '<span>Export data (JSON)</span></button>' +
