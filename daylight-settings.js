@@ -194,7 +194,7 @@
 /* Presentation-only finish: no OAuth, MCP, grant, or authentication handlers touched. */
 (function(){
 "use strict";
-const logo="assets/chatgpt-logo-white.svg";
+const logo="/daylight/assets/chatgpt-logo-white.svg";
 const style=document.createElement("style");
 style.textContent=`
 .dl-chatgpt-logo{object-fit:contain!important;background:#17191b!important;padding:8px!important;border-radius:12px}
