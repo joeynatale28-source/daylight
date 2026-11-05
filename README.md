@@ -224,3 +224,68 @@ The old static header tokens remain available only as local developer tokens.
 that the hosted OAuth Server/JWKS/dynamic registration settings are enabled,
 that ChatGPT or Claude can connect, or that the flow has been tested with a
 real signed-in account. Those require an authorized manual connection test.
+
+## November 4: Calendar polish and MCP discovery verification
+
+The deployed interface remains the original **self-contained HTML + JavaScript**
+with Supabase Auth/Postgres. It is not a React bundle, despite the wording of
+the upstream feature brief.
+
+* Sidebar subscription names wrap; source/last-update subtitles moved into
+  **Manage subscription**, including a daylight-side color override.
+* My calendars and Subscriptions each create from the sidebar; subscriptions
+  normalize `webcal://`, preview metadata, validate URLs inline, and retain
+  cached events on failed refreshes.
+* Owned and subscribed calendars use the shared rainbow/neutral/custom color
+  picker, including validated hex values and local custom-color history.
+* The month grid has six equal rows; Month/Week multi-day bars use one title
+  per span; timed multi-day events appear in the Week all-day lane.
+* Agenda shows the calendar and an optional second-line location.
+* Day/Week scrolls to the current or first relevant earlier event, or the
+  chosen workday start for other dates. Empty slots open New event.
+* Signed-in warm startups render the previous locally cached snapshot before
+  the revisioned cloud read completes. Subscription refreshes run concurrently
+  with a per-feed timeout and last-good fallback. No network-derived values
+  are cached or exposed across user IDs.
+* Settings has Time zone exclusively in General, Week start in Calendar, and
+  Reduce motion in Appearance. Existing notification controls remain under
+  Notifications; the legacy base design did not contain the alleged duplicate
+  Show task notifications switch. The Save/Discard bar appears upon changes.
+* AI access features ChatGPT as the main connection. The consent dialog has
+  per-client read/write/delete permissions; older developer-token support
+  remains under Advanced.
+
+### MCP: two protocol generations
+
+The OAuth Edge Function now uses Supabase's OAuth protected resource middleware
+and user-scoped Supabase client, a stateless JSON-RPC dispatcher in
+`supabase/functions/mcp/protocol.js`, and a separately permission-gated
+workspace RPC. It supports the older `initialize` / `notifications/initialized`
+/ `tools/list` and 2026-07-28 `server/discover` / `tools/list` paths. Prior
+Edge Function logs showed ChatGPT sending `server/discover` with
+`mcp-protocol-version: 2026-07-28`, while the old SDK path returned a
+body-parse error. The new handler reads the request once and responds with
+JSON-RPC in a request-scoped manner.
+
+`verify_jwt=false` is deployed for the `mcp` Edge Function (middleware
+validates OAuth tokens). The legacy `daylight-mcp` token endpoint is unchanged.
+Security reviews must retain the `mcp_grants` checks and restricted workspace
+RPC. A bug with the SQL function's `payload` variable was corrected in
+`supabase/sql/20261104_mcp_oauth_scoped_workspace_rpc_fixed.sql`.
+
+### Verification limits
+
+GitHub Actions runs `node --test tests/mcp-protocol.test.mjs` for protocol
+discovery, schema and permission regression, plus Chromium visual UI checks
+with seven **synthetic** calendar fixtures and screenshots in both themes.
+A temporary permission grant and calendar mutation were also executed in a
+rolled-back PostgreSQL subtransaction; the follow-up query confirmed no grant
+remained. These are **not** substitutes for authenticating ChatGPT, Claude
+and Cursor into the real account. A fresh user-authorized end-to-end OAuth
+login and actual ChatGPT action enumeration are still required before claiming
+the original "action discovery failed" banner is fully resolved.
+
+The user account and private events were not transferred into test screenshots.
+Real cold/warm network-load benchmarks against the prior deployed version
+have not been captured; synthetic render timings are printed by the browser
+test, and cannot be passed off as live per-user latency.
