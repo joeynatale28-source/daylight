@@ -23,6 +23,8 @@ jobs:
           node --check daylight-oauth.js
           node --check daylight-integrations.js
           node --check daylight-settings.js
+      - name: Test stateless MCP discovery and permissions
+        run: node --test tests/mcp-protocol.test.mjs
       - name: Check OAuth resource metadata and missing-token response
         run: |
           set -euo pipefail
