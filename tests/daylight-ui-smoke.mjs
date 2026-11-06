@@ -74,8 +74,69 @@ try{
    document.getElementById('app').hidden=false;document.getElementById('authRoot').innerHTML='';
    applyTheme();renderAll(false);
  });
+ const bannerFiles=['sports','holidays','school-life'].flatMap(group=>
+   fs.readdirSync(path.join(process.cwd(),'assets','banners',group))
+     .filter(name=>name.endsWith('.webp'))
+     .map(name=>({group,subject:name.slice(0,-5)})));
+ for(const [group,count] of [['sports',42],['holidays',22],['school-life',28]]){
+   assert.equal(bannerFiles.filter(file=>file.group===group).length,count,`${group} banner count`);
+ }
+ assert.equal(bannerFiles.length,92,'all 92 banner files must be present');
+ for(const file of bannerFiles){
+   assert.ok(fs.statSync(path.join(process.cwd(),'assets','banners',file.group,`${file.subject}.webp`)).size>0,
+     `empty banner file: ${file.group}/${file.subject}.webp`);
+ }
+ const bannerRouting=await page.evaluate(files=>{
+   const routes=files.map(({group,subject})=>({
+     expected:`assets/banners/${group}/${subject}.webp`,
+     actual:bannerKeyFor({title:'',category:subject})
+   }));
+   const cases=[
+     ['Morning swim practice','assets/banners/sports/swim.webp'],
+     ['Team USA','assets/banners/sports/swim.webp'],
+     ['Championship swim','assets/banners/sports/swim.webp'],
+     ['Thanksgiving','assets/banners/holidays/thanksgiving.webp'],
+     ['Christmas Eve','assets/banners/holidays/christmas-eve.webp'],
+     ['School Block','assets/banners/school-life/school.webp'],
+     ["Aiden's Birthday",'assets/banners/school-life/birthday.webp'],
+     ['Nov 17 Haircut','assets/banners/school-life/haircut.webp'],
+     ['Pickup Jeep – Florida','assets/banners/school-life/road-trip.webp'],
+     ['Christmas swim practice','assets/banners/sports/swim.webp']
+   ].map(([title,expected])=>({title,expected,actual:bannerKeyFor({title})}));
+   return {routes,cases};
+ },bannerFiles);
+ assert.deepEqual(bannerRouting.routes.filter(route=>route.actual!==route.expected),[],
+   'every banner file must be reachable by its subject');
+ assert.deepEqual(bannerRouting.cases.filter(test=>test.actual!==test.expected),[],
+   'specific event matches and overrides must route to the intended banner');
  for(const theme of ['dark','light']){
+   await page.evaluate(()=>closePopover());
+   await page.waitForFunction(()=>document.querySelectorAll('.popover').length===0,{timeout:3000});
    await page.evaluate(theme=>{state.themeMode=theme;applyTheme();renderAll(false)},theme);
+   await page.evaluate(()=>{
+     const practice=state.events.find(event=>event.title==='Morning swim practice');
+     openPopover({ev:practice,start:practice.start,end:practice.end},document.querySelector('.day-cell'));
+   });
+   await page.waitForFunction(()=>{
+     const popover=[...document.querySelectorAll('.popover')].find(element=>
+       element.querySelector('.pop-title')?.textContent==='Morning swim practice');
+     const image=popover?.querySelector('.pop-banner img');
+     return image&&image.complete&&image.naturalWidth>0&&Math.round(popover.getBoundingClientRect().width)===384;
+   },{timeout:5000});
+   const bannerSlot=await page.evaluate(()=>{
+     const popover=[...document.querySelectorAll('.popover')].find(element=>
+       element.querySelector('.pop-title')?.textContent==='Morning swim practice');
+     const element=popover.querySelector('.pop-banner');
+     const image=element.querySelector('img');
+     const box=element.getBoundingClientRect();
+     return {src:image.getAttribute('src'),width:popover.getBoundingClientRect().width,height:box.height,fit:getComputedStyle(image).objectFit};
+   });
+   assert.equal(bannerSlot.src,'assets/banners/sports/swim.webp');
+   assert.equal(Math.round(bannerSlot.width),384);
+   assert.equal(Math.round(bannerSlot.height),128);
+   assert.equal(bannerSlot.fit,'cover');
+   await page.screenshot({path:path.join(out,'swim-banner-'+theme+'.png')});
+   await page.evaluate(()=>closePopover());
    await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png')});
    const measure=await page.evaluate(()=>{
       const rows=[...document.querySelectorAll('.month-week')];

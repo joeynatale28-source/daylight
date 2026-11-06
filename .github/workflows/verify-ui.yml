@@ -9,6 +9,7 @@ on:
       - daylight-oauth.js
       - daylight-settings.js
       - daylight-enhancements.js
+      - assets/banners/**
       - tests/daylight-ui-smoke.mjs
       - .github/workflows/verify-ui.yml
   workflow_dispatch:

@@ -5,6 +5,7 @@ Daylight is a single-page calendar with Month, Week, Day, Agenda and Tasks views
 ## Application files
 
 - `index.html`: current app. The visual design is preserved from the standalone preview.
+- `assets/banners/`: WebP illustrations used by event popovers and deployed with the app.
 - `daylight-cloud.js`: real Supabase Auth + cloud workspace synchronization.
 - `daylight-calendar-ui-preview.html`: archived original UI preview (demo-only, **not** the live authenticated application).
 
