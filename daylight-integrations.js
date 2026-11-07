@@ -451,11 +451,21 @@
     card.querySelector('#managedStatus').textContent=sub.last_error||'Up to date';
     const dialog=modal('Manage subscription',card);
     const target=card.querySelector('#managedFeedback');
-    window.daylightColorPicker(card.querySelector('#managedColors'),sub.color,async color=>{
-      try{await call('ical-subscribe',{action:'update',id:sub.id,color});
-        dialog.close();await loadSubscriptions();toast('Calendar color updated');}
-      catch(error){showError(target,error)}
-    });
+    const colorGrid=card.querySelector('#managedColors');
+    async function applyManagedColor(color){
+      const scrollTop=colorGrid.scrollTop;
+      try{
+        await call('ical-subscribe',{action:'update',id:sub.id,color});
+        sub.color=color;
+        await loadSubscriptions();
+        colorGrid.innerHTML='';
+        window.daylightColorPicker(colorGrid,color,applyManagedColor);
+        colorGrid.scrollTop=scrollTop;
+        target.textContent='Calendar color updated.';
+        toast('Calendar color updated');
+      }catch(error){showError(target,error)}
+    }
+    window.daylightColorPicker(colorGrid,sub.color,applyManagedColor);
     card.querySelector('#manageRefresh').onclick=async()=>{
       target.textContent='Checking calendar feed…';
       try{await call('ical-subscribe',{action:'refresh',id:sub.id,force:true});
