@@ -237,21 +237,17 @@ try{
    if(!cell)throw Error('Target month cell unavailable');cell.click();
  });
  await page.waitForSelector('#efTitle',{timeout:4000});
- const wizard=await page.evaluate(()=>{
-   const first=document.querySelector('.dl-wizard-step[data-step="1"]');
-   const count=first?.querySelectorAll('.field').length||0;
-   document.querySelector('#efTitle').value='Wizard smoke test';
-   document.querySelector('[data-step-next]')?.click();
-   const second=!document.querySelector('.dl-wizard-step[data-step="2"]').hidden;
-   document.querySelector('[data-step-next]')?.click();
-   const third=!document.querySelector('.dl-wizard-step[data-step="3"]').hidden;
-   document.querySelector('[data-step-skip]')?.click();
-   const fourth=!document.querySelector('.dl-wizard-step[data-step="4"]').hidden;
-   document.querySelector('[data-x]')?.click();
-   return {stepOneFieldCount:count,second,third,fourth};
+ const eventForm=await page.evaluate(()=>{
+   const fields=['#efTitle','#efLoc','#efDesc','#efCal','#efSDate','#efEDate'];
+   const present=fields.every(selector=>!!document.querySelector(selector));
+   const location=document.querySelector('#efLoc');
+   const attached=!!location&&location.dataset.tomtomAttached==='yes';
+   const dialog=document.querySelector('.event-form-dialog');
+   return {present,attached,dialog:!!dialog};
  });
- assert.equal(wizard.stepOneFieldCount,2,'wizard step one must contain only title and description');
- assert.ok(wizard.second&&wizard.third&&wizard.fourth,'wizard should navigate through all four steps and skip location');
+ assert.ok(eventForm.present,'event form must expose title, location, description, calendar, and date fields');
+ assert.ok(eventForm.dialog,'event form dialog must be present');
+ assert.ok(eventForm.attached,'TomTom autocomplete must attach to the event location field');
  await page.screenshot({path:path.join(out,'new-event-dialog.png')});
  await page.evaluate(()=>document.querySelector('.backdrop .dialog [data-x]')?.click());
 
