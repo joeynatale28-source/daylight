@@ -57,9 +57,9 @@
   function makeStyle() {
     var css = document.createElement("style");
     css.textContent = [
-      ".settings-dialog{position:relative}",
-      ".settings-pane{padding-bottom:104px}",
-      ".settings-savebar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
+      ".settings-dialog{position:relative;overflow:hidden;border-radius:var(--r-xl)}",
+      ".settings-pane{position:relative;isolation:isolate;padding-bottom:104px;overflow-y:auto;min-height:0}",
+      ".settings-savebar{position:absolute;left:50%;right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar[hidden]{display:none!important}",
       ".settings-savebar:not([hidden]){animation:settingsPillIn 190ms cubic-bezier(0.23,1,0.32,1)}",
       "@keyframes settingsPillIn{from{opacity:0;transform:translate(-50%,5px)}to{opacity:1;transform:translate(-50%,0)}}",
@@ -68,7 +68,7 @@
       ".settings-savebar button[data-discard]{color:var(--muted);background:var(--gray-2)}",
       ".settings-savebar button[data-save]{color:var(--on-accent);background:var(--accent)}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
-      "@media(max-width:640px){.settings-savebar{left:12px;right:12px;bottom:12px;transform:none;max-width:none;width:auto;border-radius:18px;padding:10px 11px;gap:8px;justify-content:space-between}.settings-savebar .savebar-message{font-size:11.5px;line-height:1.2}.settings-savebar button{padding:8px 10px}}",
+      "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
     ].join("\\n");
     document.head.appendChild(css);
@@ -159,12 +159,26 @@
       });
       rail.appendChild(btn);
     });
-    dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
+    dlg.appendChild(rail); dlg.appendChild(pane);
     bd.appendChild(dlg);
     overlayRoot.appendChild(bd);
 
     bar.querySelector("[data-save]").addEventListener("click", function () { finish(true); });
-    bar.querySelector("[data-discard]").addEventListener("click", function () { finish(false); });
+    bar.querySelector("[data-discard]").addEventListener("click", function () {
+      if (!isDirty() || document.getElementById("dlSettingsDiscardConfirm")) return;
+      var confirm = el('<div class="backdrop" id="dlSettingsDiscardConfirm"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="Discard changes?" style="width:min(400px,92vw)"><div class="dialog-head"><span class="dialog-title">Discard changes?</span></div><div class="dialog-body"><p>Unsaved settings changes will be lost.</p></div><div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-primary" data-confirm-discard>Discard changes</button></div></div></div>');
+      overlayRoot.appendChild(confirm);
+      var dismiss = function(){ if(window.daylightExit)window.daylightExit(confirm);else confirm.remove(); };
+      confirm.querySelector("[data-keep]").addEventListener("click",dismiss);
+      confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){
+        dismiss();
+        restore(original);
+        drawPane();
+        markDirty();
+      });
+      confirm.addEventListener("mousedown",function(e){if(e.target===confirm)dismiss();});
+      confirm.querySelector("[data-keep]").focus();
+    });
     bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
     ["input", "change", "click"].forEach(function (eventType) {
       dlg.addEventListener(eventType, function () { setTimeout(markDirty, 0); });
@@ -183,6 +197,7 @@
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
+      pane.appendChild(bar);
       pane.querySelectorAll('label.switch input[type="checkbox"]').forEach(function (input) {
         if (input.getAttribute("aria-label")) return;
         var row = input.closest(".switch-row");

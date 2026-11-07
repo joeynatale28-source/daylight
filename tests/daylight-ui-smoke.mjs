@@ -361,7 +361,21 @@ try{
  assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),false,'Save bar did not appear immediately');
  await page.screenshot({path:path.join(out,'settings-unsaved.png')});
  await page.evaluate(()=>document.querySelector('[data-discard]').click());
+ await page.waitForSelector('#dlSettingsDiscardConfirm',{timeout:2000});
+ await page.screenshot({path:path.join(out,'settings-discard-confirm.png')});
+ await page.evaluate(()=>document.querySelector('[data-confirm-discard]').click());
  assert.equal(await page.evaluate(()=>state.showWeekends),oldWeekends,'Discard failed to restore the setting');
+ assert.ok(await page.$('.settings-dialog'),'Discard must keep Settings open');
+ assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),true,'Discard must hide the pill after reverting');
+ await page.evaluate(()=>{
+   const input=document.querySelector('#csWeekends');
+   input.checked=!input.checked;input.dispatchEvent(new Event('change',{bubbles:true}));
+ });
+ await new Promise(resolve=>setTimeout(resolve,80));
+ assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),false,'second edit must show save capsule');
+ await page.screenshot({path:path.join(out,'settings-save-capsule.png')});
+ await page.evaluate(()=>document.querySelector('[data-save]').click());
+ assert.equal(await page.evaluate(()=>state.showWeekends),!oldWeekends,'Save must preserve edited value');
  await page.evaluate(()=>openSettings('general'));
  assert.ok(await page.$('#gsTz'),'Timezone missing from General settings');
  assert.equal(await page.$('#gsWeekStart'),null);
