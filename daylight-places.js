@@ -2,7 +2,14 @@
 (function(){
 'use strict';
 let instance=0;
-const pin='<svg class="dl-place-pin" viewBox="0 0 16 16" aria-hidden="true" focusable="false"><path d="M13 6.5c0 3.2-5 8-5 8s-5-4.8-5-8a5 5 0 1 1 10 0Z"/><circle cx="8" cy="6.5" r="1.65"/></svg>';
+const svgNS='http://www.w3.org/2000/svg';
+function makePin(){
+ const svg=document.createElementNS(svgNS,'svg');svg.setAttribute('class','dl-place-pin');
+ svg.setAttribute('viewBox','0 0 16 16');svg.setAttribute('aria-hidden','true');svg.setAttribute('focusable','false');
+ const path=document.createElementNS(svgNS,'path');path.setAttribute('d','M13 6.5c0 3.2-5 8-5 8s-5-4.8-5-8a5 5 0 1 1 10 0Z');
+ const circle=document.createElementNS(svgNS,'circle');circle.setAttribute('cx','8');circle.setAttribute('cy','6.5');circle.setAttribute('r','1.65');
+ svg.append(path,circle);return svg;
+}
 window.daylightAttachPlaces=function(input,draft,dirty){
  if(!input||input.dataset.hereAttached)return;
  input.dataset.hereAttached='yes';input.autocomplete='off';
@@ -52,7 +59,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
   results.forEach((item,index)=>{
    const button=document.createElement('button');button.type='button';button.className='dl-place-option';
    button.id=id+'-'+index;button.setAttribute('role','option');button.setAttribute('aria-selected','false');
-   button.append(pin);
+   button.append(makePin());
    const copy=document.createElement('span');copy.className='dl-place-copy';
    const primary=document.createElement('span');primary.className='dl-place-primary';
    emphasize(primary,String(item.primary||item.address),query);
@@ -83,7 +90,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
    if(!window.daylightCloud?.ready||!window.daylightCloud?.client)return;
    showLoading();
    try{
-    const body={action:'autocomplete',input:query,language:'en'};
+    const body={action:'autocomplete',input:query,language:navigator.language||'en'};
     const bias=window.daylightLocationBias||input.dataset.positionBias;
     if(bias&&typeof bias==='object'){
      const lat=Number(bias.lat),lng=Number(bias.lng);
