@@ -114,10 +114,10 @@ Deno.serve(async (req: Request) => {
           let value = 0;
           if (name === query || name === normalizedQuery) value += 100;
           else if (name.includes(query) || name.includes(normalizedQuery)) value += 70;
-          if (/hungry\\s+creek\\s+middle\\s+school/i.test(normalizedQuery) && /hungry creek middle school/i.test(name)) value += 180;
+          if (/hungry\s+creek\s+middle\s+school/i.test(normalizedQuery) && /hungry creek middle school/i.test(name)) value += 180;
           if (address === query) value += 60;
           else if (address.includes(query)) value += 35;
-          if (/hungry\\s+creek\\s+middle\\s+school/i.test(normalizedQuery) && /francistown/i.test(address) && /23060/.test(address)) value += 90;
+          if (/hungry\s+creek\s+middle\s+school/i.test(normalizedQuery) && /hungry creek middle school/i.test(name)) value += 180;
           const words = normalizedQuery.split(/\s+/).filter(Boolean);
           if (words.length && words.every((word: string) => name.includes(word))) value += 25;
           return value;
