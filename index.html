@@ -746,7 +746,7 @@
       /* Holiday illustrations include a pale bottom edge in the source artwork.
          Enlarge within the clipped header so that edge stays out of view. */
       .pop-banner.holiday-banner img {
-        transform: none; object-position: center;
+        transform: scale(1.1); object-position: center;
       }
       .pop-banner-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
       .pop-banner-btn {
@@ -3526,6 +3526,7 @@
         var bannerKey = bannerKeyFor(ev, cal);
         var bannerSrc = bannerKey && BANNER_DATA[bannerKey];
         if (!bannerSrc) bannerKey = null;
+        var holidayBanner = bannerKey && bannerKey.indexOf("dl-banner-holidays-") === 0;
         /* Google Calendar–style detail: date first, then time + duration, then the rest with icon gutter */
         var timeMain, timeSub;
         if (ev.allDay) {
@@ -3569,7 +3570,7 @@
           bBtns += '<button class="pop-banner-btn" data-act="close" title="Close" aria-label="Close">' + icon("x", 16) + "</button>";
           var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ)) + "</div>";
           p = el('<div class="popover has-banner" role="dialog" aria-label="Event details">' +
-            '<div class="pop-banner"><img src="' + esc(bannerSrc) + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
+            '<div class="pop-banner' + (holidayBanner ? " holiday-banner" : "") + '"><img src="' + esc(bannerSrc) + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
             '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + calLine + "</div></div>" +
             '<div class="pop-rows">' + rows + "</div></div></div>");
           var bImg = p.querySelector(".pop-banner img");
