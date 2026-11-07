@@ -2148,10 +2148,16 @@
         }
         var list = [
           H("New Year's Day", new Date(y, 0, 1)),
+          H("New Year's Eve", new Date(y, 11, 31)),
           H("Martin Luther King Jr. Day", nthWeekday(y, 0, 1, 3)),
+          H("Groundhog Day", new Date(y, 1, 2)),
           H("Valentine's Day", new Date(y, 1, 14)),
           H("Presidents' Day", nthWeekday(y, 1, 1, 3)),
+          H("St. Patrick's Day", new Date(y, 2, 17)),
+          H("Easter", (function(){var a=y%19,b=Math.floor(y/100),c=y%100,d=Math.floor(b/4),e=b%4,f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30,i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7,m=Math.floor((a+11*h+22*l)/451),month=Math.floor((h+l-7*m+114)/31)-1,day=(h+l-7*m+114)%31+1;return new Date(y,month,day)})()),
+          H("Mother's Day", nthWeekday(y, 4, 0, 2)),
           H("Memorial Day", lastWeekday(y, 4, 1)),
+          H("Father's Day", nthWeekday(y, 5, 0, 3)),
           H("Juneteenth", new Date(y, 5, 19)),
           H("Independence Day", new Date(y, 6, 4)),
           H("Labor Day", nthWeekday(y, 8, 1, 1)),
@@ -2160,6 +2166,8 @@
           H("Election Day", addDays(nthWeekday(y, 10, 1, 1), 1)),
           H("Veterans Day", new Date(y, 10, 11)),
           H("Thanksgiving", nthWeekday(y, 10, 4, 4)),
+          H("Hanukkah", (function(){var d=new Date(y,11,1);while(d.getDay()!==0)d.setDate(d.getDate()+1);d.setDate(d.getDate()+24);return d})()),
+          H("Christmas Eve", new Date(y, 11, 24)),
           H("Christmas Day", new Date(y, 11, 25))
         ];
         HOLIDAY_CACHE[y] = list;
@@ -2652,8 +2660,8 @@
            read-only is expressed by the section they live in and by
            their events' popovers, not by chrome on the row. Only
            owned calendars (My calendars) get the options menu. */
-        if (!isSubscribed(cal)) {
-          var mb = el('<button class="icon-btn cal-menu-btn" title="Calendar options — rename, color, show or hide, delete" aria-label="Options for ' + esc(cal.name) + '">' + icon("dotsV", 16) + "</button>");
+        if (!isSubscribed(cal) || cal.id === "holidays") {
+          var mb = el('<button class="icon-btn cal-menu-btn" title="Calendar options" aria-label="Options for ' + esc(cal.name) + '">' + icon("dotsV", 16) + "</button>");
           mb.addEventListener("click", function () { openCalMenu(mb, cal, row); });
           row.appendChild(mb);
         }
@@ -2662,7 +2670,7 @@
       function openCalMenu(anchor, cal, row) {
         /* Owned calendars only — subscribed/shared calendars have
            no menu button, and this guard keeps it that way. */
-        if (isSubscribed(cal)) return;
+        if (isSubscribed(cal) && cal.id !== "holidays") return;
         closeMenu(); closePopover();
         var m = el('<div class="menu" role="menu" aria-label="Calendar options"></div>');
         function item(iconName, label, danger, fn) {
@@ -2670,7 +2678,8 @@
           b.addEventListener("click", function () { closeMenu(); fn(); });
           return b;
         }
-        m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
+        var builtinHoliday = cal.id === "holidays";
+        if (!builtinHoliday) m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
         m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
@@ -2687,8 +2696,10 @@
           persistCalendarChange();
         });
         m.appendChild(swWrap);
-        m.appendChild(el('<div class="menu-sep"></div>'));
-        m.appendChild(item("trash", "Delete calendar", true, function () { confirmDeleteCalendar(cal); }));
+        if (!builtinHoliday) {
+          m.appendChild(el('<div class="menu-sep"></div>'));
+          m.appendChild(item("trash", "Delete calendar", true, function () { confirmDeleteCalendar(cal); }));
+        }
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
         var mw = 220, mh = m.offsetHeight;
@@ -3021,7 +3032,10 @@
               cell.appendChild(add);
               var evBox = el('<div class="cell-events"></div>');
               if(spans.length)evBox.style.paddingTop=spans.length*25+"px";
-              var MAX = (window.innerWidth <= 700 ? 2 : 3) + (state.density === "compact" ? 1 : 0);
+              var monthRowHeight = Math.max(72, Math.floor((window.innerHeight - 225) / 6));
+              var chipRoom = monthRowHeight - 34 - spans.length * 25 - 7;
+              var MAX = Math.max(1, Math.min(window.innerWidth <= 700 ? 3 : 6, Math.floor(chipRoom / 22)));
+              if (state.density === "compact") MAX = Math.min(6, MAX + 1);
               dayOccs.slice(0, MAX).forEach(function (o) {
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
