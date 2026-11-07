@@ -879,6 +879,17 @@
       .field-err { display: none; color: var(--danger); font-size: 12.5px; margin-top: 5px; }
       .field-err.show { display: block; }
       .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .dl-wizard-progress{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:0 24px 12px}
+      .dl-wizard-progress span{height:3px;border-radius:4px;background:var(--line)}
+      .dl-wizard-progress span.active{background:var(--accent)}
+      .dl-wizard-step[hidden]{display:none}
+      .dl-wizard-step{display:flex;flex-direction:column;gap:12px;min-height:0}
+      .dl-wizard-step .field{margin:0}
+      .dl-holiday-step-banner{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:var(--r-md);background:var(--surface2);font-size:12px;color:var(--muted)}
+      .dl-holiday-step-banner[hidden]{display:none}
+      .dl-holiday-step-icon{display:inline-flex;align-items:center;justify-content:center;color:var(--accent)}
+      .dl-holiday-step-banner button{margin-left:auto;font-size:17px;color:var(--muted)}
+      .event-form-dialog .dialog-body{gap:12px}
       .event-form-dialog .field { margin-bottom: 12px; }
       .event-form-dialog .dialog-body { padding-top: 12px; padding-bottom: 0; }
       .picker-btn {
@@ -2872,6 +2883,10 @@
 
       /* ================= Views ================= */
       var viewWrap = document.getElementById("viewWrap");
+        var monthTouchStart=null;
+        viewWrap.addEventListener("touchstart",function(e){if(state.section==="calendar"&&state.view==="month"&&e.touches.length===1)monthTouchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
+        viewWrap.addEventListener("touchend",function(e){if(!monthTouchStart||state.section!=="calendar"||state.view!=="month")return;var dx=e.changedTouches[0].clientX-monthTouchStart.x,dy=e.changedTouches[0].clientY-monthTouchStart.y;monthTouchStart=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.25)pageBy(dx<0?1:-1,true)},{passive:true});
+        viewWrap.addEventListener("wheel",function(e){if(state.section!=="calendar"||state.view!=="month")return;if(Math.abs(e.deltaX)>55&&Math.abs(e.deltaX)>Math.abs(e.deltaY)*1.35){e.preventDefault();pageBy(e.deltaX>0?1:-1,true)}},{passive:false});
       var reduceMotionMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
       function renderView(animate, dir) {
         closePopover(); closeMenu();
@@ -3796,6 +3811,35 @@
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" style="margin-left:0" data-save>' + (isEdit ? "Save changes" : "Create event") + "</button></div>";
         bd.appendChild(dlg);
         overlayRoot.appendChild(bd);
+        var formBody=dlg.querySelector(".dialog-body");
+        var titleField=formBody.querySelector("#efTitle").closest(".field"),descField=formBody.querySelector("#efDesc").closest(".field");
+        var allDayField=formBody.querySelector("#efAllDay").closest(".field"),dateTimeGrid=formBody.querySelector(".form-grid");
+        var repeatField=formBody.querySelector("#efRepeat").closest(".field"),reminderField=formBody.querySelector("#efReminder").closest(".field");
+        var locationField=formBody.querySelector("#efLoc").closest(".field"),calendarField=formBody.querySelector("#efCal").closest(".field");
+        formBody.innerHTML="";
+        var wizardProgress=el('<div class="dl-wizard-progress" aria-label="Event creation progress"><span></span><span></span><span></span><span></span></div>');
+        dlg.insertBefore(wizardProgress,formBody);
+        var wizardSteps=[1,2,3,4].map(function(n){return el('<section class="dl-wizard-step" data-step="'+n+'"></section>')});
+        wizardSteps[0].append(titleField,descField);wizardSteps[1].append(allDayField,dateTimeGrid,repeatField);
+        wizardSteps[2].append(locationField);wizardSteps[3].append(calendarField,reminderField);
+        var holidayBanner=el('<div class="dl-holiday-step-banner" hidden><span class="dl-holiday-step-icon">'+icon("calendar",17)+'</span><span class="dl-holiday-step-copy"></span><button type="button" aria-label="Dismiss holiday notice">×</button></div>');
+        wizardSteps[1].prepend(holidayBanner);wizardSteps.forEach(function(step){formBody.appendChild(step)});
+        var wizardStep=1,wizardFoot=dlg.querySelector(".dialog-foot");
+        var backStep=el('<button class="btn-ghost" type="button" data-step-back>Back</button>'),skipStep=el('<button class="btn-ghost" type="button" data-step-skip>Skip</button>'),nextStep=el('<button class="btn-primary" type="button" data-step-next>Next</button>');
+        wizardFoot.insertBefore(backStep,wizardFoot.firstChild);wizardFoot.insertBefore(skipStep,dlg.querySelector("[data-save]"));wizardFoot.insertBefore(nextStep,dlg.querySelector("[data-save]"));
+        function syncWizard(){
+          wizardSteps.forEach(function(step,i){step.hidden=i+1!==wizardStep});
+          wizardProgress.querySelectorAll("span").forEach(function(node,i){node.classList.toggle("active",i+1<=wizardStep)});
+          backStep.hidden=wizardStep===1;skipStep.hidden=wizardStep===1||wizardStep===2;nextStep.hidden=wizardStep===4;
+          dlg.querySelector("[data-save]").hidden=wizardStep!==4;
+          skipStep.textContent=wizardStep===3?"Skip location":"Skip";
+          if(wizardStep===2){var holiday=usHolidaysForYear(f.sDate.getFullYear()).find(function(h){return sameDay(h.start,f.sDate)});holidayBanner.hidden=!holiday;holidayBanner.querySelector(".dl-holiday-step-copy").textContent=holiday?holiday.title+" is a US holiday.":""}else holidayBanner.hidden=true;
+        }
+        holidayBanner.querySelector("button").onclick=function(){holidayBanner.hidden=true};
+        backStep.onclick=function(){wizardStep=Math.max(1,wizardStep-1);syncWizard()};
+        nextStep.onclick=function(){if(wizardStep===1&&!titleIn.value.trim()){titleIn.classList.add("err");dlg.querySelector("#efTitleErr").classList.add("show");titleIn.focus();return}wizardStep=Math.min(4,wizardStep+1);syncWizard()};
+        skipStep.onclick=function(){if(wizardStep===3){wizardStep=4;syncWizard()}else dlg.querySelector("[data-save]").click()};
+        syncWizard();
         var titleIn = dlg.querySelector("#efTitle");
         var allDayIn = dlg.querySelector("#efAllDay");
         var sDateBtn = dlg.querySelector("#efSDate"), eDateBtn = dlg.querySelector("#efEDate");
