@@ -201,10 +201,10 @@ style.textContent=`
 #dl-oauth-client-logo img[src*="chatgpt-logo-white"]{object-fit:contain!important;padding:10px}
 .dl-ai-advanced{display:none!important}
 .dl-ai-wrap .set-group{margin-bottom:18px}
-.dl-ai-audit-row{display:flex!important;align-items:center;gap:8px;min-height:33px;font-size:12px!important;color:var(--text)!important}
+.dl-ai-audit-row{display:flex!important;align-items:flex-start;gap:8px;min-height:33px;font-size:12px!important;color:var(--text)!important}
 .dl-ai-audit-row img{width:16px;height:16px;flex:none;background:#17191b;border-radius:4px;padding:2px}
 .dl-ai-audit-row strong,.dl-ai-audit-row span{font-size:12px!important}
-.dl-ai-audit-row .dl-ai-action{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
+.dl-ai-audit-row .dl-ai-action{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word;min-width:0;flex:1}
 .dl-ai-audit-row .dl-ai-status{font-size:11px!important;color:var(--muted)}
 .day-num{cursor:pointer}
 .day-num:hover{background:var(--gray-2);border-radius:6px}
@@ -236,7 +236,7 @@ function humanAudit(history){
    const sub=row.querySelector(".fr-sub")?.textContent||"";
    // Audit payloads may be technical. Only include safe display names.
    const name=sub.split(" · ").slice(1,-1).join(" · ").trim();
-   const safe=/^[\p{L}\p{N}][\p{L}\p{N} ,.!?'()&:—-]{0,100}$/u.test(name)&&!/(?:[0-9a-f]{8}-){3}[0-9a-f-]+|\b(?:id|table|column|payload|json)\b/i.test(name)?name:"";
+   const safe=/^[\p{L}\p{N}][\p{L}\p{N} ,.!?'()&:—-]{0,300}$/u.test(name)&&!/^event title unavailable$/i.test(name)&&!/(?:[0-9a-f]{8}-){3}[0-9a-f-]+|\b(?:id|table|column|payload|json)\b/i.test(name)?name:"";
    const status=/error|fail/i.test(head)?"Failed":"Success";
    row.setAttribute("data-humanized","true");
    row.classList.add("dl-ai-audit-row");

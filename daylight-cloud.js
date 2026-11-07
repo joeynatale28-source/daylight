@@ -327,6 +327,7 @@
     conflict = false;
     clearTimeout(saveTimer);
     user = account;
+    document.dispatchEvent(new Event('daylight:workspace-loading'));
     status('Loading calendar…');
     const warmShown=warmWorkspace(account,seq);
     if(!warmShown)document.getElementById('app').hidden = true;
@@ -357,6 +358,7 @@
     } catch (error) {
       if (seq !== sessionSequence) return;
       console.error('Daylight load failed', error);
+      document.dispatchEvent(new Event('daylight:workspace-loading-failed'));
       user = null;
       loading = true;
       document.body.classList.remove('booting');

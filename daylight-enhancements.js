@@ -45,6 +45,21 @@ style.textContent += `
 .sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
 `;
 document.head.append(style);
+let workspaceLoadingTimer=null;
+function showWorkspaceLoading(){
+ clearTimeout(workspaceLoadingTimer);
+ workspaceLoadingTimer=setTimeout(()=>document.body.classList.add("workspace-loading-visible"),200);
+}
+function hideWorkspaceLoading(){
+ clearTimeout(workspaceLoadingTimer);
+ workspaceLoadingTimer=null;
+ document.body.classList.remove("workspace-loading-visible");
+}
+if(document.body.classList.contains("booting"))showWorkspaceLoading();
+document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
+document.addEventListener("daylight:workspace-ready",hideWorkspaceLoading);
+document.addEventListener("daylight:workspace-loading-failed",hideWorkspaceLoading);
+document.addEventListener("daylight:workspace-signed-out",hideWorkspaceLoading);
 document.addEventListener("mouseover",function(e){
  const n=e.target.closest?.(".cal-row .cal-name");
  if(n && !n.title)n.title=n.textContent.trim();

@@ -868,6 +868,8 @@
       .field-err { display: none; color: var(--danger); font-size: 12.5px; margin-top: 5px; }
       .field-err.show { display: block; }
       .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      .event-form-dialog .field { margin-bottom: 12px; }
+      .event-form-dialog .dialog-body { padding-top: 12px; padding-bottom: 0; }
       .picker-btn {
         width: 100%; display: flex; align-items: center; gap: 8px; background: var(--input-bg);
         border: 1px solid transparent; border-radius: 999px; padding: 11px 18px; font-size: 14px;
@@ -898,9 +900,10 @@
       /* Hide the login while the saved session is restored. */
       body.booting #authRoot { visibility: hidden; pointer-events: none; }
       #bootScreen { position: fixed; inset: 0; z-index: 3000; background: var(--surface);
-        color: var(--text); display: flex; align-items: center; justify-content: center;
+        color: var(--text); display: none; align-items: center; justify-content: center;
         flex-direction: column; gap: 8px; }
       body:not(.booting) #bootScreen { display: none; }
+      body.workspace-loading-visible #bootScreen { display: flex; }
       .boot-mark { font-size: clamp(30px, 4vw, 42px); font-weight: 650; letter-spacing: -0.065em; line-height: 1.1; }
       .boot-period { color: var(--accent); }
       .boot-note { font-size: 12px; color: var(--muted); font-weight: 500; }
@@ -1098,14 +1101,16 @@
       }
       .input-clear.show { display: inline-flex; }
       .input-clear:hover { color: var(--text); background: var(--hover); }
-      .palette-results { overflow-y: auto; padding: 8px; }
+      .palette-results { overflow-y: auto; padding: 8px 8px 12px; min-height: 0; flex: 1 1 auto; }
       .pal-group { font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); padding: 10px 10px 5px; }
-      .pal-item { display: flex; align-items: center; gap: 12px; width: 100%; padding: 8px 10px; border-radius: var(--r-md); text-align: left; transition: background 120ms var(--ease-out); }
+      .pal-item { display: flex; align-items: flex-start; gap: 12px; width: 100%; padding: 8px 10px; border-radius: var(--r-md); text-align: left; transition: background 120ms var(--ease-out); }
       .pal-item:hover, .pal-item.active { background: var(--hover); }
       .pal-item .pi-title { font-size: 14px; font-weight: 500; }
       .pal-item .pi-sub { font-size: 12.5px; color: var(--muted); }
       .pal-item .pi-text { flex: 1; min-width: 0; }
-      .pal-item .pi-title, .pal-item .pi-sub { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+      .pal-item .pi-title, .pal-item .pi-sub { white-space: normal; overflow-wrap: break-word; word-break: normal; }
+      .pal-item .pi-title { line-height: 1.4; }
+      .pal-item .pi-sub { line-height: 1.45; }
 
       /* ---------- Toasts ---------- */
       #toastRoot { position: fixed; right: 18px; bottom: 18px; z-index: 1000; display: flex; flex-direction: column; gap: 8px; align-items: flex-end; }
@@ -1815,6 +1820,27 @@
         var hh = h % 12; if (hh === 0) hh = 12;
         return hh + ":" + pad2(m) + ap;
       }
+      function fmtEventTime(d) {
+        if (state.useDeviceTz) return fmtTime(d);
+        try {
+          var parts = new Intl.DateTimeFormat("en-US", {
+            timeZone: effectiveTz(),
+            hour: "numeric",
+            minute: "2-digit",
+            hourCycle: state.timeFormat === "24h" ? "h23" : "h12"
+          }).formatToParts(d);
+          var hour = "", minute = "", period = "";
+          parts.forEach(function (part) {
+            if (part.type === "hour") hour = part.value;
+            else if (part.type === "minute") minute = part.value;
+            else if (part.type === "dayPeriod") period = part.value.toLowerCase();
+          });
+          if (state.timeFormat === "24h") return pad2(Number(hour) % 24) + ":" + minute;
+          return Number(hour) + ":" + minute + period;
+        } catch (e) {
+          return fmtTime(d);
+        }
+      }
       function fmtMinutes(mins) { return fmtTime(new Date(2026, 0, 1, Math.floor(mins / 60), mins % 60)); }
       /* Time zones: state.tzLabel holds an IANA zone id (e.g.
          "America/New_York"). The Settings picker lists the COMPLETE
@@ -1899,7 +1925,7 @@
         var mm = parts[1] || "00";
         return "GMT " + sign + hh + (mm !== "00" ? ":" + mm : "");
       }
-      function fmtTimeRange(a, b) { return fmtTime(a) + " - " + fmtTime(b); }
+      function fmtTimeRange(a, b) { return fmtEventTime(a) + " - " + fmtEventTime(b); }
       function fmtHourLabel(h) {
         if (state.timeFormat === "24h") return pad2(h) + ":00";
         if (h === 0) return "12 AM"; if (h === 12) return "12 PM";
@@ -1948,8 +1974,8 @@
           if (sameDay(sod(occ.start), sod(occ.end))) return startDay;
           return startDay + " – " + endDay;
         }
-        if (sameDay(occ.start, occ.end)) return startDay + " · " + fmtTime(occ.start) + " – " + fmtTime(occ.end);
-        return startDay + " · " + fmtTime(occ.start) + " – " + endDay + " · " + fmtTime(occ.end);
+        if (sameDay(occ.start, occ.end)) return startDay + " · " + fmtEventTime(occ.start) + " – " + fmtEventTime(occ.end);
+        return startDay + " · " + fmtEventTime(occ.start) + " – " + endDay + " · " + fmtEventTime(occ.end);
       }
       function fmtDuration(occ) {
         var ev = occ.ev;
@@ -2936,7 +2962,7 @@
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
                 var isStart = sameDay(o.start, date) || colIdx === 0;
                 var chip = el('<button class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
-                  (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
+                  (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtEventTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
                   "</button>");
                 chip.setAttribute("data-calendar-id",o.ev.cal);
                 chip.setAttribute("aria-label", o.ev.title);
@@ -3135,7 +3161,7 @@
         if (todayInRange) {
           var line = el('<div class="now-line" style="top:' + nowMin / 60 * hourPx() + 'px;left:64px"></div>');
           body.appendChild(line);
-          var nowTxt = fmtTime(now);
+          var nowTxt = fmtEventTime(now);
           var gutPill = el('<span class="now-pill" style="top:' + nowMin / 60 * hourPx() + 'px;left:2px;right:auto">' + nowTxt + "</span>");
           body.appendChild(gutPill);
         }
@@ -3500,10 +3526,10 @@
           timeSub = dur + (rel ? " · " + rel : "");
         } else if (sameDay(occ.start, occ.end)) {
           timeMain = fmtPopDate(occ);
-          timeSub = fmtTime(occ.start) + " – " + fmtTime(occ.end) + (dur ? " · " + dur : "") + " · " + tzShort(effectiveTz()) + (rel ? " · " + rel : "");
+          timeSub = fmtEventTime(occ.start) + " – " + fmtEventTime(occ.end) + (dur ? " · " + dur : "") + " · " + tzShort(effectiveTz()) + (rel ? " · " + rel : "");
         } else {
           timeMain = fmtPopDate(occ);
-          timeSub = fmtTime(occ.start) + " – " + fmtTime(occ.end) + (dur ? " · " + dur : "") + " · " + tzShort(effectiveTz()) + (rel ? " · " + rel : "");
+          timeSub = fmtEventTime(occ.start) + " – " + fmtEventTime(occ.end) + (dur ? " · " + dur : "") + " · " + tzShort(effectiveTz()) + (rel ? " · " + rel : "");
         }
         /* Cron's detail order: date/time → repeat → location →
            description → calendar (visibility) → reminder. One icon
@@ -3790,7 +3816,7 @@
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
         var bd = el('<div class="backdrop"></div>');
-        var dlg = el('<div class="dialog" role="dialog" aria-modal="true"></div>');
+        var dlg = el('<div class="dialog event-form-dialog" role="dialog" aria-modal="true"></div>');
         dlg.innerHTML =
           '<div class="dialog-head"><span class="dialog-title">' + (isEdit ? "Edit event" : "New event") + '</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body">' +
@@ -4025,6 +4051,7 @@
           results.appendChild(el('<div class="pal-group">' + esc(cal.name) + "</div>"));
           groups[calId].forEach(function (o) {
             var sub = o.ev.allDay ? fmtDateShort(o.start) + " \u00b7 All day" : fmtDateShort(o.start) + " \u00b7 " + fmtTimeRange(o.start, o.end);
+            if (o.ev.loc) sub += " \u00b7 " + o.ev.loc;
             var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(o.ev.title) + '</span><br><span class="pi-sub">' + esc(sub) + "</span></span>" + icon("chevR", 15) + "</button>");
             item.addEventListener("click", function () {
               closeSearch();
@@ -4260,6 +4287,7 @@
         tzBtn.disabled=state.useDeviceTz;
         tzBtn.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false)});
         gtz.querySelector("#gsUseDevTz").addEventListener("change",function(e){
+          if (!e.target.checked && state.useDeviceTz) state.tzLabel=deviceTz();
           state.useDeviceTz=e.target.checked;
           renderView(false);
           if(settingsState.redrawPane)settingsState.redrawPane();
