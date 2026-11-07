@@ -39,13 +39,13 @@ function reply(req: Request, value: unknown, status = 200) {
 const string = (v: unknown, max = 200) =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
 function isAddressStyleQuery(input: string) {
-  return /\\d/.test(input) || /\\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|highway|hwy|route|way)\\b/i.test(input);
+  return /\d/.test(input) || /\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|highway|hwy|route|way)\b/i.test(input);
 }
 function rankPhotonFeatures(features: any[], input: string) {
   if (!isAddressStyleQuery(input)) return features;
   const normalized = input.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const number = input.match(/\\b\\d{1,6}[a-z]?\\b/i)?.[0]?.toLowerCase() || "";
-  const tokens = normalized.split(/\\s+/).filter(token => token.length > 1 && token !== number);
+  const number = input.match(/\b\d{1,6}[a-z]?\b/i)?.[0]?.toLowerCase() || "";
+  const tokens = normalized.split(/\s+/).filter(token => token.length > 1 && token !== number);
   return features.map((feature, index) => {
     const prop = feature?.properties || {};
     const house = string(prop.housenumber, 40).toLowerCase();
