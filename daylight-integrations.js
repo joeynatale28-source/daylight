@@ -154,67 +154,6 @@
   document.addEventListener('daylight:workspace-signed-out',()=>{
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
-  async function shareDialog(cal) {
-    if(!own()||cal.builtin||cal.subscribed)return;
-    const body=html('<div class="set-group"><div id="shareInfo">'+note('Loading share settings…')+'</div>'+
-      '<div id="shareLinks"></div><div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:15px">'+
-      btn('Enable sharing','shareEnable','btn-primary')+btn('Reset link','shareReset')+
-      btn('Disable sharing','shareDisable','btn-danger-outline')+btn('Export calendar (.ics)','shareExport')+
-      '</div>'+note("Anyone with this link can see this calendar's events. It's read-only — they can't change anything.")+'</div>');
-    const dialog=modal('Share · '+cal.name,body);
-    const info=body.querySelector('#shareInfo'),links=body.querySelector('#shareLinks');
-    let enabled=false;
-    async function loadStatus() {
-      try{
-        const data=await call('ical-feed',{action:'status',calendar_id:cal.id});
-        enabled=!!data.enabled;
-        info.innerHTML=note(enabled?'Sharing enabled · '+(data.prefix||'')+'•••••••• · The full link is not recoverable. Reset it to get a new one.':'Sharing is off. Only you can access this calendar.');
-        body.querySelector('#shareEnable').hidden=enabled;
-        body.querySelector('#shareReset').hidden=!enabled;
-        body.querySelector('#shareDisable').hidden=!enabled;
-      }catch(e){showError(info,e);}
-    }
-    function showLinks(result) {
-      const urls=result.urls;
-      if(!urls)return;
-      links.innerHTML='<div class="field"><label>HTTPS subscription URL</label><input class="text-input" readonly id="shareHttps"></div>'+
-        '<div class="field"><label>Apple Calendar webcal URL</label><input class="text-input" readonly id="shareWebcal"></div>'+
-        '<div style="display:flex;gap:8px">'+btn('Copy HTTPS link','copyHttps')+btn('Copy webcal link','copyWebcal')+'</div>';
-      links.querySelector('#shareHttps').value=urls.https;
-      links.querySelector('#shareWebcal').value=urls.webcal;
-      links.querySelector('#copyHttps').onclick=()=>copy(urls.https);
-      links.querySelector('#copyWebcal').onclick=()=>copy(urls.webcal);
-      info.innerHTML=note('Save the full link now. It will not be shown again.');
-    }
-    body.querySelector('#shareEnable').onclick=async()=>{
-      try{const result=await call('ical-feed',{action:'enable',calendar_id:cal.id});await loadStatus();showLinks(result);}
-      catch(e){showError(info,e);}
-    };
-    body.querySelector('#shareReset').onclick=()=>openConfirm({
-      title:'Reset calendar link?',body:'The current URL will stop working immediately. Anyone subscribed with the old URL will lose access.',
-      confirmLabel:'Reset link',danger:true,fn:async()=>{
-        try{const result=await call('ical-feed',{action:'reset',calendar_id:cal.id});await loadStatus();showLinks(result);}
-        catch(e){showError(info,e);}
-      }
-    });
-    body.querySelector('#shareDisable').onclick=()=>openConfirm({
-      title:'Disable sharing?',body:'Apps using the current link will stop syncing. The shared URL will return Not Found.',
-      confirmLabel:'Disable sharing',danger:true,fn:async()=>{
-        try{await call('ical-feed',{action:'disable',calendar_id:cal.id});links.innerHTML='';await loadStatus();toast('Calendar sharing disabled');}
-        catch(e){showError(info,e);}
-      }
-    });
-    body.querySelector('#shareExport').onclick=async()=>{
-      try{
-        const result=await call('ical-feed',{action:'export',calendar_id:cal.id});
-        download((cal.name||'calendar').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',result);
-        toast('Calendar exported');
-      }catch(e){showError(info,e);}
-    };
-    await loadStatus();
-    return dialog;
-  }
-  window.daylightShareCalendar=shareDialog;
   window.daylightExportCalendar=async function(cal){
     if(!own()||!cal||cal.builtin||cal.subscribed)return;
     try{
