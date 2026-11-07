@@ -57,27 +57,20 @@
   function makeStyle() {
     var css = document.createElement("style");
     css.textContent = [
-      /* Part 5: the save bar is a fixed FOOTER of the dialog — full
-         width, on the dialog's own background, in normal flow, never
-         a floating pill overlapping pane content. The dialog becomes
-         a grid: rail + pane on row 1, footer across row 2 (the row
-         collapses while the bar is hidden). */
-      ".settings-dialog{display:grid;grid-template-columns:auto minmax(0,1fr);grid-template-rows:minmax(0,1fr) auto}",
-      ".settings-dialog .settings-rail{grid-row:1;grid-column:1}",
-      ".settings-dialog .settings-pane{grid-row:1;grid-column:2}",
-      ".settings-pane{padding-bottom:28px}",
-      ".settings-savebar{grid-row:2;grid-column:1 / -1;display:flex;align-items:center;gap:14px;padding:12px 18px;border-top:1px solid var(--line);background:var(--surface);color:var(--text);font-size:12.5px;font-weight:500}",
+      ".settings-dialog{position:relative}",
+      ".settings-pane{padding-bottom:104px}",
+      ".settings-savebar{position:absolute;left:50%;bottom:18px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar[hidden]{display:none!important}",
-      ".settings-savebar:not([hidden]){animation:settingsBarIn 190ms cubic-bezier(0.23,1,0.32,1)}",
-      "@keyframes settingsBarIn{from{opacity:0}to{opacity:1}}",
-      "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}",
+      ".settings-savebar:not([hidden]){animation:settingsPillIn 190ms cubic-bezier(0.23,1,0.32,1)}",
+      "@keyframes settingsPillIn{from{opacity:0;transform:translate(-50%,5px)}to{opacity:1;transform:translate(-50%,0)}}",
       ".settings-savebar .savebar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}",
       ".settings-savebar button{border:0;border-radius:999px;font:inherit;padding:8px 13px;white-space:nowrap;cursor:pointer}",
       ".settings-savebar button[data-discard]{color:var(--muted);background:var(--gray-2)}",
       ".settings-savebar button[data-save]{color:var(--on-accent);background:var(--accent)}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
-      "@media(max-width:640px){.settings-savebar{padding:10px 12px;gap:8px}.settings-savebar .savebar-message{font-size:11.5px;line-height:1.2}.settings-savebar button{padding:8px 10px}}"
-    ].join("\n");
+      "@media(max-width:640px){.settings-savebar{left:12px;right:12px;bottom:12px;transform:none;max-width:none;width:auto;border-radius:18px;padding:10px 11px;gap:8px;justify-content:space-between}.settings-savebar .savebar-message{font-size:11.5px;line-height:1.2}.settings-savebar button{padding:8px 10px}}",
+      "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
+    ].join("\\n");
     document.head.appendChild(css);
   }
   makeStyle();
