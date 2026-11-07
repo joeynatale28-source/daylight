@@ -4,7 +4,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
-    <link rel="icon" href="data:," />
+    <link rel="icon" href="assets/favicon.ico" sizes="any"><link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png"><link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png"><link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png"><link rel="manifest" href="site.webmanifest"><meta name="theme-color" content="#121212"><meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
     <title>daylight — Calendar</title>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -2461,7 +2461,7 @@
         sidebarEl.innerHTML = "";
         var brand = el(
           '<div class="brand-row">' +
-            '<div class="logo-tile">' + icon("sunrise", 21) + "</div>" +
+            '<div class="logo-tile"><picture><source media="(prefers-color-scheme: dark)" srcset="assets/sun-arc-dark.png"><img src="assets/sun-arc-light.png" alt="" width="26" height="26"></picture></div>" +
             '<div class="rail-hide"><div class="brand-name">daylight.</div><div class="brand-sub">Personal calendar</div></div>' +
             '<button class="icon-btn" id="collapseBtn" title="' + (state.sidebarRail ? "Expand sidebar" : "Collapse sidebar") + '">' + icon(state.sidebarRail ? "expand" : "collapse", 16) + "</button>" +
           "</div>"
