@@ -2048,8 +2048,8 @@
       /* Event blocks take the palette's tint step for their calendar;
          the 4px left ribbon (ribbonOf) and the selected state use the
          full-saturation colour. */
-      function tintOf(cal) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.light : p.dark; }
-      function tintTextOf(cal) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.lightText : p.darkText; }
+      function tintOf(cal,ev) { if(ev&&ev.accent==="graphite")return effectiveTheme()==="light"?"var(--surface)":"var(--surface2)";var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.light : p.dark; }
+      function tintTextOf(cal,ev) { if(ev&&ev.accent==="graphite")return "var(--text)";var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.lightText : p.darkText; }
       function daylightPalette(key) {
         if (PALETTE[key]) return PALETTE[key];
         if (typeof key==="string" && /^#[0-9a-f]{6}$/i.test(key)) {
@@ -2059,7 +2059,7 @@
         return PALETTE.blue;
       }
       function dotOf(cal) { return daylightPalette(cal.color).dot; }
-      function ribbonOf(cal) { return "inset 4px 0 0 " + dotOf(cal); }
+      function ribbonOf(cal,ev) { return "inset 4px 0 0 " + (ev&&ev.accent==="graphite"?"var(--line)":dotOf(cal)); }
 
       /* Occurrences of an event overlapping [rs, re) — expands repeats. */
       function occurrenceStamp(value) {
@@ -3008,7 +3008,7 @@
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
                 var isStart = sameDay(o.start, date) || colIdx === 0;
-                var chip = el('<button draggable="true" data-event-id="' + esc(o.ev.id) + '" data-occ-start="' + esc(o.start.toISOString()) + '" class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
+                var chip = el('<button draggable="true" data-event-id="' + esc(o.ev.id) + '" data-occ-start="' + esc(o.start.toISOString()) + '" class="chip' + seg + '" style="background:' + tintOf(cal,o.ev) + ";color:" + tintTextOf(cal,o.ev) + ";box-shadow:" + ribbonOf(cal,o.ev) + '">' +
                   (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtEventTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
                   "</button>");
                 chip.setAttribute("data-calendar-id",o.ev.cal);
@@ -3034,7 +3034,7 @@
             var layer=el('<div class="dl-month-span-layer"></div>');
             spans.forEach(function(sp,lane){
               var o=sp.o,cal=calOf(o.ev.cal);
-              var bar=el('<button draggable="true" data-event-id="'+esc(o.ev.id)+'" data-occ-start="'+esc(o.start.toISOString())+'" class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+              var bar=el('<button draggable="true" data-event-id="'+esc(o.ev.id)+'" data-occ-start="'+esc(o.start.toISOString())+'" class="dl-continuous-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
               var key=String(o.ev.id)+':'+(+o.start);
               bar.dataset.spanKey=key;
               bar.setAttribute("aria-label",o.ev.title);
@@ -3123,7 +3123,7 @@
           if(weekSpans.length)cell.style.paddingTop=(weekSpans.length*27+3)+"px";
           occs.filter(function(o){return o.ev.allDay&&(numDays===1||!isMultiDay(o))&&sod(o.start)<=date&&sod(o.end)>=date})
             .forEach(function(o){
-              var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+              var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
               bar.setAttribute("data-calendar-id",o.ev.cal);
               bar.addEventListener("click",function(e){e.stopPropagation();openPopover(o,bar)});
               cell.appendChild(bar);
@@ -3136,7 +3136,7 @@
           weekSpans.forEach(function(o,i){
             var positions=days.map(function(d,k){return sod(o.start)<=d&&sod(o.end)>=d?k:-1}).filter(function(k){return k>=0});
             if(!positions.length)return;
-            var cal=calOf(o.ev.cal),bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+            var cal=calOf(o.ev.cal),bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
             var key=String(o.ev.id)+':'+(+o.start);
             bar.dataset.spanKey=key;bar.setAttribute("aria-label",o.ev.title);
             bar.style.left='calc((100% - 64px) * '+positions[0]+'/'+numDays+' + 64px)';
@@ -3187,7 +3187,7 @@
             var o = it.o, cal = calOf(o.ev.cal);
             var top = it.s / 60 * hourPx(), height = Math.max(26, (it.e - it.s) / 60 * hourPx() - 3);
             var leftPct = it.col / it.cols * 100, widthPct = 100 / it.cols;
-            var card = el('<button class="ev-card" style="top:' + top + "px;height:" + height + "px;left:calc(" + leftPct + "% + 3px);width:calc(" + widthPct + "% - 6px);background:" + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
+            var card = el('<button class="ev-card" style="top:' + top + "px;height:" + height + "px;left:calc(" + leftPct + "% + 3px);width:calc(" + widthPct + "% - 6px);background:" + tintOf(cal,o.ev) + ";color:" + tintTextOf(cal,o.ev) + ";box-shadow:" + ribbonOf(cal,o.ev) + '">' +
               '<span class="ev-title">' + esc(o.ev.title) + "</span>" +
               (height >= 44 ? '<span class="ev-time" style="display:block">' + fmtTimeRange(o.start, o.end) + "</span>" : "") +
               (o.loc && height >= 66 ? '<span class="ev-loc" style="display:block">' + esc(o.loc) + "</span>" : "") +
@@ -3818,6 +3818,8 @@
           sMin: base && !base.allDay ? base.start.getHours() * 60 + base.start.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60),
           eMin: base && !base.allDay ? base.end.getHours() * 60 + base.end.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60) + state.defaultDuration,
           repeat: src ? src.repeat : null,
+          repeatEnd: src && src.repeatEnd ? new Date(src.repeatEnd) : null,
+          accent: src ? (src.accent || "calendar") : "graphite",
           reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
           loc: src ? src.loc : "",
           placeId:src ? (src.placeId||null) : null,
@@ -3841,10 +3843,12 @@
               '<div class="field" id="efETimeWrap"><label>End time</label><button type="button" class="dd" id="efETime" aria-haspopup="listbox" aria-expanded="false"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div>' +
             "</div>" +
             '<div class="field"><label>Repeats</label><button class="picker-btn" id="efRepeat">' + icon("repeat", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
+            '<div class="field" id="efRepeatEndWrap"><label>Repeat until</label><button class="picker-btn" id="efRepeatEnd">' + icon("calendar",15) + '<span></span></button></div>" +
             '<div class="field"><label>Reminder</label><button class="picker-btn" id="efReminder">' + icon("bell", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
             '<div class="field"><label for="efLoc">Location</label><input class="text-input" id="efLoc" placeholder="Add a location" value="' + esc(f.loc) + '"></div>' +
             '<div class="field"><label for="efDesc">Description</label><textarea class="text-area" id="efDesc" rows="2" placeholder="Add a description">' + esc(f.desc) + '</textarea></div>' +
             '<div class="field"><label>Calendar</label><button class="picker-btn" id="efCal"><span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
+            '<div class="field"><label>Event accent</label><button class="picker-btn" id="efAccent"><span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD",15) + "</span></button></div>" +
           "</div>" +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" style="margin-left:0" data-save>' + (isEdit ? "Save changes" : "Create event") + "</button></div>";
         bd.appendChild(dlg);
@@ -3858,8 +3862,8 @@
         var wizardProgress=el('<div class="dl-wizard-progress" aria-label="Event creation progress"><span></span><span></span><span></span><span></span></div>');
         dlg.insertBefore(wizardProgress,formBody);
         var wizardSteps=[1,2,3,4].map(function(n){return el('<section class="dl-wizard-step" data-step="'+n+'"></section>')});
-        wizardSteps[0].append(titleField,descField);wizardSteps[1].append(allDayField,dateTimeGrid,repeatField);
-        wizardSteps[2].append(locationField);wizardSteps[3].append(calendarField,reminderField);
+        wizardSteps[0].append(titleField,descField);wizardSteps[1].append(allDayField,dateTimeGrid,repeatField,formBody.querySelector("#efRepeatEndWrap"));
+        wizardSteps[2].append(locationField);wizardSteps[3].append(calendarField,reminderField,formBody.querySelector("#efAccent").closest(".field"));
         var holidayBanner=el('<div class="dl-holiday-step-banner" hidden><span class="dl-holiday-step-icon">'+icon("calendar",17)+'</span><span class="dl-holiday-step-copy"></span><button type="button" aria-label="Dismiss holiday notice">×</button></div>');
         wizardSteps[1].prepend(holidayBanner);wizardSteps.forEach(function(step){formBody.appendChild(step)});
         var wizardStep=1,wizardFoot=dlg.querySelector(".dialog-foot");
@@ -3883,6 +3887,7 @@
         var sDateBtn = dlg.querySelector("#efSDate"), eDateBtn = dlg.querySelector("#efEDate");
         var sTime = dlg.querySelector("#efSTime"), eTime = dlg.querySelector("#efETime");
         var repBtn = dlg.querySelector("#efRepeat"), calBtn = dlg.querySelector("#efCal");
+        var repEndBtn=dlg.querySelector("#efRepeatEnd"),accentBtn=dlg.querySelector("#efAccent");
         var remBtn = dlg.querySelector("#efReminder");
         var locIn = dlg.querySelector("#efLoc");
         var descIn = dlg.querySelector("#efDesc");
@@ -3896,6 +3901,9 @@
           dlg.querySelector("#efSTimeWrap").style.display = f.allDay ? "none" : "";
           dlg.querySelector("#efETimeWrap").style.display = f.allDay ? "none" : "";
           repBtn.querySelector("span").textContent = f.repeat ? f.repeat[0].toUpperCase() + f.repeat.slice(1) : "None";
+          dlg.querySelector("#efRepeatEndWrap").style.display=f.repeat?"":"none";
+          repEndBtn.querySelector("span").textContent=f.repeatEnd?fmtDateShort(f.repeatEnd):"Never";
+          accentBtn.querySelector("span").textContent=f.accent==="graphite"?"Graphite":"Calendar color";
           remBtn.querySelector("span").textContent = f.reminder != null ? fmtReminder(f.reminder) : "None";
           var cal = calOf(f.cal);
           calBtn.querySelector("span").innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span>' + esc(cal.name) + "</span>";
@@ -3931,10 +3939,12 @@
         repBtn.addEventListener("click", function () {
           var items = [{ label2: "Repeat" }];
           [["none", "None"], ["daily", "Daily"], ["weekly", "Weekly"], ["monthly", "Monthly"], ["yearly", "Yearly"]].forEach(function (pair) {
-            items.push({ label: pair[1], right: (f.repeat || "none") === pair[0] ? "check" : null, fn: function () { f.repeat = pair[0] === "none" ? null : pair[0]; markDirty(); syncUI(); } });
+            items.push({ label: pair[1], right: (f.repeat || "none") === pair[0] ? "check" : null, fn: function () { f.repeat = pair[0] === "none" ? null : pair[0]; if(!f.repeat)f.repeatEnd=null; markDirty(); syncUI(); } });
           });
           openMenu(repBtn, items);
         });
+        repEndBtn.addEventListener("click",function(){if(!f.repeat)return;openDatePicker(repEndBtn,f.repeatEnd||f.eDate,function(d){f.repeatEnd=d;markDirty();syncUI()})});
+        accentBtn.addEventListener("click",function(){openMenu(accentBtn,[{label2:"Event accent"},{label:"Graphite",right:f.accent==="graphite"?"check":null,fn:function(){f.accent="graphite";markDirty();syncUI()}},{label:"Calendar color",right:f.accent==="calendar"?"check":null,fn:function(){f.accent="calendar";markDirty();syncUI()}}])});
         remBtn.addEventListener("click", function () {
           var items = [{ label2: "Reminder" }];
           [[null, "None"], [0, "At the start time"], [5, "5 minutes before"], [10, "10 minutes before"], [15, "15 minutes before"], [30, "30 minutes before"], [60, "1 hour before"]].forEach(function (pair) {
@@ -3982,6 +3992,7 @@
             src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
+            src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
               if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
@@ -3992,6 +4003,7 @@
             var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
+            created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;
             state.events.push(created);
             bd.remove(); renderAll(false); toast("Event created");
           }
