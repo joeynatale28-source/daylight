@@ -12,6 +12,7 @@ const out=path.join(process.cwd(),'ui-screenshots');
 fs.mkdirSync(out,{recursive:true});
 const browser=await puppeteer.launch({executablePath:chrome,headless:true,args:['--no-sandbox','--disable-setuid-sandbox','--disable-dev-shm-usage']});
 const errors=[];
+const failedRequests=[];
 try{
  const page=await browser.newPage();
  await page.setViewport({width:1366,height:768,deviceScaleFactor:1});
