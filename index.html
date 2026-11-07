@@ -743,6 +743,11 @@
       .popover.has-banner { padding: 0 0 16px; overflow: hidden; }
       .pop-banner { position: relative; width: 100%; height: 128px; background: var(--surface2); overflow: hidden; }
       .pop-banner img { width: 100%; height: 100%; object-fit: cover; object-position: center; display: block; }
+      /* Holiday illustrations include a pale bottom edge in the source artwork.
+         Enlarge within the clipped header so that edge stays out of view. */
+      .pop-banner.holiday-banner img {
+        transform: none; object-position: center;
+      }
       .pop-banner-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
       .pop-banner-btn {
         width: 34px; height: 34px; border-radius: 50%; flex: none;
@@ -3519,6 +3524,8 @@
         var rel = fmtRelativeDay(occ.start);
         var dur = fmtDuration(occ);
         var bannerKey = bannerKeyFor(ev, cal);
+        var bannerSrc = bannerKey && BANNER_DATA[bannerKey];
+        if (!bannerSrc) bannerKey = null;
         /* Google Calendar–style detail: date first, then time + duration, then the rest with icon gutter */
         var timeMain, timeSub;
         if (ev.allDay) {
@@ -3562,7 +3569,7 @@
           bBtns += '<button class="pop-banner-btn" data-act="close" title="Close" aria-label="Close">' + icon("x", 16) + "</button>";
           var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ)) + "</div>";
           p = el('<div class="popover has-banner" role="dialog" aria-label="Event details">' +
-            '<div class="pop-banner"><img src="' + bannerKey + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
+            '<div class="pop-banner"><img src="' + esc(bannerSrc) + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
             '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + calLine + "</div></div>" +
             '<div class="pop-rows">' + rows + "</div></div></div>");
           var bImg = p.querySelector(".pop-banner img");
@@ -3612,65 +3619,10 @@
         var moreBtn = p.querySelector('[data-act="more"]');
         if (moreBtn) moreBtn.addEventListener("click", function () { openPopMenu(moreBtn, ev); });
       }
-      /* ================= Event banners =================
-         Popover illustrations are loaded from assets/banners as WebP files. */
-      var BANNER_SPORTS = "american-football archery badminton baseball basketball bowling boxing cheerleading cricket cross-country cycling dance equestrian esports fencing fishing golf gymnastics hockey kayaking lacrosse mma martial-arts pickleball rock-climbing rowing rugby running sailing skateboarding skiing snowboarding soccer softball surfing swim table-tennis tennis triathlon volleyball weightlifting wrestling".split(" ");
-      var BANNER_HOLIDAYS = "christmas-eve new-years-eve christmas new-year st-patricks-day easter fathers-day mothers-day groundhog-day hanukkah halloween thanksgiving veterans-day valentines-day memorial-day independence-day labor-day columbus-day mlk-day juneteenth presidents-day election-day".split(" ");
-      var BANNER_SCHOOL_LIFE = "art baby beach birthday camping coding concert cooking dentist doctor flight-travel graduation gym-workout haircut job-interview meeting movie moving music-practice party picnic road-trip snow-day study-exam vet wedding yoga".split(" ");
-      var BANNER_SUBJECT_ALIASES = {
-        "american-football": ["american football", "football"],
-        "cross-country": ["cross country"],
-        "election-day": ["election day"],
-        "esports": ["esports", "e sports"],
-        "fathers-day": ["fathers day", "father's day"],
-        "flight-travel": ["flight", "airline", "airport"],
-        "groundhog-day": ["groundhog day"],
-        "independence-day": ["independence day", "july 4", "4th of july"],
-        "labor-day": ["labor day", "labour day"],
-        "martial-arts": ["martial arts"],
-        "memorial-day": ["memorial day"],
-        "mlk-day": ["mlk day", "martin luther king day", "martin luther king jr day"],
-        "mma": ["mma", "mixed martial arts"],
-        "mothers-day": ["mothers day", "mother's day"],
-        "new-years-eve": ["new years eve", "new year's eve"],
-        "new-year": ["new year"],
-        "presidents-day": ["presidents day", "president's day"],
-        "road-trip": ["road trip", "roadtrip", "pickup jeep"],
-        "rock-climbing": ["rock climbing"],
-        "st-patricks-day": ["st patricks day", "st patrick's day", "saint patricks day"],
-        "swim": ["swim", "swimming"],
-        "table-tennis": ["table tennis", "ping pong"],
-        "valentines-day": ["valentines day", "valentine's day"],
-        "veterans-day": ["veterans day", "veteran's day"]
-      };
-      function bannerText(ev) {
-        return " " + [ev.title, ev.category].filter(Boolean).join(" ").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim() + " ";
-      }
-      function bannerHas(text, subject) {
-        var terms = BANNER_SUBJECT_ALIASES[subject] || [subject.replace(/-/g, " ")];
-        return terms.some(function (term) {
-          var normalized = term.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-          return normalized && text.indexOf(" " + normalized + " ") >= 0;
-        });
-      }
-      function bannerPath(group, subject) {
-        return "assets/banners/" + group + "/" + subject + ".webp";
-      }
-      function bannerKeyFor(ev) {
-        var text = bannerText(ev);
-        if (bannerHas(text, "team-usa")) return bannerPath("sports", "swim");
-        if (bannerHas(text, "mixed martial arts")) return bannerPath("sports", "mma");
-        for (var i = 0; i < BANNER_SPORTS.length; i++) {
-          if (bannerHas(text, BANNER_SPORTS[i])) return bannerPath("sports", BANNER_SPORTS[i]);
-        }
-        for (var h = 0; h < BANNER_HOLIDAYS.length; h++) {
-          if (bannerHas(text, BANNER_HOLIDAYS[h])) return bannerPath("holidays", BANNER_HOLIDAYS[h]);
-        }
-        for (var s = 0; s < BANNER_SCHOOL_LIFE.length; s++) {
-          if (bannerHas(text, BANNER_SCHOOL_LIFE[s])) return bannerPath("school-life", BANNER_SCHOOL_LIFE[s]);
-        }
-        return null;
-      }
+      /* Event banners are registered from individual WebP files by daylight-banners.js. */
+      var BANNER_DATA = Object.create(null);
+      var BANNER_KEYS = [];
+      function bannerKeyFor(ev, cal) { return null; }
 
       /* ================= Generic dialogs ================= */
       var overlayRoot = document.getElementById("overlayRoot");
@@ -5295,5 +5247,6 @@
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
     <script src="./daylight-oauth.js"></script>
+    <script src="./daylight-banners.js"></script>
   </body>
 </html>

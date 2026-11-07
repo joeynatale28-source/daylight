@@ -12,6 +12,8 @@ on:
       - daylight-places.css
       - daylight-enhancements.js
       - daylight-oauth.js
+      - daylight-banners.js
+      - assets/**
       - 404.html
       - assets/banners/**
       - .github/workflows/deploy-pages.yml
@@ -35,36 +37,33 @@ jobs:
     steps:
       - name: Check out Daylight
         uses: actions/checkout@v4
-
       - name: Prepare public site
         run: |
           set -euo pipefail
-          mkdir -p _site
-          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js 404.html _site/
           mkdir -p _site/assets
+          cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
           cp -R assets/. _site/assets/
           test -s _site/index.html
           test -s _site/daylight-cloud.js
           test -s _site/daylight-settings.js
           test -s _site/daylight-integrations.js
           test -s _site/daylight-places.js
-          test -s _site/daylight-oauth.js
-          test -s _site/404.html
-          test -s _site/daylight-enhancements.js
           test -s _site/daylight-places.css
           test "$(find _site/assets/banners/sports -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 42
           test "$(find _site/assets/banners/holidays -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 22
           test "$(find _site/assets/banners/school-life -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 27
           test "$(find _site/assets/banners -type f -name '*.webp' | wc -l)" -eq 91
-
+          test -s _site/daylight-enhancements.js
+          test -s _site/daylight-oauth.js
+          test -s _site/daylight-banners.js
+          test -s _site/404.html
+          test -d _site/assets/banners
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
-
       - name: Upload site artifact
         uses: actions/upload-pages-artifact@v4
         with:
           path: _site
-
       - name: Publish to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4

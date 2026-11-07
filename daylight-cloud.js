@@ -115,6 +115,15 @@
     var d = new Date(value);
     return !isNaN(d.getTime()) ? d : null;
   }
+  /* Convert legacy RFC all-day UTC-midnight values to local calendar days. */
+  function workspaceEventDate(value, allDay, isEnd) {
+    var d = dateValue(value);
+    if (!d || !allDay) return d;
+    if (d.getUTCHours() || d.getUTCMinutes() || d.getUTCSeconds() || d.getUTCMilliseconds()) return d;
+    var local = new Date(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate());
+    if (isEnd) local.setMinutes(local.getMinutes() - 1);
+    return local;
+  }
 
   function normalizeCalendarList(raw, holidayIds) {
     /* New/legacy accounts without a saved calendar list need all defaults,
@@ -153,19 +162,20 @@
     state.calendars = normalizeCalendarList(payload.calendars, holidayIds);
     if (Array.isArray(payload.events)) {
       state.events = payload.events.map(function (e) {
-        var start = dateValue(e.start != null ? e.start : e.startMs);
-        var end = dateValue(e.end != null ? e.end : e.endMs);
+        var allDay = !!e.allDay;
+        var start = workspaceEventDate(e.start != null ? e.start : e.startMs, allDay, false);
+        var end = workspaceEventDate(e.end != null ? e.end : e.endMs, allDay, true);
         if (!start || !end) return null;
         var id = Number(e.id);
         if (!Number.isSafeInteger(id) || id <= 0) id = ++uid;
         uid = Math.max(uid, id);
         return {
           id: id, title: String(e.title || 'Untitled'), cal: String(e.cal || 'personal'),
-          start: start, end: end, allDay: !!e.allDay, loc: String(e.loc || ''),
+          start: start, end: end, allDay: allDay, loc: String(e.loc || ''),
           desc: String(e.desc || ''), repeat: e.repeat || null,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
-          exdates: e.exdates, feedKey: e.feedKey,
+          exdates: e.exdates, repeatEnd: e.repeatEnd || null, feedKey: e.feedKey,
           timezone: e.timezone, dtstamp:e.dtstamp, sequence:e.sequence,
           recurrenceId:e.recurrenceId, status:e.status,
           placeId:e.placeId||null,locationLat:e.locationLat??null,locationLng:e.locationLng??null
@@ -178,8 +188,11 @@
     }
     if (Array.isArray(payload.tasks)) {
       state.tasks = payload.tasks.map(function (t) {
-        var due = dateValue(t.due != null ? t.due : t.dueMs);
-        if (!due) return null;
+        /* A task may legitimately have no due date (null) — only a
+           present-but-unparseable date drops the task. */
+        var rawDue = t.due != null ? t.due : t.dueMs;
+        var due = rawDue == null ? null : dateValue(rawDue);
+        if (rawDue != null && !due) return null;
         var id = Number(t.id);
         if (!Number.isSafeInteger(id) || id <= 0) id = ++uid;
         uid = Math.max(uid, id);
@@ -210,14 +223,12 @@
     if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
     if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
     document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
-    if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) state.view = settings.defaultView;
-    var ui = payload.ui || {};
-    if (typeof ui.view === 'string' && ['day','week','month','agenda'].indexOf(ui.view) !== -1) state.view = ui.view;
-    [['cursor','cursorMs'], ['selected','selectedMs'], ['miniCursor','miniCursorMs'], ['miniSelected','miniSelectedMs']].forEach(function (pair) {
-      var d = dateValue(ui[pair[1]]);
-      if (d) state[pair[0]] = d;
-    });
-    if (ui.section === 'tasks' || ui.section === 'calendar') state.section = ui.section;
+    if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) { state.view = settings.defaultView; state.defaultView = settings.defaultView; }
+    /* Navigation state is NOT restored (Part 1 + 11.11): a fresh
+       load always lands on today in the default view, with today as
+       the selection. A persisted selected date survived reloads and
+       masqueraded as a second "today", and new events defaulted to
+       that stale date. payload.ui is ignored entirely now. */
   }
 
   function workspace() {
@@ -232,13 +243,13 @@
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, reminder:e.reminder == null ? null : e.reminder,
-          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
+          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, repeatEnd:e.repeatEnd || null, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,
           placeId:e.placeId||null,locationLat:e.locationLat??null,locationLng:e.locationLng??null };
       }),
       tasks: state.tasks.map(function (t) {
-        return { id:t.id, title:t.title, cal:t.cal, due:t.due.toISOString(),
+        return { id:t.id, title:t.title, cal:t.cal, due:t.due ? t.due.toISOString() : null,
           hasTime:!!t.hasTime, done:!!t.done };
       }),
       feeds: state.feeds.map(function (f) { return {url:f.url,name:f.name}; }),
@@ -248,9 +259,9 @@
         reduceMotion:state.reduceMotion, remind15:state.remind15,
         dailySummary:state.dailySummary
       }),
-      ui: { view:state.view, section:state.section,
-        cursorMs:state.cursor.getTime(), selectedMs:state.selected.getTime(),
-        miniCursorMs:state.miniCursor.getTime(), miniSelectedMs:state.miniSelected.getTime() }
+      /* No navigation state is persisted (see the restore note):
+         cursor/selected/view/section always start fresh on load. */
+      ui: {}
     };
   }
 
@@ -330,7 +341,13 @@
     document.dispatchEvent(new Event('daylight:workspace-loading'));
     status('Loading calendar…');
     const warmShown=warmWorkspace(account,seq);
-    if(!warmShown)document.getElementById('app').hidden = true;
+    if(!warmShown){
+      const authRoot=document.getElementById('authRoot');
+      if(authRoot)authRoot.innerHTML='';
+      const appRoot=document.getElementById('app');
+      if(appRoot)appRoot.hidden=false;
+      originalRenderAll(false);
+    }
     try {
       var response = await client.from('workspace_snapshots')
         .select('payload,revision').eq('user_id', account.id).maybeSingle();
