@@ -203,6 +203,51 @@ try{
    await page.screenshot({path:path.join(out,'oauth-consent-'+theme+'.png')});
    await page.evaluate(()=>document.getElementById('daylightOAuthConsent')?.remove());
  }
+ // Loading skeleton, collapsed-rail tooltip, manual timezone persistence, and permission state.
+ await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-loading')));
+ await page.waitForSelector('#dlWorkspaceSkeleton',{timeout:1500});
+ await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-ready')));
+ assert.equal(await page.$('#dlWorkspaceSkeleton'),null,'workspace skeleton must disappear on ready');
+ await page.evaluate(()=>{state.sidebarRail=true;renderAll(false)});
+ const railItem=await page.$('#sidebar.rail .side-row');
+ assert.ok(railItem,'collapsed sidebar must retain rail navigation controls');
+ await railItem.hover();
+ await page.waitForSelector('.dl-rail-tooltip',{timeout:1500});
+ const railTip=await page.$eval('.dl-rail-tooltip',n=>n.textContent.trim());
+ assert.ok(railTip.length>0,'collapsed rail control must expose a tooltip');
+ await page.evaluate(()=>{state.sidebarRail=false;renderAll(false)});
+ const zone=await page.evaluate(()=>{
+   openSettings('general');
+   const device=document.querySelector('#gsUseDevTz');
+   device.checked=false;device.dispatchEvent(new Event('change',{bubbles:true}));
+   const picker=document.querySelector('#gsTz');
+   picker.value='Asia/Tokyo';picker.dispatchEvent(new Event('change',{bubbles:true}));
+   return {zone:effectiveTz(),offset:tzOffsetStr(effectiveTz()),disabled:document.querySelector('#gsTz')?.disabled};
+ });
+ assert.equal(zone.zone,'Asia/Tokyo','manual time zone must become effective immediately');
+ assert.ok(zone.offset.includes('+09:00'),'manual time zone must update its GMT offset');
+ assert.equal(zone.disabled,false,'manual time zone picker must be enabled');
+ await page.evaluate(()=>{
+   const device=document.querySelector('#gsUseDevTz');
+   device.checked=true;device.dispatchEvent(new Event('change',{bubbles:true}));
+   document.querySelector('.settings-close')?.click();
+ });
+ const permission=await page.evaluate(()=>{
+   window.__nativeNotification=window.Notification;
+   Object.defineProperty(window,'Notification',{configurable:true,writable:true,value:{
+     permission:'default',
+     requestPermission:async function(){this.permission='granted';return 'granted'}
+   }});
+   openSettings('notifications');
+   document.querySelector('#ntBtn')?.click();
+   return Promise.resolve().then(()=>({status:document.querySelector('#ntStatus')?.textContent,button:document.querySelector('#ntBtn')?.textContent,disabled:document.querySelector('#ntBtn')?.disabled}));
+ });
+ assert.equal(permission.button,'Enabled','notification permission button must reflect granted browser permission');
+ assert.equal(permission.disabled,true,'notification enable control must be disabled after permission is granted');
+ await page.evaluate(()=>{
+   document.querySelector('.settings-close')?.click();
+   Object.defineProperty(window,'Notification',{configurable:true,writable:true,value:window.__nativeNotification});
+ });
  // Date-cell creation and multi-day span checks.
  await page.evaluate(()=>{state.section='calendar';state.view='month';state.cursor=new Date(2026,11,9);renderAll(false)});
  await page.evaluate(()=>{
