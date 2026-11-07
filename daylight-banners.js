@@ -46,7 +46,6 @@ var FILES=[
   "school-life/party",
   "school-life/picnic",
   "school-life/road-trip",
-  "school-life/school",
   "school-life/snow-day",
   "school-life/study-exam",
   "school-life/vet",
@@ -205,7 +204,6 @@ if(swim&&/\bteam usa\b/.test(title))return key("sports/swim");
 var hit=findRule(category);if(hit)return hit;
 hit=findRule(title);if(hit)return hit;
 hit=findRule(title+" "+category);if(hit)return hit;
-if(/\bschool\b|\bschool block\b/.test(combined))return key("school-life/school");
 return null;
 };
 window.daylightBannerFiles=FILES.slice();
