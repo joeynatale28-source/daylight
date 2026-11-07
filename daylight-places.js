@@ -12,7 +12,7 @@ function makePin(){
 }
 window.daylightAttachPlaces=function(input,draft,dirty){
  if(!input||input.dataset.tomtomAttached)return;
- input.dataset.hereAttached='yes';input.autocomplete='off';
+ input.dataset.tomtomAttached='yes';input.autocomplete='off';
  input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','false');
  const parent=input.closest('.field')||input.parentElement;
  parent.classList.add('dl-place-field');
