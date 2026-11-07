@@ -200,7 +200,7 @@ try{
      await page.evaluate(()=>closePopover());
      await page.waitForFunction(()=>document.querySelectorAll('.popover').length===0,{timeout:3000});
    }
-   await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png'));
+   await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png')});
    const measure=await page.evaluate(()=>{
      const grid=document.querySelector('.month-grid'),rows=[...grid.querySelectorAll('.month-week')];
      const cell=grid.querySelector('[data-date="2026-12-22"]');
@@ -217,7 +217,7 @@ try{
      'timed-only cell must have a collapsed all-day lane and 4px spacing: '+JSON.stringify(measure));
    assert.ok(measure.sixthRowBottom<=measure.gridBottom+1||measure.scrollHeight>measure.height,
      'sixth row must fit or be reachable by scroll: '+JSON.stringify(measure));
-   await page.screenshot({path:path.join(out,'month-layout-'+theme+'.png'));
+   await page.screenshot({path:path.join(out,'month-layout-'+theme+'.png')});
    const names=[...document.querySelectorAll('.cal-name')].map(n=>({text:n.textContent,visible:n.offsetWidth>0}));
    assert.ok(names.some(n=>n.text==='Hungary Creek Recreation Association'&&n.visible),'long calendar must remain visible with ellipsis');
    await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
