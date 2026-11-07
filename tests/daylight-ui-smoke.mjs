@@ -277,7 +277,8 @@ try{
  assert.ok(spanCountWeek>=1,'week multi-day span missing: '+JSON.stringify(diag));
  await page.screenshot({path:path.join(out,'multiday-week.png')});
  // Settings cleanup and an immediate Save/Discard indicator.
- await page.evaluate(()=>{state.view='month';renderAll(false);openSettings('calendar')});
+ await page.evaluate(()=>{state.view='month';renderAll(false);openSettings('general');[...document.querySelectorAll('.settings-rail .sr-item')].find(b=>b.textContent.trim()==='Calendar')?.click()});
+ await page.waitForSelector('#csWeekStart',{timeout:2000});
  assert.ok(await page.$('#csWeekStart'),'Week start should live in Calendar settings');
  assert.equal(await page.$('#csTz'),null,'Timezone must not be duplicated in Calendar settings');
  const oldWeekends=await page.evaluate(()=>state.showWeekends);
