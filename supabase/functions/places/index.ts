@@ -1,5 +1,4 @@
-// Daylight places: JWT-scoped Photon (OpenStreetMap) autocomplete.
-// No API keys and no dynamic outbound URLs. Photon is a public demo; keep requests modest.
+// Daylight places: authenticated HERE Geocoding and Search Autosuggest proxy.
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const admin = createClient(
@@ -13,7 +12,7 @@ const origins = new Set([
 ]);
 const throttle = new Map<string, { time: number; count: number }>();
 const cache = new Map<string, { time: number; result: unknown }>();
-const MAX_RESULTS = 5;
+const MAX_RESULTS = 6;
 
 function headers(req: Request) {
   const origin = req.headers.get("origin") || "";
@@ -29,74 +28,41 @@ function headers(req: Request) {
 function reply(req: Request, value: unknown, status = 200) {
   return new Response(JSON.stringify(value), {
     status,
-    headers: {
-      ...headers(req),
-      "Content-Type": "application/json; charset=utf-8",
-      "Cache-Control": "no-store",
-    },
+    headers: { ...headers(req), "Content-Type": "application/json; charset=utf-8", "Cache-Control": "no-store" },
   });
 }
-const string = (v: unknown, max = 200) =>
-  typeof v === "string" ? v.trim().slice(0, max) : "";
-function isAddressStyleQuery(input: string) {
-  return /\d/.test(input) || /\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|highway|hwy|route|way)\b/i.test(input);
+const string = (value: unknown, max = 200) =>
+  typeof value === "string" ? value.trim().slice(0, max) : "";
+function validPosition(value: unknown) {
+  if (!value || typeof value !== "object") return null;
+  const p = value as Record<string, unknown>;
+  const lat = Number(p.lat), lng = Number(p.lng);
+  return Number.isFinite(lat) && Math.abs(lat) <= 90 &&
+    Number.isFinite(lng) && Math.abs(lng) <= 180 ? { lat, lng } : null;
 }
-function rankPhotonFeatures(features: any[], input: string) {
-  if (!isAddressStyleQuery(input)) return features;
-  const normalized = input.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
-  const number = input.match(/\b\d{1,6}[a-z]?\b/i)?.[0]?.toLowerCase() || "";
-  const tokens = normalized.split(/\s+/).filter(token => token.length > 1 && token !== number);
-  return features.map((feature, index) => {
-    const prop = feature?.properties || {};
-    const house = string(prop.housenumber, 40).toLowerCase();
-    const street = string(prop.street, 150).toLowerCase();
-    const name = string(prop.name, 200).toLowerCase();
-    const exactNumber = !!number && house === number;
-    const streetMatch = tokens.some(token => street.includes(token));
-    const nameMatch = tokens.some(token => name.includes(token));
-    const score = (exactNumber ? 1000 : 0) + (house ? 200 : 0) +
-      (streetMatch ? 100 : 0) + (nameMatch ? 25 : 0);
-    return { feature, index, score };
-  }).sort((a, b) => b.score - a.score || a.index - b.index).map(item => item.feature);
-}
-function placeFromPhoton(feature: any) {
-  const prop = feature?.properties || {};
-  const coords = feature?.geometry?.coordinates;
-  const lng = Number(coords?.[0]), lat = Number(coords?.[1]);
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) ||
-      Math.abs(lat) > 90 || Math.abs(lng) > 180) return null;
-  const osmType = string(prop.osm_type, 20).toLowerCase();
-  const osmId = String(prop.osm_id || "");
-  if (!/^(node|way|relation|n|w|r)$/.test(osmType) ||
-      !/^\d{1,20}$/.test(osmId)) return null;
-  const street = [string(prop.housenumber, 40), string(prop.street, 150)]
-    .filter(Boolean).join(" ");
-  const name = string(prop.name, 200);
-  const town = string(prop.city || prop.town || prop.village || prop.locality ||
-    prop.district || prop.county, 150);
-  const state = string(prop.state, 150);
-  const postal = string(prop.postcode, 32);
-  const country = string(prop.country, 120);
-  const region = [town, [state, postal].filter(Boolean).join(" ")]
-    .filter(Boolean).join(", ");
-  const address = [street || name || town, region, country]
-    .filter(Boolean).filter((segment: string, index: number, all: string[]) =>
-      index === 0 || segment !== all[0]).join(", ");
-  if (!address) return null;
-  const type = ({ n: "node", w: "way", r: "relation" } as Record<string,string>)[osmType] || osmType;
+function formatHereItem(item: any) {
+  const address = item?.address;
+  if (!address || typeof address.label !== "string" || !address.label.trim()) return null;
+  const position = validPosition(item.position);
+  const houseNumber = string(address.houseNumber, 40);
+  const street = string(address.street, 180);
+  const title = string(item.title, 220);
+  const primary = title || [houseNumber, street].filter(Boolean).join(" ") || address.label.trim();
+  const secondary = [
+    string(address.city, 120),
+    string(address.state, 100),
+    string(address.postalCode, 24),
+  ].filter(Boolean).join(", ");
   return {
-    primary: name || street || town || address,
-    secondary: [street && street !== name ? street : "", region, country]
-      .filter(Boolean).join(" · "),
-    address,
-    osmRef: "osm:" + type + ":" + osmId,
-    lat,
-    lng,
+    primary,
+    secondary,
+    address: address.label.trim(),
+    lat: position?.lat ?? null,
+    lng: position?.lng ?? null,
   };
 }
 Deno.serve(async (req: Request) => {
-  if (req.method === "OPTIONS")
-    return new Response(null, { status: 204, headers: headers(req) });
+  if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: headers(req) });
   if (req.method !== "POST") return reply(req, { error: "POST required" }, 405);
   const bearer = (req.headers.get("authorization") || "").match(/^Bearer\s+(.+)$/i)?.[1];
   if (!bearer) return reply(req, { error: "Authentication required" }, 401);
@@ -106,45 +72,38 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return reply(req, { error: "Invalid JSON" }, 400); }
   if (body.action !== "autocomplete") return reply(req, { error: "Unsupported action" }, 400);
   const input = string(body.input, 150).replace(/\s+/g, " ");
-  if (input.length < 2) return reply(req, { suggestions: [] });
+  if (input.length < 2) return reply(req, { suggestions: [], attribution: "© HERE" });
+  const apiKey = Deno.env.get("HERE_API_KEY");
+  if (!apiKey) return reply(req, { error: "not_configured" });
   const now = Date.now(), bucket = throttle.get(auth.user.id);
-  if (!bucket || now - bucket.time >= 60000)
-    throttle.set(auth.user.id, { time: now, count: 1 });
+  if (!bucket || now - bucket.time >= 60000) throttle.set(auth.user.id, { time: now, count: 1 });
   else if (++bucket.count > 24) return reply(req, { error: "Too many searches" }, 429);
-  const language = string(body.language, 12).split("-")[0].toLowerCase();
-  const lang = /^[a-z]{2,3}$/.test(language) ? language : "en";
-  const cacheKey = auth.user.id + ":" + lang + ":" + input.toLowerCase();
+  const bias = validPosition(body.bias);
+  const cacheKey = auth.user.id + ":" + input.toLowerCase() + ":" + (bias ? bias.lat + "," + bias.lng : "");
   const cached = cache.get(cacheKey);
-  if (cached && now - cached.time < 30000) return reply(req, cached.result);
-  const uri = new URL("https://photon.komoot.io/api/");
+  if (cached && now - cached.time < 20000) return reply(req, cached.result);
+  const uri = new URL("https://autosuggest.search.hereapi.com/v1/autosuggest");
   uri.searchParams.set("q", input);
-  uri.searchParams.set("limit", String(isAddressStyleQuery(input) ? MAX_RESULTS * 4 : MAX_RESULTS));
-  uri.searchParams.set("lang", lang);
-  const bias = body.bias;
-  if (bias && typeof bias === "object") {
-    const { lat, lng } = bias as Record<string, unknown>;
-    if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lng)) &&
-        Math.abs(Number(lat)) <= 90 && Math.abs(Number(lng)) <= 180) {
-      uri.searchParams.set("lat", String(Number(lat)));
-      uri.searchParams.set("lon", String(Number(lng)));
-    }
-  }
+  uri.searchParams.set("apiKey", apiKey);
+  uri.searchParams.set("in", "countryCode:USA");
+  uri.searchParams.set("limit", String(MAX_RESULTS));
+  uri.searchParams.set("lang", "en");
+  if (bias) uri.searchParams.set("at", bias.lat + "," + bias.lng);
   try {
-    const res = await fetch(uri.toString(), {
-      headers: { "Accept": "application/json", "User-Agent": "DaylightCalendar/1.0 (limited autocomplete; contact via site)" },
-      signal: AbortSignal.timeout(4500),
+    const response = await fetch(uri.toString(), {
+      headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(5000),
     });
-    if (!res.ok) throw Error("Photon returned HTTP " + res.status);
-    const payload = await res.json();
-    const suggestions = rankPhotonFeatures(Array.isArray(payload.features) ? payload.features : [], input)
-      .map(placeFromPhoton).filter(Boolean).slice(0, MAX_RESULTS);
-    const result = { suggestions, attribution: "© OpenStreetMap contributors" };
+    if (!response.ok) throw Error("HERE returned HTTP " + response.status);
+    const payload = await response.json();
+    const suggestions = (Array.isArray(payload.items) ? payload.items : [])
+      .map(formatHereItem).filter(Boolean).slice(0, MAX_RESULTS);
+    const result = { suggestions, attribution: "© HERE" };
     if (cache.size > 400) cache.clear();
     cache.set(cacheKey, { time: now, result });
     return reply(req, result);
   } catch (failure) {
-    // No user-entered location text in logs.
-    console.error("Daylight places upstream failure:", failure instanceof Error ? failure.name : "unknown");
-    return reply(req, { error: "Address suggestions temporarily unavailable" }, 503);
+    console.error("Daylight HERE autosuggest failure:", failure instanceof Error ? failure.name : "unknown");
+    return reply(req, { error: "Address suggestions temporarily unavailable" }, 200);
   }
 });
