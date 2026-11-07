@@ -230,16 +230,18 @@ try{
    device.checked=true;device.dispatchEvent(new Event('change',{bubbles:true}));
    document.querySelector('.settings-close')?.click();
  });
- const permission=await page.evaluate(()=>{
+ await page.evaluate(()=>{
    window.__nativeNotification=window.Notification;
    Object.defineProperty(window,'Notification',{configurable:true,writable:true,value:{
      permission:'default',
      requestPermission:async function(){this.permission='granted';return 'granted'}
    }});
    openSettings('notifications');
-   document.querySelector('#ntBtn')?.click();
-   return Promise.resolve().then(()=>({status:document.querySelector('#ntStatus')?.textContent,button:document.querySelector('#ntBtn')?.textContent,disabled:document.querySelector('#ntBtn')?.disabled}));
  });
+ await page.waitForSelector('#ntBtn',{timeout:2000});
+ await page.click('#ntBtn');
+ await page.waitForFunction(()=>document.querySelector('#ntBtn')?.textContent.trim()==='Enabled',{timeout:2000});
+ const permission=await page.evaluate(()=>({status:document.querySelector('#ntStatus')?.textContent,button:document.querySelector('#ntBtn')?.textContent,disabled:document.querySelector('#ntBtn')?.disabled}));
  assert.equal(permission.button,'Enabled','notification permission button must reflect granted browser permission');
  assert.equal(permission.disabled,true,'notification enable control must be disabled after permission is granted');
  await page.evaluate(()=>{
