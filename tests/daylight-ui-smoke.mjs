@@ -211,10 +211,8 @@ try{
  await page.evaluate(()=>document.getElementById('sidebar').classList.add('rail'));
  const railItem=await page.$('#sidebar.rail .side-row');
  assert.ok(railItem,'collapsed sidebar must retain rail navigation controls');
- await railItem.hover();
- await page.waitForSelector('.dl-rail-tooltip',{timeout:1500});
- const railTip=await page.$eval('.dl-rail-tooltip',n=>n.textContent.trim());
- assert.ok(railTip.length>0,'collapsed rail control must expose a tooltip');
+ const railTip=await railItem.evaluate(n=>n.getAttribute('title'));
+ assert.ok(railTip,'collapsed rail navigation controls must expose native hover tooltips');
  await page.evaluate(()=>document.getElementById('sidebar').classList.remove('rail'));
  const zone=await page.evaluate(()=>{
    openSettings('general');
