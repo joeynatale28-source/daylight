@@ -3857,13 +3857,14 @@
         var titleField=formBody.querySelector("#efTitle").closest(".field"),descField=formBody.querySelector("#efDesc").closest(".field");
         var allDayField=formBody.querySelector("#efAllDay").closest(".field"),dateTimeGrid=formBody.querySelector(".form-grid");
         var repeatField=formBody.querySelector("#efRepeat").closest(".field"),reminderField=formBody.querySelector("#efReminder").closest(".field");
+        var repeatEndField=formBody.querySelector("#efRepeatEndWrap"),accentField=formBody.querySelector("#efAccent").closest(".field");
         var locationField=formBody.querySelector("#efLoc").closest(".field"),calendarField=formBody.querySelector("#efCal").closest(".field");
         formBody.innerHTML="";
         var wizardProgress=el('<div class="dl-wizard-progress" aria-label="Event creation progress"><span></span><span></span><span></span><span></span></div>');
         dlg.insertBefore(wizardProgress,formBody);
         var wizardSteps=[1,2,3,4].map(function(n){return el('<section class="dl-wizard-step" data-step="'+n+'"></section>')});
-        wizardSteps[0].append(titleField,descField);wizardSteps[1].append(allDayField,dateTimeGrid,repeatField,formBody.querySelector("#efRepeatEndWrap"));
-        wizardSteps[2].append(locationField);wizardSteps[3].append(calendarField,reminderField,formBody.querySelector("#efAccent").closest(".field"));
+        wizardSteps[0].append(titleField,descField);wizardSteps[1].append(allDayField,dateTimeGrid,repeatField,repeatEndField);
+        wizardSteps[2].append(locationField);wizardSteps[3].append(calendarField,reminderField,accentField);
         var holidayBanner=el('<div class="dl-holiday-step-banner" hidden><span class="dl-holiday-step-icon">'+icon("calendar",17)+'</span><span class="dl-holiday-step-copy"></span><button type="button" aria-label="Dismiss holiday notice">×</button></div>');
         wizardSteps[1].prepend(holidayBanner);wizardSteps.forEach(function(step){formBody.appendChild(step)});
         var wizardStep=1,wizardFoot=dlg.querySelector(".dialog-foot");
