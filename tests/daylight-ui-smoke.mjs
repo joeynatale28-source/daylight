@@ -64,6 +64,7 @@ try{
    else request.continue();
  });
  page.on('pageerror',err=>errors.push(err.message));
+ page.on('requestfailed',request=>failedRequests.push({url:request.url(),failure:request.failure()?.errorText||'unknown'}));
  await page.goto('file://'+path.join(process.cwd(),'index.html')+'?oauth_consent=1&authorization_id=synthetic',{waitUntil:'load',timeout:30000});
  await page.waitForSelector('#authScreen',{timeout:5000});
  for(const theme of ['dark','light']){
@@ -80,7 +81,7 @@ try{
    assert.ok(mark.present,'sign-in brand mark missing');
    assert.equal(mark.light,'./assets/sun-arc-light.png');
    assert.equal(mark.dark,'./assets/sun-arc-dark.png');
-   assert.deepEqual(mark.loaded,[true,true],'both sign-in logo files must load');
+   assert.deepEqual(mark.loaded,[true,true],'both sign-in logo files must load: '+JSON.stringify({mark,failedRequests}));
    assert.equal(mark.displays[theme==='dark'?0:1],'none','inactive theme mark must be hidden');
    assert.ok(mark.visibleWidths[theme==='dark'?1:0]>0,'active theme mark must render');
  
