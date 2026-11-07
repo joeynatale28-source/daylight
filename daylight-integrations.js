@@ -322,7 +322,8 @@
       const calendars=Array.isArray(payload.calendars)?payload.calendars:[];
       function resolveAuditTarget(targetId){
         if(targetId==null||targetId==='')return '';
-        const id=String(targetId);
+        const raw=String(targetId).trim();
+        const id=raw.replace(/^(?:event|calendar|task):/i,'');
         const event=events.find(e=>String(e.id)===id||String(e.uid||'')===id);
         if(event){
           const cal=calendars.find(c=>String(c.id)===String(event.cal));
