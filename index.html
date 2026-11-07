@@ -2736,8 +2736,8 @@
           setPreview("#"+[r,g,bl].map(v=>v.toString(16).padStart(2,"0")).join("").toUpperCase());
         }
         appearance.querySelector("#calSpectrum").addEventListener("input",e=>setPreview(e.target.value.toUpperCase()));
-        appearance.querySelector("#calHex").addEventListener("change",e=>{var v=e.target.value.trim();if(/^#[0-9a-f]{6}$/i.test(v))setPreview(v.toUpperCase());else e.target.setCustomValidity("Enter #RRGGBB");});
-        ["#calRed","#calGreen","#calBlue"].forEach(id=>appearance.querySelector(id).addEventListener("change",fromRgb));
+        appearance.querySelector("#calHex").addEventListener("input",e=>{var v=e.target.value.trim();if(/^#[0-9a-f]{6}$/i.test(v)){e.target.setCustomValidity("");setPreview(v.toUpperCase());}else e.target.setCustomValidity("Enter #RRGGBB");});
+        ["#calRed","#calGreen","#calBlue"].forEach(id=>appearance.querySelector(id).addEventListener("input",fromRgb));
         var exportGroup=el('<section class="cal-settings-section"><h3>Export</h3><div class="cal-settings-action"><span><strong>Export calendar</strong><small>Download all events as an iCalendar file.</small></span><button type="button" class="btn-ghost" id="calSettingsExport">Export .ics</button></div></section>');
         body.appendChild(exportGroup);
         exportGroup.querySelector("#calSettingsExport").onclick=function(){window.daylightExportCalendar(cal)};
