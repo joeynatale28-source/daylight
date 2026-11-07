@@ -45,8 +45,8 @@ style.textContent += `
 .sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
 .dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
 @keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
-#dlWorkspaceSkeleton{display:grid;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none;opacity:0;visibility:hidden;transition:opacity 150ms cubic-bezier(.23,1,.32,1),visibility 0s linear 150ms}
-.workspace-loading-visible #dlWorkspaceSkeleton{opacity:1;visibility:visible;transition:opacity 150ms cubic-bezier(.23,1,.32,1),visibility 0s}
+#dlWorkspaceSkeleton{display:grid;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none;opacity:0;visibility:hidden;transition:opacity 180ms cubic-bezier(.23,1,.32,1),visibility 0s linear 180ms}
+.workspace-loading-visible #dlWorkspaceSkeleton{opacity:1;visibility:visible;transition:opacity 180ms cubic-bezier(.23,1,.32,1),visibility 0s}
 .dl-sk-side{background:var(--bg-sidebar);border-right:1px solid var(--sidebar-line);padding:18px 12px;display:flex;flex-direction:column;gap:22px;align-items:center}
 .dl-sk-side i,.dl-sk-grid i{background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:200% 100%;animation:dlShimmer 1.5s ease-in-out infinite}
 .dl-sk-side i{width:30px;height:30px;border-radius:9px}
@@ -60,7 +60,7 @@ style.textContent += `
 `;
 
 document.head.append(style);
-let workspaceLoadingTimer=null;
+let workspaceLoadingTimer=null,workspaceRemoveTimer=null;
 function ensureWorkspaceSkeleton(){
  if(document.getElementById("dlWorkspaceSkeleton"))return;
  const shell=document.createElement("div");shell.id="dlWorkspaceSkeleton";shell.setAttribute("aria-label","Loading calendar workspace");
@@ -68,15 +68,19 @@ function ensureWorkspaceSkeleton(){
  document.body.appendChild(shell);
 }
 function showWorkspaceLoading(){
- clearTimeout(workspaceLoadingTimer);
+ clearTimeout(workspaceLoadingTimer);clearTimeout(workspaceRemoveTimer);
  ensureWorkspaceSkeleton();
- workspaceLoadingTimer=setTimeout(()=>document.body.classList.add("workspace-loading-visible"),120);
+ workspaceLoadingTimer=setTimeout(()=>document.body.classList.add("workspace-loading-visible"),200);
 }
 function hideWorkspaceLoading(){
  clearTimeout(workspaceLoadingTimer);workspaceLoadingTimer=null;
+ const wasVisible=document.body.classList.contains("workspace-loading-visible");
  document.body.classList.remove("workspace-loading-visible");
  const shell=document.getElementById("dlWorkspaceSkeleton");
- if(shell)shell.remove();
+ if(shell){
+  if(wasVisible)workspaceRemoveTimer=setTimeout(()=>{shell.remove();workspaceRemoveTimer=null;},190);
+  else shell.remove();
+ }
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
 document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);

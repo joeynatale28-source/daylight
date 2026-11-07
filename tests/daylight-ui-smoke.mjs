@@ -219,11 +219,29 @@ try{
    await page.screenshot({path:path.join(out,'oauth-consent-'+theme+'.png')});
    await page.evaluate(()=>document.getElementById('daylightOAuthConsent')?.remove());
  }
- // Loading skeleton, collapsed-rail tooltip, manual timezone persistence, and permission state.
+ // The skeleton is the only loader. Fast loads do not flash it; slow loads
+ // show it after the threshold and fade it away when the workspace is ready.
+ await page.evaluate(()=>{
+   document.dispatchEvent(new Event('daylight:workspace-loading'));
+   document.dispatchEvent(new Event('daylight:workspace-ready'));
+ });
+ await new Promise(resolve=>setTimeout(resolve,240));
+ assert.equal(await page.$('#dlWorkspaceSkeleton'),null,'fast workspace load must not flash the skeleton');
  await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-loading')));
- await page.waitForSelector('#dlWorkspaceSkeleton',{timeout:1500});
+ await new Promise(resolve=>setTimeout(resolve,230));
+ const skeletonState=await page.evaluate(()=>({
+   exists:!!document.querySelector('#dlWorkspaceSkeleton'),
+   visible:document.body.classList.contains('workspace-loading-visible'),
+   boot:!!document.querySelector('#bootScreen'),
+   text:document.body.innerText.includes('Opening Daylight')||document.body.innerText.includes('Opening your calendar')
+ }));
+ assert.ok(skeletonState.exists&&skeletonState.visible,'slow load must show workspace skeleton');
+ assert.equal(skeletonState.boot,false,'obsolete boot screen must not exist');
+ assert.equal(skeletonState.text,false,'obsolete boot text must not render');
+ await page.screenshot({path:path.join(out,'workspace-skeleton-only.png')});
  await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-ready')));
- assert.equal(await page.$('#dlWorkspaceSkeleton'),null,'workspace skeleton must disappear on ready');
+ await new Promise(resolve=>setTimeout(resolve,220));
+ assert.equal(await page.$('#dlWorkspaceSkeleton'),null,'workspace skeleton must disappear after its fade');
  await page.evaluate(()=>document.getElementById('sidebar').classList.add('rail'));
  const railItem=await page.$('#sidebar.rail .side-row');
  assert.ok(railItem,'collapsed sidebar must retain rail navigation controls');
