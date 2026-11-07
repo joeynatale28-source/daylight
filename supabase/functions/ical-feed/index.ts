@@ -13,6 +13,8 @@ const notFound = () => new Response("Not Found",{status:404,headers:{"Cache-Cont
 const hash = async (s:string) => Array.from(new Uint8Array(await crypto.subtle.digest("SHA-256",new TextEncoder().encode(s)))).map(x=>x.toString(16).padStart(2,"0")).join("");
 const generate = () => btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(40)))).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
 const feedBase = url+"/functions/v1/ical-feed/";
+const publicUrl = (id:string) => feedBase+encodeURIComponent(id)+"?public=1"; // legacy by-id links
+const escapeHtml = (value:string) => value.replace(/[&<>"']/g,char=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[char]!));
 function tokenLinks(id:string,token:string) {
  const https=feedBase+encodeURIComponent(id)+"?token="+encodeURIComponent(token);
  return {https,webcal:https.replace(/^https:/,"webcal:")};
@@ -106,12 +108,28 @@ Deno.serve(async(req:Request)=>{
   const owned=(payload.calendars||[]).some((c:Record<string,unknown>)=>String(c.id)===cal.client_id&&!c.subscribed&&!c.builtin);
   if(!owned)return notFound();
   const etag='"daylight-'+id+'-'+workspace.revision+'"',modified=new Date(workspace.updated_at).toUTCString();
-  const headers={"ETag":etag,"Last-Modified":modified,"Cache-Control":"private, max-age=300"};
+  // no-cache: clients revalidate every time, so a link that is turned off
+  // or reset stops serving immediately (ETag keeps revalidation cheap).
+  const headers={"ETag":etag,"Last-Modified":modified,"Cache-Control":"no-cache"};
   if(req.headers.get("if-none-match")===etag)return new Response(null,{status:304,headers});
   const events=(payload.events||[]).filter((e:Record<string,unknown>)=>String(e.cal)===cal.client_id);
   try {
+   // A person opening the public link in a browser gets a landing page
+   // (Add to Daylight / subscribe elsewhere); calendar apps get the feed.
+   const accept=(req.headers.get("accept")||"").toLowerCase();
+   const acceptsHtml=accept.includes("text/html")&&!accept.includes("text/calendar");
+   if(acceptsHtml){
+    const feedUrl=publicRequest?publicUrl(id):tokenLinks(id,token).https;
+    const daylightUrl="https://joeynatale28-source.github.io/daylight/#add_calendar="+encodeURIComponent(feedUrl)+
+      "&calendar_name="+encodeURIComponent(String(cal.name||"Calendar"));
+    const webcalUrl=feedUrl.replace(/^https:/,"webcal:");
+    const title=escapeHtml(String(cal.name||"Calendar"));
+    return new Response(`<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex"><title>${title} · daylight</title><style>:root{color-scheme:light dark}body{margin:0;min-height:100vh;display:grid;place-items:center;background:#f6f5f1;color:#191817;font:16px system-ui,-apple-system,Segoe UI,sans-serif}.card{width:min(440px,calc(100% - 40px));padding:32px;border:1px solid #e1dfd8;border-radius:20px;background:#fffefa;box-shadow:0 12px 40px #2a261d14}h1{font-size:22px;margin:0 0 8px;letter-spacing:-.02em}p{color:#6c6a64;line-height:1.55;margin:0 0 18px}.link{display:block;margin-top:12px;padding:13px 16px;border-radius:999px;background:#191817;color:#fff;text-align:center;text-decoration:none;font-weight:600}.secondary{display:block;margin-top:12px;padding:12px 16px;border-radius:999px;border:1px solid #d6d4cd;color:#191817;text-align:center;text-decoration:none;font-weight:600}.feed{margin-top:18px;font-size:12px;color:#6c6a64;word-break:break-all}@media(prefers-color-scheme:dark){body{background:#121212;color:#ededed}.card{background:#1b1b1b;border-color:#2c2c2c}p,.feed{color:#a3a3a3}.link{background:#ededed;color:#121212}.secondary{border-color:#3a3a3a;color:#ededed}}</style><main class="card"><h1>${title}</h1><p>A public, read-only calendar shared from daylight.</p><a class="link" href="${escapeHtml(daylightUrl)}">Add this calendar to daylight</a><a class="secondary" href="${escapeHtml(webcalUrl)}">Subscribe in another calendar app</a><div class="feed">Calendar feed URL: ${escapeHtml(feedUrl)}</div></main></html>`,{
+     headers:{"Content-Type":"text/html; charset=utf-8","Cache-Control":"no-store","Vary":"Accept"},
+    });
+   }
    return new Response(buildCalendar(cal.name,events,workspace.updated_at,String(payload.settings?.tzLabel||"America/New_York")),{
-    headers:{...headers,"Content-Type":"text/calendar; charset=utf-8"},
+    headers:{...headers,"Content-Type":"text/calendar; charset=utf-8","Vary":"Accept"},
    });
   }catch(e){console.error("Feed formatting failed",e);return new Response("Unavailable",{status:503});}
  }
@@ -148,14 +166,27 @@ Deno.serve(async(req:Request)=>{
   row=created;
  }
  const id=row.data!.id;
- if(action==="status")return send({calendar_id:id,enabled:row.data!.share_feed_enabled,public_enabled:row.data!.share_public_enabled,public_url:feedBase+encodeURIComponent(id)+"?public=1",prefix:row.data!.share_token_prefix});
- if(action==="set-public"){
-  if(typeof body.public!=="boolean")return send({error:"Choose Public or Private"},400);
-  const update=await admin.from("calendars").update({share_public_enabled:body.public}).eq("id",id).eq("user_id",session.user.id);
-  return update.error?send({error:"Unable to update calendar privacy"},503):send({public_enabled:body.public,public_url:feedBase+encodeURIComponent(id)+"?public=1"});
+ if(action==="status")return send({calendar_id:id,enabled:row.data!.share_feed_enabled,prefix:row.data!.share_token_prefix});
+ /* Public link (Item 14): one unguessable, read-only feed URL per calendar,
+    built on the existing token columns. Turning it on or resetting it mints a
+    new token (the old one stops matching at once); turning it off clears the
+    token. The legacy by-id ?public=1 path is always switched off here. */
+ if(action==="public-status")return send({public_enabled:!!row.data!.share_feed_enabled,prefix:row.data!.share_token_prefix||null});
+ if(action==="public-off"){
+  const update=await admin.from("calendars").update({share_feed_enabled:false,share_public_enabled:false,share_token_hash:null,share_token_prefix:null})
+   .eq("id",id).eq("user_id",session.user.id);
+  return update.error?send({error:"Unable to turn off the public link"},503):send({public_enabled:false});
+ }
+ if(action==="public-on"||action==="public-reset"){
+  if(action==="public-reset"&&!row.data!.share_feed_enabled)return send({error:"Turn on the public link before resetting it"},409);
+  const token=generate(),h=await hash(token);
+  const update=await admin.from("calendars").update({share_feed_enabled:true,share_public_enabled:false,share_token_hash:h,share_token_prefix:token.slice(0,8)})
+   .eq("id",id).eq("user_id",session.user.id);
+  if(update.error)return send({error:"Could not create the public link"},503);
+  return send({public_enabled:true,prefix:token.slice(0,8),url:tokenLinks(id,token).https});
  }
  if(action==="disable"){
-  const update=await admin.from("calendars").update({share_feed_enabled:false,share_public_enabled:false,share_token_hash:null,share_token_prefix:null})
+  const update=await admin.from("calendars").update({share_feed_enabled:false,share_token_hash:null,share_token_prefix:null})
    .eq("id",id).eq("user_id",session.user.id);
   return update.error?send({error:"Unable to disable feed"},503):send({enabled:false});
  }
