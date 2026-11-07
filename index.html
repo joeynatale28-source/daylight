@@ -3539,7 +3539,7 @@
           closePopover();
           if(scope==="only"){ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occ.start.toISOString())}
           else if(scope==="following")ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();
-          else{var uid=ev.uid;state.events=state.events.filter(function(e){return e!==ev&&(!uid||e.uid!==uid)})}
+          else{var uid=ev.uid;state.events=state.events.filter(function(e){return e!==ev&&(uid?e.uid!==uid:e.id!==ev.id)})}
           renderAll(false);toast("Event deleted");
         }
         if(recurring){chooseRepeatScope("Delete repeating event","Choose which occurrences to delete.",remove);return}
@@ -3867,7 +3867,7 @@
           wizardProgress.querySelectorAll("span").forEach(function(node,i){node.classList.toggle("active",i+1<=wizardStep)});
           backStep.hidden=wizardStep===1;skipStep.hidden=wizardStep===1||wizardStep===2;nextStep.hidden=wizardStep===4;
           dlg.querySelector("[data-save]").hidden=wizardStep!==4;
-          skipStep.textContent=wizardStep===3?"Skip location":"Skip";
+          skipStep.textContent=wizardStep===3?"Skip location":wizardStep===4?"Skip details":"Skip";
           if(wizardStep===2){var holiday=usHolidaysForYear(f.sDate.getFullYear()).find(function(h){return sameDay(h.start,f.sDate)});holidayBanner.hidden=!holiday;holidayBanner.querySelector(".dl-holiday-step-copy").textContent=holiday?holiday.title+" is a US holiday.":""}else holidayBanner.hidden=true;
         }
         holidayBanner.querySelector("button").onclick=function(){holidayBanner.hidden=true};
