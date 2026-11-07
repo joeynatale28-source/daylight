@@ -17,6 +17,7 @@ declare
   chosen_calendar jsonb;
   id_text text;
   title_text text;
+  target_title text;
   start_at timestamptz;
   end_at timestamptz;
   next_id bigint;
@@ -141,6 +142,7 @@ begin
        and coalesce((c->>'builtin')::boolean,false)=false limit 1;
     if chosen_calendar is null then raise exception 'Event is read-only' using errcode='42501'; end if;
     if p_tool='delete_event' then
+      target_title := coalesce(record_item->>'title','');
       select coalesce(jsonb_agg(e order by ord),'[]'::jsonb) into event_items
       from jsonb_array_elements(event_items) with ordinality as x(e,ord) where e->>'id'<>id_text;
       output:=jsonb_build_object('deleted',true,'id',id_text);
@@ -187,8 +189,8 @@ begin
   end case;
   if is_write or is_delete then
     update public.workspace_snapshots set payload=workspace_payload,revision=revision_number+1,updated_at=now() where user_id=actor;
-    insert into public.mcp_workspace_audit(user_id,client_id,tool,target_id,result)
-      values(actor,client,p_tool,coalesce(id_text,output->>'id'),'success');
+    insert into public.mcp_workspace_audit(user_id,client_id,tool,target_id,target_title,result)
+      values(actor,client,p_tool,coalesce(id_text,output->>'id'),target_title,'success');
   end if;
   return output;
 end;

@@ -269,8 +269,8 @@
       row('Write access','Create and edit calendars, events, and tasks.',switchHTML('mcpWrite',false))+
       btn('Create token','mcpCreate','btn-primary')+'<div id="mcpOnce"></div><div id="mcpStatus" role="status"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Active tokens</div><div id="mcpTokens"></div></div>'+
-      '<div class="set-group"><div class="set-group-title">Destructive access</div>'+
-      row('Allow AI event deletion','Off by default, even for tokens with write access.',switchHTML('mcpDelete',false))+
+      '<div class="set-group"><div class="set-group-title">Legacy token deletion</div>'+
+      row('Allow deletion with legacy tokens','This setting applies only to personal legacy tokens. OAuth client permissions are shown separately below.',switchHTML('mcpDelete',false))+
       '<div id="mcpDeleteStatus"></div></div>'+
       '<div class="set-group"><div class="set-group-title">Connect a client</div>'+ 
       '<p class="pane-sub">Connect a Streamable HTTP MCP client with your own token.</p>'+
@@ -288,12 +288,25 @@
     const db=cloud.client;
     async function load(){
       if(!own())return;
-      const [tokens,settings,audit]=await Promise.all([
+      const [tokens,settings,audit,oauthGrants]=await Promise.all([
         db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
         db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary,target_id').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
+        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary,target_id').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75),
+        db.from('mcp_grants').select('client_id,client_name,can_read,can_write,can_delete,granted_at').eq('user_id',cloud.user.id).is('revoked_at',null).order('granted_at',{ascending:false})
       ]);
       if(tokens.error)showError(status,tokens.error);
+      const grantBox=html('<div class="set-group"><div class="set-group-title">Connected OAuth clients</div><p class="pane-sub">These scopes are the permissions actually granted through daylight’s OAuth consent screen.</p><div id="mcpOAuthGrants"></div></div>');
+      const tokenGroup=g.querySelector('#mcpTokens').closest('.set-group');
+      tokenGroup.parentNode.insertBefore(grantBox,tokenGroup);
+      const grantList=grantBox.querySelector('#mcpOAuthGrants');grantList.innerHTML='';
+      (oauthGrants.data||[]).forEach(grant=>{
+        const item=html('<div class="feed-row"><span class="fr-url"><strong></strong><br><span class="fr-sub"></span></span></div>');
+        item.querySelector('strong').textContent=grant.client_name||'Connected client';
+        const scopes=[['Read',grant.can_read],['Write',grant.can_write],['Delete',grant.can_delete]];
+        item.querySelector('.fr-sub').textContent=scopes.map(([name,enabled])=>name+': '+(enabled?'Granted':'Not granted')).join(' · ')+' · Connected '+new Date(grant.granted_at).toLocaleDateString();
+        grantList.appendChild(item);
+      });
+      if(!grantList.children.length)grantList.innerHTML=note('No active OAuth clients are connected.');
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
       (tokens.data||[]).forEach(t=>{
         const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
@@ -313,7 +326,7 @@
       const history=g.querySelector('#mcpAudit');
       history.innerHTML=Array.from({length:4},()=>'<div class="feed-row dl-ai-skeleton"><span class="fr-url"><i></i><i></i></span></div>').join('');
       const [{data:legacyAudit},{data:workspaceRow}]=await Promise.all([
-        db.from('mcp_workspace_audit').select('tool,result,created_at,client_id,target_id')
+        db.from('mcp_workspace_audit').select('tool,result,created_at,client_id,target_id,target_title')
           .eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75),
         db.from('workspace_snapshots').select('payload').eq('user_id',cloud.user.id).maybeSingle()
       ]);
@@ -342,7 +355,7 @@
       }
       const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
         tool:a.tool,action:a.result,created_at:a.created_at,
-        token_name:a.client_id,summary:'',target_id:a.target_id
+        token_name:a.client_id,summary:'',target_id:a.target_id,target_title:a.target_title
       }))).map(a=>{
         const resolved=resolveAuditTarget(a);
         return Object.assign({},a,{summary:resolved||a.summary||''});
