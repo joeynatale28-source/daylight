@@ -2576,7 +2576,13 @@
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
 
-        sidebarEl.appendChild(help); sidebarEl.appendChild(set);
+        sidebarEl.appendChild(help);
+        if(state.sidebarRail){
+          var expandBottom=el('<button class="side-row rail-expand-bottom" title="Expand sidebar" aria-label="Expand sidebar">'+icon("expand",18)+'</button>');
+          expandBottom.addEventListener("click",function(){state.sidebarRail=false;renderSidebar()});
+          sidebarEl.appendChild(expandBottom);
+        }
+        sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
         var avatarContent=window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="">':esc(profileInitials);
         var pw = el(
