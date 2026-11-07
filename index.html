@@ -2587,10 +2587,11 @@
         });
         return n;
       }
+      function persistCalendarChange() { if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); }
       function animateCalendarToggle(cal) {
         var reduce=state.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
         var view=document.getElementById('viewWrap');
-        function toggle() { cal.hidden=!cal.hidden;renderSidebar();renderView(false); }
+        function toggle() { cal.hidden=!cal.hidden;persistCalendarChange();renderSidebar();renderView(false); }
         if(reduce||!view){toggle();return;}
         function items() {
           return Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function(node) {
@@ -2652,7 +2653,7 @@
         m.appendChild(cur);
         var swWrap = el('<div class="menu-swatches"></div>');
         window.daylightColorPicker(swWrap,cal.color,function (key) {
-          cal.color=key;cur.querySelector(".pop-dot").style.background=dotOf(cal);
+          cal.color=key;persistCalendarChange();cur.querySelector(".pop-dot").style.background=dotOf(cal);
           cur.querySelector("span:last-child").textContent="Current: "+(COLOR_NAMES[key]||key);
           renderSidebar();renderView(false);
         });
@@ -2683,7 +2684,7 @@
         function done(save) {
           if (finished) return;
           finished = true;
-          if (save && input.value.trim()) { cal.name = input.value.trim(); toast("Calendar renamed"); }
+          if (save && input.value.trim()) { cal.name = input.value.trim(); persistCalendarChange(); toast("Calendar renamed"); }
           renderSidebar(); renderView(false);
         }
         input.addEventListener("blur", function () { done(true); });
