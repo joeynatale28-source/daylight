@@ -110,6 +110,7 @@ async function reverseGeocodeAddress(position: { lat: number; lng: number }, api
       string(address.postalCode, 24),
     ].filter(Boolean).join(", "),
     secondary: [
+      streetLine,
       string(address.municipality, 120),
       string(address.countrySubdivision, 100),
       string(address.postalCode, 24),
