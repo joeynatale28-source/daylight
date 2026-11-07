@@ -36,6 +36,13 @@ style.textContent=`
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
 `;
 style.textContent += `
+#dlWorkspaceSkeleton{display:none!important}
+#viewWrap.dl-calendar-hold{position:relative!important;background:var(--bg)!important;}
+#viewWrap.dl-calendar-hold>*{visibility:hidden!important;}
+#viewWrap.dl-calendar-hold::after{content:"";position:absolute;left:50%;top:50%;width:27px;height:27px;margin:-14px 0 0 -14px;border:2px solid color-mix(in srgb,var(--text) 18%,transparent);border-top-color:var(--text);border-radius:50%;animation:dlCanvasSpin 720ms linear infinite;visibility:visible;pointer-events:none}
+@keyframes dlCanvasSpin{to{transform:rotate(360deg)}}
+@media(prefers-reduced-motion:reduce){#viewWrap.dl-calendar-hold::after{animation:none;border-top-color:var(--text);border-right-color:var(--text)}}
+
 .dl-saved-color-wrap{position:relative;display:block;min-width:0}
 .dl-saved-color-wrap .dl-color-item{width:100%}
 .dl-color-remove{position:absolute;top:-6px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--surface);color:var(--text);border:1px solid var(--line);font-size:12px;line-height:13px;opacity:.95;cursor:pointer;z-index:2}
@@ -65,6 +72,18 @@ style.textContent += `
 
 document.head.append(style);
 let workspaceLoadingTimer=null,workspaceRemoveTimer=null;
+let canvasHoldStarted=0,canvasHoldReady=false,canvasHoldTimer=null;
+function holdCalendarCanvas(){
+ const view=document.getElementById("viewWrap");if(!view)return;
+ canvasHoldStarted=Date.now();canvasHoldReady=false;clearTimeout(canvasHoldTimer);
+ view.classList.add("dl-calendar-hold");
+}
+function releaseCalendarCanvas(){
+ canvasHoldReady=true;const elapsed=Date.now()-canvasHoldStarted;
+ const wait=Math.max(0,1000-elapsed);
+ clearTimeout(canvasHoldTimer);
+ canvasHoldTimer=setTimeout(()=>{document.getElementById("viewWrap")?.classList.remove("dl-calendar-hold");},wait);
+}
 function ensureWorkspaceSkeleton(){
  if(document.getElementById("dlWorkspaceSkeleton"))return;
  const shell=document.createElement("div");shell.id="dlWorkspaceSkeleton";shell.setAttribute("aria-label","Loading calendar workspace");
@@ -87,10 +106,10 @@ function hideWorkspaceLoading(){
  }
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
-document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
-document.addEventListener("daylight:workspace-ready",hideWorkspaceLoading);
-document.addEventListener("daylight:workspace-loading-failed",hideWorkspaceLoading);
-document.addEventListener("daylight:workspace-signed-out",hideWorkspaceLoading);
+document.addEventListener("daylight:workspace-loading",()=>{holdCalendarCanvas();});
+document.addEventListener("daylight:workspace-ready",()=>{releaseCalendarCanvas();hideWorkspaceLoading();});
+document.addEventListener("daylight:workspace-loading-failed",()=>{releaseCalendarCanvas();hideWorkspaceLoading();});
+document.addEventListener("daylight:workspace-signed-out",()=>{clearTimeout(canvasHoldTimer);document.getElementById("viewWrap")?.classList.remove("dl-calendar-hold");hideWorkspaceLoading();});
 let railTooltipTimer=null,railTooltipNode=null;
 function railControl(target){
  const side=target.closest("#sidebar.rail");if(!side)return null;
