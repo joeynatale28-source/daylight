@@ -75,6 +75,9 @@
       ".settings-close{position:absolute!important;top:16px;right:18px;width:40px!important;height:40px!important;min-width:40px;min-height:40px;z-index:30;border-radius:50%;cursor:pointer}",
       ".settings-close:hover{background:var(--hover)!important;color:var(--text)!important}",
       ".settings-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
+      ".settings-rail{position:relative;padding-bottom:64px}",
+      ".settings-rail-footer{position:absolute;left:18px;right:18px;bottom:16px;padding-top:12px;border-top:1px solid var(--line);display:flex;flex-direction:column;gap:2px;color:var(--text);font-size:12px;font-weight:650;letter-spacing:-.02em}",
+      ".settings-rail-footer small{font-size:10px;font-weight:400;letter-spacing:0;color:var(--muted)}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
@@ -166,6 +169,7 @@
       });
       rail.appendChild(btn);
     });
+    rail.appendChild(el('<div class="settings-rail-footer"><span>daylight.</span><small>Personal calendar</small></div>'));
     dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
     bd.appendChild(dlg);
     overlayRoot.appendChild(bd);
