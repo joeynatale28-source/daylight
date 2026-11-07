@@ -15,7 +15,6 @@ on:
       - daylight-banners.js
       - assets/**
       - 404.html
-      - assets/banners/**
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
 
@@ -49,15 +48,13 @@ jobs:
           test -s _site/daylight-integrations.js
           test -s _site/daylight-places.js
           test -s _site/daylight-places.css
-          test "$(find _site/assets/banners/sports -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 42
-          test "$(find _site/assets/banners/holidays -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 22
-          test "$(find _site/assets/banners/school-life -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 27
-          test "$(find _site/assets/banners -type f -name '*.webp' | wc -l)" -eq 91
           test -s _site/daylight-enhancements.js
           test -s _site/daylight-oauth.js
           test -s _site/daylight-banners.js
           test -s _site/404.html
           test -d _site/assets/banners
+          banner_count="$(find _site/assets/banners -type f -name '*.webp' | wc -l | tr -d ' ')"
+          test "$banner_count" = "92"
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact

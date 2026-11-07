@@ -88,20 +88,20 @@ try{
  }
  const bannerRouting=await page.evaluate(files=>{
    const routes=files.map(({group,subject})=>({
-     expected:`assets/banners/${group}/${subject}.webp`,
+     expected:`dl-banner-${group}-${subject}`,
      actual:bannerKeyFor({title:'',category:subject})
    }));
    const cases=[
-     ['Morning swim practice','assets/banners/sports/swim.webp'],
-     ['Team USA','assets/banners/sports/swim.webp'],
-     ['Championship swim','assets/banners/sports/swim.webp'],
-     ['Thanksgiving','assets/banners/holidays/thanksgiving.webp'],
-     ['Christmas Eve','assets/banners/holidays/christmas-eve.webp'],
+     ['Morning swim practice','dl-banner-sports-swim'],
+     ['Team USA','dl-banner-sports-swim'],
+     ['Championship swim','dl-banner-sports-swim'],
+     ['Thanksgiving','dl-banner-holidays-thanksgiving'],
+     ['Christmas Eve','dl-banner-holidays-christmas-eve'],
      ['School Block',null],
      ["Aiden's Birthday",'assets/banners/school-life/birthday.webp'],
-     ['Nov 17 Haircut','assets/banners/school-life/haircut.webp'],
-     ['Pickup Jeep – Florida','assets/banners/school-life/road-trip.webp'],
-     ['Christmas swim practice','assets/banners/sports/swim.webp']
+     ['Nov 17 Haircut','dl-banner-school-life-haircut'],
+     ['Pickup Jeep – Florida','dl-banner-school-life-road-trip'],
+     ['Christmas swim practice','dl-banner-sports-swim']
    ].map(([title,expected])=>({title,expected,actual:bannerKeyFor({title})}));
    return {routes,cases};
  },bannerFiles);
@@ -131,7 +131,7 @@ try{
      const box=element.getBoundingClientRect();
      return {src:image.getAttribute('src'),width:popover.getBoundingClientRect().width,height:box.height,fit:getComputedStyle(image).objectFit};
    });
-   assert.equal(bannerSlot.src,'assets/banners/sports/swim.webp');
+   assert.equal(bannerSlot.src,'dl-banner-sports-swim');
    assert.equal(Math.round(bannerSlot.width),384);
    assert.equal(Math.round(bannerSlot.height),128);
    assert.equal(bannerSlot.fit,'cover');

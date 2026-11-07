@@ -322,6 +322,7 @@
     return Array.from(new Uint8Array(buf),x=>x.toString(16).padStart(2,'0')).join('');
   }
   function aiPane(pane) {
+    if(!document.getElementById('dl-ai-skeleton-style')){const style=document.createElement('style');style.id='dl-ai-skeleton-style';style.textContent=".dl-ai-skeleton{opacity:.85}.dl-ai-skeleton i{display:block;height:9px;width:62%;margin:5px 0;border-radius:5px;background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:200% 100%;animation:dlShimmer 1.2s linear infinite}.dl-ai-skeleton i+i{width:38%}@media(prefers-reduced-motion:reduce){.dl-ai-skeleton i{animation:none}}";document.head.appendChild(style)}
     paneHead(pane,'AI access','Approve AI calendar access with revocable, scoped tokens.');
     const g=html('<div class="dl-ai-wrap"><div class="set-group"><div class="set-group-title">Create access token</div>'+
       '<div class="field"><label for="mcpName">Token name</label><input class="text-input" id="mcpName" placeholder="My AI client"></div>'+
@@ -370,7 +371,8 @@
       });
       if(!list.children.length)list.innerHTML=note('No tokens yet — create one to connect an AI client.');
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
-      const history=g.querySelector('#mcpAudit');history.innerHTML='';
+      const history=g.querySelector('#mcpAudit');
+      history.innerHTML=Array.from({length:4},()=>'<div class="feed-row dl-ai-skeleton"><span class="fr-url"><i></i><i></i></span></div>').join('');
       const {data:legacyAudit}=await db.from('mcp_workspace_audit')
         .select('tool,result,created_at,client_id,target_id').eq('user_id',cloud.user.id)
         .order('created_at',{ascending:false}).limit(75);

@@ -223,10 +223,10 @@ style.textContent=`
 #dl-oauth-client-logo img[src*="chatgpt-logo-white"]{object-fit:contain!important;padding:10px}
 .dl-ai-advanced{display:none!important}
 .dl-ai-wrap .set-group{margin-bottom:18px}
-.dl-ai-audit-row{display:flex!important;align-items:flex-start;gap:8px;min-height:33px;font-size:12px!important;color:var(--text)!important}
+.dl-ai-audit-row{display:flex!important;align-items:center;gap:8px;min-height:33px;font-size:12px!important;color:var(--text)!important}
 .dl-ai-audit-row img{width:16px;height:16px;flex:none;background:#17191b;border-radius:4px;padding:2px}
 .dl-ai-audit-row strong,.dl-ai-audit-row span{font-size:12px!important}
-.dl-ai-audit-row .dl-ai-action{overflow:visible;text-overflow:clip;white-space:normal;overflow-wrap:break-word;min-width:0;flex:1}
+.dl-ai-audit-row .dl-ai-action{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1}
 .dl-ai-audit-row .dl-ai-status{font-size:11px!important;color:var(--muted)}
 .settings-dialog .field input:not([type="checkbox"]),.settings-dialog .field select{max-width:100%;width:100%}
 .settings-dialog .settings-pane{overflow:auto;scrollbar-color:var(--line) transparent;scrollbar-width:thin}
@@ -276,7 +276,7 @@ function humanAudit(history){
    const namedCalendar=state?.calendars?.find(c=>String(c.id)===rawName);
    const namedTask=state?.tasks?.find(t=>String(t.id)===rawName);
    const name=namedEvent?.title||namedCalendar?.name||namedTask?.title||rawName;
-   const safe=/^[\p{L}\p{N}][\p{L}\p{N} ,.!?'()&:—-]{0,300}$/u.test(name)&&!/^event title unavailable$/i.test(name)&&!/(?:[0-9a-f]{8}-){3}[0-9a-f-]+|^\d+$|\b(?:id|table|column|payload|json)\b/i.test(name)?name:"";
+   const safe=/^[\p{L}\p{N}][\p{L}\p{N} ,.!?'()&:—-]{0,100}$/u.test(name)&&!/(?:[0-9a-f]{8}-){3}[0-9a-f-]+|^\d+$|\b(?:id|table|column|payload|json)\b/i.test(name)?name:"";
    const eventAction=/\bevent\b/i.test(action);
    const eventCalendar=namedEvent?state?.calendars?.find(c=>String(c.id)===String(namedEvent.cal)):namedCalendar;
    const eventTitle=namedEvent?.title||(!namedCalendar&&!namedTask?safe:"");

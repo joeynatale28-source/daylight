@@ -458,6 +458,12 @@
       .dow-row.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
       .dow-cell { padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
       .month-grid { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(6, 1fr); }
+      .month-wrap { display:flex; flex-direction:column; min-height:0; }
+      .month-grid { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
+      .month-week { min-height:0; }
+      .day-cell { min-height:0; }
+      .day-cell > .cell-add { position:absolute; top:6px; right:7px; z-index:2; }
+      .day-cell > .cell-events { margin-top:0; }
       .month-week { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line-soft); min-height: 0; }
       .month-week.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
       .month-week:last-child { border-bottom: none; }

@@ -15,19 +15,6 @@ function harness() {
   w.daylightCloud={ready:true,client:{functions:{invoke:async (name,args)=>{
     requests.push({name,...args.body});
     if(fail)return {error:new Error('Photon unavailable')};
-    if(args.body.input==='Hungary Creek Middle School')return {data:{suggestions:[
-      {primary:'Hungary Creek Middle School',secondary:'Covewood Road · Glen Allen, VA 23060 · United States',
-       address:'Covewood Road, Glen Allen, VA 23060, United States',hasHouseNumber:false,
-       osmRef:'osm:way:9750',lat:37.675,lng:-77.56}
-    ],attribution:'© OpenStreetMap contributors'}};
-    if(args.body.input==='4909 Francistown Road')return {data:{suggestions:[
-      {primary:'Hungary Creek Middle School',secondary:'Glen Allen, VA 23060 · United States',
-       address:'Hungary Creek Middle School, Glen Allen, VA 23060, United States',hasHouseNumber:false,
-       osmRef:'osm:way:9750',lat:37.675,lng:-77.56},
-      {primary:'4909 Francistown Road',secondary:'Glen Allen, VA 23060 · United States',
-       address:'4909 Francistown Road, Glen Allen, VA 23060, United States',hasHouseNumber:true,
-       osmRef:'osm:node:4909',lat:37.675,lng:-77.56}
-    ],attribution:'© OpenStreetMap contributors'}};
     return {data:{suggestions:[
       {primary:'10833 W Broad St',secondary:'Glen Allen, VA 23060, United States',
        address:'10833 W Broad St, Glen Allen, VA 23060, United States',
@@ -101,24 +88,6 @@ test('failed suggestions do not block saving a free-text location',async()=>{
     assert.equal(h.draft.loc,'swim practice pool');
     assert.equal(h.draft.placeId,null);
     assert.equal(h.w.document.querySelector('.dl-osm-options').hidden,true);
-  }finally{h.dispose();}
-});
-test('school suggestions do not display a street inherited from a nearby road',async()=>{
-  const h=harness();
-  try{
-    type(h,'Hungary Creek Middle School');await wait();
-    const option=h.w.document.querySelector('[role=option]');
-    assert.doesNotMatch(option.textContent,/Covewood Road/);
-    assert.match(option.textContent,/Glen Allen, VA 23060/);
-    option.click();
-    assert.equal(h.draft.loc,'Hungary Creek Middle School, Glen Allen, VA 23060, United States');
-  }finally{h.dispose();}
-});
-test('address-style queries prioritize results with house numbers',async()=>{
-  const h=harness();
-  try{
-    type(h,'4909 Francistown Road');await wait();
-    assert.equal(h.w.document.querySelector('.dl-osm-main').textContent,'4909 Francistown Road');
   }finally{h.dispose();}
 });
 test('address client contains no Google key, Google Places URL, or Photon direct request',()=>{

@@ -31,22 +31,6 @@ window.daylightAttachPlaces=function(input,draft,dirty){
   draft.locationLat=Number(item.lat);draft.locationLng=Number(item.lng);dirty();
   seq++;clearTimeout(timer);spinner.hidden=true;close();input.focus({preventScroll:true});
  }
- function hasHouseNumber(item){
-  if(typeof item.hasHouseNumber==='boolean')return item.hasHouseNumber;
-  return /^\d{1,6}[A-Za-z]?(?:\s|$)/.test(String(item.address||'').split(',')[0].trim());
- }
- function normalizeSuggestion(item){
-  const primary=String(item.primary||item.address||'').trim();
-  const address=String(item.address||'').trim();
-  const addressFirst=address.split(',')[0].trim();
-  const parts=String(item.secondary||'').split(' · ');
-  if(!hasHouseNumber(item)&&addressFirst&&addressFirst!==primary&&parts.length>1&&parts[0]===addressFirst){
-   const context=parts.slice(1);
-   return {...item,address:[primary,...context].join(', '),secondary:context.join(' · ')};
-  }
-  return item;
- }
- function isAddressStyleQuery(query){return /^\d{1,6}[A-Za-z]?\s+\p{L}/u.test(query);}
  function emphasize(el,value,query){
   const offset=value.toLocaleLowerCase().indexOf(query.toLocaleLowerCase());
   if(offset<0){el.textContent=value;return;}
@@ -87,9 +71,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
     const result=await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(Error('timeout')),5500))]);
     if(seq!==request||!input.isConnected)return;
     if(result.error||result.data?.error)throw Error('Unavailable');
-    results=Array.isArray(result.data?.suggestions)?result.data.suggestions.map(normalizeSuggestion):[];
-    if(isAddressStyleQuery(query))results.sort((a,b)=>Number(hasHouseNumber(b))-Number(hasHouseNumber(a)));
-    results=results.slice(0,5);
+    results=Array.isArray(result.data?.suggestions)?result.data.suggestions.slice(0,5):[];
     render(query);
    }catch(e){if(seq===request)close();console.debug('Location suggestions unavailable');}
    finally{if(seq===request)spinner.hidden=true;}

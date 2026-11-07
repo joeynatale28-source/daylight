@@ -26,11 +26,11 @@ style.textContent=`
 .dl-color-error{font-size:12px;color:var(--danger);min-height:16px}
 .dl-color-modal .dialog-body{display:grid;gap:10px}
 .dl-color-modal .dialog-body .field{margin:0}
-.month-wrap{height:100%;overflow:hidden}
-.month-grid{min-height:0;height:0;overflow:hidden;grid-template-rows:repeat(6,minmax(0,1fr))}
-.month-week{min-height:0;height:100%;overflow:hidden}
-.day-cell{min-height:0}
-.cell-events{overflow:hidden}
+.month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.month-grid{flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(105px,1fr))}
+.month-week{min-height:105px;height:auto;overflow:visible}
+.day-cell{min-height:0;overflow:hidden}
+.cell-events{min-height:0;overflow:hidden}
 .agenda-cal-name{font-weight:600;color:var(--muted)}
 @media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
@@ -44,26 +44,72 @@ style.textContent += `
 .sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
 .sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
 `;
+.dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
+@keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
+#dlWorkspaceSkeleton{display:none;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none}
+.workspace-loading-visible #dlWorkspaceSkeleton{display:grid}
+.dl-sk-side{background:var(--bg-sidebar);border-right:1px solid var(--sidebar-line);padding:18px 12px;display:flex;flex-direction:column;gap:22px;align-items:center}
+.dl-sk-side i,.dl-sk-grid i{background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:200% 100%;animation:dlShimmer 1.2s linear infinite}
+.dl-sk-side i{width:30px;height:30px;border-radius:9px}
+.dl-sk-main{min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:16px}
+.dl-sk-head{height:38px;width:46%;border-radius:9px;background:var(--surface)}
+.dl-sk-week{height:28px;border-radius:7px;background:var(--surface)}
+.dl-sk-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.dl-sk-grid i{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
+@keyframes dlShimmer{to{background-position:-200% 0}}
+@media(prefers-reduced-motion:reduce){.dl-sk-grid i,.dl-sk-side i{animation:none}}
+
 document.head.append(style);
 let workspaceLoadingTimer=null;
+function ensureWorkspaceSkeleton(){
+ if(document.getElementById("dlWorkspaceSkeleton"))return;
+ const shell=document.createElement("div");shell.id="dlWorkspaceSkeleton";shell.setAttribute("aria-label","Loading calendar workspace");
+ shell.innerHTML='<div class="dl-sk-side"><i></i><i></i><i></i><i></i><i></i><i></i></div><div class="dl-sk-main"><i class="dl-sk-head"></i><div class="dl-sk-week"></div><div class="dl-sk-grid">'+Array.from({length:42},()=>'<i></i>').join("")+'</div></div>';
+ document.body.appendChild(shell);
+}
 function showWorkspaceLoading(){
  clearTimeout(workspaceLoadingTimer);
- workspaceLoadingTimer=setTimeout(()=>document.body.classList.add("workspace-loading-visible"),200);
+ workspaceLoadingTimer=setTimeout(()=>{document.body.classList.add("workspace-loading-visible");ensureWorkspaceSkeleton()},200);
 }
 function hideWorkspaceLoading(){
- clearTimeout(workspaceLoadingTimer);
- workspaceLoadingTimer=null;
+ clearTimeout(workspaceLoadingTimer);workspaceLoadingTimer=null;
  document.body.classList.remove("workspace-loading-visible");
+ document.getElementById("dlWorkspaceSkeleton")?.remove();
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
 document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
 document.addEventListener("daylight:workspace-ready",hideWorkspaceLoading);
 document.addEventListener("daylight:workspace-loading-failed",hideWorkspaceLoading);
 document.addEventListener("daylight:workspace-signed-out",hideWorkspaceLoading);
-document.addEventListener("mouseover",function(e){
- const n=e.target.closest?.(".cal-row .cal-name");
- if(n && !n.title)n.title=n.textContent.trim();
-});
+let railTooltipTimer=null,railTooltipNode=null;
+function railControl(target){
+ const side=target.closest("#sidebar.rail");if(!side)return null;
+ const control=target.closest("button,a,[role=button]");if(!control||!side.contains(control)||control.matches(".cal-menu-btn"))return null;
+ let label=control.getAttribute("aria-label")||control.getAttribute("title")||control.dataset.tooltip||"";
+ if(!label&&control.matches(".cal-check"))label=control.closest(".cal-row")?.querySelector(".cal-name")?.textContent.trim()||"Calendar visibility";
+ if(!label&&control.matches(".side-row"))label=control.textContent.trim();
+ if(!label&&control.matches(".sidebar-add-rail"))label="Create";
+ if(!label&&control.matches(".brand-row .icon-btn"))label="Expand sidebar";
+ if(!label&&control.matches(".profile-row"))label="Account";
+ if(!label)label=control.textContent.trim();
+ return label?{control,label}:null;
+}
+function hideRailTooltip(){clearTimeout(railTooltipTimer);railTooltipTimer=null;railTooltipNode?.remove();railTooltipNode=null}
+function scheduleRailTooltip(target){
+ const found=railControl(target);if(!found){hideRailTooltip();return}
+ hideRailTooltip();
+ railTooltipTimer=setTimeout(()=>{
+  const r=found.control.getBoundingClientRect(),tip=document.createElement("div");
+  tip.className="dl-rail-tooltip";tip.setAttribute("role","tooltip");tip.textContent=found.label;
+  tip.style.left=Math.min(window.innerWidth-12,r.right+10)+"px";
+  tip.style.top=Math.max(8,Math.min(window.innerHeight-36,r.top+r.height/2-14))+"px";
+  document.body.appendChild(tip);railTooltipNode=tip;
+ },400);
+}
+document.addEventListener("pointerover",e=>scheduleRailTooltip(e.target));
+document.addEventListener("pointerout",e=>{if(!e.relatedTarget?.closest?.("#sidebar.rail"))hideRailTooltip()});
+document.addEventListener("focusin",e=>scheduleRailTooltip(e.target));
+document.addEventListener("focusout",hideRailTooltip);
 function fitCalendarRows(){
  const rows=[...document.querySelectorAll(".sidebar .cal-row")];
  if(!rows.length)return;
