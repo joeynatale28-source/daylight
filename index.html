@@ -2695,47 +2695,85 @@
         return row;
       }
       function openCalMenu(anchor, cal, row) {
-        /* Owned calendars only — subscribed/shared calendars have
-           no menu button, and this guard keeps it that way. */
         if (isSubscribed(cal) && cal.id !== "holidays") return;
         closeMenu(); closePopover();
-        var m = el('<div class="menu" role="menu" aria-label="Calendar options"></div>');
-        function item(iconName, label, danger, fn) {
-          var b = el('<button class="menu-item' + (danger ? " danger" : "") + '">' + icon(iconName, 16) + "<span>" + esc(label) + "</span></button>");
-          b.addEventListener("click", function () { closeMenu(); fn(); });
-          return b;
+        var builtinHoliday=cal.id==="holidays",originalName=cal.name,originalColor=cal.color;
+        var pendingName=cal.name,pendingColor=cal.color,closed=false;
+        var bd=el('<div class="backdrop cal-settings-backdrop"><div class="dialog cal-settings-dialog" role="dialog" aria-modal="true" aria-label="Calendar settings"><div class="dialog-head"><span class="dialog-title">Calendar settings</span><button class="icon-btn cal-settings-close" type="button" aria-label="Close" title="Close">'+icon("x",17)+'</button></div><div class="dialog-body cal-settings-body"></div><div class="dialog-foot cal-settings-foot"><button type="button" class="btn-ghost" data-discard>Discard</button><button type="button" class="btn-primary" data-save>Save changes</button></div></div></div>');
+        var body=bd.querySelector(".cal-settings-body");
+        var nameGroup=null;
+        if(!builtinHoliday){
+          nameGroup=el('<section class="cal-settings-section"><h3>Rename</h3><div class="field"><label for="calSettingsName">Calendar name</label><input class="text-input" id="calSettingsName" maxlength="120"></div></section>');
+          nameGroup.querySelector("#calSettingsName").value=cal.name;
+          body.appendChild(nameGroup);
         }
-        var builtinHoliday = cal.id === "holidays";
-        if (!builtinHoliday) m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
-        m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
-        m.appendChild(el('<div class="menu-sep"></div>'));
-        m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
-        var cur = el('<div class="menu-current"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span>Current: ' + esc(colorName(cal.color)) + "</span></div>");
-        m.appendChild(cur);
-        var swWrap = el('<div class="menu-swatches"></div>');
-        window.daylightColorPicker(swWrap,cal.color,function (key) {
-          if (!key || cal.color === key) return;
-          cal.color = key;
-          cur.querySelector(".pop-dot").style.background = dotOf(cal);
-          cur.querySelector("span:last-child").textContent = "Current: " + colorName(key);
-          renderSidebar();
-          renderView(false);
-          persistCalendarChange();
-        });
-        m.appendChild(swWrap);
-        if (!builtinHoliday) {
-          m.appendChild(el('<div class="menu-sep"></div>'));
-          m.appendChild(item("trash", "Delete calendar", true, function () { confirmDeleteCalendar(cal); }));
+        var appearance=el('<section class="cal-settings-section"><h3>Appearance</h3><div class="cal-settings-current"><span class="cal-settings-dot"></span><span class="cal-settings-current-label"></span></div><div class="field"><label>Preset and saved colors</label><div class="cal-settings-swatches"></div></div><div class="field"><label for="calSpectrum">Custom color spectrum</label><div class="cal-spectrum-row"><input type="color" id="calSpectrum" aria-label="Choose any calendar color"><input class="text-input cal-hex" id="calHex" maxlength="7" spellcheck="false" aria-label="Hex color"></div></div><div class="cal-rgb-row"><label>R <input class="text-input" id="calRed" type="number" min="0" max="255"></label><label>G <input class="text-input" id="calGreen" type="number" min="0" max="255"></label><label>B <input class="text-input" id="calBlue" type="number" min="0" max="255"></label></div><p class="inline-note">Your color is previewed in the calendar and saved only when you choose Save changes.</p></section>');
+        body.appendChild(appearance);
+        var dot=appearance.querySelector(".cal-settings-dot"),label=appearance.querySelector(".cal-settings-current-label");
+        function toHex(value){var c=dotOf({color:value});if(/^#[0-9a-f]{6}$/i.test(c))return c.toUpperCase();return "#777777";}
+        function setPreview(value){
+          if(!value)return;
+          var hex=toHex(value);pendingColor=value;
+          cal.color=value;dot.style.background=dotOf(cal);label.textContent="Current: "+colorName(value);
+          appearance.querySelector("#calSpectrum").value=hex;
+          appearance.querySelector("#calHex").value=hex;
+          var n=parseInt(hex.slice(1),16),r=(n>>16)&255,g=(n>>8)&255,bl=n&255;
+          appearance.querySelector("#calRed").value=r;appearance.querySelector("#calGreen").value=g;appearance.querySelector("#calBlue").value=bl;
+          renderSidebar();renderView(false);
         }
-        document.body.appendChild(m);
-        var r = anchor.getBoundingClientRect();
-        var mw = 220, mh = m.offsetHeight;
-        var left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
-        var top = r.bottom + 6;
-        if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
-        m.style.left = left + "px"; m.style.top = top + "px";
-        openMenuEl = m;
-        document.addEventListener("mousedown", menuOutside, true);
+        window.daylightColorPicker(appearance.querySelector(".cal-settings-swatches"),pendingColor,setPreview);
+        setPreview(pendingColor);
+        function fromRgb(){
+          var r=Number(appearance.querySelector("#calRed").value),g=Number(appearance.querySelector("#calGreen").value),bl=Number(appearance.querySelector("#calBlue").value);
+          if([r,g,bl].some(v=>!Number.isInteger(v)||v<0||v>255))return;
+          setPreview("#"+[r,g,bl].map(v=>v.toString(16).padStart(2,"0")).join("").toUpperCase());
+        }
+        appearance.querySelector("#calSpectrum").addEventListener("input",e=>setPreview(e.target.value.toUpperCase()));
+        appearance.querySelector("#calHex").addEventListener("change",e=>{var v=e.target.value.trim();if(/^#[0-9a-f]{6}$/i.test(v))setPreview(v.toUpperCase());else e.target.setCustomValidity("Enter #RRGGBB");});
+        ["#calRed","#calGreen","#calBlue"].forEach(id=>appearance.querySelector(id).addEventListener("change",fromRgb));
+        var exportGroup=el('<section class="cal-settings-section"><h3>Export</h3><div class="cal-settings-action"><span><strong>Export calendar</strong><small>Download all events as an iCalendar file.</small></span><button type="button" class="btn-ghost" id="calSettingsExport">Export .ics</button></div></section>');
+        body.appendChild(exportGroup);
+        exportGroup.querySelector("#calSettingsExport").onclick=function(){window.daylightExportCalendar(cal)};
+        if(!builtinHoliday){
+          var share=el('<section class="cal-settings-section"><h3>Share</h3><div class="cal-settings-action"><span><strong>Public link</strong><small>Anyone with the link can subscribe. They cannot edit your calendar.</small></span><label class="cal-public-switch"><input type="checkbox" id="calPublicToggle"><span>Public</span></label></div><div class="cal-public-link" hidden><input class="text-input" id="calPublicUrl" readonly aria-label="Public calendar link"><div class="cal-public-actions"><button type="button" class="btn-ghost" id="calCopyLink">Copy link</button><button type="button" class="btn-ghost" id="calAddInDaylight">Add in Daylight</button><button type="button" class="btn-ghost" id="calResetLink">Reset link</button></div></div><p class="inline-note" id="calShareStatus" role="status">Loading share settings…</p></section>');
+          body.appendChild(share);
+          var toggle=share.querySelector("#calPublicToggle"),urlInput=share.querySelector("#calPublicUrl"),linkWrap=share.querySelector(".cal-public-link"),shareStatus=share.querySelector("#calShareStatus");
+          async function loadShare(){
+            try{var status=await window.daylightCalendarShareAction({action:"status",calendar_id:cal.id});toggle.checked=!!status.public_enabled;urlInput.value=status.public_url||"";linkWrap.hidden=!toggle.checked;shareStatus.textContent=toggle.checked?"Anyone with this link can view the calendar.":"This calendar is private."; }
+            catch(error){shareStatus.textContent=error.message||"Unable to load sharing settings.";}
+          }
+          toggle.addEventListener("change",async function(){
+            toggle.disabled=true;shareStatus.textContent=toggle.checked?"Making calendar public…":"Turning public link off…";
+            try{var result=await window.daylightCalendarShareAction({action:"set-public",calendar_id:cal.id,public:toggle.checked});toggle.checked=!!result.public_enabled;urlInput.value=result.public_url||"";linkWrap.hidden=!toggle.checked;shareStatus.textContent=toggle.checked?"Public link is active.":"Public link is off and the previous link no longer works.";}
+            catch(error){toggle.checked=!toggle.checked;shareStatus.textContent=error.message||"Unable to update public link.";}
+            finally{toggle.disabled=false;}
+          });
+          share.querySelector("#calCopyLink").onclick=function(){if(!urlInput.value)return; navigator.clipboard?.writeText(urlInput.value).then(()=>toast("Public link copied")).catch(()=>toast("Copy failed"));};
+          share.querySelector("#calAddInDaylight").onclick=function(){if(urlInput.value)window.daylightSubscribeDialog({url:urlInput.value,name:cal.name});};
+          share.querySelector("#calResetLink").onclick=async function(){
+            this.disabled=true;shareStatus.textContent="Resetting public link…";
+            try{var result=await window.daylightCalendarShareAction({action:"reset-public",calendar_id:cal.id});urlInput.value=result.public_url||"";shareStatus.textContent="New link created. The previous link is invalid.";}
+            catch(error){shareStatus.textContent=error.message||"Unable to reset link.";}
+            finally{this.disabled=false;}
+          };
+          loadShare();
+        }
+        if(!builtinHoliday){
+          var remove=el('<section class="cal-settings-section cal-settings-danger"><h3>Danger zone</h3><div class="cal-settings-action"><span><strong>Delete calendar</strong><small>Delete this calendar and its events.</small></span><button type="button" class="btn-danger-outline" id="calSettingsDelete">Delete</button></div></section>');
+          body.appendChild(remove);
+          remove.querySelector("#calSettingsDelete").onclick=function(){discard();confirmDeleteCalendar(cal)};
+        }
+        function close(){if(closed)return;closed=true;if(window.daylightExit)window.daylightExit(bd);else bd.remove();}
+        function discard(){cal.name=originalName;cal.color=originalColor;renderSidebar();renderView(false);close();}
+        bd.querySelector(".cal-settings-close").onclick=discard;
+        bd.querySelector("[data-discard]").onclick=discard;
+        bd.querySelector("[data-save]").onclick=function(){
+          if(nameGroup){pendingName=nameGroup.querySelector("#calSettingsName").value.trim();if(!pendingName){nameGroup.querySelector("input").focus();nameGroup.querySelector("input").setCustomValidity("Enter a calendar name");nameGroup.querySelector("input").reportValidity();return;}cal.name=pendingName;}
+          cal.color=pendingColor;renderSidebar();renderView(false);persistCalendarChange();close();toast("Calendar settings saved");
+        };
+        bd.addEventListener("mousedown",function(e){if(e.target===bd)discard()});
+        overlayRoot.appendChild(bd);
+        if(nameGroup)nameGroup.querySelector("input").focus();
       }
       function startRename(row, cal) {
         var nameEl = row.querySelector(".cal-name");
@@ -5400,6 +5438,30 @@
 </style>
     <style>
 .agenda-details{display:flex;flex-direction:column;min-width:0;gap:3px}.agenda-location{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}.agenda-location svg{flex:none}
+
+      .cal-settings-dialog{width:min(650px,94vw);max-height:min(88vh,860px);display:flex;flex-direction:column;overflow:hidden;border-radius:var(--r-xl);background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop)}
+      .cal-settings-body{overflow:auto;min-height:0;display:grid;gap:14px;padding:18px 22px}
+      .cal-settings-section{border:1px solid var(--line);border-radius:var(--r-lg);padding:15px 16px;background:var(--surface)}
+      .cal-settings-section h3{font-size:13px;font-weight:650;margin:0 0 13px}
+      .cal-settings-section .field{margin:0 0 12px}
+      .cal-settings-section .field:last-child{margin-bottom:0}
+      .cal-settings-current{display:flex;align-items:center;gap:9px;margin-bottom:13px;font-size:12px;color:var(--muted)}
+      .cal-settings-dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+      .cal-spectrum-row{display:flex;align-items:center;gap:10px}
+      .cal-spectrum-row input[type=color]{width:48px;height:38px;border:1px solid var(--line);border-radius:8px;padding:3px;background:var(--surface);cursor:pointer}
+      .cal-spectrum-row .cal-hex{max-width:130px;font-family:ui-monospace,monospace}
+      .cal-rgb-row{display:flex;gap:10px;max-width:360px}
+      .cal-rgb-row label{display:grid;gap:5px;flex:1;font-size:11px;color:var(--muted)}
+      .cal-rgb-row input{width:100%;min-width:0}
+      .cal-settings-action{display:flex;align-items:center;justify-content:space-between;gap:14px}
+      .cal-settings-action strong{display:block;font-size:13px}
+      .cal-settings-action small{display:block;font-size:12px;color:var(--muted);margin-top:3px}
+      .cal-public-switch{display:flex;align-items:center;gap:8px;font-size:12px;white-space:nowrap}
+      .cal-public-link{display:grid;gap:8px;margin-top:12px}
+      .cal-public-actions{display:flex;gap:7px;flex-wrap:wrap}
+      .cal-settings-danger{border-color:color-mix(in srgb,var(--danger) 30%,var(--line))}
+      .cal-settings-foot{border-top:1px solid var(--line);padding:14px 20px;display:flex;justify-content:flex-end;gap:8px;background:var(--surface)}
+      @media(max-width:600px){.cal-settings-body{padding:12px}.cal-settings-section{padding:12px}.cal-rgb-row{gap:6px}.cal-settings-action{align-items:flex-start}}
 </style>
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
