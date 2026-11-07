@@ -4344,7 +4344,7 @@
         pane.appendChild(gtz);
         var tzBtn=gtz.querySelector("#gsTz");
         tzBtn.disabled=state.useDeviceTz;
-        tzBtn.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false)});
+        tzBtn.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false);if(settingsState.markDirty)settingsState.markDirty();if(settingsState.redrawPane)settingsState.redrawPane()});
         gtz.querySelector("#gsUseDevTz").addEventListener("change",function(e){
           if (!e.target.checked && state.useDeviceTz) state.tzLabel=deviceTz();
           state.useDeviceTz=e.target.checked;
@@ -4496,12 +4496,20 @@
         gq.querySelector("#ntQuiet").addEventListener("change", function (e) { state.quietEnabled = e.target.checked; syncQuiet(); });
         qsSel.addEventListener("change", function () { state.quietStart = +qsSel.value; });
         qeSel.addEventListener("change", function () { state.quietEnd = +qeSel.value; });
-        g.querySelector("#ntBtn").addEventListener("click", function () {
-          if (!("Notification" in window)) { toast("Notifications are not supported here"); return; }
-          Notification.requestPermission().then(function (perm) {
-            g.querySelector("#ntStatus").textContent = perm === "granted" ? "Notifications are on for this browser." : perm === "denied" ? "Notifications are blocked in this browser's settings." : "Notifications are not turned on yet.";
-            if (perm === "granted") toast("Notifications enabled");
-          });
+        var ntBtn=g.querySelector("#ntBtn"),ntStatus=g.querySelector("#ntStatus");
+        function syncBrowserNotificationState(){
+          var perm=("Notification" in window)?Notification.permission:"unsupported";
+          ntStatus.textContent=perm==="granted"?"Notifications are on for this browser.":perm==="denied"?"Notifications are blocked in this browser's settings.":perm==="unsupported"?"This browser does not support notifications.":"Notifications are not turned on yet.";
+          ntBtn.textContent=perm==="granted"?"Enabled":perm==="denied"?"Blocked in browser settings":perm==="unsupported"?"Unavailable":"Enable notifications";
+          ntBtn.disabled=perm!=="default";
+        }
+        syncBrowserNotificationState();
+        ntBtn.addEventListener("click",function(){
+          if(!("Notification" in window)){syncBrowserNotificationState();return}
+          Notification.requestPermission().then(function(perm){
+            syncBrowserNotificationState();
+            if(perm==="granted")toast("Notifications enabled");
+          }).catch(function(){syncBrowserNotificationState()});
         });
       }
       function paneShortcuts(pane) {
