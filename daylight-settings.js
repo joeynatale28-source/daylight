@@ -59,7 +59,8 @@
     css.textContent = [
       ".settings-dialog{position:relative;overflow:hidden;border-radius:var(--r-xl)}",
       ".settings-pane{position:relative;isolation:isolate;padding-bottom:104px;overflow-y:auto;min-height:0}",
-      ".settings-savebar{position:absolute;left:50%;right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
+      ".settings-savebar{position:absolute;left:calc(50% + 100px);right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
+      ".settings-savebar{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-pop)!important;isolation:isolate}",
       ".settings-savebar[hidden]{display:none!important}",
       ".settings-savebar:not([hidden]){animation:settingsPillIn 190ms cubic-bezier(0.23,1,0.32,1)}",
       "@keyframes settingsPillIn{from{opacity:0;transform:translate(-50%,5px)}to{opacity:1;transform:translate(-50%,0)}}",
@@ -159,7 +160,7 @@
       });
       rail.appendChild(btn);
     });
-    dlg.appendChild(rail); dlg.appendChild(pane);
+    dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
     bd.appendChild(dlg);
     overlayRoot.appendChild(bd);
 
@@ -173,6 +174,7 @@
       confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){
         dismiss();
         restore(original);
+        renderAll(false);
         drawPane();
         markDirty();
       });
@@ -197,7 +199,6 @@
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
-      pane.appendChild(bar);
       pane.querySelectorAll('label.switch input[type="checkbox"]').forEach(function (input) {
         if (input.getAttribute("aria-label")) return;
         var row = input.closest(".switch-row");
