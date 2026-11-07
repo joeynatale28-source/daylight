@@ -78,10 +78,10 @@ try{
    fs.readdirSync(path.join(process.cwd(),'assets','banners',group))
      .filter(name=>name.endsWith('.webp'))
      .map(name=>({group,subject:name.slice(0,-5)})));
- for(const [group,count] of [['sports',42],['holidays',22],['school-life',28]]){
+ for(const [group,count] of [['sports',42],['holidays',22],['school-life',27]]){
    assert.equal(bannerFiles.filter(file=>file.group===group).length,count,`${group} banner count`);
  }
- assert.equal(bannerFiles.length,92,'all 92 banner files must be present');
+ assert.equal(bannerFiles.length,91,'all 91 banner files must be present');
  for(const file of bannerFiles){
    assert.ok(fs.statSync(path.join(process.cwd(),'assets','banners',file.group,`${file.subject}.webp`)).size>0,
      `empty banner file: ${file.group}/${file.subject}.webp`);
@@ -97,7 +97,7 @@ try{
      ['Championship swim','assets/banners/sports/swim.webp'],
      ['Thanksgiving','assets/banners/holidays/thanksgiving.webp'],
      ['Christmas Eve','assets/banners/holidays/christmas-eve.webp'],
-     ['School Block','assets/banners/school-life/school.webp'],
+     ['School Block',null],
      ["Aiden's Birthday",'assets/banners/school-life/birthday.webp'],
      ['Nov 17 Haircut','assets/banners/school-life/haircut.webp'],
      ['Pickup Jeep – Florida','assets/banners/school-life/road-trip.webp'],

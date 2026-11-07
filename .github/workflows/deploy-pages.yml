@@ -54,8 +54,8 @@ jobs:
           test -s _site/daylight-places.css
           test "$(find _site/assets/banners/sports -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 42
           test "$(find _site/assets/banners/holidays -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 22
-          test "$(find _site/assets/banners/school-life -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 28
-          test "$(find _site/assets/banners -type f -name '*.webp' | wc -l)" -eq 92
+          test "$(find _site/assets/banners/school-life -maxdepth 1 -type f -name '*.webp' | wc -l)" -eq 27
+          test "$(find _site/assets/banners -type f -name '*.webp' | wc -l)" -eq 91
 
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
