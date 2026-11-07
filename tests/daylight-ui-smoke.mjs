@@ -109,6 +109,22 @@ try{
    'every banner file must be reachable by its subject');
  assert.deepEqual(bannerRouting.cases.filter(test=>test.actual!==test.expected),[],
    'specific event matches and overrides must route to the intended banner');
+ const overflow=await page.evaluate(()=>{
+   state.calendars.push({id:'scratch-overflow',name:'Scratch overflow test',color:'gray',hidden:false,subscribed:false,shared:false});
+   for(let n=0;n<5;n++)state.events.push({id:950+n,title:'Overflow test '+(n+1),cal:'scratch-overflow',start:new Date(2026,11,9,8+n),end:new Date(2026,11,9,8+n,30),allDay:false,repeat:null,reminder:null});
+   state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
+   const cell=[...document.querySelectorAll('.day-cell')].find(n=>n.dataset.date==='2026-12-09');
+   const more=cell?.querySelector('.more-link'),label=more?.textContent||'';
+   more?.click();
+   return {label,view:state.view};
+ });
+ assert.match(overflow.label,/\+\d+ more/,'five synthetic events should expose a +N more link');
+ assert.equal(overflow.view,'day','clicking +N more should open the selected day');
+ await page.evaluate(()=>{
+   state.events=state.events.filter(e=>e.cal!=='scratch-overflow');
+   state.calendars=state.calendars.filter(c=>c.id!=='scratch-overflow');
+   state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
+ });
  for(const theme of ['dark','light']){
    await page.evaluate(()=>closePopover());
    await page.waitForFunction(()=>document.querySelectorAll('.popover').length===0,{timeout:3000});
@@ -166,6 +182,21 @@ try{
    if(!cell)throw Error('Target month cell unavailable');cell.click();
  });
  await page.waitForSelector('#efTitle',{timeout:4000});
+ const wizard=await page.evaluate(()=>{
+   const first=document.querySelector('.dl-wizard-step[data-step="1"]');
+   const count=first?.querySelectorAll('.field').length||0;
+   document.querySelector('#efTitle').value='Wizard smoke test';
+   document.querySelector('[data-step-next]')?.click();
+   const second=!document.querySelector('.dl-wizard-step[data-step="2"]').hidden;
+   document.querySelector('[data-step-next]')?.click();
+   const third=!document.querySelector('.dl-wizard-step[data-step="3"]').hidden;
+   document.querySelector('[data-step-skip]')?.click();
+   const fourth=!document.querySelector('.dl-wizard-step[data-step="4"]').hidden;
+   document.querySelector('[data-x]')?.click();
+   return {stepOneFieldCount:count,second,third,fourth};
+ });
+ assert.equal(wizard.stepOneFieldCount,2,'wizard step one must contain only title and description');
+ assert.ok(wizard.second&&wizard.third&&wizard.fourth,'wizard should navigate through all four steps and skip location');
  await page.screenshot({path:path.join(out,'new-event-dialog.png')});
  await page.evaluate(()=>document.querySelector('.backdrop .dialog [data-x]')?.click());
 
