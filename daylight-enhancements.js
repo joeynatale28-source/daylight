@@ -45,18 +45,18 @@ style.textContent += `
 .sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
 .dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
 @keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
-#dlWorkspaceSkeleton{display:none;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none}
-.workspace-loading-visible #dlWorkspaceSkeleton{display:grid}
+#dlWorkspaceSkeleton{display:grid;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none;opacity:0;visibility:hidden;transition:opacity 150ms cubic-bezier(.23,1,.32,1),visibility 0s linear 150ms}
+.workspace-loading-visible #dlWorkspaceSkeleton{opacity:1;visibility:visible;transition:opacity 150ms cubic-bezier(.23,1,.32,1),visibility 0s}
 .dl-sk-side{background:var(--bg-sidebar);border-right:1px solid var(--sidebar-line);padding:18px 12px;display:flex;flex-direction:column;gap:22px;align-items:center}
-.dl-sk-side i,.dl-sk-grid i{background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:200% 100%;animation:dlShimmer 1.2s linear infinite}
+.dl-sk-side i,.dl-sk-grid i{background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:200% 100%;animation:dlShimmer 1.5s ease-in-out infinite}
 .dl-sk-side i{width:30px;height:30px;border-radius:9px}
 .dl-sk-main{min-width:0;padding:22px 28px;display:flex;flex-direction:column;gap:16px}
 .dl-sk-head{height:38px;width:46%;border-radius:9px;background:var(--surface)}
 .dl-sk-week{height:28px;border-radius:7px;background:var(--surface)}
 .dl-sk-grid{flex:1;min-height:0;display:grid;grid-template-columns:repeat(7,1fr);grid-template-rows:repeat(6,1fr);border:1px solid var(--line);border-radius:10px;overflow:hidden}
-.dl-sk-grid i{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
-@keyframes dlShimmer{to{background-position:-200% 0}}
-@media(prefers-reduced-motion:reduce){.dl-sk-grid i,.dl-sk-side i{animation:none}}
+.dl-sk-grid i{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft);background:linear-gradient(90deg,var(--surface) 20%,var(--hover) 50%,var(--surface) 80%);background-size:220% 100%;animation:dlShimmer 1.5s ease-in-out infinite}
+@keyframes dlShimmer{to{background-position:-220% 0}}
+@media(prefers-reduced-motion:reduce){#dlWorkspaceSkeleton{transition:none}.dl-sk-side i,.dl-sk-grid i{animation:none}}
 `;
 
 document.head.append(style);
@@ -69,12 +69,12 @@ function ensureWorkspaceSkeleton(){
 }
 function showWorkspaceLoading(){
  clearTimeout(workspaceLoadingTimer);
- workspaceLoadingTimer=setTimeout(()=>{document.body.classList.add("workspace-loading-visible");ensureWorkspaceSkeleton()},200);
+ ensureWorkspaceSkeleton();
+ workspaceLoadingTimer=setTimeout(()=>document.body.classList.add("workspace-loading-visible"),120);
 }
 function hideWorkspaceLoading(){
  clearTimeout(workspaceLoadingTimer);workspaceLoadingTimer=null;
  document.body.classList.remove("workspace-loading-visible");
- document.getElementById("dlWorkspaceSkeleton")?.remove();
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
 document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
