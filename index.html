@@ -2644,7 +2644,6 @@
           return b;
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
-        m.appendChild(item("link", "Share…", false, function () { window.daylightShareCalendar(cal); }));
         m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
         m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
