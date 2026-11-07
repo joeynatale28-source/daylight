@@ -48,12 +48,18 @@ function formatTomTomItem(item: any) {
   const street = string(address.streetName, 180);
   const streetLine = [number, street].filter(Boolean).join(" ");
   const primary = poiName || streetLine || string(address.freeformAddress, 240);
-  const secondary = [
+  const locality = [
     string(address.municipality, 120),
     string(address.countrySubdivision, 100),
     string(address.postalCode, 24),
+  ].filter(Boolean);
+  const secondary = [
+    streetLine,
+    ...locality,
   ].filter(Boolean).join(", ");
-  const fullAddress = string(address.freeformAddress, 500);
+  const fullAddress = number && street
+    ? composeAddress(address).full
+    : string(address.freeformAddress, 500);
   if (!primary) return null;
   return {
     primary,
@@ -66,56 +72,88 @@ function formatTomTomItem(item: any) {
 
 function hasStreetComponents(value: any) {
   const address = value?.address || {};
-  return !!(string(address.streetNumber, 40) || string(address.streetName, 180));
+  return !!(string(address.streetNumber, 40) && string(address.streetName, 180));
 }
-
-async function reverseGeocodeAddress(position: { lat: number; lng: number }, apiKey: string) {
-  const uri = new URL(
-    "https://api.tomtom.com/search/2/reverseGeocode/" +
-      encodeURIComponent(position.lat + "," + position.lng) + ".json",
-  );
-  uri.searchParams.set("key", apiKey);
-  uri.searchParams.set("language", "en-US");
+function composeAddress(address: any) {
+  const streetLine = [string(address?.streetNumber, 40), string(address?.streetName, 180)].filter(Boolean).join(" ");
+  const locality = [
+    string(address?.municipality, 120),
+    string(address?.countrySubdivision, 100),
+    string(address?.postalCode, 24),
+  ].filter(Boolean);
+  // "Glen Allen, VA 23060": state and ZIP share one comma-free segment.
+  const region = [string(address?.countrySubdivision, 100), string(address?.postalCode, 24)].filter(Boolean).join(" ");
+  const full = [streetLine, string(address?.municipality, 120), region].filter(Boolean).join(", ");
+  return { streetLine, full, secondary: [streetLine, ...locality].filter(Boolean).join(", ") };
+}
+const distanceMeters = (a: { lat: number; lng: number }, b: { lat: number; lng: number }) => {
+  const rad = Math.PI / 180, dLat = (b.lat - a.lat) * rad, dLng = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLat / 2) ** 2 + Math.cos(a.lat * rad) * Math.cos(b.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 12742000 * Math.asin(Math.sqrt(h));
+};
+async function tomtomJson(uri: URL, label: string) {
   let response: Response;
   try {
-    response = await fetch(uri.toString(), {
-      headers: { "Accept": "application/json" },
-      signal: AbortSignal.timeout(5000),
-    });
+    response = await fetch(uri.toString(), { headers: { "Accept": "application/json" }, signal: AbortSignal.timeout(5000) });
   } catch (failure) {
-    const reason = failure instanceof Error ? failure.message : String(failure);
-    throw new Error("TomTom Reverse Geocoding request failed: " + reason);
+    throw new Error("TomTom " + label + " request failed: " + (failure instanceof Error ? failure.message : String(failure)));
   }
-  if (!response.ok) {
-    const detail = (await response.text()).trim();
-    throw new Error("TomTom Reverse Geocoding HTTP " + response.status + ": " + (detail || response.statusText));
-  }
-  const payload = await response.json();
-  const address = payload?.addresses?.[0]?.address;
-  if (!address || typeof address !== "object") {
-    throw new Error("TomTom Reverse Geocoding returned no address for the supplied coordinates.");
-  }
-  const streetLine = [
-    string(address.streetNumber, 40),
-    string(address.streetName, 180),
-  ].filter(Boolean).join(" ");
-  if (!streetLine) {
-    throw new Error("TomTom Reverse Geocoding returned no street number or street name for the supplied coordinates.");
-  }
-  return {
-    address: [
-      streetLine,
-      string(address.municipality, 120),
-      string(address.countrySubdivision, 100),
-      string(address.postalCode, 24),
-    ].filter(Boolean).join(", "),
-    secondary: [
-      streetLine,
-      string(address.municipality, 120),
-      string(address.countrySubdivision, 100),
-      string(address.postalCode, 24),
-    ].filter(Boolean).join(", "),
-  };
+  const text = await response.text();
+  if (!response.ok) throw new Error("TomTom " + label + " HTTP " + response.status + ": " + (text.trim() || response.statusText));
+  try { return JSON.parse(text); } catch { throw new Error("TomTom " + label + " returned invalid JSON"); }
+}
+function reverseUri(position: { lat: number; lng: number }, apiKey: string) {
+  const uri = new URL("https://api.tomtom.com/search/2/reverseGeocode/" +
+    encodeURIComponent(position.lat + "," + position.lng) + ".json");
+  uri.searchParams.set("key", apiKey);
+  uri.searchParams.set("language", "en-US");
+  uri.searchParams.set("radius", "100");
+  return uri;
+}
+function pointAddressUri(street: string, position: { lat: number; lng: number }, apiKey: string) {
+  // Point Address (PAD) index entries are individual addressed points and
+  // carry a house number; search them around the result's position.
+  const uri = new URL("https://api.tomtom.com/search/2/search/" + encodeURIComponent(street) + ".json");
+  uri.searchParams.set("key", apiKey);
+  uri.searchParams.set("language", "en-US");
+  uri.searchParams.set("countrySet", "US");
+  uri.searchParams.set("idxSet", "PAD");
+  uri.searchParams.set("lat", String(position.lat));
+  uri.searchParams.set("lon", String(position.lng));
+  uri.searchParams.set("radius", "300");
+  uri.searchParams.set("limit", "20");
+  return uri;
+}
+/* Resolve a full street address (number + street) for a result that lacks
+   one, using only components TomTom returns:
+     1. reverse geocode at the result's coordinates;
+     2. if that has no house number, the nearest Point Address on the same
+        street within 300 m of the coordinates.
+   Failures never fail the whole search; the result keeps what it has. */
+async function resolveStreetAddress(item: any, apiKey: string, trace?: Record<string, unknown>) {
+  const position = validPosition(item?.position);
+  if (!position) return null;
+  const reverse = await tomtomJson(reverseUri(position, apiKey), "Reverse Geocoding");
+  if (trace) trace.reverseGeocode = reverse;
+  const reverseAddress = reverse?.addresses?.[0]?.address || {};
+  if (hasStreetComponents({ address: reverseAddress })) return composeAddress(reverseAddress);
+  const street = string(item?.address?.streetName, 180) || string(reverseAddress.streetName, 180);
+  if (!street) return null;
+  const pad = await tomtomJson(pointAddressUri(street, position, apiKey), "Point Address search");
+  if (trace) trace.pointAddressSearch = pad;
+  const streetKey = street.toLocaleLowerCase();
+  const candidates = (Array.isArray(pad?.results) ? pad.results : [])
+    .filter((entry: any) => hasStreetComponents(entry) && validPosition(entry.position))
+    .map((entry: any) => ({
+      entry,
+      sameStreet: string(entry.address.streetName, 180).toLocaleLowerCase() === streetKey,
+      distance: distanceMeters(position, validPosition(entry.position)!),
+    }))
+    .sort((a: any, b: any) => Number(b.sameStreet) - Number(a.sameStreet) || a.distance - b.distance);
+  const best = candidates[0];
+  if (!best || best.distance > 300) return null;
+  // Keep the result's own locality when the point address omits a field.
+  return composeAddress(Object.assign({}, item?.address || {}, best.entry.address));
 }
 Deno.serve(async (req: Request) => {
   if (req.method === "OPTIONS") return new Response(null, { status: 204, headers: headers(req) });
@@ -126,6 +164,20 @@ Deno.serve(async (req: Request) => {
   if (error || !auth.user) return reply(req, { error: "Authentication required" }, 401);
   let body: Record<string, unknown>;
   try { body = await req.json(); } catch { return reply(req, { error: "Invalid JSON" }, 400); }
+  if (body.action === "diagnose") {
+    // Support evidence: the raw TomTom responses for one coordinate pair.
+    const apiKey = Deno.env.get("TOMTOM_API_KEY");
+    if (!apiKey) return reply(req, { error: "not_configured" });
+    const position = validPosition(body.position);
+    if (!position) return reply(req, { error: "position required" }, 400);
+    const trace: Record<string, unknown> = { position };
+    try {
+      trace.resolved = await resolveStreetAddress({ position, address: { streetName: string(body.street, 180) } }, apiKey, trace);
+    } catch (failure) {
+      trace.error = failure instanceof Error ? failure.message : String(failure);
+    }
+    return reply(req, trace);
+  }
   if (body.action !== "autocomplete") return reply(req, { error: "Unsupported action" }, 400);
   const input = string(body.input, 150).replace(/\s+/g, " ");
   if (input.length < 2) return reply(req, { suggestions: [], attribution: "© TomTom" });
@@ -172,6 +224,9 @@ Deno.serve(async (req: Request) => {
           if (address === query) value += 60;
           else if (address.includes(query)) value += 35;
           if (/hungry\s+creek\s+middle\s+school/i.test(normalizedQuery) && /francistown/i.test(address) && /23060/.test(address)) value += 90;
+          const houseNumber = query.match(/^\s*(\d+)\s+(\S+)/);
+          if (houseNumber && string(entry.item?.address?.streetNumber, 40) === houseNumber[1] &&
+            string(entry.item?.address?.streetName, 180).toLocaleLowerCase().startsWith(houseNumber[2])) value += 200;
           const words = normalizedQuery.split(/\s+/).filter(Boolean);
           if (words.length && words.every((word: string) => name.includes(word))) value += 25;
           return value;
@@ -180,25 +235,25 @@ Deno.serve(async (req: Request) => {
       })
       .slice(0, MAX_RESULTS);
 
-    // Only the at-most-six results that lack both street components and have
-    // coordinates incur one reverse-geocoding request each.
-    const suggestions = await Promise.all(ranked.map(async (entry: any) => {
-      const position = validPosition(entry.item?.position);
-      if (hasStreetComponents(entry.item) || !position) return entry.formatted;
-      const reverse = await reverseGeocodeAddress(position, apiKey);
-      return Object.assign({}, entry.formatted, { address: reverse.address, secondary: reverse.secondary });
-    }));
+    // Results without a house number (typically POIs such as schools) are
+    // completed from TomTom's own address data; others pass through.
+    const suggestions = (await Promise.all(ranked.map(async (entry: any) => {
+      if (hasStreetComponents(entry.item)) return entry.formatted;
+      try {
+        const resolved = await resolveStreetAddress(entry.item, apiKey);
+        if (!resolved) return entry.formatted;
+        return Object.assign({}, entry.formatted, { address: resolved.full, secondary: resolved.secondary });
+      } catch (failure) {
+        console.error("Daylight TomTom address completion failure:", failure instanceof Error ? failure.message : String(failure));
+        return entry.formatted;
+      }
+    }))).filter(Boolean);
     const result = { suggestions, attribution: "© TomTom" };
     if (cache.size > 400) cache.clear();
     cache.set(cacheKey, { time: now, result });
     return reply(req, result);
   } catch (failure) {
-    const message = failure instanceof Error ? failure.message : "Unknown TomTom error";
-    if (message.startsWith("TomTom Reverse Geocoding")) {
-      console.error("Daylight TomTom reverse geocoding failure:", message);
-      return reply(req, { error: message }, 502);
-    }
-    console.error("Daylight TomTom Search failure:", failure instanceof Error ? failure.name : "unknown");
+    console.error("Daylight TomTom Search failure:", failure instanceof Error ? failure.message : "unknown");
     return reply(req, { error: "Address suggestions temporarily unavailable" }, 200);
   }
 });

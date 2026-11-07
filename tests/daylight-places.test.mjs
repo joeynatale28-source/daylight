@@ -44,7 +44,7 @@ test('TomTom suggestions preserve the places function contract and keyboard sele
     assert.equal(h.requests.length,1);
     assert.equal(h.requests[0].name,'places');
     assert.equal(h.requests[0].action,'autocomplete');
-    assert.equal(h.requests[0].language,'en');
+    assert.equal(h.requests[0].language,h.w.navigator.language||'en');
     assert.equal(h.w.document.querySelectorAll('[role=option]').length,2);
     assert.match(h.w.document.querySelector('.dl-place-credit').textContent,/TomTom/);
     assert.ok(h.w.document.querySelector('.dl-place-pin svg, svg.dl-place-pin'));
@@ -109,13 +109,21 @@ test('the browser client contains no provider endpoint or API credential',()=>{
 });
 
 
-test('places function reverse geocodes only returned records without street components',()=>{
+test('places function completes only returned records without a full street address',()=>{
   const fn=readFileSync('supabase/functions/places/index.ts','utf8');
-  assert.match(fn,/search\\/2\\/reverseGeocode\\//);
-  assert.match(fn,/hasStreetComponents\\(entry\\.item\\)/);
-  assert.match(fn,/slice\\(0, MAX_RESULTS\\)/);
-  assert.match(fn,/addresses\\?\\.\\[0\\]\\?\\.address/);
+  assert.match(fn,/search\/2\/reverseGeocode\//);
+  assert.match(fn,/hasStreetComponents\(entry\.item\)/);
+  assert.match(fn,/slice\(0, MAX_RESULTS\)/);
+  assert.match(fn,/addresses\?\.\[0\]\?\.address/);
   assert.match(fn,/streetNumber/);
   assert.match(fn,/streetName/);
-  assert.match(fn,/TomTom Reverse Geocoding HTTP/);
+  // Number AND name are both required before a result counts as complete.
+  assert.match(fn,/streetNumber, 40\) && string\(address\.streetName/);
+  // Reverse geocoding errors carry TomTom's HTTP status and body.
+  assert.match(fn,/tomtomJson\(reverseUri\(position, apiKey\), "Reverse Geocoding"\)/);
+  assert.match(fn,/"TomTom " \+ label \+ " HTTP " \+ response\.status/);
+  // Fallback: nearest Point Address on the same street.
+  assert.match(fn,/idxSet", "PAD"/);
+  // A failed completion never fails the whole search.
+  assert.match(fn,/return entry\.formatted;\r?\n      \}\r?\n    \}\)\)\)\.filter\(Boolean\)/);
 });
