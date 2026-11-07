@@ -159,12 +159,11 @@ function install(server:McpServer,c:Caller) {
   },true);
   add('delete_event','Permanently delete event only when owner has enabled AI deletion',{id:z.string()},async(a)=>{
     const {payload,revision}=await doc(c);
-    event(payload,a.id);
-    const {data}=await db.from('user_settings').select('mcp_allow_delete').eq('user_id',c.user_id).maybeSingle();
-    if(!data?.mcp_allow_delete)fail('AI event deletion is disabled in Daylight settings');
+    const target=event(payload,a.id);
     // One database transaction performs the deletion and immutable audit write.
     const {data:out,error}=await db.rpc('daylight_mcp_delete_snapshot_event',{
-      p_owner:c.user_id,p_event_id:a.id,p_token_name:c.name,p_revision:revision
+      p_owner:c.user_id,p_event_id:a.id,p_event_title:String(target.title||'Untitled'),
+      p_token_name:c.name,p_revision:revision
     });
     if(error)throw error;
     return out;

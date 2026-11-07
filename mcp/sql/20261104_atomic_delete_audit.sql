@@ -2,7 +2,7 @@
 -- This function verifies the owner's deletion setting and writes the audit
 -- inside the same transaction as the workspace revision update.
 create or replace function public.daylight_mcp_delete_snapshot_event(
-  p_owner uuid,p_event_id text,p_token_name text,p_revision integer
+  p_owner uuid,p_event_id text,p_event_title text,p_token_name text,p_revision integer
 ) returns jsonb language plpgsql security definer set search_path = ''
 as $$
 declare v_payload jsonb;v_revision integer;v_filtered jsonb;v_removed integer;
@@ -23,8 +23,8 @@ begin
     where user_id=p_owner;
   insert into public.mcp_audit_log(user_id,token_name,tool,action,summary,target_id)
     values(p_owner,left(p_token_name,100),'delete_event','delete',
-       'Deleted snapshot event ID '||left(p_event_id,100),null);
+       'Event: '||left(p_event_title,300),left(p_event_id,100));
   return jsonb_build_object('deleted',true,'id',p_event_id);
 end $$;
-revoke all on function public.daylight_mcp_delete_snapshot_event(uuid,text,text,integer) from public,anon,authenticated;
-grant execute on function public.daylight_mcp_delete_snapshot_event(uuid,text,text,integer) to service_role;
+revoke all on function public.daylight_mcp_delete_snapshot_event(uuid,text,text,text,integer) from public,anon,authenticated;
+grant execute on function public.daylight_mcp_delete_snapshot_event(uuid,text,text,text,integer) to service_role;

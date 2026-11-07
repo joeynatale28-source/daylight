@@ -191,7 +191,12 @@ begin
   if is_write or is_delete then
     update public.workspace_snapshots set payload=payload,revision=revision_number+1,updated_at=now() where user_id=actor;
     insert into public.mcp_workspace_audit(user_id,client_id,tool,target_id,result)
-      values(actor,client,p_tool,coalesce(id_text,output->>'id'),'success');
+      values(actor,client,p_tool,
+        case when p_tool in ('create_event','update_event','delete_event') then output->>'id'
+             else coalesce(output->>'id',id_text) end,
+        case when p_tool in ('create_event','update_event','delete_event')
+             then 'Event: '||left(coalesce(output->>'title',record_item->>'title','Untitled'),300)
+             else 'success' end);
   end if;
   return output;
 end;

@@ -80,12 +80,10 @@ try{
   if(enabled.error)throw enabled.error;
   const deletion=await call(writeConn.client,'delete_event',{id:testEvent});
   check(!deletion.isError,'write token deletes when explicitly enabled');
-  const audit=await admin.from('mcp_audit_log').select('id').eq('user_id',owner)
-    .eq('tool','delete_event').eq('token_name','smoke-write-'+String(writes.id)).limit(1);
-  // Token name is not the UUID; verify audit entry by the event ID summary instead.
-  const auditByEvent=await admin.from('mcp_audit_log').select('id,summary').eq('user_id',owner)
-    .eq('tool','delete_event').ilike('summary','%'+testEvent+'%').limit(1);
+  const auditByEvent=await admin.from('mcp_audit_log').select('id,summary,target_id').eq('user_id',owner)
+    .eq('tool','delete_event').eq('target_id',testEvent).limit(1);
   check(!auditByEvent.error&&!!auditByEvent.data?.length,'atomic deletion audit exists');
+  check(String(auditByEvent.data?.[0]?.summary||'').includes('Temporary MCP smoke event'),'delete activity stores the event title');
   testEvent=undefined;
   const revoke=await admin.from('mcp_tokens').update({revoked:true}).eq('id',reads.id);
   if(revoke.error)throw revoke.error;
