@@ -84,9 +84,9 @@ document.addEventListener("daylight:workspace-signed-out",hideWorkspaceLoading);
 let railTooltipTimer=null,railTooltipNode=null;
 function railControl(target){
  const side=target.closest("#sidebar.rail");if(!side)return null;
- const control=target.closest("button,a,[role=button]");if(!control||!side.contains(control)||control.matches(".cal-menu-btn"))return null;
+ const control=target.closest("button,a,[role=button],.side-row,.cal-row,.sidebar-add-rail,.profile-row");if(!control||!side.contains(control)||control.matches(".cal-menu-btn"))return null;
  let label=control.getAttribute("aria-label")||control.getAttribute("title")||control.dataset.tooltip||"";
- if(!label&&control.matches(".cal-check"))label=control.closest(".cal-row")?.querySelector(".cal-name")?.textContent.trim()||"Calendar visibility";
+ if(!label&&control.matches(".cal-check,.cal-row"))label=control.closest(".cal-row")?.querySelector(".cal-name")?.textContent.trim()||"Calendar visibility";
  if(!label&&control.matches(".side-row"))label=control.textContent.trim();
  if(!label&&control.matches(".sidebar-add-rail"))label="Create";
  if(!label&&control.matches(".brand-row .icon-btn"))label="Expand sidebar";
