@@ -292,17 +292,23 @@
       if (hasRow) {
         result = await client.from('workspace_snapshots')
           .update({payload: JSON.parse(serialized), revision:revision + 1})
-          .eq('user_id', saveUser).eq('revision', revision).select('revision');
+          .eq('user_id', saveUser).eq('revision', revision).select('revision').maybeSingle();
         if (result.error) throw result.error;
-        if (!result.data || result.data.length !== 1) {
-          conflict = true;
-          status('Sync conflict — reload to review', true);
-          toast('Your calendar changed on another device. Reload to review before saving.', {
-            label:'Reload', fn:function () { location.reload(); }
-          });
-          return;
-        }
-        revision = result.data[0].revision;
+        if (!result.data || !Number.isFinite(Number(result.data.revision))) {
+          var latest = await client.from('workspace_snapshots')
+            .select('payload,revision').eq('user_id', saveUser).maybeSingle();
+          if (latest.error) throw latest.error;
+          if (latest.data && JSON.stringify(latest.data.payload) === serialized) {
+            revision = Number(latest.data.revision) || revision;
+          } else {
+            conflict = true;
+            status('Sync conflict — reload to review', true);
+            toast('Your calendar changed on another device. Reload to review before saving.', {
+              label:'Reload', fn:function () { location.reload(); }
+            });
+            return;
+          }
+        } else revision = Number(result.data.revision);
       } else {
         result = await client.from('workspace_snapshots')
           .insert({user_id:saveUser, payload:JSON.parse(serialized), revision:1})
