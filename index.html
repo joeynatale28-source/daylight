@@ -2608,16 +2608,18 @@
         var nodes = view ? Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function (node) {
           return node.getAttribute('data-calendar-id') === id;
         }) : [];
+        function release() { calendarToggleLocks[id] = false; }
         function finish() {
           cal.hidden = nextHidden;
           renderSidebar();
           renderView(false);
           if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
-          calendarToggleLocks[id] = false;
+          release();
         }
-        if (reduce || !nodes.length || !nextHidden) {
+        if (reduce || !nodes.length) { finish(); return; }
+        if (!nextHidden) {
           finish();
-          if (!nextHidden && nodes.length) requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
             var current = document.getElementById('viewWrap');
             if (!current) return;
             Array.from(current.querySelectorAll('[data-calendar-id]')).filter(function (node) {
@@ -2630,8 +2632,11 @@
           return;
         }
         var fades = nodes.map(function (node) {
-          return node.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.99)'}],
-            {duration:115,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'}).finished.catch(function(){});
+          try {
+            var animation = node.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.99)'}],
+              {duration:115,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'});
+            return animation.finished.catch(function(){});
+          } catch (error) { return Promise.resolve(); }
         });
         Promise.all(fades).then(finish).catch(finish);
       }
