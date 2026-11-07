@@ -87,9 +87,10 @@ Deno.serve(async(req:Request)=>{
   const publicRequest=parsed.searchParams.get("public")==="1";
   let cal:any=null,readError:any=null;
   if(publicRequest){
-    const found=await admin.from("calendars").select("id,user_id,name,client_id")
+    const found=await admin.from("calendars").select("id,user_id,name,client_id,share_public_token")
       .eq("id",id).eq("share_public_enabled",true).maybeSingle();
     cal=found.data;readError=found.error;
+    if(!cal||!token||cal.share_public_token!==token)return notFound();
   }else{
     if(!/^[A-Za-z0-9_-]{50,100}$/.test(token))return notFound();
     const tokenHash=await hash(token);
@@ -138,32 +139,34 @@ Deno.serve(async(req:Request)=>{
   return new Response(source,{headers:{...cors,"Content-Type":"text/calendar; charset=utf-8",
    "Content-Disposition":'attachment; filename="'+name+'.ics"',"Cache-Control":"no-store"}});
  }
- let row=await admin.from("calendars").select("id,share_feed_enabled,share_token_prefix,share_public_enabled").eq("user_id",session.user.id).eq("client_id",clientId).maybeSingle();
+ let row=await admin.from("calendars").select("id,share_feed_enabled,share_token_prefix,share_public_enabled,share_public_token").eq("user_id",session.user.id).eq("client_id",clientId).maybeSingle();
  if(row.error)return send({error:"Unable to load share settings"},503);
  if(!row.data){
   const created=await admin.from("calendars").insert({user_id:session.user.id,client_id:clientId,
    name:String(cal.name||"Calendar"),color:"#5b8def",shade:"blue",source_type:"local"})
-   .select("id,share_feed_enabled,share_token_prefix,share_public_enabled").single();
+   .select("id,share_feed_enabled,share_token_prefix,share_public_enabled,share_public_token").single();
   if(created.error)return send({error:"Could not create share settings"},503);
   row=created;
  }
  const id=row.data!.id;
- if(action==="status")return send({calendar_id:id,enabled:row.data!.share_feed_enabled,public_enabled:row.data!.share_public_enabled,public_url:feedBase+encodeURIComponent(id)+"?public=1",prefix:row.data!.share_token_prefix});
+ if(action==="status")return send({calendar_id:id,enabled:row.data!.share_feed_enabled,public_enabled:row.data!.share_public_enabled,public_url:row.data!.share_public_enabled&&row.data!.share_public_token?feedBase+encodeURIComponent(id)+"?public=1&token="+encodeURIComponent(row.data!.share_public_token):null,prefix:row.data!.share_token_prefix});
  if(action==="set-public"){
   if(typeof body.public!=="boolean")return send({error:"Choose Public or Private"},400);
-  const update=await admin.from("calendars").update({share_public_enabled:body.public}).eq("id",id).eq("user_id",session.user.id);
-  return update.error?send({error:"Unable to update calendar privacy"},503):send({public_enabled:body.public,public_url:feedBase+encodeURIComponent(id)+"?public=1"});
+  const publicToken=body.public?generate():null;
+  const update=await admin.from("calendars").update({share_public_enabled:body.public,share_public_token:publicToken}).eq("id",id).eq("user_id",session.user.id);
+  return update.error?send({error:"Unable to update calendar privacy"},503):send({public_enabled:body.public,public_url:publicToken?feedBase+encodeURIComponent(id)+"?public=1&token="+encodeURIComponent(publicToken):null});
  }
  if(action==="disable"){
-  const update=await admin.from("calendars").update({share_feed_enabled:false,share_public_enabled:false,share_token_hash:null,share_token_prefix:null})
+  const update=await admin.from("calendars").update({share_feed_enabled:false,share_public_enabled:false,share_token_hash:null,share_token_prefix:null,share_public_token:null})
    .eq("id",id).eq("user_id",session.user.id);
   return update.error?send({error:"Unable to disable feed"},503):send({enabled:false});
  }
  if(!["enable","reset"].includes(action))return send({error:"Unknown action"},400);
  if(action==="enable"&&row.data!.share_feed_enabled)return send({error:"Already enabled; use Reset link"},409);
  const token=generate(),h=await hash(token);
- const update=await admin.from("calendars").update({share_feed_enabled:true,share_token_hash:h,share_token_prefix:token.slice(0,8)})
+ const publicToken=row.data!.share_public_enabled?generate():row.data!.share_public_token;
+ const update=await admin.from("calendars").update({share_feed_enabled:true,share_token_hash:h,share_token_prefix:token.slice(0,8),share_public_token:publicToken})
   .eq("id",id).eq("user_id",session.user.id);
  if(update.error)return send({error:"Could not save feed token"},503);
- return send({enabled:true,calendar_id:id,prefix:token.slice(0,8),urls:tokenLinks(id,token)});
+ return send({enabled:true,calendar_id:id,prefix:token.slice(0,8),urls:tokenLinks(id,token),public_url:row.data!.share_public_enabled&&publicToken?feedBase+encodeURIComponent(id)+"?public=1&token="+encodeURIComponent(publicToken):null});
 });
