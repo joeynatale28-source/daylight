@@ -2096,6 +2096,7 @@
         while (guard++ < 6000) {
           var cEnd = new Date(cur.getTime() + dur);
           if (cur >= re) break;
+          if (ev.repeatEnd && cur > new Date(ev.repeatEnd)) break;
           if (cEnd > rs && !omitted.has(+cur)) out.push({ ev: ev, start: new Date(cur), end: cEnd });
           if (!frequency) break;
           if (frequency === "weekly") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7, cur.getHours(), cur.getMinutes());
@@ -2883,6 +2884,23 @@
 
       /* ================= Views ================= */
       var viewWrap = document.getElementById("viewWrap");
+        var dragEventId=null,dragOccurrenceStart=null;
+        viewWrap.addEventListener("dragstart",function(e){var chip=e.target.closest(".chip,.dl-continuous-bar");if(!chip||state.section!=="calendar"||state.view!=="month")return;dragEventId=Number(chip.dataset.eventId);dragOccurrenceStart=chip.dataset.occStart||"";if(!dragEventId){e.preventDefault();return}e.dataTransfer.effectAllowed="move";e.dataTransfer.setData("text/plain",String(dragEventId))});
+        viewWrap.addEventListener("dragend",function(){dragEventId=null;dragOccurrenceStart=null});
+        viewWrap.addEventListener("dragover",function(e){if(state.section==="calendar"&&state.view==="month"&&e.target.closest(".day-cell")){e.preventDefault();e.dataTransfer.dropEffect="move"}});
+        viewWrap.addEventListener("drop",function(e){
+          var cell=e.target.closest(".day-cell");if(!cell||!dragEventId)return;e.preventDefault();
+          var ev=state.events.find(x=>Number(x.id)===dragEventId),target=cell.dataset.date;if(!ev||!target)return;
+          var p=target.split("-").map(Number),day=new Date(p[0],p[1]-1,p[2]),occStart=dragOccurrenceStart?new Date(dragOccurrenceStart):new Date(ev.start),delta=sod(day).getTime()-sod(occStart).getTime();
+          function move(scope){
+            if(scope==="only"){var copy=Object.assign({},ev,{id:++uid,uid:ev.uid||("daylight-"+ev.id),recurrenceId:occStart,repeat:null,exdates:[],start:new Date(ev.start.getTime()+delta),end:new Date(ev.end.getTime()+delta)});state.events.push(copy);ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occStart.toISOString())}
+            else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,ev.repeat).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(ev.start.getTime()+delta),end:new Date(ev.end.getTime()+delta),repeatEnd:null}))}
+            else{ev.start=new Date(ev.start.getTime()+delta);ev.end=new Date(ev.end.getTime()+delta)}
+            renderAll(false);toast("Event moved");
+          }
+          if(ev.repeat&&occStart.getTime()!==ev.start.getTime())chooseRepeatScope("Move repeating event","Choose which occurrences to move.",move);else move("all");
+          dragEventId=null;dragOccurrenceStart=null;
+        });
         var monthTouchStart=null;
         viewWrap.addEventListener("touchstart",function(e){if(state.section==="calendar"&&state.view==="month"&&e.touches.length===1)monthTouchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
         viewWrap.addEventListener("touchend",function(e){if(!monthTouchStart||state.section!=="calendar"||state.view!=="month")return;var dx=e.changedTouches[0].clientX-monthTouchStart.x,dy=e.changedTouches[0].clientY-monthTouchStart.y;monthTouchStart=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.25)pageBy(dx<0?1:-1,true)},{passive:true});
@@ -2974,6 +2992,7 @@
                 return a.start - b.start;
               });
               var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"></div>');
+              cell.dataset.date=date.getFullYear()+"-"+pad2(date.getMonth()+1)+"-"+pad2(date.getDate());
               var num = el('<button class="day-num' + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + '" title="' + esc(fmtDateLong(date)) + '">' + calendarDayLabel(date, m) + "</button>");
               num.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null,date); });
               cell.appendChild(num);
@@ -2987,7 +3006,7 @@
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
                 var isStart = sameDay(o.start, date) || colIdx === 0;
-                var chip = el('<button class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
+                var chip = el('<button draggable="true" data-event-id="' + esc(o.ev.id) + '" data-occ-start="' + esc(o.start.toISOString()) + '" class="chip' + seg + '" style="background:' + tintOf(cal) + ";color:" + tintTextOf(cal) + ";box-shadow:" + ribbonOf(cal) + '">' +
                   (isStart || seg === "" ? '<span class="chip-title">' + esc(o.ev.title) + "</span>" + (!o.ev.allDay && !isMultiDay(o) ? '<span class="chip-time">' + fmtEventTime(o.start) + "</span>" : "") : '<span class="chip-title">&nbsp;</span>') +
                   "</button>");
                 chip.setAttribute("data-calendar-id",o.ev.cal);
@@ -3013,7 +3032,7 @@
             var layer=el('<div class="dl-month-span-layer"></div>');
             spans.forEach(function(sp,lane){
               var o=sp.o,cal=calOf(o.ev.cal);
-              var bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
+              var bar=el('<button draggable="true" data-event-id="'+esc(o.ev.id)+'" data-occ-start="'+esc(o.start.toISOString())+'" class="dl-continuous-bar" style="background:'+tintOf(cal)+';color:'+tintTextOf(cal)+';box-shadow:'+ribbonOf(cal)+'">'+esc(o.ev.title)+'</button>');
               var key=String(o.ev.id)+':'+(+o.start);
               bar.dataset.spanKey=key;
               bar.setAttribute("aria-label",o.ev.title);
@@ -3506,23 +3525,39 @@
       }
       /* The popover's "…" overflow menu — kept separate from openMenu()
          because openMenu() closes the popover it would hang from. */
-      function confirmDeleteEvent(ev) {
-        openConfirm({
-          title: "Delete this event?",
-          body: "“" + ev.title + "” will be removed from " + calOf(ev.cal).name + ". This cannot be undone.",
-          confirmLabel: "Delete", danger: true,
-          fn: function () {
-            closePopover();
-            state.events = state.events.filter(function (e) { return e.id !== ev.id; });
-            renderAll(false); toast("Event deleted");
-          }
+      function chooseRepeatScope(title,body,onChoose){
+        var bd=el('<div class="backdrop"><div class="dialog" role="dialog" aria-modal="true" style="width:min(420px,94vw)"><div class="dialog-head"><span class="dialog-title">'+esc(title)+'</span><button class="icon-btn" data-close aria-label="Close">'+icon("x",16)+'</button></div><div class="dialog-body"><p>'+esc(body)+'</p><div class="dl-scope-options"><button class="btn-ghost" data-scope="only">Only this event</button><button class="btn-ghost" data-scope="following">This and following</button><button class="btn-ghost" data-scope="all">All events</button></div></div></div></div>');
+        overlayRoot.appendChild(bd);bd.querySelector('[data-close]').onclick=function(){bd.remove()};
+        bd.querySelectorAll('[data-scope]').forEach(function(b){b.onclick=function(){var v=b.dataset.scope;bd.remove();onChoose(v)}});
+      }
+      function previousRepeatOccurrence(date,frequency){
+        var d=new Date(date);if(frequency==="weekly")d.setDate(d.getDate()-7);else if(frequency==="monthly")d.setMonth(d.getMonth()-1);else if(frequency==="yearly")d.setFullYear(d.getFullYear()-1);else d.setDate(d.getDate()-1);return d;
+      }
+      function confirmDeleteEvent(ev,occ) {
+        var recurring=!!ev.repeat&&occ&&occ.start.getTime()!==ev.start.getTime();
+        function remove(scope){
+          closePopover();
+          if(scope==="only"){ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occ.start.toISOString())}
+          else if(scope==="following")ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();
+          else{var uid=ev.uid;state.events=state.events.filter(function(e){return e!==ev&&(!uid||e.uid!==uid)})}
+          renderAll(false);toast("Event deleted");
+        }
+        if(recurring){chooseRepeatScope("Delete repeating event","Choose which occurrences to delete.",remove);return}
+        openConfirm({title:"Delete this event?",body:"“"+ev.title+"” will be removed from "+calOf(ev.cal).name+". This cannot be undone.",confirmLabel:"Delete",danger:true,fn:function(){remove("all")}});
+      }
+      function editOccurrence(ev,occ){
+        if(!ev.repeat||!occ||occ.start.getTime()===ev.start.getTime()){openEventForm(ev,null,occ||ev);return}
+        chooseRepeatScope("Edit repeating event","Choose which occurrences this change should affect.",function(scope){
+          if(scope==="all"){openEventForm(ev,null,ev);return}
+          var copy=Object.assign({},ev,{id:++uid,start:new Date(occ.start),end:new Date(occ.end),repeat:scope==="only"?null:ev.repeat,recurrenceId:scope==="only"?new Date(occ.start):null,exdates:[],_seriesParentId:ev.id,_seriesScope:scope,_seriesStart:new Date(occ.start)});
+          openEventForm(copy,null,copy);
         });
       }
-      function openPopMenu(anchor, ev) {
+      function openPopMenu(anchor, ev, occ) {
         if (popMenuEl) { closePopMenu(); return; }
         var m = el('<div class="menu" role="menu" style="width:204px"></div>');
         var del = el('<button class="menu-item danger">' + icon("trash", 16) + "<span>Delete event</span></button>");
-        del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev); });
+        del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev,occ); });
         var exportItem = el('<button class="menu-item">' + icon("download",16) + '<span>Export event (.ics)</span></button>');
         exportItem.addEventListener("click",function(){closePopMenu();window.daylightExportEvent(ev);});
         m.appendChild(exportItem);
@@ -3635,11 +3670,11 @@
         var closeB = p.querySelector('[data-act="close"]');
         if (closeB) closeB.addEventListener("click", closePopover);
         var editBtn = p.querySelector('[data-act="edit"]');
-        if (editBtn) editBtn.addEventListener("click", function () { closePopover(); openEventForm(ev, null, occ); });
+        if (editBtn) editBtn.addEventListener("click", function () { closePopover(); editOccurrence(ev,occ); });
         var delBtn = p.querySelector('[data-act="del"]');
-        if (delBtn) delBtn.addEventListener("click", function () { confirmDeleteEvent(ev); });
+        if (delBtn) delBtn.addEventListener("click", function () { confirmDeleteEvent(ev,occ); });
         var moreBtn = p.querySelector('[data-act="more"]');
-        if (moreBtn) moreBtn.addEventListener("click", function () { openPopMenu(moreBtn, ev); });
+        if (moreBtn) moreBtn.addEventListener("click", function () { openPopMenu(moreBtn, ev, occ); });
       }
       /* Event banners are registered from individual WebP files by daylight-banners.js. */
       var BANNER_DATA = Object.create(null);
@@ -3944,6 +3979,11 @@
             src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
+            if(src._seriesParentId){
+              var parent=state.events.find(function(e){return e.id===src._seriesParentId});
+              if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
+              delete src._seriesParentId;delete src._seriesScope;delete src._seriesStart;state.events.push(src);
+            }
             bd.remove(); renderAll(false); toast("Event updated");
           } else {
             var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
