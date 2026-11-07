@@ -2596,6 +2596,7 @@
         pw.querySelector(".profile-row").addEventListener("click", function (e) {
           openMenu(e.currentTarget, [
             { icon: "settings", label: "Settings", fn: function () { openSettings("general"); } },
+            { icon: "lifebuoy", label: "Help center", fn: function () { openHelp(); } },
             { sep: true },
             { icon: "logout", label: "Log out", fn: function () { logOut(); } }
           ], { align: "right", headerHtml:'<div class="account-menu-header"><span class="avatar">'+(window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="">':esc(profileInitials))+'</span><span><strong>'+esc(state.profileName)+'</strong><small>'+esc(window.daylightCloud?.user?.email||"")+'</small></span></div>' });
@@ -2918,9 +2919,7 @@
           hdr.appendChild(back);
         }
         var right = el('<div class="head-right"></div>');
-        /* Three quiet icon buttons only: search (full-screen command
-           palette), Settings, and help. View switching lives in
-           Settings → Default Calendar View. */
+        /* Search, notifications, Settings, and help stay together in the header. */
         var searchBtn = el('<button class="icon-btn" title="Search (Ctrl+K)" aria-label="Search">' + icon("search", 19) + "</button>");
         searchBtn.addEventListener("click", function () { openSearch(); });
         var notificationBtn = el('<button class="icon-btn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">' + icon("bell", 19) + "</button>");
@@ -2950,7 +2949,7 @@
         document.body.appendChild(panel);
         var r=anchor.getBoundingClientRect(),w=320;
         panel.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+"px";
-        panel.style.top=Math.min(window.innerHeight-panel.offsetHeight-8,r.bottom+8)+"px";
+        panel.style.top=Math.max(8,Math.min(window.innerHeight-panel.offsetHeight-8,r.bottom+8))+"px";
         panel.querySelector("button").onclick=closeNotifications;
         notificationPanelEl=panel;notificationPanelAnchor=anchor;anchor.setAttribute("aria-expanded","true");
         document.addEventListener("mousedown",notificationOutside,true);
