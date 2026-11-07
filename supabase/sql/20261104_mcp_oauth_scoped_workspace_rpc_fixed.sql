@@ -1,3 +1,5 @@
+alter table public.mcp_workspace_audit add column if not exists target_title text;
+
 CREATE OR REPLACE FUNCTION public.mcp_workspace_tool(p_tool text, p_args jsonb DEFAULT '{}'::jsonb)
  RETURNS jsonb
  LANGUAGE plpgsql
