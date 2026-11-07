@@ -109,8 +109,8 @@ try{
    'every banner file must be reachable by its subject');
  assert.deepEqual(bannerRouting.cases.filter(test=>test.actual!==test.expected),[],
    'specific event matches and overrides must route to the intended banner');
- const initialSpanCount=await page.$eval('.dl-continuous-bar',bars=>bars.length);
- assert.ok(initialSpanCount>=1,'multi-day continuous bar missing in the initial month render');
+ const initialSpan=await page.$('.dl-continuous-bar');
+ assert.ok(initialSpan,'multi-day continuous bar missing in the initial month render');
  const overflow=await page.evaluate(()=>{
    state.calendars.push({id:'scratch-overflow',name:'Scratch overflow test',color:'gray',hidden:false,subscribed:false,shared:false});
    for(let n=0;n<5;n++)state.events.push({id:950+n,title:'Overflow test '+(n+1),cal:'scratch-overflow',start:new Date(2026,11,9,8+n),end:new Date(2026,11,9,8+n,30),allDay:false,repeat:null,reminder:null});
