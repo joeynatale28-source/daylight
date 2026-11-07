@@ -38,6 +38,27 @@ function reply(req: Request, value: unknown, status = 200) {
 }
 const string = (v: unknown, max = 200) =>
   typeof v === "string" ? v.trim().slice(0, max) : "";
+function isAddressStyleQuery(input: string) {
+  return /\\d/.test(input) || /\\b(?:street|st|road|rd|avenue|ave|boulevard|blvd|drive|dr|lane|ln|court|ct|highway|hwy|route|way)\\b/i.test(input);
+}
+function rankPhotonFeatures(features: any[], input: string) {
+  if (!isAddressStyleQuery(input)) return features;
+  const normalized = input.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+  const number = input.match(/\\b\\d{1,6}[a-z]?\\b/i)?.[0]?.toLowerCase() || "";
+  const tokens = normalized.split(/\\s+/).filter(token => token.length > 1 && token !== number);
+  return features.map((feature, index) => {
+    const prop = feature?.properties || {};
+    const house = string(prop.housenumber, 40).toLowerCase();
+    const street = string(prop.street, 150).toLowerCase();
+    const name = string(prop.name, 200).toLowerCase();
+    const exactNumber = !!number && house === number;
+    const streetMatch = tokens.some(token => street.includes(token));
+    const nameMatch = tokens.some(token => name.includes(token));
+    const score = (exactNumber ? 1000 : 0) + (house ? 200 : 0) +
+      (streetMatch ? 100 : 0) + (nameMatch ? 25 : 0);
+    return { feature, index, score };
+  }).sort((a, b) => b.score - a.score || a.index - b.index).map(item => item.feature);
+}
 function placeFromPhoton(feature: any) {
   const prop = feature?.properties || {};
   const coords = feature?.geometry?.coordinates;
@@ -97,7 +118,7 @@ Deno.serve(async (req: Request) => {
   if (cached && now - cached.time < 30000) return reply(req, cached.result);
   const uri = new URL("https://photon.komoot.io/api/");
   uri.searchParams.set("q", input);
-  uri.searchParams.set("limit", String(MAX_RESULTS));
+  uri.searchParams.set("limit", String(isAddressStyleQuery(input) ? MAX_RESULTS * 4 : MAX_RESULTS));
   uri.searchParams.set("lang", lang);
   const bias = body.bias;
   if (bias && typeof bias === "object") {
@@ -115,7 +136,7 @@ Deno.serve(async (req: Request) => {
     });
     if (!res.ok) throw Error("Photon returned HTTP " + res.status);
     const payload = await res.json();
-    const suggestions = (Array.isArray(payload.features) ? payload.features : [])
+    const suggestions = rankPhotonFeatures(Array.isArray(payload.features) ? payload.features : [], input)
       .map(placeFromPhoton).filter(Boolean).slice(0, MAX_RESULTS);
     const result = { suggestions, attribution: "© OpenStreetMap contributors" };
     if (cache.size > 400) cache.clear();
