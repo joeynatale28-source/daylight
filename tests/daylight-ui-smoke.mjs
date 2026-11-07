@@ -236,7 +236,8 @@ try{
      permission:'default',
      requestPermission:async function(){this.permission='granted';return 'granted'}
    }});
-   openSettings('notifications');
+   openSettings('general');
+   [...document.querySelectorAll('.settings-rail .sr-item')].find(b=>b.textContent.trim()==='Notifications')?.click();
  });
  await page.waitForSelector('#ntBtn',{timeout:2000});
  await page.click('#ntBtn');
