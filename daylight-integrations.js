@@ -98,7 +98,11 @@
     });
     renderAll(false);
   }
+  function subscriptionsSettled(){document.dispatchEvent(new Event('daylight:subscriptions-ready'))}
   async function loadSubscriptions() {
+    try{await refreshSubscriptions()}finally{subscriptionsSettled()}
+  }
+  async function refreshSubscriptions() {
     if(!own())return;
     const uid=cloud.user.id;
     const key='daylight-subscription-cache:'+uid;
@@ -128,7 +132,7 @@
           new Promise((_,reject)=>setTimeout(()=>reject(Error('Feed refresh timeout')),7500))
         ]))).then(results=>{
           if(own()&&cloud.user.id===uid&&results.some(r=>r.status==='fulfilled'&&!r.value.unchanged))
-            loadSubscriptions();
+            refreshSubscriptions();
         });
       }
     }catch(e){console.warn('Subscription refresh failed; cached events remain',e);}
@@ -155,7 +159,28 @@
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
   window.daylightExportCalendar=async function(cal){
-    if(!own()||!cal||cal.builtin||cal.subscribed)return;
+    if(!own()||!cal||cal.subscribed)return;
+    if(cal.builtin&&cal.id==='holidays'){
+      const year=new Date().getFullYear();
+      const holidays=window.daylightHolidaysForYear?.(year);
+      if(!Array.isArray(holidays)){toast('US Holidays export is unavailable. Reload the app and try again.');return}
+      const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');
+      const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+      const dateValue=date=>String(date.getFullYear()).padStart(4,'0')+String(date.getMonth()+1).padStart(2,'0')+String(date.getDate()).padStart(2,'0');
+      const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Daylight//US Holidays//EN','CALSCALE:GREGORIAN','X-WR-CALNAME:US Holidays'];
+      holidays.forEach(event=>{
+        const start=new Date(event.start.getFullYear(),event.start.getMonth(),event.start.getDate());
+        const end=new Date(start);end.setDate(end.getDate()+1);
+        lines.push('BEGIN:VEVENT','UID:'+escapeIcs(event.id)+'@daylight','DTSTAMP:'+stamp,
+          'DTSTART;VALUE=DATE:'+dateValue(start),'DTEND;VALUE=DATE:'+dateValue(end),
+          'SUMMARY:'+escapeIcs(event.title),'END:VEVENT');
+      });
+      lines.push('END:VCALENDAR');
+      download('us-holidays.ics',lines.join('\r\n')+'\r\n');
+      toast('US Holidays exported');
+      return;
+    }
+    if(cal.builtin)return;
     try{
       const ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
       download((cal.name||'calendar').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',ics);
@@ -173,10 +198,75 @@
       toast('Event exported');
     }catch(error){toast(error.message||'Unable to export event');}
   };
+  /* Item 14: Share = one public, read-only link. Off by default. On/Reset
+     mint a new unguessable feed URL (old one dies at once); Off kills it.
+     The link is kept on the calendar (owner's workspace) so it can be copied
+     again later. */
+  window.daylightShareCalendar=function(cal,host){
+    if(!host||!cal||cal.builtin||cal.subscribed||cal.id==='holidays')return;
+    host.innerHTML='<div class="set-group-title">Share</div>'+
+      '<div class="set-row switch-row"><span><span class="sw-label">Public link</span><div class="sw-sub">Anyone with the link can view this calendar — read-only — in daylight or any calendar app.</div></span>'+
+      '<label class="switch"><input type="checkbox" aria-label="Public link"><span class="track"></span><span class="knob"></span></label></div>'+
+      '<div class="dl-cs-public" hidden><div class="dl-cs-link"><input class="text-input" readonly aria-label="Public calendar link"><button type="button" class="btn-primary dl-btn-sm" data-copy>'+icon('copy',14)+' Copy link</button></div>'+
+      '<div class="dl-cs-share-actions"><button type="button" class="btn-ghost dl-btn-sm" data-reset>'+icon('refresh',14)+' Reset link</button></div></div>'+
+      '<p class="dl-cs-note" role="status" aria-live="polite"></p>';
+    const toggle=host.querySelector('input[type="checkbox"]'),area=host.querySelector('.dl-cs-public'),
+      linkInput=area.querySelector('input'),note=host.querySelector('.dl-cs-note');
+    let enabled=false,busy=false;
+    function say(message,isError){note.textContent=message||'';note.classList.toggle('is-error',!!isError)}
+    function remember(url){
+      cal.publicLink=url||'';
+      // The link itself is persisted with the calendar right away.
+      if(window.daylightCloud?.commit&&window.settingsState?.transactionActive){
+        const name=cal.name,color=cal.color,colors=(state.customColors||[]).slice();
+        const original=window.daylightCalendarOriginal&&window.daylightCalendarOriginal(cal);
+        if(original){cal.name=original.name;cal.color=original.color;state.customColors=original.customColors.slice()}
+        window.daylightCloud.commit();
+        cal.name=name;cal.color=color;state.customColors=colors;
+      }else if(window.daylightCloud?.save)window.daylightCloud.save();
+    }
+    function draw(){
+      toggle.checked=enabled;
+      area.hidden=!enabled;
+      linkInput.value=enabled?(cal.publicLink||''):'';
+      area.querySelector('[data-copy]').disabled=!cal.publicLink;
+      if(enabled&&!cal.publicLink)say('This link was created on another device. Reset the link to get a copy you can share.');
+    }
+    async function run(action,pending,done){
+      if(busy)return;busy=true;toggle.disabled=true;area.querySelectorAll('button').forEach(b=>b.disabled=true);
+      say(pending);
+      try{
+        const result=await call('ical-feed',{action,calendar_id:cal.id});
+        enabled=!!result.public_enabled;
+        remember(enabled?(result.url||cal.publicLink):'');
+        draw();say(done);
+      }catch(error){draw();say(error.message||'Something went wrong. Try again.',true)}
+      finally{busy=false;toggle.disabled=false;area.querySelectorAll('button').forEach(b=>b.disabled=false);draw()}
+    }
+    toggle.addEventListener('change',()=>{
+      const next=toggle.checked;toggle.checked=enabled;
+      if(next)run('public-on','Creating a public link…','Public link is on. Anyone with the link can view this calendar.');
+      else run('public-off','Turning off the public link…','Public link is off. The old link no longer works.');
+    });
+    area.querySelector('[data-copy]').addEventListener('click',async()=>{
+      try{await navigator.clipboard.writeText(linkInput.value);say('Link copied.')}
+      catch{linkInput.focus();linkInput.select();say('Couldn’t copy automatically — the link is selected so you can copy it.',true)}
+    });
+    area.querySelector('[data-reset]').addEventListener('click',()=>openConfirm({
+      title:'Reset public link?',body:'The current link stops working immediately and a new link is created. Anyone using the old link will need the new one.',
+      confirmLabel:'Reset link',danger:true,fn:()=>run('public-reset','Creating a new link…','New link created. The previous link no longer works.')
+    }));
+    toggle.disabled=true;say('Checking sharing…');
+    call('ical-feed',{action:'public-status',calendar_id:cal.id}).then(result=>{
+      enabled=!!result.public_enabled;
+      if(!enabled&&cal.publicLink)remember('');
+      draw();say('');toggle.disabled=false;
+    }).catch(error=>{say((error.message||'Couldn’t load sharing')+'.',true);toggle.disabled=true});
+  };
   function feedPane(pane) {
     const existing=pane.querySelector('.set-group');
     if(existing)existing.remove();
-    const g=html('<div class="set-group"><div class="set-group-title">Subscribed calendars</div>'+
+    const g=html('<div class="set-group"><div class="set-group-title">Subscriptions</div>'+
       '<p class="pane-sub">Add new feeds using the + button in the sidebar. Manage existing feeds here.</p>'+
       '<div style="display:flex;gap:8px">'+btn('Refresh subscriptions','subReload')+'</div>'+
       '<div id="subStatus" role="status" style="margin:10px 0"></div><div id="subList"></div></div>');
@@ -294,6 +384,8 @@
         db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary,target_id').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
       ]);
       if(tokens.error)showError(status,tokens.error);
+      if(settings.error)showError(g.querySelector('#mcpDeleteStatus'),settings.error);
+      if(audit.error)showError(status,audit.error);
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
       (tokens.data||[]).forEach(t=>{
         const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
@@ -312,15 +404,21 @@
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
       const history=g.querySelector('#mcpAudit');
       history.innerHTML=Array.from({length:4},()=>'<div class="feed-row dl-ai-skeleton"><span class="fr-url"><i></i><i></i></span></div>').join('');
-      const [{data:legacyAudit},{data:workspaceRow}]=await Promise.all([
+      const [legacyResult,workspaceResult]=await Promise.all([
         db.from('mcp_workspace_audit').select('tool,result,created_at,client_id,target_id')
           .eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75),
         db.from('workspace_snapshots').select('payload').eq('user_id',cloud.user.id).maybeSingle()
       ]);
+      if(legacyResult.error)showError(status,legacyResult.error);
+      if(workspaceResult.error)showError(status,workspaceResult.error);
+      const legacyAudit=legacyResult.data||[],workspaceRow=workspaceResult.data;
       const payload=workspaceRow&&workspaceRow.payload||{};
       const events=Array.isArray(payload.events)?payload.events:[];
       const calendars=Array.isArray(payload.calendars)?payload.calendars:[];
       function resolveAuditTarget(record){
+        const savedSummary=String(record.summary||'').trim();
+        if(/^event:\s*/i.test(savedSummary))return savedSummary;
+        if(/^deleted event:\s*/i.test(savedSummary))return 'Event: '+savedSummary.replace(/^deleted event:\s*/i,'');
         const storedTitle=[record.event_title,record.target_title,record.title,record.name,record.summary]
           .map(value=>String(value||'').trim())
           .find(value=>value&&!/^(?:event|calendar|task|item|record)$/i.test(value));
@@ -341,8 +439,8 @@
         return 'Target ID '+id+' · no title in the audit record or current workspace';
       }
       const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
-        tool:a.tool,action:a.result,created_at:a.created_at,
-        token_name:a.client_id,summary:'',target_id:a.target_id
+        tool:a.tool,action:'success',created_at:a.created_at,
+        token_name:a.client_id,summary:a.result==='success'?'':String(a.result||''),target_id:a.target_id
       }))).map(a=>{
         const resolved=resolveAuditTarget(a);
         return Object.assign({},a,{summary:resolved||a.summary||''});
@@ -351,8 +449,13 @@
         history.innerHTML='';
         merged.slice(0,limit).forEach(a=>{
           const isDelete=String(a.tool).includes('delete');
+          const action=String(a.action||'').trim();
+          const tool=String(a.tool||'');
+          const derivedAction=action&&!/^(?:event|calendar|task|item|record|success)$/i.test(action)
+            ? ({create:'Created',update:'Updated',delete:'Deleted',complete:'Completed'}[action.toLowerCase()]||action)
+            : (/delete/i.test(tool)?'Deleted event':/update/i.test(tool)?'Updated event':/create/i.test(tool)?'Created event':/complete/i.test(tool)?'Completed task':'Viewed');
           const item=html('<div class="feed-row" style="'+(isDelete?'color:var(--danger)':'')+'">'+
-            '<span class="fr-url">'+esc(a.tool)+' · '+esc(a.action)+
+            '<span class="fr-url">'+esc(a.tool)+' · '+esc(derivedAction)+
             '<br><span class="fr-sub">'+esc(a.token_name||'AI client')+' · '+
             esc(a.summary||('Target '+String(a.target_id||'not stored')+' · title unavailable'))+' · '+esc(new Date(a.created_at).toLocaleString())+
             '</span></span></div>');
@@ -522,18 +625,21 @@
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 
   // Reachable before Settings has ever been opened.
-    window.daylightSubscribeDialog=function(){
+    window.daylightSubscribeDialog=function(prefill){
+      prefill=prefill||{};
       const content=html('<div class="dl-subscribe-form">'+
         '<div class="field"><label for="dl-sub-name">Name (optional)</label><input class="text-input" id="dl-sub-name" placeholder="Use the calendar feed name"></div>'+
         '<div class="field"><label for="dl-sub-url">iCal URL</label><input class="text-input" id="dl-sub-url" placeholder="https://example.com/calendar.ics" autocomplete="off"></div>'+
         '<div class="field"><label>Calendar color</label><div class="dl-color-grid" id="dl-sub-colors"></div></div>'+
         '<p class="inline-note" role="status" id="dl-sub-feedback"></p>'+
-        '<div style="display:flex;justify-content:flex-end">'+btn('Subscribe','dl-sub-save','btn-primary')+'</div></div>');
+        '<div style="display:flex;justify-content:flex-end">'+btn(prefill.url?'Add this calendar':'Subscribe','dl-sub-save','btn-primary')+'</div></div>');
       const dlg=modal('Subscribe to a calendar',content);
       let color='teal';
       window.daylightColorPicker(content.querySelector('#dl-sub-colors'),color,k=>{color=k});
       const feedback=content.querySelector('#dl-sub-feedback'),button=content.querySelector('#dl-sub-save');
-      content.querySelector('#dl-sub-url').focus();
+      content.querySelector('#dl-sub-url').value=prefill.url||'';
+      content.querySelector('#dl-sub-name').value=prefill.name||'';
+      if(prefill.url)button.focus();else content.querySelector('#dl-sub-url').focus();
       button.onclick=async()=>{
         let url=content.querySelector('#dl-sub-url').value.trim();
         if(/^webcal:\/\//i.test(url))url='https://'+url.slice(9);
@@ -550,5 +656,19 @@
         }catch(err){showError(feedback,err)}finally{button.disabled=false}
       };
     };
+    /* A shared public link opened from its landing page arrives as
+       #add_calendar=<feed>&calendar_name=<name>; after sign-in (or straight
+       away when signed in) it offers a one-click "Add this calendar". */
+    document.addEventListener('daylight:workspace-ready',function(){
+      const current=new URL(location.href);
+      const hash=new URLSearchParams(current.hash.replace(/^#/,''));
+      const publicFeed=hash.get('add_calendar')||current.searchParams.get('add_public_calendar');
+      if(!publicFeed)return;
+      const name=hash.get('calendar_name')||current.searchParams.get('calendar_name')||'';
+      current.searchParams.delete('add_public_calendar');current.searchParams.delete('calendar_name');
+      history.replaceState(null,'',current.pathname+current.search);
+      if((typeof subscriptionRows!=='undefined'?subscriptionRows:[]).some(row=>String(row.url||row.feed_url||'')===publicFeed)){toast('You already subscribe to this calendar');return}
+      window.daylightSubscribeDialog({url:publicFeed,name});
+    });
 
 })();

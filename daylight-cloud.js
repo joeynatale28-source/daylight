@@ -15,8 +15,9 @@
     : null;
   var user = null, revision = 0, hasRow = false, saving = false;
   var loading = true, recovery = /(?:^|[&#?])type=recovery(?:[&#&]|$)/.test(location.href);
-  var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false;
+  var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false, workspaceRetryTimer = null;
   var lastStatus = '';
+  var committedSerialized = null;
   // Per-user warm snapshot. Cached data is shown only after Supabase
   // authenticates the account, and it never changes the revision baseline.
   function cacheKey(id){return 'daylight-warm-workspace:'+id}
@@ -48,7 +49,24 @@
     get client() { return client; },
     get user() { return user; },
     get ready() { return !!user && !loading && !conflict; },
-    save: function () { changesQueued(); }
+    save: function () { changesQueued(); },
+    /* Save exactly the state at this moment, even while a Settings/calendar
+       transaction stays open for further (preview-only) edits. */
+    commit: function () {
+      if (!user || loading || recovery || conflict) return;
+      try { committedSerialized = JSON.stringify(workspace()); } catch (e) { status('Unable to save', true); return; }
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(saveWorkspace, 0);
+      status('Saving…');
+    },
+    updateProfileMetadata: async function (metadata) {
+      var api = window.daylightCloud, activeClient = api.client, activeUser = api.user;
+      if (!activeClient || !activeUser) throw new Error('Sign in before updating your profile.');
+      var result = await activeClient.auth.updateUser({data:metadata});
+      if (result.error) throw result.error;
+      if (user && result.data && result.data.user && result.data.user.id === user.id) user = result.data.user;
+      return result.data.user;
+    }
   };
   function signature(e) { return JSON.stringify([e.title,e.cal,+e.start,+e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates]); }
   function ensureMeta(e) {
@@ -90,6 +108,8 @@
     state.feeds = [];
     state.profileName = 'Account';
     state.firstName = 'Account';
+    state.avatarUrl = '';
+    state.customColors = [];
     state.view = 'month';
     state.section = 'calendar';
     state.cursor = new Date(BOOT_TODAY);
@@ -145,7 +165,8 @@
       output.push({
         id: id, name: name, color: (PALETTE[item.color] || (typeof item.color === 'string' && /^#[0-9a-f]{6}$/i.test(item.color))) ? item.color : 'blue',
         hidden: !!item.hidden, subscribed: isHoliday || !!item.subscribed,
-        shared: !isHoliday && !!item.shared, builtin: !!isHoliday
+        shared: !isHoliday && !!item.shared, builtin: !!isHoliday,
+        publicLink: !isHoliday && typeof item.publicLink === 'string' && /^https:\/\//.test(item.publicLink) ? item.publicLink : ''
       });
     });
     if (!seen.holidays) {
@@ -222,7 +243,14 @@
     if (typeof settings.reduceMotion === 'boolean') state.reduceMotion = settings.reduceMotion;
     if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
     if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
+    state.avatarUrl = typeof metadata.avatar_url === 'string' && metadata.avatar_url
+      ? metadata.avatar_url
+      : (typeof settings.avatarUrl === 'string' ? settings.avatarUrl : '');
+    state.customColors = Array.isArray(settings.customColors)
+      ? settings.customColors.filter(function (color) { return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color); }).slice(0,30)
+      : [];
     document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
+    state.defaultView = 'month';
     if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) { state.view = settings.defaultView; state.defaultView = settings.defaultView; }
     /* Navigation state is NOT restored (Part 1 + 11.11): a fresh
        load always lands on today in the default view, with today as
@@ -235,8 +263,10 @@
     return {
       version: 2,
       calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId; }).map(function (c) {
-        return { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
+        var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
+        if (c.publicLink) out.publicLink = String(c.publicLink);
+        return out;
       }),
       events: state.events.filter(function (e) { return !e.feedSubscriptionId; }).map(function (e) {
         ensureMeta(e);
@@ -257,7 +287,8 @@
         themeMode:state.themeMode, firstName:state.firstName,
         profileName:state.profileName, sidebarRail:state.sidebarRail,
         reduceMotion:state.reduceMotion, remind15:state.remind15,
-        dailySummary:state.dailySummary
+        dailySummary:state.dailySummary, avatarUrl:state.avatarUrl || '',
+        customColors:Array.isArray(state.customColors)?state.customColors.slice(0,30):[]
       }),
       /* No navigation state is persisted (see the restore note):
          cursor/selected/view/section always start fresh on load. */
@@ -267,8 +298,7 @@
 
   function changesQueued() {
     if (!user || loading || recovery || conflict) return;
-    /* Settings commits are transactional, but calendar edits must never
-       be swallowed merely because a settings pane is currently open. */
+    if (window.settingsState && window.settingsState.transactionActive) return;
     try {
       if (JSON.stringify(workspace()) === lastSaved) return;
     } catch (e) { status('Unable to save', true); return; }
@@ -282,7 +312,9 @@
     if (!user || loading || recovery || conflict) return;
     if (saving) { saveAgain = true; return; }
     var serialized;
-    try { serialized = JSON.stringify(workspace()); }
+    var inTransaction = !!(window.settingsState && window.settingsState.transactionActive);
+    if (inTransaction && !committedSerialized) return; // previews are never saved
+    try { serialized = inTransaction ? committedSerialized : JSON.stringify(workspace()); }
     catch (e) { status('Unable to serialize changes', true); return; }
     if (serialized === lastSaved) { status('Saved'); return; }
     saving = true;
@@ -319,6 +351,7 @@
       }
       if (!user || user.id !== saveUser) return;
       lastSaved = serialized;
+      if (committedSerialized === serialized) committedSerialized = null;
       cacheWorkspace(saveUser,JSON.parse(serialized),revision);
       status('Saved to cloud');
     } catch (error) {
@@ -338,29 +371,28 @@
     }
   }
 
-  async function loadForUser(account) {
+  async function loadForUser(account, retry) {
     if (!account || recovery) return;
-    if (user && user.id === account.id) return;
+    if (user && user.id === account.id && !retry) return;
     var seq = ++sessionSequence;
     loading = true;
     conflict = false;
     clearTimeout(saveTimer);
     user = account;
     status('Loading calendar…');
-    const warmShown=warmWorkspace(account,seq);
-    if(!warmShown){
-      const authRoot=document.getElementById('authRoot');
-      if(authRoot)authRoot.innerHTML='';
-      const appRoot=document.getElementById('app');
-      if(appRoot)appRoot.hidden=false;
-      originalRenderAll(false);
-    }
+    const authRoot=document.getElementById('authRoot');
+    if(authRoot)authRoot.innerHTML='';
+    const appRoot=document.getElementById('app');
+    if(appRoot)appRoot.hidden=false;
     document.dispatchEvent(new Event('daylight:workspace-loading'));
+    const warmShown=warmWorkspace(account,seq);
+    if(!warmShown) originalRenderAll(false);
     try {
       var response = await client.from('workspace_snapshots')
         .select('payload,revision').eq('user_id', account.id).maybeSingle();
       if (response.error) throw response.error;
       if (seq !== sessionSequence) return;
+      clearTimeout(workspaceRetryTimer);
       clearPreviewData();
       state.profileName = accountName(account);
       state.firstName = state.profileName.split(/\s+/)[0];
@@ -383,19 +415,16 @@
     } catch (error) {
       if (seq !== sessionSequence) return;
       console.error('Daylight load failed', error);
-      user = null;
       loading = true;
-      document.body.classList.remove('booting');
-      document.getElementById('app').hidden = true;
-      authState.mode = 'login';
-      renderAuth();
-      toast('Could not load your calendar: ' + (error.message || 'Try again'));
-      status('Unable to load', true);
+      status('Unable to load — retrying…', true);
+      clearTimeout(workspaceRetryTimer);
+      workspaceRetryTimer = setTimeout(function () { loadForUser(account, true); }, 2000);
     }
   }
 
   function showSignedOut() {
     sessionSequence++;
+    clearTimeout(workspaceRetryTimer);
     user = null; hasRow = false; revision = 0; lastSaved = '';
     loading = true; saving = false; saveAgain = false; conflict = false;
     clearTimeout(saveTimer);
@@ -567,12 +596,17 @@
     });
   };
 
-  /* Name is saved in both the workspace and Auth metadata only on Settings Save. */
+  /* Profile metadata is saved only after Settings confirms the transaction. */
   document.addEventListener('daylight:settings-committed', function (e) {
     var nextName = e.detail && e.detail.name;
     var previousName = e.detail && e.detail.previousName;
-    if (!client || !user || !nextName || nextName === previousName) return;
-    client.auth.updateUser({data:{full_name:nextName}}).then(function (result) {
+    var nextAvatar = e.detail && e.detail.avatarUrl;
+    var previousAvatar = e.detail && e.detail.previousAvatarUrl;
+    var updates = {};
+    if (nextName && nextName !== previousName) updates.full_name = nextName;
+    if (nextAvatar !== undefined && nextAvatar !== previousAvatar) updates.avatar_url = nextAvatar || null;
+    if (!client || !user || !Object.keys(updates).length) return;
+    client.auth.updateUser({data:updates}).then(function (result) {
       if (result.error) console.warn('Name metadata update failed:', result.error.message);
       else if (result.data && result.data.user && user && result.data.user.id === user.id)
         user = result.data.user;
