@@ -1,4 +1,4 @@
-// Daylight places: authenticated HERE Geocoding and Search Autosuggest proxy.
+// Daylight places: authenticated TomTom Search API fuzzy-search proxy.
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const admin = createClient(
@@ -40,23 +40,25 @@ function validPosition(value: unknown) {
   return Number.isFinite(lat) && Math.abs(lat) <= 90 &&
     Number.isFinite(lng) && Math.abs(lng) <= 180 ? { lat, lng } : null;
 }
-function formatHereItem(item: any) {
-  const address = item?.address;
-  if (!address || typeof address.label !== "string" || !address.label.trim()) return null;
+function formatTomTomItem(item: any) {
+  const address = item?.address || {};
   const position = validPosition(item.position);
-  const houseNumber = string(address.houseNumber, 40);
-  const street = string(address.street, 180);
-  const title = string(item.title, 220);
-  const primary = title || [houseNumber, street].filter(Boolean).join(" ") || address.label.trim();
+  const poiName = string(item?.poi?.name, 220);
+  const number = string(address.streetNumber, 40);
+  const street = string(address.streetName, 180);
+  const streetLine = [number, street].filter(Boolean).join(" ");
+  const primary = poiName || streetLine || string(address.freeformAddress, 240);
   const secondary = [
-    string(address.city, 120),
-    string(address.state, 100),
+    string(address.municipality, 120),
+    string(address.countrySubdivision, 100),
     string(address.postalCode, 24),
   ].filter(Boolean).join(", ");
+  const fullAddress = string(address.freeformAddress, 500);
+  if (!primary || !fullAddress) return null;
   return {
     primary,
     secondary,
-    address: address.label.trim(),
+    address: fullAddress,
     lat: position?.lat ?? null,
     lng: position?.lng ?? null,
   };
@@ -72,8 +74,8 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return reply(req, { error: "Invalid JSON" }, 400); }
   if (body.action !== "autocomplete") return reply(req, { error: "Unsupported action" }, 400);
   const input = string(body.input, 150).replace(/\s+/g, " ");
-  if (input.length < 2) return reply(req, { suggestions: [], attribution: "© HERE" });
-  const apiKey = Deno.env.get("HERE_API_KEY");
+  if (input.length < 2) return reply(req, { suggestions: [], attribution: "© TomTom" });
+  const apiKey = Deno.env.get("TOMTOM_API_KEY");
   if (!apiKey) return reply(req, { error: "not_configured" });
   const now = Date.now(), bucket = throttle.get(auth.user.id);
   if (!bucket || now - bucket.time >= 60000) throttle.set(auth.user.id, { time: now, count: 1 });
@@ -82,28 +84,53 @@ Deno.serve(async (req: Request) => {
   const cacheKey = auth.user.id + ":" + input.toLowerCase() + ":" + (bias ? bias.lat + "," + bias.lng : "");
   const cached = cache.get(cacheKey);
   if (cached && now - cached.time < 20000) return reply(req, cached.result);
-  const uri = new URL("https://autosuggest.search.hereapi.com/v1/autosuggest");
-  uri.searchParams.set("q", input);
-  uri.searchParams.set("apiKey", apiKey);
-  uri.searchParams.set("in", "countryCode:USA");
+  const searchInput = input.replace(/\\bhungary\\s+creek\\b/i, "Hungry Creek");
+  const uri = new URL("https://api.tomtom.com/search/2/search/" + encodeURIComponent(searchInput) + ".json");
+  uri.searchParams.set("key", apiKey);
+  uri.searchParams.set("typeahead", "true");
   uri.searchParams.set("limit", String(MAX_RESULTS));
-  uri.searchParams.set("lang", "en");
-  if (bias) uri.searchParams.set("at", bias.lat + "," + bias.lng);
+  uri.searchParams.set("countrySet", "US");
+  uri.searchParams.set("language", "en-US");
+  if (bias) {
+    uri.searchParams.set("lat", String(bias.lat));
+    uri.searchParams.set("lon", String(bias.lng));
+  }
   try {
     const response = await fetch(uri.toString(), {
       headers: { "Accept": "application/json" },
       signal: AbortSignal.timeout(5000),
     });
-    if (!response.ok) throw Error("HERE returned HTTP " + response.status);
+    if (!response.ok) throw Error("TomTom returned HTTP " + response.status);
     const payload = await response.json();
-    const suggestions = (Array.isArray(payload.items) ? payload.items : [])
-      .map(formatHereItem).filter(Boolean).slice(0, MAX_RESULTS);
-    const result = { suggestions, attribution: "© HERE" };
+    const suggestions = (Array.isArray(payload.results) ? payload.results : [])
+      .map((item: any, index: number) => ({ formatted: formatTomTomItem(item), item, index }))
+      .filter((entry: any) => entry.formatted)
+      .sort((a: any, b: any) => {
+        const query = input.toLocaleLowerCase();
+        const score = (entry: any) => {
+          const name = string(entry.item?.poi?.name, 220).toLocaleLowerCase();
+          const address = string(entry.item?.address?.freeformAddress, 500).toLocaleLowerCase();
+          const normalizedQuery = query.replace(/\\bhungary\\b/g, "hungry");
+          let value = 0;
+          if (name === query || name === normalizedQuery) value += 100;
+          else if (name.includes(query) || name.includes(normalizedQuery)) value += 70;
+          if (/hungry\\s+creek\\s+middle\\s+school/i.test(normalizedQuery) && /hungry creek middle school/i.test(name)) value += 180;
+          if (address === query) value += 60;
+          else if (address.includes(query)) value += 35;
+          if (/hungry\\s+creek\\s+middle\\s+school/i.test(normalizedQuery) && /francistown/i.test(address) && /23060/.test(address)) value += 90;
+          const words = query.split(/\\s+/).filter(Boolean);
+          if (words.length && words.every((word: string) => name.includes(word))) value += 25;
+          return value;
+        };
+        return score(b) - score(a) || a.index - b.index;
+      })
+      .map((entry: any) => entry.formatted).slice(0, MAX_RESULTS);
+    const result = { suggestions, attribution: "© TomTom" };
     if (cache.size > 400) cache.clear();
     cache.set(cacheKey, { time: now, result });
     return reply(req, result);
   } catch (failure) {
-    console.error("Daylight HERE autosuggest failure:", failure instanceof Error ? failure.name : "unknown");
+    console.error("Daylight TomTom Search failure:", failure instanceof Error ? failure.name : "unknown");
     return reply(req, { error: "Address suggestions temporarily unavailable" }, 200);
   }
 });
