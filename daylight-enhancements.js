@@ -27,8 +27,8 @@ style.textContent=`
 .dl-color-modal .dialog-body{display:grid;gap:10px}
 .dl-color-modal .dialog-body .field{margin:0}
 .month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.month-grid{flex:1 1 auto;min-height:0;height:auto;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(105px,1fr))}
-.month-week{min-height:105px;height:auto;overflow:visible}
+.month-grid{flex:1 1 auto;min-height:0;height:100%;overflow:hidden;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(0,1fr))}
+.month-week{min-height:0;height:100%;overflow:hidden}
 .day-cell{min-height:0;overflow:hidden}
 .cell-events{min-height:0;overflow:hidden}
 .agenda-cal-name{font-weight:600;color:var(--muted)}
@@ -75,6 +75,8 @@ function showWorkspaceLoading(){
 function hideWorkspaceLoading(){
  clearTimeout(workspaceLoadingTimer);workspaceLoadingTimer=null;
  document.body.classList.remove("workspace-loading-visible");
+ const shell=document.getElementById("dlWorkspaceSkeleton");
+ if(shell)shell.remove();
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
 document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
