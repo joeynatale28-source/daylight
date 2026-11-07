@@ -101,8 +101,9 @@ test('temporary suggestion failures preserve free-text locations',async()=>{
     assert.equal(h.w.document.querySelector('.dl-place-state').textContent,'Address search is temporarily unavailable');
   }finally{h.dispose();}
 });
-test('the browser client contains no HERE key or geocoding provider endpoint',()=>{
+test('the browser client contains no provider endpoint or API credential',()=>{
   assert.equal(source.includes('HERE_API_KEY'),false);
-  assert.equal(source.includes('autosuggest.search.hereapi.com'),false);
-  assert.equal(/photon|komoot|openstreetmap/i.test(source),false);
+  assert.equal(source.includes('search.hereapi.com'),false);
+  assert.equal(source.includes('apiKey'),false);
+  assert.equal(source.includes('https://'),false);
 });
