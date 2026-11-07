@@ -1,4 +1,4 @@
-/* HERE Autosuggest address suggestions for Daylight. */
+/* TomTom Search API address suggestions for Daylight. */
 (function(){
 'use strict';
 let instance=0;
@@ -11,7 +11,7 @@ function makePin(){
  svg.append(path,circle);return svg;
 }
 window.daylightAttachPlaces=function(input,draft,dirty){
- if(!input||input.dataset.hereAttached)return;
+ if(!input||input.dataset.tomtomAttached)return;
  input.dataset.hereAttached='yes';input.autocomplete='off';
  input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','false');
  const parent=input.closest('.field')||input.parentElement;
@@ -73,7 +73,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
    button.addEventListener('pointerleave',()=>{if(active===index)highlight(-1,false)});
    list.append(button);
   });
-  const credit=document.createElement('div');credit.className='dl-place-credit';credit.textContent='© HERE';list.append(credit);
+  const credit=document.createElement('div');credit.className='dl-place-credit';credit.textContent='© TomTom';list.append(credit);
   list.hidden=!results.length;input.setAttribute('aria-expanded',String(!!results.length));
  }
  function showLoading(){
@@ -102,7 +102,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
     const result=await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(Error('timeout')),5500))]);
     if(seq!==request||!input.isConnected)return;
     if(result.error)throw Error('Address search unavailable');
-    if(result.data?.error==='not_configured'||result.data?.error==='HERE_API_KEY is not configured'){
+    if(result.data?.error==='not_configured'||result.data?.error==='TOMTOM_API_KEY is not configured'){
      results=[];row("Address search isn't set up yet",'quiet');return;
     }
     if(result.data?.error)throw Error('Address search unavailable');
