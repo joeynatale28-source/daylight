@@ -54,17 +54,22 @@ try{
  await page.waitForSelector('#authScreen',{timeout:5000});
  for(const theme of ['dark','light']){
    await page.evaluate(theme=>{state.themeMode=theme;applyTheme()},theme);
-   const mark=await page.evaluate(()=>{
+   const mark=await page.evaluate(theme=>{
      const root=document.querySelector('.auth-brand-mark');
      const light=root?.querySelector('.daylight-mark-light');
      const dark=root?.querySelector('.daylight-mark-dark');
+     const style=n=>n?getComputedStyle(n).display:'none';
      return {present:!!root,light:light?.getAttribute('src'),dark:dark?.getAttribute('src'),
-       loaded:[!!light?.complete&&light.naturalWidth>0,!!dark?.complete&&dark.naturalWidth>0]};
-   });
+       loaded:[!!light?.complete&&light.naturalWidth>0,!!dark?.complete&&dark.naturalWidth>0],
+       displays:[style(light),style(dark)],visibleWidths:[light?.getBoundingClientRect().width||0,dark?.getBoundingClientRect().width||0]};
+   },theme);
    assert.ok(mark.present,'sign-in brand mark missing');
    assert.equal(mark.light,'./assets/sun-arc-light.png');
    assert.equal(mark.dark,'./assets/sun-arc-dark.png');
-   assert.deepEqual(mark.loaded,[true,true],'both theme-specific sign-in assets must load');
+   assert.deepEqual(mark.loaded,[true,true],'both sign-in logo files must load');
+   assert.equal(mark.displays[theme==='dark'?0:1],'none','inactive theme mark must be hidden');
+   assert.ok(mark.visibleWidths[theme==='dark'?1:0]>0,'active theme mark must render');
+ 
    await page.screenshot({path:path.join(out,'signin-'+theme+'.png')});
  }
  await page.evaluate(()=>{
