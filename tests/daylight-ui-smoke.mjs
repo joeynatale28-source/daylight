@@ -149,10 +149,11 @@ try{
    'specific event matches and overrides must route to the intended banner');
  const initialSpan=await page.$('.dl-continuous-bar');
  assert.ok(initialSpan,'multi-day continuous bar missing in the initial month render');
- const overflow=await page.evaluate(()=>{
+ const overflow=await page.evaluate(async()=>{
    state.calendars.push({id:'scratch-overflow',name:'Scratch overflow test',color:'gray',hidden:false,subscribed:false,shared:false});
    for(let n=0;n<5;n++)state.events.push({id:950+n,title:'Overflow test '+(n+1),cal:'scratch-overflow',start:new Date(2026,11,9,8+n),end:new Date(2026,11,9,8+n,30),allDay:false,repeat:null,reminder:null});
    state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
+   await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
    const cell=[...document.querySelectorAll('.day-cell')].find(n=>n.dataset.date==='2026-12-09');
    const more=cell?.querySelector('.more-link'),label=more?.textContent||'';
    more?.click();
