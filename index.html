@@ -264,6 +264,9 @@
       .sidebar-add-rail:hover { background: var(--create-hover); }
       .icon-btn:hover { background: var(--hover); color: var(--text); }
       .brand-row .icon-btn { margin-left: auto; }
+      #sidebar.rail .brand-row #collapseBtn { display:none; }
+      #sidebar.rail .brand-row .logo-tile { display:flex!important; }
+      #sidebar.rail .rail-expand-bottom { margin-top:auto; }
       #sidebar.rail .brand-row .icon-btn { margin-left: 0; }
 
       /* Mini calendar — Google Calendar's model: month name left, two
@@ -462,7 +465,7 @@
       .dow-cell { padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
       .month-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; align-content: stretch; }
       .month-grid .month-week { min-height: 0; }
-      @media (max-height:680px) { .month-grid { grid-template-rows: repeat(6, minmax(82px, 1fr)); } .month-grid .month-week { min-height:82px; } }
+      @media (max-height:680px) { .month-grid { grid-template-rows: repeat(6, minmax(0, 1fr)); } .month-grid .month-week { min-height:0; } }
       .day-cell > .cell-add { position:absolute; top:6px; right:7px; z-index:2; }
       .month-week { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line-soft); min-height: 0; height: 100%; }
       .month-week.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
@@ -2555,7 +2558,7 @@
           sidebarEl.appendChild(list);
         }
         if (true) {
-          var subLabel = el('<div class="side-label rail-hide"><span>Subscribe and share calendars</span></div>');
+          var subLabel = el('<div class="side-label rail-hide"><span>Subscriptions</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
           var addSubscription = el('<button class="side-label-btn add" title="Subscribe by URL" aria-label="Subscribe by URL">' + icon("plus",16) + '</button>');
           addSubscription.addEventListener("click",function(){window.daylightSubscribeDialog();});
@@ -2575,6 +2578,7 @@
         if (!state.sidebarRail) sidebarEl.appendChild(el('<div class="side-label rail-hide"><span>Support</span></div>'));
         var help = el('<button class="side-row" title="Help center">' + icon("lifebuoy", 18) + '<span class="rail-hide">Help center</span></button>');
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
+        if(state.sidebarRail){var expandBottom=el('<button class="side-row rail-expand-bottom" title="Expand sidebar" aria-label="Expand sidebar">' + icon("expand",18) + '</button>');expandBottom.addEventListener("click",function(){state.sidebarRail=false;renderSidebar()});sidebarEl.appendChild(expandBottom);}
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("general"); });
 
@@ -2590,8 +2594,6 @@
         pw.querySelector(".profile-row").addEventListener("click", function (e) {
           openMenu(e.currentTarget, [
             { icon: "settings", label: "Settings", fn: function () { openSettings("general"); } },
-            { icon: effectiveTheme() === "dark" ? "sun" : "moon", label: effectiveTheme() === "dark" ? "Light theme" : "Dark theme", fn: function () { state.themeMode = effectiveTheme() === "dark" ? "light" : "dark"; applyTheme(); renderAll(false); } },
-            { icon: "lifebuoy", label: "Help center", fn: openHelp },
             { sep: true },
             { icon: "logout", label: "Log out", fn: function () { logOut(); } }
           ], { align: "right" });
@@ -4355,10 +4357,10 @@
         if (sub) pane.appendChild(el('<p class="pane-sub">' + esc(sub) + "</p>"));
       }
       function paneGeneral(pane, closeSettings) {
-        paneHead(pane, "General", "The basics of your daylight account.");
+        paneHead(pane, "Profile", "Your daylight account and personal details.");
         var g = el('<div class="set-group"><div class="set-group-title">Profile</div>' +
           '<div class="field"><label for="gsName">First name</label><input class="text-input" id="gsName" style="max-width:300px" value="' + esc(state.firstName) + '"><p class="inline-note">Shown in your profile and account details.</p></div>' +
-          '<div class="field"><label>Email</label><input class="text-input" style="max-width:300px" value="joeynatale28@gmail.com" disabled><p class="inline-note">The email you sign in with. It cannot be changed here.</p></div></div>');
+          '<div class="field"><label>Email</label><input class="text-input" style="max-width:300px" value="' + esc(window.daylightCloud?.user?.email || "") + '" disabled><p class="inline-note">The email you sign in with. It cannot be changed here.</p></div></div>');
         pane.appendChild(g);
         var nameIn = g.querySelector("#gsName");
         nameIn.addEventListener("input", function () {
@@ -4518,7 +4520,7 @@
           '<div class="set-row switch-row"><span><span class="sw-label">Browser notifications</span><div class="sw-sub" id="ntStatus">' +
           (status === "granted" ? "Notifications are on for this browser." : status === "denied" ? "Notifications are blocked in this browser's settings." : status === "unsupported" ? "This browser does not support notifications." : "Notifications are not turned on yet.") +
           '</div></span><button class="btn-ghost" id="ntBtn">Enable notifications</button></div>' +
-          '<div class="set-row switch-row"><span><span class="sw-label">Remind me 15 minutes before</span><div class="sw-sub">A heads-up shortly before each timed event starts.</div></span>' + switchHTML("nt15", state.remind15 !== false) + "</div>" +
+          '<div class="set-row"><span><span class="sw-label">Event reminders</span><div class="sw-sub">Event reminders use Calendar’s default reminder.</div></span></div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Notification sound</span><div class="sw-sub">Play a soft chime when a reminder lands.</div></span>' + switchHTML("ntSound", state.notifSound) + "</div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Daily summary</span><div class="sw-sub">One notification with everything on the day ahead.</div></span>' + switchHTML("ntDaily", !!state.dailySummary) + "</div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Summary time</span><div class="sw-sub">When the daily summary is delivered.</div></span>' + selectHTML("ntSummary", [], state.summaryTime, "xs") + "</div></div>");
@@ -4527,7 +4529,6 @@
         ddSetOptions(sumSel, minuteOptionList(30), state.summaryTime);
         sumSel.addEventListener("change", function () { state.summaryTime = +sumSel.value; });
         g.querySelector("#ntSound").addEventListener("change", function (e) { state.notifSound = e.target.checked; });
-        g.querySelector("#nt15").addEventListener("change", function (e) { state.remind15 = e.target.checked; });
         g.querySelector("#ntDaily").addEventListener("change", function (e) { state.dailySummary = e.target.checked; });
         var gq = el('<div class="set-group"><div class="set-group-title">Quiet hours</div>' +
           setRowHTML("Quiet hours", "Hold notifications during the hours below. They are delivered when quiet hours end.", switchHTML("ntQuiet", state.quietEnabled)) +

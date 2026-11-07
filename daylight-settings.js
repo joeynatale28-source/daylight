@@ -59,7 +59,7 @@
     css.textContent = [
       ".settings-dialog{position:relative;overflow:hidden;border-radius:var(--r-xl)}",
       ".settings-pane{position:relative;isolation:isolate;padding-bottom:104px;overflow-y:auto;min-height:0}",
-      ".settings-savebar{position:absolute;left:calc(50% + 100px);right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
+      ".settings-savebar{position:absolute;left:50%;right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-pop)!important;isolation:isolate}",
       ".settings-savebar[hidden]{display:none!important}",
       ".settings-savebar:not([hidden]){animation:settingsPillIn 190ms cubic-bezier(0.23,1,0.32,1)}",
@@ -67,7 +67,14 @@
       ".settings-savebar .savebar-actions{display:flex;align-items:center;gap:6px;flex-shrink:0;margin-left:auto}",
       ".settings-savebar button{border:0;border-radius:999px;font:inherit;padding:8px 13px;white-space:nowrap;cursor:pointer}",
       ".settings-savebar button[data-discard]{color:var(--muted);background:var(--gray-2)}",
-      ".settings-savebar button[data-save]{color:var(--on-accent);background:var(--accent)}",
+      ".settings-savebar button[data-save]{color:var(--on-accent);background:var(--accent);transition:background 160ms cubic-bezier(0.23,1,0.32,1)}",
+      ".settings-savebar button[data-save].is-saved{background:#16834b;color:#fff}",
+      ".settings-savebar button[data-save] svg{width:15px;height:15px;vertical-align:-3px;margin-left:5px;overflow:visible}",
+      ".settings-savebar button[data-save] svg path{stroke-dasharray:24;stroke-dashoffset:24;animation:settingsCheck 300ms cubic-bezier(0.23,1,0.32,1) forwards}",
+      "@keyframes settingsCheck{to{stroke-dashoffset:0}}",
+      ".settings-close{position:absolute!important;top:16px;right:18px;width:40px!important;height:40px!important;min-width:40px;min-height:40px;z-index:30;border-radius:50%;cursor:pointer}",
+      ".settings-close:hover{background:var(--hover)!important;color:var(--text)!important}",
+      ".settings-close:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
@@ -134,19 +141,18 @@
       overlayRoot.appendChild(confirm);
       var dismiss = function(){ if(window.daylightExit)window.daylightExit(confirm);else confirm.remove(); };
       confirm.querySelector("[data-keep]").addEventListener("click",dismiss);
-      confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){ dismiss();finish(false); });
+      confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){ dismiss();restore(original);renderAll(false);drawPane();markDirty(); });
       confirm.addEventListener("mousedown",function(e){if(e.target===confirm)dismiss();});
       confirm.querySelector("[data-keep]").focus();
     }
 
     [
-      ["general", "sliders", "General"],
+      ["general", "user", "Profile"],
       ["appearance", "droplet", "Appearance"],
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
-      ["shortcuts", "keyboard", "Shortcuts"],
       ["ai", "settings", "AI access"],
-      ["about", "info", "About"]
+      ["shortcuts", "keyboard", "Shortcuts"]
     ].forEach(function (s) {
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
         icon(s[1], 17) + "<span>" + s[2] + "</span></button>");
@@ -164,7 +170,13 @@
     bd.appendChild(dlg);
     overlayRoot.appendChild(bd);
 
-    bar.querySelector("[data-save]").addEventListener("click", function () { finish(true); });
+    bar.querySelector("[data-save]").addEventListener("click", function () {
+      var saveButton=bar.querySelector("[data-save]");if(saveButton.disabled)return;
+      saveButton.disabled=true;saveButton.classList.add("is-saved");
+      saveButton.innerHTML='Save changes <svg viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="m4 10 4 4 8-9" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+      saveButton.setAttribute("aria-label","Saved");
+      setTimeout(function(){bar.style.transition="opacity 150ms cubic-bezier(0.23,1,0.32,1),transform 150ms cubic-bezier(0.23,1,0.32,1)";bar.style.opacity="0";bar.style.transform="translate(-50%,6px)";setTimeout(function(){finish(true);},160);},650);
+    });
     bar.querySelector("[data-discard]").addEventListener("click", function () {
       if (!isDirty() || document.getElementById("dlSettingsDiscardConfirm")) return;
       var confirm = el('<div class="backdrop" id="dlSettingsDiscardConfirm"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="Discard changes?" style="width:min(400px,92vw)"><div class="dialog-head"><span class="dialog-title">Discard changes?</span></div><div class="dialog-body"><p>Unsaved settings changes will be lost.</p></div><div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-primary" data-confirm-discard>Discard changes</button></div></div></div>');
@@ -195,7 +207,7 @@
       var fn = {
         general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        ai: window.daylightAiPane, about: paneAbout
+        ai: window.daylightAiPane
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);

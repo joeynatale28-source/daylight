@@ -32,7 +32,7 @@ style.textContent=`
 .day-cell{min-height:0;overflow:hidden}
 .cell-events{min-height:0;overflow:visible}
 .agenda-cal-name{font-weight:600;color:var(--muted)}
-@media(max-height:680px){.month-grid{grid-template-rows:repeat(6,minmax(82px,1fr))}.month-week{min-height:82px}}
+@media(max-height:680px){.month-grid{grid-template-rows:repeat(6,minmax(0,1fr))}.month-week{min-height:0}}
 @media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
 `;
