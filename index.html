@@ -456,15 +456,14 @@
       .mini-anim-prev { animation: viewFade 160ms var(--ease-out); }
 
       /* ---------- Month view ---------- */
-      .month-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
-      .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); }
+      .month-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+      .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); flex: none; }
       .dow-row.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
       .dow-cell { padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-      .month-grid { flex: 1 1 auto; min-height: 0; height: 100%; display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); overflow: hidden; overscroll-behavior: contain; }
-      .day-cell { min-height:0; }
+      .month-grid { flex: 1 1 auto; min-height: 0; display: grid; grid-template-rows: repeat(6, minmax(82px, 1fr)); overflow-x: hidden; overflow-y: auto; overscroll-behavior: contain; scrollbar-gutter: stable; align-content: stretch; }
+      .month-grid .month-week { min-height: 82px; }
       .day-cell > .cell-add { position:absolute; top:6px; right:7px; z-index:2; }
-      .day-cell > .cell-events { margin-top:0; }
-      .month-week { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line-soft); min-height: 0; }
+      .month-week { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line-soft); min-height: 0; height: 100%; }
       .month-week.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
       .month-week:last-child { border-bottom: none; }
       .wn-cell { display: flex; align-items: flex-start; justify-content: center; padding-top: 9px; font-size: 11px; color: var(--faint); border-right: 1px solid var(--line-soft); }
@@ -498,7 +497,8 @@
         .cell-add { display: inline-flex; opacity: 0; }
         .day-cell:hover .cell-add, .cell-add:focus-visible { opacity: 1; }
       }
-      .cell-events { margin-top: 3px; display: flex; flex-direction: column; gap: 3px; min-height: 0; }
+      .cell-events { margin-top: 4px; display: flex; flex-direction: column; gap: 3px; min-height: 0; }
+      .more-link[hidden] { display: none !important; }
       /* Event blocks — Cron/Notion Calendar model: ~10% tint fill of the
          calendar colour, a 4px solid left ribbon (set inline per event),
          4px radius, and a full solid fill while the event is selected
@@ -3039,12 +3039,12 @@
               add.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null, date); });
               cell.appendChild(add);
               var evBox = el('<div class="cell-events"></div>');
-              if(spans.length)evBox.style.paddingTop=spans.length*25+"px";
-              var monthRowHeight = Math.max(0, (window.innerHeight - 225) / 6);
-              var chipRoom = monthRowHeight - 34 - spans.length * 25 - 7;
-              var MAX = Math.max(0, Math.min(window.innerWidth <= 700 ? 3 : 6, Math.floor(chipRoom / 22)));
-              if (state.density === "compact" && MAX > 0) MAX = Math.min(6, MAX + 1);
-              dayOccs.slice(0, MAX).forEach(function (o) {
+              var laneForCell=-1;
+              spans.forEach(function(span,lane){
+                if(span.first<=colIdx&&span.last>=colIdx)laneForCell=Math.max(laneForCell,lane);
+              });
+              if(laneForCell>=0)evBox.style.paddingTop=(laneForCell+1)*25+"px";
+              dayOccs.forEach(function (o) {
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
                 var isStart = sameDay(o.start, date) || colIdx === 0;
@@ -3056,8 +3056,8 @@
                 chip.addEventListener("click", function (e) { openPopover(o, chip); e.stopPropagation(); });
                 evBox.appendChild(chip);
               });
-              if (dayOccs.length > MAX) {
-                var more = el('<button class="more-link">+' + (dayOccs.length - MAX) + " more</button>");
+              if (dayOccs.length) {
+                var more = el('<button class="more-link" hidden></button>');
                 more.addEventListener("click", function (e) { e.stopPropagation(); drillToDay(date); });
                 evBox.appendChild(more);
               }
@@ -3096,7 +3096,42 @@
           grid.appendChild(row);
         }
         wrap.appendChild(grid);
+        requestAnimationFrame(function(){observeMonthChipLayout(grid);});
         return wrap;
+      }
+
+      var monthChipObserver=null;
+      function fitMonthChipCounts(grid){
+        if(!grid||!grid.isConnected)return;
+        grid.querySelectorAll(".day-cell").forEach(function(cell){
+          var box=cell.querySelector(".cell-events");if(!box)return;
+          var chips=Array.from(box.querySelectorAll(".chip")),more=box.querySelector(".more-link");
+          if(!chips.length){if(more)more.hidden=true;return;}
+          chips.forEach(function(chip){chip.hidden=false;});
+          var cr=cell.getBoundingClientRect(),br=box.getBoundingClientRect(),cs=getComputedStyle(cell),bs=getComputedStyle(box);
+          var available=Math.max(0,cr.bottom-(parseFloat(cs.paddingBottom)||0)-br.top);
+          var gap=parseFloat(bs.rowGap||bs.gap)||3,moreHeight=0;
+          if(more){more.hidden=false;moreHeight=more.getBoundingClientRect().height||18;more.hidden=true;}
+          var heights=chips.map(function(chip){return chip.getBoundingClientRect().height||24;});
+          var count=0,used=0;
+          for(var i=0;i<chips.length;i++){
+            var next=used+(count?gap:0)+heights[i];
+            if(next+(i<chips.length-1?gap+moreHeight:0)<=available+0.5){count++;used=next;}else break;
+          }
+          chips.forEach(function(chip,i){chip.hidden=i>=count;});
+          if(more){var hidden=chips.length-count;more.textContent="+"+hidden+" more";more.hidden=hidden===0;}
+        });
+      }
+      function observeMonthChipLayout(grid){
+        if(monthChipObserver)monthChipObserver.disconnect();
+        if(!grid||!grid.isConnected)return;
+        var schedule=function(){requestAnimationFrame(function(){fitMonthChipCounts(grid);});};
+        if(typeof ResizeObserver==="function"){
+          monthChipObserver=new ResizeObserver(schedule);
+          monthChipObserver.observe(grid);
+          grid.querySelectorAll(".day-cell").forEach(function(cell){monthChipObserver.observe(cell);});
+        }
+        schedule();
       }
 
       function layoutDayEvents(list) {

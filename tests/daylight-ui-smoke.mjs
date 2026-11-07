@@ -84,7 +84,8 @@ try{
    ];
    state.events=[
      {id:802,uid:'meet',cal:'c2',title:'Multi-day swim meet',start:new Date(2026,11,8,0),end:new Date(2026,11,12,23,59),allDay:true,loc:'Swimming pool',desc:''},
-     {id:803,uid:'practice',cal:'c2',title:'Morning swim practice',start:new Date(2026,11,9,5,30),end:new Date(2026,11,9,7),allDay:false,loc:'Pool',desc:''}
+     {id:803,uid:'practice',cal:'c2',title:'Morning swim practice',start:new Date(2026,11,9,5,30),end:new Date(2026,11,9,7),allDay:false,loc:'Pool',desc:''},
+     {id:804,uid:'timed-only',cal:'c3',title:'Timed-only measurement fixture',start:new Date(2026,11,22,9,0),end:new Date(2026,11,22,9,30),allDay:false,loc:'',desc:''}
    ];
    state.section='calendar';state.view='month';state.cursor=new Date(2026,11,9);state.selected=new Date(2026,11,9);state.sidebarRail=false;
    document.getElementById('app').hidden=false;document.getElementById('authRoot').innerHTML='';
@@ -199,16 +200,37 @@ try{
      await page.evaluate(()=>closePopover());
      await page.waitForFunction(()=>document.querySelectorAll('.popover').length===0,{timeout:3000});
    }
-   await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png')});
+   await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png'));
    const measure=await page.evaluate(()=>{
-      const rows=[...document.querySelectorAll('.month-week')];
-      const names=[...document.querySelectorAll('.cal-name')];
-      return {rows:rows.length,lastBottom:rows.at(-1)?.getBoundingClientRect().bottom,scroll:document.documentElement.scrollHeight,
-       names:names.map(n=>({text:n.textContent,visible:n.offsetWidth>0,full:n.scrollWidth<=n.clientWidth+1}))};
+     const grid=document.querySelector('.month-grid'),rows=[...grid.querySelectorAll('.month-week')];
+     const cell=grid.querySelector('[data-date="2026-12-22"]');
+     const dateBottom=cell?.querySelector('.day-num')?.getBoundingClientRect().bottom;
+     const chipTop=cell?.querySelector('.chip:not([hidden])')?.getBoundingClientRect().top;
+     return {height:grid.clientHeight,scrollHeight:grid.scrollHeight,overflowY:getComputedStyle(grid).overflowY,
+       rows:rows.length,rowHeights:rows.map(r=>r.getBoundingClientRect().height),
+       firstChipOffset:chipTop!=null&&dateBottom!=null?chipTop-dateBottom:null,
+       sixthRowBottom:rows.at(-1)?.getBoundingClientRect().bottom,gridBottom:grid.getBoundingClientRect().bottom};
    });
    assert.equal(measure.rows,6);
-   assert.ok(measure.lastBottom<=769,'sixth month row is clipped: '+JSON.stringify(measure));
-   assert.ok(measure.names.some(n=>n.text==='Hungary Creek Recreation Association'&&n.visible),'long calendar must remain visible with ellipsis');
+   assert.equal(measure.overflowY,'auto','month grid must own the scroll');
+   assert.ok(measure.firstChipOffset!==null&&measure.firstChipOffset<=6,
+     'timed-only cell must have a collapsed all-day lane and 4px spacing: '+JSON.stringify(measure));
+   assert.ok(measure.sixthRowBottom<=measure.gridBottom+1||measure.scrollHeight>measure.height,
+     'sixth row must fit or be reachable by scroll: '+JSON.stringify(measure));
+   await page.screenshot({path:path.join(out,'month-layout-'+theme+'.png'));
+   const names=[...document.querySelectorAll('.cal-name')].map(n=>({text:n.textContent,visible:n.offsetWidth>0}));
+   assert.ok(names.some(n=>n.text==='Hungary Creek Recreation Association'&&n.visible),'long calendar must remain visible with ellipsis');
+   await page.setViewport({width:1280,height:800,deviceScaleFactor:1});
+   await new Promise(resolve=>setTimeout(resolve,90));
+   const medium=await page.evaluate(()=>{const g=document.querySelector('.month-grid'),r=[...g.querySelectorAll('.month-week')];return {h:g.clientHeight,sh:g.scrollHeight,last:r.at(-1).getBoundingClientRect().bottom,b:g.getBoundingClientRect().bottom};});
+   assert.ok(medium.last<=medium.b+1||medium.sh>medium.h,'1280x800 month row 6: '+JSON.stringify(medium));
+   await page.setViewport({width:1280,height:600,deviceScaleFactor:1});
+   await new Promise(resolve=>setTimeout(resolve,120));
+   const short=await page.evaluate(()=>{const g=document.querySelector('.month-grid'),r=[...g.querySelectorAll('.month-week')];g.scrollTop=g.scrollHeight;return {h:g.clientHeight,sh:g.scrollHeight,st:g.scrollTop,last:r.at(-1).getBoundingClientRect().bottom,b:g.getBoundingClientRect().bottom};});
+   assert.ok(short.sh>short.h&&short.st>0,'short month must scroll: '+JSON.stringify(short));
+   assert.ok(short.last<=short.b+1,'month row 6 reachable after scrolling: '+JSON.stringify(short));
+   await page.setViewport({width:1366,height:768,deviceScaleFactor:1});
+   await new Promise(resolve=>setTimeout(resolve,90));
    assert.ok(!await page.$('.cal-source'), 'origin subtitle should be absent');
    await page.evaluate(()=>openSettings('ai'));
    await page.waitForSelector('.dl-chatgpt-featured',{timeout:5000});
@@ -219,6 +241,25 @@ try{
    await page.screenshot({path:path.join(out,'oauth-consent-'+theme+'.png')});
    await page.evaluate(()=>document.getElementById('daylightOAuthConsent')?.remove());
  }
+ // Crowded day: fit chips to measured cell height and preserve +N more.
+ await page.evaluate(()=>{
+   for(let n=0;n<9;n++)state.events.push({
+     id:980+n,title:'Busy day fixture '+(n+1),cal:'c3',
+     start:new Date(2026,11,31,8+n,0),end:new Date(2026,11,31,8+n,25),allDay:false,loc:'',desc:''
+   });
+   renderAll(false);
+ });
+ await new Promise(resolve=>setTimeout(resolve,100));
+ const busyMetrics=await page.evaluate(()=>{
+   const cell=document.querySelector('.day-cell[data-date="2026-12-31"]'),r=cell.getBoundingClientRect();
+   const chips=[...cell.querySelectorAll('.chip:not([hidden])')],more=cell.querySelector('.more-link');
+   return {visible:chips.length,total:cell.querySelectorAll('.chip').length,
+     more:more?.textContent||'',clipped:chips.some(chip=>chip.getBoundingClientRect().bottom>r.bottom-4)};
+ });
+ assert.match(busyMetrics.more,/\+\d+ more/);
+ assert.equal(busyMetrics.clipped,false,'no visible chips may be clipped');
+ await page.screenshot({path:path.join(out,'month-busy-day.png')});
+ await page.evaluate(()=>{state.events=state.events.filter(event=>event.id<980);renderAll(false);});
  // The skeleton is the only loader. Fast loads do not flash it; slow loads
  // show it after the threshold and fade it away when the workspace is ready.
  await page.evaluate(()=>{
