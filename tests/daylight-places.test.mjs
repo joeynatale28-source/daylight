@@ -13,14 +13,14 @@ function harness(mode='success') {
   const requests=[];
   w.daylightCloud={ready:true,client:{functions:{invoke:async(name,args)=>{
     requests.push({name,...args.body});
-    if(mode==='network-error')return {error:new Error('HERE unavailable')};
+    if(mode==='network-error')return {error:new Error('TomTom unavailable')};
     if(mode==='not-configured')return {data:{error:'not_configured'}};
     return {data:{suggestions:[
       {primary:'10833 W Broad St',secondary:'Glen Allen, VA, 23060',
        address:'10833 W Broad St, Glen Allen, VA 23060, United States',lat:37.646,lng:-77.598},
       {primary:'SwimRVA',secondary:'Richmond, VA, 23230',
        address:'SwimRVA, Richmond, VA 23230, United States',lat:37.585,lng:-77.49}
-    ],attribution:'© HERE'}};
+    ],attribution:'© TomTom'}};
   }}}};
   w.eval(source);
   const input=w.document.querySelector('#loc');
@@ -37,7 +37,7 @@ function type(h,value){
 function key(h,name){
   h.input.dispatchEvent(new h.w.KeyboardEvent('keydown',{bubbles:true,key:name,cancelable:true}));
 }
-test('HERE suggestions preserve the places function contract and keyboard selection',async()=>{
+test('TomTom suggestions preserve the places function contract and keyboard selection',async()=>{
   const h=harness();
   try{
     type(h,'10833 W Broad');await wait();
@@ -46,7 +46,7 @@ test('HERE suggestions preserve the places function contract and keyboard select
     assert.equal(h.requests[0].action,'autocomplete');
     assert.equal(h.requests[0].language,'en');
     assert.equal(h.w.document.querySelectorAll('[role=option]').length,2);
-    assert.match(h.w.document.querySelector('.dl-place-credit').textContent,/HERE/);
+    assert.match(h.w.document.querySelector('.dl-place-credit').textContent,/TomTom/);
     assert.ok(h.w.document.querySelector('.dl-place-pin svg, svg.dl-place-pin'));
     key(h,'ArrowDown');key(h,'Enter');
     assert.equal(h.input.value,'10833 W Broad St, Glen Allen, VA 23060, United States');
@@ -57,7 +57,7 @@ test('HERE suggestions preserve the places function contract and keyboard select
     assert.equal(h.input.getAttribute('aria-expanded'),'false');
   }finally{h.dispose();}
 });
-test('mouse selection commits the full HERE label; free-text editing clears coordinates',async()=>{
+test('mouse selection commits the full TomTom label; free-text editing clears coordinates',async()=>{
   const h=harness();
   try{
     type(h,'10833 W Broad');await wait();
@@ -65,8 +65,8 @@ test('mouse selection commits the full HERE label; free-text editing clears coor
     assert.match(h.input.value,/VA 23060/);
     assert.equal(h.draft.loc,h.input.value);
     assert.equal(h.draft.locationLat,37.646);
-    type(h,'Somewhere near the pool');
-    assert.equal(h.draft.loc,'Somewhere near the pool');
+    type(h,'SomewTomTom near the pool');
+    assert.equal(h.draft.loc,'SomewTomTom near the pool');
     assert.equal(h.draft.placeId,null);
     assert.equal(h.draft.locationLat,null);
     assert.equal(h.draft.locationLng,null);
@@ -83,7 +83,7 @@ test('pointer hover and keyboard selection share one active row',async()=>{
     assert.equal(h.input.value,'10833 W Broad St, Glen Allen, VA 23060, United States');
   }finally{h.dispose();}
 });
-test('missing HERE secret displays the quiet setup message without breaking the form',async()=>{
+test('missing TomTom secret displays the quiet setup message without breaking the form',async()=>{
   const h=harness('not-configured');
   try{
     type(h,'Hungary Creek Middle School');await wait();
@@ -102,8 +102,8 @@ test('temporary suggestion failures preserve free-text locations',async()=>{
   }finally{h.dispose();}
 });
 test('the browser client contains no provider endpoint or API credential',()=>{
-  assert.equal(source.includes('HERE_API_KEY'),false);
-  assert.equal(source.includes('search.hereapi.com'),false);
+  assert.equal(source.includes('TomTom_API_KEY'),false);
+  assert.equal(source.includes('search.TomTomapi.com'),false);
   assert.equal(source.includes('apiKey'),false);
   assert.equal(source.includes('https://'),false);
 });
