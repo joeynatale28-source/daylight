@@ -156,9 +156,28 @@
   });
   window.daylightCalendarShareAction=function(body){return call('ical-feed',body);};
   window.daylightExportCalendar=async function(cal){
-    if(!own()||!cal||cal.builtin||cal.subscribed)return;
+    if(!own()||!cal||cal.subscribed)return;
     try{
-      const ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
+      let ics;
+      if(cal.builtin&&cal.id==='holidays'){
+        const range=window.occsInRange(new Date(2015,0,1),new Date(2031,0,1)).filter(item=>item.ev&&item.ev.cal===cal.id);
+        const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
+        const day=value=>[value.getFullYear(),String(value.getMonth()+1).padStart(2,'0'),String(value.getDate()).padStart(2,'0')].join('');
+        const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}Z$/,'Z');
+        const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Daylight//Calendar//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
+        range.forEach(item=>{
+          if(!item.ev.allDay)return;
+          const start=new Date(item.start),end=new Date(start.getFullYear(),start.getMonth(),start.getDate()+1);
+          const uid='holiday-'+day(start)+'-'+escapeIcs(item.ev.title).replace(/[^A-Za-z0-9]+/g,'-')+'@daylight';
+          lines.push('BEGIN:VEVENT','UID:'+uid,'DTSTAMP:'+stamp,'DTSTART;VALUE=DATE:'+day(start),'DTEND;VALUE=DATE:'+day(end),'SUMMARY:'+escapeIcs(item.ev.title));
+          if(item.ev.loc)lines.push('LOCATION:'+escapeIcs(item.ev.loc));
+          if(item.ev.desc)lines.push('DESCRIPTION:'+escapeIcs(item.ev.desc));
+          lines.push('END:VEVENT');
+        });
+        lines.push('END:VCALENDAR');ics=lines.join('\\r\\n')+'\\r\\n';
+      }else{
+        ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
+      }
       download((cal.name||'calendar').replace(/[^a-z0-9_-]+/gi,'-')+'.ics',ics);
       toast('Calendar exported');
     }catch(error){toast(error.message||'Export failed');}
