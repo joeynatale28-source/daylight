@@ -22,6 +22,7 @@ style.textContent=`
 .dl-color-point{position:absolute;height:14px;width:14px;border:2px solid #fff;box-shadow:0 0 0 1px #333;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
 .dl-color-hue{display:block;width:100%;margin:15px 0;accent-color:var(--accent)}
 .dl-color-preview{height:28px;width:28px;flex:none;border-radius:8px;border:1px solid var(--line)}
+.dl-color-rgb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:12px 0}.dl-color-rgb label{display:grid;gap:4px;font-size:11px;color:var(--muted)}.dl-color-rgb input{width:100%;min-width:0}
 .dl-color-error{font-size:12px;color:var(--danger);min-height:16px}
 .dl-color-modal .dialog-body{display:grid;gap:10px}
 .dl-color-modal .dialog-body .field{margin:0}
@@ -157,21 +158,25 @@ function remember(color){color=color.toUpperCase();if(!saved.includes(color)){sa
 function custom(onApply,seed){
  let h=28,s=.75,v=1,hex=/^#[0-9A-F]{6}$/i.test(seed)?seed.toUpperCase():"#FF7A00";
  const bd=document.createElement("div");bd.className="backdrop dl-color-modal";
- bd.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-label="Custom calendar color" style="width:min(390px,94vw)"><div class="dialog-head"><span class="dialog-title">Custom color</span><button class="icon-btn" data-cancel aria-label="Close">×</button></div><div class="dialog-body"><label for="dl-color-hex">Choose a color</label><div class="dl-color-square" role="slider" tabindex="0" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75"><span class="dl-color-point"></span></div><label for="dl-color-hue">Hue</label><input class="dl-color-hue" type="range" id="dl-color-hue" min="0" max="359" value="28"><div class="field"><label for="dl-color-hex">Hex color</label><div style="display:flex;gap:10px;align-items:center"><span class="dl-color-preview"></span><input class="text-input" id="dl-color-hex" maxlength="7" spellcheck="false" value="'+esc(hex)+'"></div></div><div class="dl-color-error" role="alert"></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" data-apply>Apply</button></div></div></div>';
+ bd.innerHTML='<div class="dialog" role="dialog" aria-modal="true" aria-label="Custom calendar color" style="width:min(390px,94vw)"><div class="dialog-head"><span class="dialog-title">Custom color</span><button class="icon-btn" data-cancel aria-label="Close">×</button></div><div class="dialog-body"><label for="dl-color-hex">Choose a color</label><div class="dl-color-square" role="slider" tabindex="0" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100" aria-valuenow="75"><span class="dl-color-point"></span></div><label for="dl-color-hue">Hue</label><input class="dl-color-hue" type="range" id="dl-color-hue" min="0" max="359" value="28"><div class="field"><label for="dl-color-hex">Hex color</label><div style="display:flex;gap:10px;align-items:center"><span class="dl-color-preview"></span><input class="text-input" id="dl-color-hex" maxlength="7" spellcheck="false" value="'+esc(hex)+'"></div></div><div class="dl-color-rgb"><label>R<input class="text-input" id="dl-color-r" type="number" min="0" max="255"></label><label>G<input class="text-input" id="dl-color-g" type="number" min="0" max="255"></label><label>B<input class="text-input" id="dl-color-b" type="number" min="0" max="255"></label></div><div class="dl-color-error" role="alert"></div><div style="display:flex;justify-content:flex-end;gap:8px"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" data-apply>Apply</button></div></div></div>';
  (document.getElementById("overlayRoot")||document.body).append(bd);
  const square=bd.querySelector(".dl-color-square"),point=bd.querySelector(".dl-color-point"),hue=bd.querySelector("#dl-color-hue"),input=bd.querySelector("#dl-color-hex"),err=bd.querySelector(".dl-color-error"),preview=bd.querySelector(".dl-color-preview");
- function draw(){hex=hsv(h,s,v);input.value=hex;err.textContent="";square.style.backgroundColor=hsv(h,1,1);point.style.left=s*100+"%";point.style.top=(1-v)*100+"%";hue.value=h;preview.style.background=hex;square.setAttribute("aria-valuenow",Math.round(s*100))}
+ function rgbValues(value){const n=parseInt(value.slice(1),16);return {r:(n>>16)&255,g:(n>>8)&255,b:n&255}}
+ function setFromRgb(r,g,b){r/=255;g/=255;b/=255;const max=Math.max(r,g,b),min=Math.min(r,g,b),d=max-min;let next=0;if(d===0)next=0;else if(max===r)next=60*(((g-b)/d)%6);else if(max===g)next=60*((b-r)/d+2);else next=60*((r-g)/d+4);if(next<0)next+=360;h=next;s=max===0?0:d/max;v=max;}
+ function setFromHex(value){const rgb=rgbValues(value);setFromRgb(rgb.r,rgb.g,rgb.b);}
+ function draw(){hex=hsv(h,s,v);input.value=hex;err.textContent="";square.style.backgroundColor=hsv(h,1,1);point.style.left=s*100+"%";point.style.top=(1-v)*100+"%";hue.value=h;preview.style.background=hex;const rgb=rgbValues(hex);bd.querySelector("#dl-color-r").value=rgb.r;bd.querySelector("#dl-color-g").value=rgb.g;bd.querySelector("#dl-color-b").value=rgb.b;square.setAttribute("aria-valuenow",Math.round(s*100))}
  function adjust(ev){const r=square.getBoundingClientRect();s=Math.max(0,Math.min(1,(ev.clientX-r.left)/r.width));v=1-Math.max(0,Math.min(1,(ev.clientY-r.top)/r.height));draw()}
  square.addEventListener("pointerdown",e=>{square.setPointerCapture(e.pointerId);adjust(e)});
  square.addEventListener("pointermove",e=>{if(e.buttons)adjust(e)});
  square.addEventListener("keydown",e=>{const d=e.key==="ArrowRight"||e.key==="ArrowUp"?.01:e.key==="ArrowLeft"||e.key==="ArrowDown"?-.01:0;if(!d)return;e.preventDefault();if(e.key==="ArrowUp"||e.key==="ArrowDown")v=Math.max(0,Math.min(1,v+d));else s=Math.max(0,Math.min(1,s+d));draw()});
  hue.addEventListener("input",()=>{h=Number(hue.value);draw()});
- input.addEventListener("input",()=>{const t=input.value.trim();if(!/^#[0-9A-F]{6}$/i.test(t)){err.textContent="Enter a valid #RRGGBB color";return}hex=t.toUpperCase();err.textContent="";preview.style.background=hex});
+ input.addEventListener("input",()=>{const t=input.value.trim();if(!/^#[0-9A-F]{6}$/i.test(t)){err.textContent="Enter a valid #RRGGBB color";return}setFromHex(t);draw()});
+ ["#dl-color-r","#dl-color-g","#dl-color-b"].forEach(id=>bd.querySelector(id).addEventListener("input",()=>{const values=["#dl-color-r","#dl-color-g","#dl-color-b"].map(k=>Number(bd.querySelector(k).value));if(values.some(v=>!Number.isInteger(v)||v<0||v>255))return;setFromRgb(values[0],values[1],values[2]);draw()}));
  function close(){if(window.daylightExit)window.daylightExit(bd);else bd.remove()}
  bd.querySelectorAll("[data-cancel]").forEach(b=>b.onclick=close);
  bd.addEventListener("mousedown",e=>{if(e.target===bd)close()});
  bd.querySelector("[data-apply]").onclick=()=>{const val=input.value.trim();if(!/^#[0-9A-F]{6}$/i.test(val)){err.textContent="Enter a valid #RRGGBB color";return}remember(val);onApply(val.toUpperCase());close()};
- draw();input.focus();
+ setFromHex(hex);draw();input.focus();
 }
 window.daylightColorPicker=function(host,initial,onChange){
  syncSaved();host.textContent="";host.classList.add("dl-color-grid");
