@@ -2895,8 +2895,8 @@
           var ev=state.events.find(x=>Number(x.id)===dragEventId),target=cell.dataset.date;if(!ev||!target)return;
           var p=target.split("-").map(Number),day=new Date(p[0],p[1]-1,p[2]),occStart=dragOccurrenceStart?new Date(dragOccurrenceStart):new Date(ev.start),delta=sod(day).getTime()-sod(occStart).getTime();
           function move(scope){
-            if(scope==="only"){ev.uid=ev.uid||("daylight-"+ev.id);var copy=Object.assign({},ev,{id:++uid,recurrenceId:occStart,repeat:null,exdates:[],start:new Date(ev.start.getTime()+delta),end:new Date(ev.end.getTime()+delta)});state.events.push(copy);ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occStart.toISOString())}
-            else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,ev.repeat).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(ev.start.getTime()+delta),end:new Date(ev.end.getTime()+delta),repeatEnd:null}))}
+            if(scope==="only"){ev.uid=ev.uid||("daylight-"+ev.id);var copy=Object.assign({},ev,{id:++uid,recurrenceId:occStart,repeat:null,exdates:[],start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start))});state.events.push(copy);ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occStart.toISOString())}
+            else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,ev.repeat).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start)),repeatEnd:null}))}
             else{ev.start=new Date(ev.start.getTime()+delta);ev.end=new Date(ev.end.getTime()+delta)}
             renderAll(false);toast("Event moved");
           }
