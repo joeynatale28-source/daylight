@@ -43,7 +43,6 @@ style.textContent += `
 .sidebar .cal-check{flex-shrink:0}
 .sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
 .sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
-`;
 .dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
 @keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
 #dlWorkspaceSkeleton{display:none;position:fixed;inset:0;z-index:99990;background:var(--bg);color:var(--text);grid-template-columns:64px minmax(0,1fr);gap:0;pointer-events:none}
@@ -58,6 +57,7 @@ style.textContent += `
 .dl-sk-grid i{border-right:1px solid var(--line-soft);border-bottom:1px solid var(--line-soft)}
 @keyframes dlShimmer{to{background-position:-200% 0}}
 @media(prefers-reduced-motion:reduce){.dl-sk-grid i,.dl-sk-side i{animation:none}}
+`;
 
 document.head.append(style);
 let workspaceLoadingTimer=null;
