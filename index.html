@@ -364,12 +364,11 @@
       .profile-wrap { border-top: 1px solid var(--line); margin-top: 20px; padding-top: 16px; }
       .profile-row { display: flex; align-items: center; gap: 12px; padding: 8px; border-radius: var(--r-md); width: 100%; text-align: left; transition: background 140ms var(--ease-out); }
       .profile-row:hover { background: var(--hover); }
-      .avatar {
-        width: 38px; height: 38px; border-radius: 50%; flex: none;
-        background: var(--selected); color: var(--text);
-        display: flex; align-items: center; justify-content: center;
-        font-size: 12px; font-weight: 600;
-      }
+      .avatar{width:38px;height:38px;border-radius:50%;flex:none;background:var(--selected);color:var(--text);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;overflow:hidden}
+      .avatar img{width:100%;height:100%;display:block;object-fit:cover;border-radius:inherit}
+      .profile-avatar-preview{width:64px;height:64px;font-size:18px}
+      .profile-photo-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+      .profile-photo-status{min-height:18px;font-size:12px;color:var(--muted)}
       .profile-name { font-size: 14px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
       .profile-email { font-size: 12px; color: var(--muted); line-height: 1.25; white-space: nowrap; }
       .profile-row .icon-btn { margin-left: auto; }
@@ -2579,10 +2578,11 @@
 
         sidebarEl.appendChild(help); sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "JN";
+        var avatarContent=window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="">':esc(profileInitials);
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
-            '<span class="avatar">' + esc(profileInitials) + "</span>" +
-            '<span class="rail-hide" style="min-width:0"><span class="profile-name">' + esc(state.profileName) + '</span><br><span class="profile-email">joeynatale28@gmail.com</span></span>' +
+            '<span class="avatar profile-avatar">' + avatarContent + "</span>" +
+            '<span class="rail-hide" style="min-width:0"><span class="profile-name">' + esc(state.profileName) + '</span><br><span class="profile-email">' + esc(window.daylightCloud?.user?.email || "") + '</span></span>' +
             '<span class="icon-btn rail-hide" style="pointer-events:none">' + icon("dotsV", 17) + "</span>" +
           "</button></div>"
         );
@@ -2595,6 +2595,19 @@
         });
         sidebarEl.appendChild(pw);
       }
+      window.daylightAvatarUrl=null;window.daylightAvatarPath=null;
+      window.daylightRefreshAvatar=async function(){
+        var cloud=window.daylightCloud;if(!cloud?.ready||!cloud.user){window.daylightAvatarUrl=null;window.daylightAvatarPath=null;return}
+        try{
+          var row=await cloud.client.from("user_settings").select("avatar_path").eq("user_id",cloud.user.id).maybeSingle();if(row.error)throw row.error;
+          window.daylightAvatarPath=row.data?.avatar_path||null;
+          if(!window.daylightAvatarPath){window.daylightAvatarUrl=null;renderSidebar();return}
+          var signed=await cloud.client.storage.from("daylight-avatars").createSignedUrl(window.daylightAvatarPath,3600);if(signed.error)throw signed.error;
+          window.daylightAvatarUrl=signed.data?.signedUrl||null;renderSidebar();
+        }catch(err){console.warn("Profile photo unavailable",err)}
+      };
+      document.addEventListener("daylight:workspace-ready",function(){window.daylightRefreshAvatar()});
+      document.addEventListener("daylight:workspace-signed-out",function(){window.daylightAvatarUrl=null;window.daylightAvatarPath=null;renderSidebar()});
       /* The main view's visible range — sidebar counts are the number
          of occurrences each calendar has inside it. */
       function visibleRange() {
@@ -4355,6 +4368,37 @@
       function paneGeneral(pane, closeSettings) {
         paneHead(pane, "Profile", "Your daylight account and personal details.");
         var cloud=window.daylightCloud;
+        var photo=el('<div class="set-group"><div class="set-group-title">Profile picture</div><div class="set-row"><span class="avatar profile-avatar-preview" id="profileAvatarPreview"></span><span class="profile-photo-actions"><label class="btn-ghost" for="profilePhotoFile">Upload photo</label><input id="profilePhotoFile" type="file" accept="image/png,image/jpeg,image/webp" hidden><button type="button" class="btn-ghost" id="profilePhotoRemove">Remove photo</button></span></div><div class="profile-photo-status" id="profilePhotoStatus" role="status"></div><p class="inline-note">Images are centre-cropped to a square, resized to 512 × 512, and stored privately in your account.</p></div>');
+        pane.appendChild(photo);
+        var photoPreview=photo.querySelector("#profileAvatarPreview");
+        function initialsForName(value){return String(value||"").trim().split(/\s+/).map(function(w){return w.charAt(0).toUpperCase()}).slice(0,2).join("")||"JN"}
+        function paintAvatar(){photoPreview.innerHTML=window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="Profile photo">':esc(initialsForName(state.profileName||state.firstName||""))}
+        paintAvatar();
+        photo.querySelector("#profilePhotoFile").addEventListener("change",async function(e){
+          var file=e.target.files&&e.target.files[0],status=photo.querySelector("#profilePhotoStatus");if(!file)return;
+          try{
+            if(!/^image\/(?:png|jpeg|webp)$/.test(file.type))throw new Error("Choose a PNG, JPEG, or WebP image.");
+            if(file.size>15*1024*1024)throw new Error("Choose an image smaller than 15 MB.");
+            status.textContent="Preparing photo…";
+            var bitmap=await createImageBitmap(file),side=512,scale=Math.max(side/bitmap.width,side/bitmap.height),sw=side/scale,sh=side/scale,sx=(bitmap.width-sw)/2,sy=(bitmap.height-sh)/2;
+            var canvas=document.createElement("canvas");canvas.width=side;canvas.height=side;canvas.getContext("2d").drawImage(bitmap,sx,sy,sw,sh,0,0,side,side);if(bitmap.close)bitmap.close();
+            var blob=await new Promise(function(resolve){canvas.toBlob(resolve,"image/webp",0.82)});if(!blob)throw new Error("This image could not be processed.");
+            if(blob.size>2*1024*1024)throw new Error("The resized photo is larger than 2 MB.");
+            var path=cloud.user.id+"/avatar.webp";status.textContent="Uploading…";
+            var uploaded=await cloud.client.storage.from("daylight-avatars").upload(path,blob,{contentType:"image/webp",upsert:true,cacheControl:"3600"});if(uploaded.error)throw uploaded.error;
+            var saved=await cloud.client.from("user_settings").upsert({user_id:cloud.user.id,avatar_path:path},{onConflict:"user_id"});if(saved.error)throw saved.error;
+            await window.daylightRefreshAvatar();paintAvatar();status.textContent="Photo updated.";
+          }catch(err){status.textContent=err.message||"Unable to upload this photo."}finally{e.target.value=""}
+        });
+        photo.querySelector("#profilePhotoRemove").addEventListener("click",async function(){
+          var status=photo.querySelector("#profilePhotoStatus");status.textContent="Removing…";
+          try{
+            var path=window.daylightAvatarPath;
+            if(path){var removed=await cloud.client.storage.from("daylight-avatars").remove([path]);if(removed.error)throw removed.error}
+            var saved=await cloud.client.from("user_settings").upsert({user_id:cloud.user.id,avatar_path:null},{onConflict:"user_id"});if(saved.error)throw saved.error;
+            await window.daylightRefreshAvatar();paintAvatar();status.textContent="Photo removed.";
+          }catch(err){status.textContent=err.message||"Unable to remove this photo."}
+        });
         var profile=el('<div class="set-group"><div class="set-group-title">Personal details</div><div class="field"><label for="profileFullName">Full name</label><input class="text-input" id="profileFullName" style="max-width:340px" value="'+esc(state.profileName||state.firstName||"")+'"></div><div class="field"><label>Email</label><input class="text-input" style="max-width:340px" value="'+esc(cloud?.user?.email||"")+'" readonly aria-readonly="true"></div><p class="inline-note">Your email is managed by your sign-in method.</p></div>');
         pane.appendChild(profile);
         profile.querySelector("#profileFullName").addEventListener("input",function(e){state.profileName=e.target.value.trim();state.firstName=state.profileName.split(/\\s+/)[0]||"Account";renderSidebar();});
