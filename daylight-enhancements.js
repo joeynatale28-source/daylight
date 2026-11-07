@@ -106,6 +106,7 @@ function scheduleRailTooltip(target){
   document.body.appendChild(tip);railTooltipNode=tip;
  },400);
 }
+document.addEventListener("mouseover",e=>scheduleRailTooltip(e.target));
 document.addEventListener("pointerover",e=>scheduleRailTooltip(e.target));
 document.addEventListener("pointerout",e=>{if(!e.relatedTarget?.closest?.("#sidebar.rail"))hideRailTooltip()});
 document.addEventListener("focusin",e=>scheduleRailTooltip(e.target));
