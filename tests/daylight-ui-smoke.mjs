@@ -208,14 +208,14 @@ try{
  await page.waitForSelector('#dlWorkspaceSkeleton',{timeout:1500});
  await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-ready')));
  assert.equal(await page.$('#dlWorkspaceSkeleton'),null,'workspace skeleton must disappear on ready');
- await page.evaluate(()=>{state.sidebarRail=true;renderAll(false)});
+ await page.evaluate(()=>document.getElementById('sidebar').classList.add('rail'));
  const railItem=await page.$('#sidebar.rail .side-row');
  assert.ok(railItem,'collapsed sidebar must retain rail navigation controls');
  await railItem.hover();
  await page.waitForSelector('.dl-rail-tooltip',{timeout:1500});
  const railTip=await page.$eval('.dl-rail-tooltip',n=>n.textContent.trim());
  assert.ok(railTip.length>0,'collapsed rail control must expose a tooltip');
- await page.evaluate(()=>{state.sidebarRail=false;renderAll(false)});
+ await page.evaluate(()=>document.getElementById('sidebar').classList.remove('rail'));
  const zone=await page.evaluate(()=>{
    openSettings('general');
    const device=document.querySelector('#gsUseDevTz');
