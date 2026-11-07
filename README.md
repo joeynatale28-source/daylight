@@ -33,7 +33,7 @@ To use password-reset emails:\n1. In Supabase → Authentication → URL Configu
 ## GitHub Pages deployment\n\nThe intended production site is `https://joeynatale28-source.github.io/daylight/`. The `.github/workflows/deploy-pages.yml` workflow publishes `index.html`, `daylight-cloud.js`, `daylight-settings.js`, `daylight-integrations.js`, `daylight-places.js`, and `daylight-places.css` when `main` changes, or when run manually from GitHub Actions.\n\n**One-time repository setup:** GitHub → `daylight` → Settings → Pages → under Build and deployment, choose **GitHub Actions** as the Source. The workflow cannot turn Pages on using the default `GITHUB_TOKEN`. For a private repository, GitHub Pro or another eligible GitHub plan is required; on GitHub Free, this repository would need to be made public before GitHub Pages is available. Published Pages sites are publicly accessible even when the underlying repository is private.\n\nAfter enabling Pages, run the `Deploy Daylight to GitHub Pages` workflow from the Actions tab if the initial push did not trigger a run. Check the Actions run and the Pages Settings page to confirm it is published; do not consider it live until those checks pass.\n\nFor local development:\n\n```sh\npython3 -m http.server 8000\n```\n\nOpen `http://localhost:8000/`. Password-reset redirects for localhost must be separately allowlisted in Supabase.\n\n## Manual verification checklist\n\n1. Sign in with an **existing confirmed** Supabase Auth account, and verify a wrong password fails.\n2. Create an event and a task, wait for the save debounce, reload, and verify both return. Saving is deliberately silent.\n3. Sign out and verify the app disappears. Sign in again and verify the saved content returns.\n4. Check with a separate account that another user’s events do not appear.\n5. Request a password reset, follow the email link back to the Pages URL, update the password, then sign in.\n6. Open two browser sessions, edit the same data concurrently, and verify a sync conflict is surfaced rather than silently overwriting another edit.\n
 ## Next step — iCal sharing, subscriptions, import/export, and MCP
 
-This functionality is integrated into the live app. The existing single-file UI is preserved in index.html, with additive modules for authenticated backend integrations and OSM location autocomplete.
+This functionality is integrated into the live app. The existing single-file UI is preserved in index.html, with additive modules for authenticated backend integrations and HERE Autosuggest location autocomplete.
 
 ### iCal share feeds
 Own-calendar menu → Share calendar uses the deployed ical-feed Edge Function.
@@ -126,29 +126,19 @@ original deployed Edge Function's audit table and the standalone Node
 implementation's audit table. If you lose a token, revoke and replace it.
 Deletion remains disabled by default even when a token has write permission.
 
-### Location autocomplete — OpenStreetMap / Photon
+### Location autocomplete — HERE Autosuggest
 
-Event creation and editing uses the `places` Supabase Edge Function.
-The function validates the logged-in user's Supabase JWT before proxying
-queries to the public `photon.komoot.io` demo API. **No Google Places,
-Maps API key, or client-side geocoding credential is involved.**
-The browser calls only Supabase, and sends the user's typed query after a
-210 ms debounce starting at two characters. Suggestions offer mouse and
-arrow-key / Enter selection and show the required OpenStreetMap attribution.
-Selecting a result commits the full Photon formatted address, its latitude,
-longitude, and an `osm:` reference. Editing the text clears those fields;
-free-text locations are always permitted, and errors degrade silently.
-Resolved coordinates become an OpenStreetMap link in event details.
-The cloud snapshot saves `placeId`, `locationLat` and `locationLng`.
-The normalized events table has nullable location columns for later migration.
-iCal feeds and exports emit `LOCATION` plus `GEO` for resolved coordinates;
-imports can restore `GEO` as latitude/longitude.
+Event creation and editing uses the authenticated `places` Supabase Edge Function as a server-side proxy to HERE Geocoding and Search Autosuggest. The browser calls only Supabase; the HERE API key is read from the server-only `HERE_API_KEY` secret and is never placed in client code, repository files, or logs.
 
-The public Photon endpoint is a community demo with **no availability
-guarantees**. It imposes reasonable-use limits; the Edge Function restricts
-requests by user and caches briefly. For high production volume, self-host
-Photon or negotiate a dedicated provider. See
-https://github.com/komoot/photon for usage notes.
+The function requests the HERE Autosuggest endpoint with the user's query, United States country filter, six-result limit, and English language. A validated optional position bias is passed as HERE's `at` parameter. Only results carrying a HERE `address.label` are returned. The UI uses HERE's title or returned house-number/street for its primary line, and only returned city, state, and postal code for its secondary line. The full saved location is HERE's address label; coordinates come from HERE's position. No address parts are fabricated.
+
+The dropdown uses Daylight's monochrome Inter design, drawn pin icons, keyboard and pointer selection, a loading shimmer, a 250 ms debounce, stale-request cancellation, and `© HERE` attribution. The same shared event form powers both new-event and edit-event dialogs. If `HERE_API_KEY` is not configured, the dropdown quietly says “Address search isn't set up yet” and free-text locations continue to work.
+
+Configure the secret in Supabase Dashboard → Edge Functions → Secrets → Add new secret:
+- Name: `HERE_API_KEY`
+- Value: your HERE API key
+
+The cloud snapshot continues to save `placeId`, `locationLat` and `locationLng` (the provider-specific place ID is left null). iCal feeds and exports retain `LOCATION` and `GEO` support for resolved coordinates.
 
 ### UI and testing
 
