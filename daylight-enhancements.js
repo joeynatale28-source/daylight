@@ -107,6 +107,7 @@ function hideWorkspaceLoading(){
 }
 if(document.body.classList.contains("booting"))showWorkspaceLoading();
 document.addEventListener("daylight:workspace-loading",()=>{holdCalendarCanvas();});
+document.addEventListener("daylight:workspace-preview-ready",()=>{holdCalendarCanvas();});
 document.addEventListener("daylight:workspace-ready",()=>{releaseCalendarCanvas();hideWorkspaceLoading();});
 document.addEventListener("daylight:workspace-loading-failed",()=>{releaseCalendarCanvas();hideWorkspaceLoading();});
 document.addEventListener("daylight:workspace-signed-out",()=>{clearTimeout(canvasHoldTimer);document.getElementById("viewWrap")?.classList.remove("dl-calendar-hold");hideWorkspaceLoading();});
