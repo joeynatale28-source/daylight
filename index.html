@@ -2274,6 +2274,7 @@
           b.addEventListener("click", function () { closeMenu(); it.fn && it.fn(); });
           m.appendChild(b);
         });
+        if(opts.headerHtml){var head=el(opts.headerHtml);m.insertBefore(head,m.firstChild);}
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
         var mw = 220, mh = m.offsetHeight;
@@ -2597,7 +2598,7 @@
             { icon: "settings", label: "Settings", fn: function () { openSettings("general"); } },
             { sep: true },
             { icon: "logout", label: "Log out", fn: function () { logOut(); } }
-          ], { align: "right" });
+          ], { align: "right", headerHtml:'<div class="account-menu-header"><span class="avatar">'+(window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="">':esc(profileInitials))+'</span><span><strong>'+esc(state.profileName)+'</strong><small>'+esc(window.daylightCloud?.user?.email||"")+'</small></span></div>' });
         });
         sidebarEl.appendChild(pw);
       }
@@ -4422,6 +4423,7 @@
         function initialsForName(value){return String(value||"").trim().split(/\s+/).map(function(w){return w.charAt(0).toUpperCase()}).slice(0,2).join("")||"JN"}
         function paintAvatar(){photoPreview.innerHTML=window.daylightAvatarUrl?'<img src="'+esc(window.daylightAvatarUrl)+'" alt="Profile photo">':esc(initialsForName(state.profileName||state.firstName||""))}
         paintAvatar();
+        if(window.daylightRefreshAvatar)window.daylightRefreshAvatar().then(paintAvatar);
         photo.querySelector("#profilePhotoFile").addEventListener("change",async function(e){
           var file=e.target.files&&e.target.files[0],status=photo.querySelector("#profilePhotoStatus");if(!file)return;
           try{
@@ -5472,6 +5474,10 @@
       .cal-settings-danger{border-color:color-mix(in srgb,var(--danger) 30%,var(--line))}
       .cal-settings-foot{border-top:1px solid var(--line);padding:14px 20px;display:flex;justify-content:flex-end;gap:8px;background:var(--surface)}
       @media(max-width:600px){.cal-settings-body{padding:12px}.cal-settings-section{padding:12px}.cal-rgb-row{gap:6px}.cal-settings-action{align-items:flex-start}}
+
+      .account-menu-header{display:flex;align-items:center;gap:10px;padding:12px 14px 13px;min-width:210px;border-bottom:1px solid var(--line);margin-bottom:5px}
+      .account-menu-header strong{display:block;font-size:13px;font-weight:600;color:var(--text)}
+      .account-menu-header small{display:block;font-size:11px;color:var(--muted);margin-top:3px;max-width:175px;overflow:hidden;text-overflow:ellipsis}
 </style>
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>

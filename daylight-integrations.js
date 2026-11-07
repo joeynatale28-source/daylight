@@ -569,7 +569,7 @@
     try{
       const current=new URL(window.location.href),feed=current.searchParams.get('addCalendar');
       if(!feed)return;
-      const name=current.searchParams.get('calendarName')||'Shared calendar';
+      const name=current.searchParams.get('calendarName')||'Calendar';
       current.searchParams.delete('addCalendar');current.searchParams.delete('calendarName');
       history.replaceState({},'',current.pathname+current.search+current.hash);
       setTimeout(()=>window.daylightSubscribeDialog({url:feed,name}),250);
