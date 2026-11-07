@@ -266,18 +266,20 @@
   }
 
   function changesQueued() {
-    if (!user || loading || recovery || conflict || (settingsState && settingsState.transactionActive)) return;
+    if (!user || loading || recovery || conflict) return;
+    /* Settings commits are transactional, but calendar edits must never
+       be swallowed merely because a settings pane is currently open. */
     try {
       if (JSON.stringify(workspace()) === lastSaved) return;
     } catch (e) { status('Unable to save', true); return; }
     clearTimeout(saveTimer);
-    saveTimer = setTimeout(saveWorkspace, 650);
+    saveTimer = setTimeout(saveWorkspace, 320);
     status('Saving…');
   }
 
   async function saveWorkspace() {
     clearTimeout(saveTimer);
-    if (!user || loading || recovery || conflict || (settingsState && settingsState.transactionActive)) return;
+    if (!user || loading || recovery || conflict) return;
     if (saving) { saveAgain = true; return; }
     var serialized;
     try { serialized = JSON.stringify(workspace()); }
