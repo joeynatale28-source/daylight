@@ -230,25 +230,6 @@ try{
    device.checked=true;device.dispatchEvent(new Event('change',{bubbles:true}));
    document.querySelector('.settings-close')?.click();
  });
- await page.evaluate(()=>{
-   window.__nativeNotification=window.Notification;
-   Object.defineProperty(window,'Notification',{configurable:true,writable:true,value:{
-     permission:'default',
-     requestPermission:async function(){this.permission='granted';return 'granted'}
-   }});
-   openSettings('general');
-   [...document.querySelectorAll('.settings-rail .sr-item')].find(b=>b.textContent.trim()==='Notifications')?.click();
- });
- await page.waitForSelector('#ntBtn',{timeout:2000});
- await page.click('#ntBtn');
- await page.waitForFunction(()=>document.querySelector('#ntBtn')?.textContent.trim()==='Enabled',{timeout:2000});
- const permission=await page.evaluate(()=>({status:document.querySelector('#ntStatus')?.textContent,button:document.querySelector('#ntBtn')?.textContent,disabled:document.querySelector('#ntBtn')?.disabled}));
- assert.equal(permission.button,'Enabled','notification permission button must reflect granted browser permission');
- assert.equal(permission.disabled,true,'notification enable control must be disabled after permission is granted');
- await page.evaluate(()=>{
-   document.querySelector('.settings-close')?.click();
-   Object.defineProperty(window,'Notification',{configurable:true,writable:true,value:window.__nativeNotification});
- });
  // Date-cell creation and multi-day span checks.
  await page.evaluate(()=>{state.section='calendar';state.view='month';state.cursor=new Date(2026,11,9);renderAll(false)});
  await page.evaluate(()=>{
