@@ -243,7 +243,7 @@
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
           desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, reminder:e.reminder == null ? null : e.reminder,
-          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, repeatEnd:e.repeatEnd || null, feedKey:e.feedKey,
+          declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,
           placeId:e.placeId||null,locationLat:e.locationLat??null,locationLng:e.locationLng??null };
