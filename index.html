@@ -2098,7 +2098,7 @@
         while (guard++ < 6000) {
           var cEnd = new Date(cur.getTime() + dur);
           if (cur >= re) break;
-          if (ev.repeatEnd && cur > new Date(ev.repeatEnd)) break;
+          if (ev.repeatEnd && sod(cur) > sod(new Date(ev.repeatEnd))) break;
           if (cEnd > rs && !omitted.has(+cur)) out.push({ ev: ev, start: new Date(cur), end: cEnd });
           if (!frequency) break;
           if (frequency === "weekly") cur = new Date(cur.getFullYear(), cur.getMonth(), cur.getDate() + 7, cur.getHours(), cur.getMinutes());
@@ -3945,7 +3945,7 @@
           openMenu(repBtn, items);
         });
         repEndBtn.addEventListener("click",function(){if(!f.repeat)return;openDatePicker(repEndBtn,f.repeatEnd||f.eDate,function(d){f.repeatEnd=d;markDirty();syncUI()})});
-        accentBtn.addEventListener("click",function(){openMenu(accentBtn,[{label2:"Event accent"},{label:"Graphite",right:f.accent==="graphite"?"check":null,fn:function(){f.accent="graphite";markDirty();syncUI()}},{label:"Calendar color",right:f.accent==="calendar"?"check":null,fn:function(){f.accent="calendar";markDirty();syncUI()}}])});
+        accentBtn.addEventListener("click",function(){openMenu(accentBtn,[{label:"Graphite",right:f.accent==="graphite"?"check":null,fn:function(){f.accent="graphite";markDirty();syncUI()}},{label:"Calendar color",right:f.accent==="calendar"?"check":null,fn:function(){f.accent="calendar";markDirty();syncUI()}}])});
         remBtn.addEventListener("click", function () {
           var items = [{ label2: "Reminder" }];
           [[null, "None"], [0, "At the start time"], [5, "5 minutes before"], [10, "10 minutes before"], [15, "15 minutes before"], [30, "30 minutes before"], [60, "1 hour before"]].forEach(function (pair) {
