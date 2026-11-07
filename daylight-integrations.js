@@ -163,7 +163,7 @@
         const range=window.occsInRange(new Date(2015,0,1),new Date(2031,0,1)).filter(item=>item.ev&&item.ev.cal===cal.id);
         const escapeIcs=value=>String(value||'').replace(/\\/g,'\\\\').replace(/\r?\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');
         const day=value=>[value.getFullYear(),String(value.getMonth()+1).padStart(2,'0'),String(value.getDate()).padStart(2,'0')].join('');
-        const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\\.\\d{3}Z$/,'Z');
+        const stamp=new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');
         const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Daylight//Calendar//EN','CALSCALE:GREGORIAN','METHOD:PUBLISH'];
         range.forEach(item=>{
           if(!item.ev.allDay)return;
@@ -174,7 +174,7 @@
           if(item.ev.desc)lines.push('DESCRIPTION:'+escapeIcs(item.ev.desc));
           lines.push('END:VEVENT');
         });
-        lines.push('END:VCALENDAR');ics=lines.join('\\r\\n')+'\\r\\n';
+        lines.push('END:VCALENDAR');ics=lines.join('\r\n')+'\r\n';
       }else{
         ics=await call('ical-feed',{action:'export',calendar_id:cal.id});
       }
