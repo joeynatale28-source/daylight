@@ -190,7 +190,7 @@ window.daylightAiPane=function(pane){
      '<small>Control your Daylight calendar with ChatGPT.</small></span></div>'+
    '<div class="dl-chatgpt-status" role="status" id="dl-chatgpt-status">'+
      '<button class="btn-primary" type="button" id="dl-chatgpt-connect">Connect</button></div>';
- const chatgptConnect=()=>window.open('https://chatgpt.com/plugins/plugin_asdk_app_6aebc26aea6c8191b72592d9eb7e51be','_blank','noopener,noreferrer');
+ const chatgptConnect=()=>window.open('https://chatgpt.com/plugins/plugin_asdk_app_6aeea630e84c819190ca87bee00ee673','_blank','noopener,noreferrer');
  featured.querySelector('#dl-chatgpt-connect').onclick=chatgptConnect;
  wrapper.insertBefore(featured,wrapper.firstChild);
 
