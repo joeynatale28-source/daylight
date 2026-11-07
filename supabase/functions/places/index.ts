@@ -91,16 +91,17 @@ async function reverseGeocodeAddress(position: { lat: number; lng: number }, api
     throw new Error("TomTom Reverse Geocoding HTTP " + response.status + ": " + (detail || response.statusText));
   }
   const payload = await response.json();
+  const raw = JSON.stringify(payload).slice(0, 2400);
   const address = payload?.addresses?.[0]?.address;
   if (!address || typeof address !== "object") {
-    throw new Error("TomTom Reverse Geocoding returned no address for the supplied coordinates.");
+    throw new Error("TomTom Reverse Geocoding returned no address for the supplied coordinates. Raw response: " + raw);
   }
   const streetLine = [
     string(address.streetNumber, 40),
     string(address.streetName, 180),
   ].filter(Boolean).join(" ");
   if (!streetLine) {
-    throw new Error("TomTom Reverse Geocoding returned no street number or street name for the supplied coordinates.");
+    throw new Error("TomTom Reverse Geocoding returned no street number or street name for the supplied coordinates. Raw response: " + raw);
   }
   return {
     address: [
@@ -182,13 +183,30 @@ Deno.serve(async (req: Request) => {
 
     // Only the at-most-six results that lack both street components and have
     // coordinates incur one reverse-geocoding request each.
+    const reverseDiagnostics: Array<Record<string, unknown>> = [];
+    const isSchoolQuery = /hungry\s+creek\s+middle\s+school/i.test(searchInput);
     const suggestions = await Promise.all(ranked.map(async (entry: any) => {
       const position = validPosition(entry.item?.position);
       if (hasStreetComponents(entry.item) || !position) return entry.formatted;
-      const reverse = await reverseGeocodeAddress(position, apiKey);
-      return Object.assign({}, entry.formatted, { address: reverse.address, secondary: reverse.secondary });
+      try {
+        const reverse = await reverseGeocodeAddress(position, apiKey);
+        if (isSchoolQuery) reverseDiagnostics.push({ position, result: reverse });
+        return Object.assign({}, entry.formatted, { address: reverse.address, secondary: reverse.secondary });
+      } catch (failure) {
+        const message = failure instanceof Error ? failure.message : String(failure);
+        console.error("Daylight TomTom reverse-geocoding diagnostic:", JSON.stringify({
+          query: isSchoolQuery ? searchInput : "non-school query",
+          position,
+          error: message,
+        }));
+        if (isSchoolQuery) reverseDiagnostics.push({ position, error: message });
+        // A failed reverse lookup must not discard otherwise useful Search results.
+        return entry.formatted;
+      }
     }));
-    const result = { suggestions, attribution: "© TomTom" };
+    const result = isSchoolQuery
+      ? { suggestions, attribution: "© TomTom", diagnostics: { query: searchInput, reverseGeocoding: reverseDiagnostics } }
+      : { suggestions, attribution: "© TomTom" };
     if (cache.size > 400) cache.clear();
     cache.set(cacheKey, { time: now, result });
     return reply(req, result);
