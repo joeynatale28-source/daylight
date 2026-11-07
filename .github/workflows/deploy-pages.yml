@@ -55,6 +55,21 @@ jobs:
           test -d _site/assets/banners
           banner_count="$(find _site/assets/banners -type f -name '*.webp' | wc -l | tr -d ' ')"
           test "$banner_count" = "91"
+      - name: Verify deployed Supabase edge functions
+        run: |
+          set -euo pipefail
+          base="https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1"
+          origin="https://joeynatale28-source.github.io"
+          for fn in ical-feed places; do
+            preflight="$(curl -sS -o /dev/null -w '%{http_code}' -X OPTIONS "$base/$fn" \
+              -H "Origin: $origin" \
+              -H 'Access-Control-Request-Method: POST' \
+              -H 'Access-Control-Request-Headers: authorization,apikey,content-type,x-client-info')"
+            test "$preflight" = "204"
+            unauth="$(curl -sS -o /dev/null -w '%{http_code}' -X POST "$base/$fn" \
+              -H "Origin: $origin" -H 'Content-Type: application/json' --data '{"action":"status"}')"
+            test "$unauth" = "401"
+          done
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact
