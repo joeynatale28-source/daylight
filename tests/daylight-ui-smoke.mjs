@@ -62,8 +62,8 @@ try{
        loaded:[!!light?.complete&&light.naturalWidth>0,!!dark?.complete&&dark.naturalWidth>0]};
    });
    assert.ok(mark.present,'sign-in brand mark missing');
-   assert.equal(mark.light,'assets/sun-arc-light.png');
-   assert.equal(mark.dark,'assets/sun-arc-dark.png');
+   assert.equal(mark.light,'./assets/sun-arc-light.png');
+   assert.equal(mark.dark,'./assets/sun-arc-dark.png');
    assert.deepEqual(mark.loaded,[true,true],'both theme-specific sign-in assets must load');
    await page.screenshot({path:path.join(out,'signin-'+theme+'.png')});
  }
