@@ -4359,87 +4359,41 @@
       }
       function paneGeneral(pane, closeSettings) {
         paneHead(pane, "Profile", "Your daylight account and personal details.");
-        var g = el('<div class="set-group"><div class="set-group-title">Profile</div>' +
-          '<div class="field"><label for="gsName">First name</label><input class="text-input" id="gsName" style="max-width:300px" value="' + esc(state.firstName) + '"><p class="inline-note">Shown in your profile and account details.</p></div>' +
-          '<div class="field"><label>Email</label><input class="text-input" style="max-width:300px" value="' + esc(window.daylightCloud?.user?.email || "") + '" disabled><p class="inline-note">The email you sign in with. It cannot be changed here.</p></div></div>');
-        pane.appendChild(g);
-        var nameIn = g.querySelector("#gsName");
-        nameIn.addEventListener("input", function () {
-          state.firstName = nameIn.value.trim() || "Joey";
-          /* The sidebar profile shows the full name — swap its first
-             word for the new first name, keeping the rest, so this
-             field visibly takes effect in the profile footer. */
-          var rest = state.profileName.trim().split(/\s+/).slice(1).join(" ");
-          state.profileName = state.firstName + (rest ? " " + rest : "");
-          renderSidebar();
-        });
-
-        var gdt = el('<div class="set-group"><div class="set-group-title">Date &amp; time</div>' +
-          setRowHTML("Time format", "Applies to event times, the hour gutter, and the event form.", selectHTML("gsTimeFmt", [["12h", "12-hour (2:30pm)"], ["24h", "24-hour (14:30)"]], state.timeFormat, "sm")) +
-          setRowHTML("Date format", "How dates are written in lists, popovers, and the header.", selectHTML("gsDateFmt", [["mdy", "Nov 3, 2026"], ["dmy", "3 Nov 2026"], ["ymd", "2026-11-03"]], state.dateFormat, "sm")) +
-          '<p class="inline-note" style="margin-top:10px">First day of week lives under <b style="color:var(--text)">Calendar → Calendar view</b>.</p>' +
-          "</div>");
-        pane.appendChild(gdt);
-        gdt.querySelector("#gsTimeFmt").addEventListener("change", function (e) { state.timeFormat = e.target.value; renderAll(false); });
-        gdt.querySelector("#gsDateFmt").addEventListener("change", function (e) { state.dateFormat = e.target.value; renderHeader(); renderView(false); });
-
-        var tzDevice=deviceTz(), tzEntryNow=tzEntry(tzDevice);
-        var tzShown=state.useDeviceTz ? tzDevice : state.tzLabel;
-        var gtz=el('<div class="set-group"><div class="set-group-title">Time zone</div>'+
-          '<div class="set-row switch-row"><span><span class="sw-label">Use device time zone</span>'+
-          '<div class="sw-sub">Follow this device ('+esc(tzEntryNow[1])+' '+esc(tzEntryNow[2])+').</div></span>'+
-          switchHTML("gsUseDevTz",state.useDeviceTz)+'</div>'+
-          setRowHTML("Time zone",state.useDeviceTz ? "Turn off device time zone to choose manually." : "Used for events and the Day/Week time gutter.",
-            selectHTML("gsTz",tzOptions(tzShown),tzShown,"sm"))+"</div>");
-        pane.appendChild(gtz);
-        var tzBtn=gtz.querySelector("#gsTz");
-        tzBtn.disabled=state.useDeviceTz;
-        tzBtn.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false);if(settingsState.markDirty)settingsState.markDirty();if(settingsState.redrawPane)settingsState.redrawPane()});
-        gtz.querySelector("#gsUseDevTz").addEventListener("change",function(e){
-          if (!e.target.checked && state.useDeviceTz) state.tzLabel=deviceTz();
-          state.useDeviceTz=e.target.checked;
-          renderView(false);
-          if(settingsState.redrawPane)settingsState.redrawPane();
-          if(settingsState.markDirty)settingsState.markDirty();
-        });
-
-        var calOpts = writableCalendars().map(function (c) { return [c.id, c.name]; });
-        var gne = el('<div class="set-group"><div class="set-group-title">New events</div>' +
-          setRowHTML("Default duration", "New events are prefilled with this length.", selectHTML("gsDuration", [[15, "15 minutes"], [30, "30 minutes"], [45, "45 minutes"], [60, "1 hour"], [90, "1.5 hours"], [120, "2 hours"]], state.defaultDuration, "sm")) +
-          setRowHTML("Default calendar", "Where new events land unless you pick another calendar.", selectHTML("gsDefCal", calOpts, defaultCalId(), "sm")) +
-          setRowHTML("Default reminder", "Prefilled on new events — change it per event in the form.", selectHTML("gsDefRem", [[0, "None"], [5, "5 minutes before"], [10, "10 minutes before"], [15, "15 minutes before"], [30, "30 minutes before"], [60, "1 hour before"]], state.defaultReminder, "sm")) +
-          "</div>");
-        pane.appendChild(gne);
-        gne.querySelector("#gsDuration").addEventListener("change", function (e) { state.defaultDuration = +e.target.value; });
-        gne.querySelector("#gsDefCal").addEventListener("change", function (e) { state.defaultCalendarId = e.target.value; });
-        gne.querySelector("#gsDefRem").addEventListener("change", function (e) { state.defaultReminder = +e.target.value; });
-
-        var dayNames = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-        var chips = dayNames.map(function (n, i) {
-          return '<button class="day-chip' + (state.workDays.indexOf(i) >= 0 ? " on" : "") + '" data-day="' + i + '" aria-pressed="' + (state.workDays.indexOf(i) >= 0) + '" title="' + DOWS[i] + '">' + n + "</button>";
-        }).join("");
-        var gwh = el('<div class="set-group"><div class="set-group-title">Working hours</div>' +
-          '<div class="set-row switch-row"><span><span class="sw-label">Working days</span><div class="sw-sub">The days you are usually available.</div></span><span class="day-chips" id="gsWorkDays">' + chips + "</span></div>" +
-          setRowHTML("Work starts", "When your working day usually begins.", selectHTML("gsWorkStart", [], state.workStart, "xs")) +
-          setRowHTML("Work ends", "When your working day usually ends. Events outside these hours still show normally.", selectHTML("gsWorkEnd", [], state.workEnd, "xs")) +
-          "</div>");
-        pane.appendChild(gwh);
-        var wsSel = gwh.querySelector("#gsWorkStart"), weSel = gwh.querySelector("#gsWorkEnd");
-        ddSetOptions(wsSel, minuteOptionList(30), state.workStart);
-        ddSetOptions(weSel, minuteOptionList(30), state.workEnd);
-        wsSel.addEventListener("change", function () { state.workStart = +wsSel.value; });
-        weSel.addEventListener("change", function () { state.workEnd = +weSel.value; });
-        gwh.querySelectorAll(".day-chip").forEach(function (chip) {
-          chip.addEventListener("click", function () {
-            var d = +chip.getAttribute("data-day");
-            var idx = state.workDays.indexOf(d);
-            if (idx >= 0) state.workDays.splice(idx, 1); else state.workDays.push(d);
-            var on = state.workDays.indexOf(d) >= 0;
-            chip.classList.toggle("on", on);
-            chip.setAttribute("aria-pressed", String(on));
-          });
-        });
-
+        var cloud=window.daylightCloud;
+        var profile=el('<div class="set-group"><div class="set-group-title">Personal details</div><div class="field"><label for="profileFullName">Full name</label><input class="text-input" id="profileFullName" style="max-width:340px" value="'+esc(state.profileName||state.firstName||"")+'"></div><div class="field"><label>Email</label><input class="text-input" style="max-width:340px" value="'+esc(cloud?.user?.email||"")+'" readonly aria-readonly="true"></div><p class="inline-note">Your email is managed by your sign-in method.</p></div>');
+        pane.appendChild(profile);
+        profile.querySelector("#profileFullName").addEventListener("input",function(e){state.profileName=e.target.value.trim();state.firstName=state.profileName.split(/\\s+/)[0]||"Account";renderSidebar();});
+        var security=el('<div class="set-group"><div class="set-group-title">Security</div><div class="set-row"><span><span class="sw-label">Password</span><span class="sw-sub">Change the password used to sign in.</span></span><button type="button" class="btn-ghost" id="profileChangePassword">Change password</button></div><div id="profilePasswordForm" hidden><div class="field"><label for="profileNewPassword">New password</label><input class="text-input" type="password" id="profileNewPassword" autocomplete="new-password"></div><div class="field"><label for="profileConfirmPassword">Confirm new password</label><input class="text-input" type="password" id="profileConfirmPassword" autocomplete="new-password"></div><div style="display:flex;gap:8px;align-items:center"><button type="button" class="btn-primary" id="profileSavePassword">Update password</button><span id="profilePasswordStatus" role="status" class="inline-note"></span></div></div></div>');
+        pane.appendChild(security);
+        security.querySelector("#profileChangePassword").onclick=function(){security.querySelector("#profilePasswordForm").hidden=false;security.querySelector("#profileNewPassword").focus();};
+        security.querySelector("#profileSavePassword").onclick=async function(){
+          var a=security.querySelector("#profileNewPassword").value,b=security.querySelector("#profileConfirmPassword").value,status=security.querySelector("#profilePasswordStatus");
+          if(a.length<8){status.textContent="Use at least 8 characters.";return;}if(a!==b){status.textContent="Passwords do not match.";return;}
+          status.textContent="Updating…";try{var result=await cloud.client.auth.updateUser({password:a});if(result.error)throw result.error;status.textContent="Password updated.";security.querySelector("#profileNewPassword").value="";security.querySelector("#profileConfirmPassword").value="";}catch(err){status.textContent=err.message||"Unable to update password.";}
+        };
+        var sessions=el('<div class="set-group"><div class="set-group-title">Active sessions</div><p class="pane-sub">Devices currently signed in to your daylight account.</p><div id="profileSessions" aria-live="polite">Loading sessions…</div></div>');
+        pane.appendChild(sessions);
+        function platform(ua){ua=String(ua||"");var os=/Windows/i.test(ua)?"Windows":/Macintosh|Mac OS/i.test(ua)?"macOS":/iPhone|iPad/i.test(ua)?"iPhone":/Android/i.test(ua)?"Android":/Linux/i.test(ua)?"Linux":"Unknown device";var browser=/Edg\\//i.test(ua)?"Edge":/Chrome\\//i.test(ua)?"Chrome":/Firefox\\//i.test(ua)?"Firefox":/Safari\\//i.test(ua)&&!/Chrome\\//i.test(ua)?"Safari":"";return browser?browser+" on "+os:os;}
+        async function loadSessions(){
+          var list=sessions.querySelector("#profileSessions");
+          try{
+            var result=await cloud.client.rpc("daylight_list_own_sessions");
+            if(result.error)throw result.error;
+            list.textContent="";
+            var rows=Array.isArray(result.data)?result.data:[];
+            if(!rows.length){list.textContent="No active sessions found.";return;}
+            rows.forEach(function(row){
+              var item=el('<div class="feed-row"><span class="fr-url"><strong class="session-device"></strong><br><span class="fr-sub session-time"></span></span><span class="session-actions"></span></div>');
+              item.querySelector(".session-device").textContent=platform(row.user_agent)+(row.current_session?" · This device":"");
+              item.querySelector(".session-time").textContent=row.last_active_at?"Last active "+new Date(row.last_active_at).toLocaleString():"Session active";
+              if(!row.current_session){var revoke=el('<button type="button" class="btn-danger-outline">Sign out</button>');revoke.onclick=async function(){revoke.disabled=true;try{var done=await cloud.client.rpc("daylight_revoke_own_session",{p_session_id:row.session_id});if(done.error)throw done.error;await loadSessions();}catch(err){revoke.disabled=false;toast(err.message||"Unable to sign out this device");}};item.querySelector(".session-actions").appendChild(revoke);}
+              list.appendChild(item);
+            });
+          }catch(err){list.textContent=err.message||"Unable to load sessions.";}
+        }
+        loadSessions();
+        var logout=el('<div class="set-group"><button type="button" class="btn-danger" id="profileLogout">Log out</button></div>');
+        pane.appendChild(logout);logout.querySelector("#profileLogout").onclick=function(){logOut();};
       }
       function themePreviewHTML(mode) {
         function mock(cls) {
@@ -4489,30 +4443,30 @@
         });
       }
       function paneCalendar(pane) {
-        paneHead(pane, "Calendar", "How your calendar opens and what it shows.");
-        /* Cron's Settings → Calendar view grouping: everything about
-           how the grid reads lives in ONE section — weekends, declined
-           events, week numbers, start-of-week, and the time zone with
-           Google's "Use device time zone" toggle above the picker. */
-        var g = el('<div class="set-group"><div class="set-group-title">Calendar view</div>' +
-          '<div class="field"><label for="csView">Default Calendar View</label>' + selectHTML("csView", [["month", "Month"], ["week", "Week"], ["day", "Day"], ["agenda", "Agenda"]], settingsState.pendingView || state.view, "") +
-          '<p class="inline-note">The view shown when daylight opens. Changing it updates the calendar behind Settings right away.</p></div>' +
-          '<div class="set-row switch-row"><span><span class="sw-label">Weekends</span><div class="sw-sub">Show Saturday and Sunday in Month and Week views.</div></span>' + switchHTML("csWeekends", state.showWeekends) + "</div>" +
-          '<div class="set-row switch-row"><span><span class="sw-label">Declined events</span><div class="sw-sub">Declined events stay visible on your calendar.</div></span>' + switchHTML("csSD", state.showDeclined) + "</div>" +
-          '<div class="set-row switch-row"><span><span class="sw-label">Week numbers</span><div class="sw-sub">Show the ISO week number along the left edge of Month view.</div></span>' + switchHTML("csWN", state.weekNumbers) + "</div>" +
-          setRowHTML("Start week on", "Changes the first column in Month, Week, and the mini calendar.", selectHTML("csWeekStart", [[0, "Sunday"], [1, "Monday"]], state.weekStart, "sm")) +
-          "</div>");
-        pane.appendChild(g);
-        var sel = g.querySelector("#csView");
-        settingsState.viewSelect = sel;
-        sel.addEventListener("change", function () {
-          settingsState.pendingView = sel.value;
-          if (sel.value !== state.view) { state.view = sel.value; state.prevView = null; renderHeader(); renderView(true, 1); renderSidebar(); }
-        });
-        g.querySelector("#csWeekends").addEventListener("change", function (e) { state.showWeekends = e.target.checked; renderView(false); });
-        g.querySelector("#csSD").addEventListener("change", function (e) { state.showDeclined = e.target.checked; renderView(false); renderSidebar(); });
-        g.querySelector("#csWN").addEventListener("change", function (e) { state.weekNumbers = e.target.checked; renderView(false); });
-        g.querySelector("#csWeekStart").addEventListener("change", function (e) { state.weekStart = +e.target.value; renderSidebar(); renderView(false); });
+        paneHead(pane, "Calendar", "How your calendar opens, displays time, and creates events.");
+        var view=el('<div class="set-group"><div class="set-group-title">View</div><div class="field"><label for="csView">Default Calendar View</label>'+selectHTML("csView",[["month","Month"],["week","Week"],["day","Day"],["agenda","Agenda"]],settingsState.pendingView||state.view,"")+'<p class="inline-note">The view shown when daylight opens.</p></div>'+setRowHTML("Start week on","Changes the first column in Month, Week, and the mini calendar.",selectHTML("csWeekStart",[[0,"Sunday"],[1,"Monday"]],state.weekStart,"sm"))+'<div class="set-row switch-row"><span><span class="sw-label">Show weekends</span><span class="sw-sub">Show Saturday and Sunday in Month and Week views.</span></span>'+switchHTML("csWeekends",state.showWeekends)+'</div><div class="set-row switch-row"><span><span class="sw-label">Week numbers</span><span class="sw-sub">Show ISO week numbers in Month view.</span></span>'+switchHTML("csWN",state.weekNumbers)+'</div><div class="set-row switch-row"><span><span class="sw-label">Show declined events</span><span class="sw-sub">Keep declined events visible on your calendar.</span></span>'+switchHTML("csSD",state.showDeclined)+'</div></div>');
+        pane.appendChild(view);
+        var sel=view.querySelector("#csView");settingsState.viewSelect=sel;
+        sel.addEventListener("change",function(){settingsState.pendingView=sel.value;if(sel.value!==state.view){state.view=sel.value;state.prevView=null;renderHeader();renderView(true,1);renderSidebar();}});
+        view.querySelector("#csWeekStart").addEventListener("change",function(e){state.weekStart=+e.target.value;renderSidebar();renderView(false);});
+        view.querySelector("#csWeekends").addEventListener("change",function(e){state.showWeekends=e.target.checked;renderView(false);});
+        view.querySelector("#csWN").addEventListener("change",function(e){state.weekNumbers=e.target.checked;renderView(false);});
+        view.querySelector("#csSD").addEventListener("change",function(e){state.showDeclined=e.target.checked;renderView(false);renderSidebar();});
+        var fmt=el('<div class="set-group"><div class="set-group-title">Format</div>'+setRowHTML("Time format","12-hour or 24-hour clock.",selectHTML("gsTimeFmt",[["12h","12-hour (2:30pm)"],["24h","24-hour (14:30)"]],state.timeFormat,"sm"))+setRowHTML("Date format","How dates appear in lists and event details.",selectHTML("gsDateFmt",[["mdy","Nov 3, 2026"],["dmy","3 Nov 2026"],["ymd","2026-11-03"]],state.dateFormat,"sm"))+'</div>');
+        pane.appendChild(fmt);
+        fmt.querySelector("#gsTimeFmt").addEventListener("change",function(e){state.timeFormat=e.target.value;renderAll(false);});
+        fmt.querySelector("#gsDateFmt").addEventListener("change",function(e){state.dateFormat=e.target.value;renderHeader();renderView(false);});
+        var tzDevice=deviceTz(),tzEntryNow=tzEntry(tzDevice),tzShown=state.useDeviceTz?tzDevice:state.tzLabel;
+        var tz=el('<div class="set-group"><div class="set-group-title">Time zone</div><div class="set-row switch-row"><span><span class="sw-label">Use device time zone</span><span class="sw-sub">Follow this device ('+esc(tzEntryNow[1])+' '+esc(tzEntryNow[2])+').</span></span>'+switchHTML("gsUseDevTz",state.useDeviceTz)+'</div>'+setRowHTML("Time zone",state.useDeviceTz?"Turn off device time zone to choose manually.":"Used for events and the Day/Week time gutter.",selectHTML("gsTz",tzOptions(tzShown),tzShown,"sm"))+'</div>');
+        pane.appendChild(tz);var tzSel=tz.querySelector("#gsTz");tzSel.disabled=state.useDeviceTz;
+        tzSel.addEventListener("change",function(e){state.tzLabel=e.target.value;renderView(false);});
+        tz.querySelector("#gsUseDevTz").addEventListener("change",function(e){if(!e.target.checked&&state.useDeviceTz)state.tzLabel=deviceTz();state.useDeviceTz=e.target.checked;renderView(false);tzSel.disabled=state.useDeviceTz;if(settingsState.markDirty)settingsState.markDirty();});
+        var calOpts=writableCalendars().map(function(c){return[c.id,c.name]});
+        var ne=el('<div class="set-group"><div class="set-group-title">New events</div>'+setRowHTML("Default calendar","Where new events are created by default.",selectHTML("gsDefCal",calOpts,defaultCalId(),"sm"))+setRowHTML("Default duration","Prefilled length for new events.",selectHTML("gsDuration",[[15,"15 minutes"],[30,"30 minutes"],[45,"45 minutes"],[60,"1 hour"],[90,"1.5 hours"],[120,"2 hours"]],state.defaultDuration,"sm"))+setRowHTML("Default reminder","The one reminder default used for new events.",selectHTML("gsDefRem",[[0,"None"],[5,"5 minutes before"],[10,"10 minutes before"],[15,"15 minutes before"],[30,"30 minutes before"],[60,"1 hour before"]],state.defaultReminder,"sm"))+'</div>');
+        pane.appendChild(ne);
+        ne.querySelector("#gsDefCal").addEventListener("change",function(e){state.defaultCalendarId=e.target.value;});
+        ne.querySelector("#gsDuration").addEventListener("change",function(e){state.defaultDuration=+e.target.value;});
+        ne.querySelector("#gsDefRem").addEventListener("change",function(e){state.defaultReminder=+e.target.value;});
       }
       function paneNotifications(pane) {
         paneHead(pane, "Notifications", "Reminders for the events on your calendar.");
