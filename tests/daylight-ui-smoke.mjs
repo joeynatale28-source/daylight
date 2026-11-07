@@ -44,9 +44,23 @@ try{
    window.supabase={createClient:()=>window.__fakeClient};
  });
  await page.setRequestInterception(true);
+ const assetRoot=path.resolve(process.cwd(),'assets')+path.sep;
  page.on('request',request=>{
-   if(request.url().includes('/supabase-js@'))request.respond({status:200,contentType:'application/javascript',body:'window.supabase=window.supabase||{};'});
-   else if(/^https?:/.test(request.url()))request.abort();
+   const url=request.url();
+   if(url.includes('/supabase-js@')){
+     request.respond({status:200,contentType:'application/javascript',body:'window.supabase=window.supabase||{};'});
+     return;
+   }
+   if(url.startsWith('file://')){
+     const pathname=decodeURIComponent(new URL(url).pathname);
+     const relative=path.relative(process.cwd(),pathname);
+     const resolved=path.resolve(pathname);
+     if((relative.startsWith('assets'+path.sep)||relative.startsWith('assets/'))&&resolved.startsWith(assetRoot)){
+       request.continue();
+       return;
+     }
+   }
+   if(/^https?:/.test(url))request.abort();
    else request.continue();
  });
  page.on('pageerror',err=>errors.push(err.message));
