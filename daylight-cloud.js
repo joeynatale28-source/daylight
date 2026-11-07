@@ -143,7 +143,7 @@
       if (seen[id]) return;
       seen[id] = true;
       output.push({
-        id: id, name: name, color: PALETTE[item.color] ? item.color : 'blue',
+        id: id, name: name, color: (PALETTE[item.color] || (typeof item.color === 'string' && /^#[0-9a-f]{6}$/i.test(item.color))) ? item.color : 'blue',
         hidden: !!item.hidden, subscribed: isHoliday || !!item.subscribed,
         shared: !isHoliday && !!item.shared, builtin: !!isHoliday
       });
