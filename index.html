@@ -4169,7 +4169,7 @@
       }
       function openSearch() {
         if (paletteEl) return;
-        closeMenu(); closePopover();
+        closeNotifications();closeMenu(); closePopover();
         var bd = el('<div class="palette-backdrop" id="paletteBd"></div>');
         var pal = el('<div class="palette" role="dialog" aria-modal="true" aria-label="Search events">' +
           '<div class="palette-input-row">' + icon("search", 19) +
@@ -4263,7 +4263,7 @@
         document.documentElement.setAttribute("data-theme", effectiveTheme());
       }
       function openSettings(section) {
-        closeMenu(); closePopover();
+        closeNotifications();closeMenu(); closePopover();
         settingsState.section = section || settingsState.section || "general";
         settingsState.pendingView = state.view;
         var bd = el('<div class="backdrop"></div>');
@@ -5437,6 +5437,7 @@
         }
         if (e.key === "Escape") {
           if (isDrawerOpen()) { closeDrawer(); e.preventDefault(); return; }
+          if (notificationPanelEl) { closeNotifications(); e.preventDefault(); return; }
           if (closeTopmostOverlay()) { e.preventDefault(); }
         }
       });
