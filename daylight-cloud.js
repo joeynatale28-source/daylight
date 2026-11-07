@@ -48,6 +48,8 @@
     get client() { return client; },
     get user() { return user; },
     get ready() { return !!user && !loading && !conflict; },
+    get customColors() { return Array.isArray(state.customColors)?state.customColors.slice():[]; },
+    set customColors(value) { state.customColors=Array.isArray(value)?value.filter(function(c){return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)}).slice(0,30):[];changesQueued(); },
     save: function () { changesQueued(); }
   };
   function signature(e) { return JSON.stringify([e.title,e.cal,+e.start,+e.end,e.allDay,e.loc,e.desc,e.repeat,e.rrule,e.exdates]); }
@@ -222,6 +224,7 @@
     if (typeof settings.reduceMotion === 'boolean') state.reduceMotion = settings.reduceMotion;
     if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
     if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
+    state.customColors = Array.isArray(settings.customColors) ? settings.customColors.filter(function(c){return typeof c==='string'&&/^#[0-9a-f]{6}$/i.test(c)}).slice(0,30) : [];
     document.body.classList.toggle('reduce-motion', !!state.reduceMotion);
     if (typeof settings.defaultView === 'string' && ['day','week','month','agenda'].indexOf(settings.defaultView) !== -1) { state.view = settings.defaultView; state.defaultView = settings.defaultView; }
     /* Navigation state is NOT restored (Part 1 + 11.11): a fresh
@@ -257,7 +260,7 @@
         themeMode:state.themeMode, firstName:state.firstName,
         profileName:state.profileName, sidebarRail:state.sidebarRail,
         reduceMotion:state.reduceMotion, remind15:state.remind15,
-        dailySummary:state.dailySummary
+        dailySummary:state.dailySummary, customColors:Array.isArray(state.customColors)?state.customColors.slice(0,30):[]
       }),
       /* No navigation state is persisted (see the restore note):
          cursor/selected/view/section always start fresh on load. */

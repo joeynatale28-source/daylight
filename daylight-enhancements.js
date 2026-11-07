@@ -2,9 +2,8 @@
 (function(){
 "use strict";
 const colors=Array.from({length:24},(_,i)=>hsv((i*15)%360,0.82,0.94)).concat(["#737373","#A3A3A3","#D4D4D4","#FFFFFF","#111111"]);
-const STORE="daylight-custom-colors";
 let saved=[];
-try{saved=JSON.parse(localStorage.getItem(STORE)||"[]").filter(x=>/^#[0-9A-F]{6}$/i.test(x)).slice(0,30)}catch{}
+function syncSaved(){saved=window.daylightCloud?.ready?(window.daylightCloud.customColors||[]):[];}
 function hsv(h,s,v){let c=v*s,x=c*(1-Math.abs((h/60)%2-1)),m=v-c,r=0,g=0,b=0;if(h<60){r=c;g=x}else if(h<120){r=x;g=c}else if(h<180){g=c;b=x}else if(h<240){g=x;b=c}else if(h<300){r=x;b=c}else{r=c;b=x}return "#"+[r,g,b].map(n=>Math.round((n+m)*255).toString(16).padStart(2,"0")).join("").toUpperCase()}
 function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
 const style=document.createElement("style");
@@ -37,6 +36,10 @@ style.textContent=`
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
 `;
 style.textContent += `
+.dl-saved-color-wrap{position:relative;display:block;min-width:0}
+.dl-saved-color-wrap .dl-color-item{width:100%}
+.dl-color-remove{position:absolute;top:-6px;right:-5px;width:16px;height:16px;border-radius:50%;background:var(--surface);color:var(--text);border:1px solid var(--line);font-size:12px;line-height:13px;opacity:.95;cursor:pointer;z-index:2}
+.dl-color-remove:hover{background:var(--danger);color:#fff}
 /* Daylight sidebar: stable single-line labels and compact adaptive rows. */
 .cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
 .cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
@@ -127,8 +130,10 @@ function fitCalendarRows(){
 }
 new MutationObserver(()=>requestAnimationFrame(fitCalendarRows)).observe(document.body,{childList:true,subtree:true});
 window.addEventListener("resize",fitCalendarRows);
-document.addEventListener("daylight:workspace-ready",fitCalendarRows);
-function remember(color){color=color.toUpperCase();if(!saved.includes(color)){saved.unshift(color);saved=saved.slice(0,30);try{localStorage.setItem(STORE,JSON.stringify(saved))}catch{}}}
+document.addEventListener("daylight:workspace-ready",()=>{fitCalendarRows();syncSaved()});
+document.addEventListener("daylight:workspace-preview-ready",syncSaved);
+document.addEventListener("daylight:workspace-signed-out",()=>{saved=[]});
+function remember(color){color=color.toUpperCase();if(!saved.includes(color)){saved.unshift(color);saved=saved.slice(0,30);if(window.daylightCloud?.ready)window.daylightCloud.customColors=saved.slice();}}
 function custom(onApply,seed){
  let h=28,s=.75,v=1,hex=/^#[0-9A-F]{6}$/i.test(seed)?seed.toUpperCase():"#FF7A00";
  const bd=document.createElement("div");bd.className="backdrop dl-color-modal";
@@ -149,14 +154,14 @@ function custom(onApply,seed){
  draw();input.focus();
 }
 window.daylightColorPicker=function(host,initial,onChange){
- host.textContent="";host.classList.add("dl-color-grid");
+ syncSaved();host.textContent="";host.classList.add("dl-color-grid");
  let selected=initial;
  function make(key,label){const b=document.createElement("button");b.type="button";b.className="dl-color-item";b.style.background=window.PALETTE?.[key]?.dot||key;b.title=label||key;b.setAttribute("aria-label","Color "+(label||key));b.setAttribute("aria-pressed",String(key===selected));b.onclick=()=>{selected=key;onChange(key);paint()};host.append(b)}
  function paint(){host.querySelectorAll(".dl-color-item:not(.dl-color-plus)").forEach(b=>b.setAttribute("aria-pressed",String(b.title===selected)))}
  colors.forEach(key=>make(key));
  if(initial&&!colors.includes(initial)&&!saved.includes(initial))
    make(initial,"Current color");
- if(saved.length){const label=document.createElement("div");label.className="dl-color-label";label.textContent="Your colors";label.style.gridColumn="1/-1";host.append(label);saved.forEach(key=>make(key))}
+ if(saved.length){const label=document.createElement("div");label.className="dl-color-label";label.textContent="Your colors";label.style.gridColumn="1/-1";host.append(label);saved.forEach(key=>{const wrap=document.createElement("span");wrap.className="dl-saved-color-wrap";const b=document.createElement("button");b.type="button";b.className="dl-color-item";b.style.background=key;b.title=key;b.setAttribute("aria-label","Color "+key);b.setAttribute("aria-pressed",String(key===selected));b.onclick=()=>{selected=key;onChange(key);paint()};const remove=document.createElement("button");remove.type="button";remove.className="dl-color-remove";remove.textContent="×";remove.title="Remove saved color";remove.setAttribute("aria-label","Remove saved color "+key);remove.onclick=e=>{e.stopPropagation();saved=saved.filter(x=>x!==key);if(window.daylightCloud?.ready)window.daylightCloud.customColors=saved.slice();window.daylightColorPicker(host,selected,onChange)};wrap.append(b,remove);host.append(wrap)})}
  const plus=document.createElement("button");plus.type="button";plus.className="dl-color-item dl-color-plus";plus.textContent="+";plus.title="Create custom color";plus.setAttribute("aria-label","Create custom color");plus.onclick=()=>custom(key=>{selected=key;onChange(key);window.daylightColorPicker(host,selected,onChange)},/^#/.test(selected)?selected:"#FF7A00");host.append(plus);
 };
 })();
