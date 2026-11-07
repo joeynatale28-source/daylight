@@ -107,7 +107,7 @@ Deno.serve(async(req:Request)=>{
   const owned=(payload.calendars||[]).some((c:Record<string,unknown>)=>String(c.id)===cal.client_id&&!c.subscribed&&!c.builtin);
   if(!owned)return notFound();
   const etag='"daylight-'+id+'-'+workspace.revision+'"',modified=new Date(workspace.updated_at).toUTCString();
-  const headers={"ETag":etag,"Last-Modified":modified,"Cache-Control":"private, max-age=300"};
+  const headers={"ETag":etag,"Last-Modified":modified,"Cache-Control":publicRequest?"no-store":"private, max-age=300"};
   if(req.headers.get("if-none-match")===etag)return new Response(null,{status:304,headers});
   const events=(payload.events||[]).filter((e:Record<string,unknown>)=>String(e.cal)===cal.client_id);
   try {
