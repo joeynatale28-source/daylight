@@ -154,6 +154,7 @@
   document.addEventListener('daylight:workspace-signed-out',()=>{
     currentUser=null;subscriptionRows=[];readOnlyCals.clear();remoteIds.clear();
   });
+  window.daylightCalendarShareAction=function(body){return call('ical-feed',body);};
   window.daylightExportCalendar=async function(cal){
     if(!own()||!cal||cal.builtin||cal.subscribed)return;
     try{
@@ -535,7 +536,7 @@
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 
   // Reachable before Settings has ever been opened.
-    window.daylightSubscribeDialog=function(){
+    window.daylightSubscribeDialog=function(prefill){
       const content=html('<div class="dl-subscribe-form">'+
         '<div class="field"><label for="dl-sub-name">Name (optional)</label><input class="text-input" id="dl-sub-name" placeholder="Use the calendar feed name"></div>'+
         '<div class="field"><label for="dl-sub-url">iCal URL</label><input class="text-input" id="dl-sub-url" placeholder="https://example.com/calendar.ics" autocomplete="off"></div>'+
@@ -546,6 +547,7 @@
       let color='teal';
       window.daylightColorPicker(content.querySelector('#dl-sub-colors'),color,k=>{color=k});
       const feedback=content.querySelector('#dl-sub-feedback'),button=content.querySelector('#dl-sub-save');
+      if(prefill&&prefill.url){content.querySelector('#dl-sub-url').value=prefill.url;content.querySelector('#dl-sub-name').value=prefill.name||'';button.textContent='Add this calendar';}
       content.querySelector('#dl-sub-url').focus();
       button.onclick=async()=>{
         let url=content.querySelector('#dl-sub-url').value.trim();
