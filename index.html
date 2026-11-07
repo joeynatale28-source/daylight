@@ -2149,6 +2149,26 @@
             allDay: true, loc: "", desc: "", repeat: null, reminder: null, declined: false, builtin: true
           };
         }
+        function hanukkahStart(year) {
+          try {
+            var formatter = new Intl.DateTimeFormat("en-u-ca-hebrew", { month: "long", day: "numeric" });
+            for (var day = 15; day <= 31; day++) {
+              var date = new Date(year, 10, day);
+              var parts = formatter.formatToParts(date);
+              var month = parts.find(function (p) { return p.type === "month"; });
+              var number = parts.find(function (p) { return p.type === "day"; });
+              if (month && /kislev/i.test(month.value) && number && Number(number.value) === 25) return date;
+            }
+            for (var next = 1; next <= 31; next++) {
+              var decemberDate = new Date(year, 11, next);
+              var decemberParts = formatter.formatToParts(decemberDate);
+              var decemberMonth = decemberParts.find(function (p) { return p.type === "month"; });
+              var decemberDay = decemberParts.find(function (p) { return p.type === "day"; });
+              if (decemberMonth && /kislev/i.test(decemberMonth.value) && decemberDay && Number(decemberDay.value) === 25) return decemberDate;
+            }
+          } catch (error) {}
+          return new Date(year, 11, 1);
+        }
         var list = [
           H("New Year's Day", new Date(y, 0, 1)),
           H("New Year's Eve", new Date(y, 11, 31)),
@@ -2169,7 +2189,7 @@
           H("Election Day", addDays(nthWeekday(y, 10, 1, 1), 1)),
           H("Veterans Day", new Date(y, 10, 11)),
           H("Thanksgiving", nthWeekday(y, 10, 4, 4)),
-          H("Hanukkah", (function(){var d=new Date(y,11,1);while(d.getDay()!==0)d.setDate(d.getDate()+1);d.setDate(d.getDate()+24);return d})()),
+          H("Hanukkah", hanukkahStart(y)),
           H("Christmas Eve", new Date(y, 11, 24)),
           H("Christmas Day", new Date(y, 11, 25))
         ];
