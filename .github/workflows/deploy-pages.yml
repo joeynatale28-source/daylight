@@ -86,8 +86,8 @@ jobs:
           set -euo pipefail
           base="${PAGE_URL%/}"
           for asset in \
-            assets/sun-arc-light.png \
-            assets/sun-arc-dark.png \
+            assets/daylight-sunarc-light-NOBG.png \
+            assets/daylight-sunarc-dark-NOBG.png \
             assets/favicon-light-16.png \
             assets/favicon-light-32.png \
             assets/favicon-dark-16.png \
