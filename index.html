@@ -456,14 +456,11 @@
       .mini-anim-prev { animation: viewFade 160ms var(--ease-out); }
 
       /* ---------- Month view ---------- */
-      .month-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      .month-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
       .dow-row { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--line); }
       .dow-row.has-wn { grid-template-columns: 30px repeat(7, 1fr); }
       .dow-cell { padding: 9px 12px; font-size: 11px; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
-      .month-grid { flex: 1; min-height: 0; display: grid; grid-template-rows: repeat(6, 1fr); }
-      .month-wrap { display:flex; flex-direction:column; min-height:0; }
-      .month-grid { flex:1; min-height:0; overflow-y:auto; overscroll-behavior:contain; }
-      .month-week { min-height:0; }
+      .month-grid { flex: 1 1 auto; min-height: 0; height: 100%; display: grid; grid-template-rows: repeat(6, minmax(0, 1fr)); overflow: hidden; overscroll-behavior: contain; }
       .day-cell { min-height:0; }
       .day-cell > .cell-add { position:absolute; top:6px; right:7px; z-index:2; }
       .day-cell > .cell-events { margin-top:0; }
@@ -1096,6 +1093,7 @@
       .feed-row .fr-sub { font-size: 12px; color: var(--muted); }
       .about-logo { display: flex; align-items: center; gap: 13px; margin-bottom: 18px; }
       .about-logo .logo-tile { width: 46px; height: 46px; border-radius: var(--r-lg); }
+      .about-logo .daylight-mark { width: 46px; height: 46px; }
       .inline-note { font-size: 12.5px; color: var(--muted); margin-top: 6px; line-height: 1.55; max-width: 460px; }
       .set-helper { font-size: 12.5px; color: var(--muted); line-height: 1.55; margin: 10px 0 6px; max-width: 480px; }
 
@@ -1363,8 +1361,14 @@
 
       /* Form side (left) */
       .auth-form-panel { flex: 0 0 45%; min-width: 380px; position: relative; display: flex; flex-direction: column; padding: 22px 28px 26px; background: var(--auth-bg); border-right: 1px solid var(--auth-hairline); }
-      .auth-topbar { display: flex; align-items: center; justify-content: flex-end; min-height: 38px; }
-      .auth-topbar .auth-wordmark { display: none; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
+      .auth-topbar { display: flex; align-items: center; justify-content: space-between; min-height: 38px; }
+      .auth-topbar .auth-brand { display: inline-flex; align-items: center; gap: 9px; min-width: 0; }
+      .auth-topbar .auth-brand-mark { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; flex: none; overflow: hidden; }
+      .auth-topbar .auth-brand-mark .daylight-mark { display: block; width: 34px; height: 34px; object-fit: contain; }
+      .auth-topbar .auth-brand-mark .daylight-mark-dark { display: none; }
+      [data-theme="dark"] .auth-topbar .auth-brand-mark .daylight-mark-light { display: none; }
+      [data-theme="dark"] .auth-topbar .auth-brand-mark .daylight-mark-dark { display: block; }
+      .auth-topbar .auth-wordmark { display: inline-flex; font-size: 16px; font-weight: 800; letter-spacing: -0.02em; }
       .auth-theme-btn { width: 38px; height: 38px; border-radius: 999px; border: 1px solid var(--auth-ghost-border); background: transparent; color: var(--auth-muted); display: inline-flex; align-items: center; justify-content: center; flex: none; transition: background 120ms, color 120ms; }
       .auth-theme-btn:hover { color: var(--auth-text); background: var(--auth-ghost-hover); }
       .auth-form-wrap { flex: 1; display: flex; flex-direction: column; justify-content: center; justify-content: safe center; width: 100%; max-width: 400px; margin: 0 auto; padding: 20px 4px; }
@@ -3055,10 +3059,10 @@
               cell.appendChild(add);
               var evBox = el('<div class="cell-events"></div>');
               if(spans.length)evBox.style.paddingTop=spans.length*25+"px";
-              var monthRowHeight = Math.max(72, Math.floor((window.innerHeight - 225) / 6));
+              var monthRowHeight = Math.max(0, (window.innerHeight - 225) / 6);
               var chipRoom = monthRowHeight - 34 - spans.length * 25 - 7;
-              var MAX = Math.max(1, Math.min(window.innerWidth <= 700 ? 3 : 6, Math.floor(chipRoom / 22)));
-              if (state.density === "compact") MAX = Math.min(6, MAX + 1);
+              var MAX = Math.max(0, Math.min(window.innerWidth <= 700 ? 3 : 6, Math.floor(chipRoom / 22)));
+              if (state.density === "compact" && MAX > 0) MAX = Math.min(6, MAX + 1);
               dayOccs.slice(0, MAX).forEach(function (o) {
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);
@@ -4585,7 +4589,7 @@
       }
       function paneAbout(pane) {
         paneHead(pane, "About", "");
-        var g = el('<div><div class="about-logo"><span class="logo-tile">' + icon("sunrise", 25) + '</span><span><span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;display:block">daylight.</span><span style="color:var(--muted);font-size:13px">Personal calendar</span></span></div>' +
+        var g = el('<div><div class="about-logo"><span class="logo-tile"><img class="daylight-mark daylight-mark-light" src="assets/sun-arc-light.png" alt="" width="46" height="46"><img class="daylight-mark daylight-mark-dark" src="assets/sun-arc-dark.png" alt="" width="46" height="46"></span><span><span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;display:block">daylight.</span><span style="color:var(--muted);font-size:13px">Personal calendar</span></span></div>' +
           '<p class="pane-sub" style="margin:0 0 22px">One calm calendar for school, swim, and everything else — Month, Week, Day, and Agenda sharing the same design, plus a Tasks list that works the same way, with your settings and calendars kept together.</p>' +
           '<div class="set-group">' +
           setRowHTML("Version", "The build of daylight you are using.", '<span style="font-size:14px;color:var(--muted)">1.0</span>') +
@@ -5227,7 +5231,7 @@
         root.innerHTML =
           '<div id="authScreen"' + (firstLoad ? ' class="is-enter"' : "") + ">" +
             '<section class="auth-form-panel" aria-label="' + authPanelLabel() + '">' +
-              '<div class="auth-topbar"><span class="auth-wordmark">daylight.</span>' +
+              '<div class="auth-topbar"><span class="auth-brand"><span class="auth-brand-mark"><img class="daylight-mark daylight-mark-light" src="assets/sun-arc-light.png" alt="" width="34" height="34"><img class="daylight-mark daylight-mark-dark" src="assets/sun-arc-dark.png" alt="" width="34" height="34"></span><span class="auth-wordmark">daylight.</span></span>' +
               '<button class="auth-theme-btn" id="authThemeBtn" title="' + (isDark ? "Switch to light theme" : "Switch to dark theme") + '" aria-label="' + (isDark ? "Switch to light theme" : "Switch to dark theme") + '">' + icon(isDark ? "sun" : "moon", 17) + "</button></div>" +
               '<form class="auth-form-wrap' + (firstLoad ? " is-enter" : "") + '" id="authForm" novalidate>' +
                 '<div class="auth-form-inner" id="authFormInner"></div>' +

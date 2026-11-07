@@ -79,3 +79,21 @@ jobs:
       - name: Publish to GitHub Pages
         id: deployment
         uses: actions/deploy-pages@v4
+      - name: Verify published logo and favicon URLs
+        env:
+          PAGE_URL: ${{ steps.deployment.outputs.page_url }}
+        run: |
+          set -euo pipefail
+          base="${PAGE_URL%/}"
+          for asset in \
+            assets/sun-arc-light.png \
+            assets/sun-arc-dark.png \
+            assets/favicon-light-16.png \
+            assets/favicon-light-32.png \
+            assets/favicon-dark-16.png \
+            assets/favicon-dark-32.png \
+            assets/apple-touch-icon.png; do
+            status="$(curl --retry 8 --retry-all-errors --retry-delay 3 -sS -o /dev/null -w '%{http_code}' "${base}/${asset}")"
+            printf '%s %s\n' "${asset}" "${status}"
+            test "${status}" = "200"
+          done
