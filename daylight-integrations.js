@@ -296,18 +296,23 @@
         db.from('mcp_grants').select('client_id,client_name,can_read,can_write,can_delete,granted_at').eq('user_id',cloud.user.id).is('revoked_at',null).order('granted_at',{ascending:false})
       ]);
       if(tokens.error)showError(status,tokens.error);
-      const grantBox=html('<div class="set-group"><div class="set-group-title">Connected OAuth clients</div><p class="pane-sub">These scopes are the permissions actually granted through daylight’s OAuth consent screen.</p><div id="mcpOAuthGrants"></div></div>');
+      const previousGrantBox=g.querySelector('.dl-oauth-grants');
+      if(previousGrantBox)previousGrantBox.remove();
+      const grantBox=html('<div class="set-group dl-oauth-grants"><div class="set-group-title">Connected OAuth clients</div><p class="pane-sub">These scopes are the permissions actually granted through daylight’s OAuth consent screen.</p><div id="mcpOAuthGrants"></div></div>');
       const tokenGroup=g.querySelector('#mcpTokens').closest('.set-group');
       tokenGroup.parentNode.insertBefore(grantBox,tokenGroup);
       const grantList=grantBox.querySelector('#mcpOAuthGrants');grantList.innerHTML='';
-      (oauthGrants.data||[]).forEach(grant=>{
-        const item=html('<div class="feed-row"><span class="fr-url"><strong></strong><br><span class="fr-sub"></span></span></div>');
-        item.querySelector('strong').textContent=grant.client_name||'Connected client';
-        const scopes=[['Read',grant.can_read],['Write',grant.can_write],['Delete',grant.can_delete]];
-        item.querySelector('.fr-sub').textContent=scopes.map(([name,enabled])=>name+': '+(enabled?'Granted':'Not granted')).join(' · ')+' · Connected '+new Date(grant.granted_at).toLocaleDateString();
-        grantList.appendChild(item);
-      });
-      if(!grantList.children.length)grantList.innerHTML=note('No active OAuth clients are connected.');
+      if(oauthGrants.error){grantList.innerHTML=note('Unable to read OAuth permissions: '+oauthGrants.error.message,true);}
+      else{
+        (oauthGrants.data||[]).forEach(grant=>{
+          const item=html('<div class="feed-row"><span class="fr-url"><strong></strong><br><span class="fr-sub"></span></span></div>');
+          item.querySelector('strong').textContent=grant.client_name||'Connected client';
+          const scopes=[['Read',grant.can_read],['Write',grant.can_write],['Delete',grant.can_delete]];
+          item.querySelector('.fr-sub').textContent=scopes.map(([name,enabled])=>name+': '+(enabled?'Granted':'Not granted')).join(' · ')+' · Connected '+new Date(grant.granted_at).toLocaleDateString();
+          grantList.appendChild(item);
+        });
+        if(!grantList.children.length)grantList.innerHTML=note('No active OAuth clients are connected.');
+      }
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
       (tokens.data||[]).forEach(t=>{
         const item=html('<div class="feed-row"><span class="fr-url">'+esc(t.name)+
