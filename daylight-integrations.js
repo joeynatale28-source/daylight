@@ -565,5 +565,15 @@
         }catch(err){showError(feedback,err)}finally{button.disabled=false}
       };
     };
+  document.addEventListener('daylight:workspace-ready',function(){
+    try{
+      const current=new URL(window.location.href),feed=current.searchParams.get('addCalendar');
+      if(!feed)return;
+      const name=current.searchParams.get('calendarName')||'Shared calendar';
+      current.searchParams.delete('addCalendar');current.searchParams.delete('calendarName');
+      history.replaceState({},'',current.pathname+current.search+current.hash);
+      setTimeout(()=>window.daylightSubscribeDialog({url:feed,name}),250);
+    }catch(error){console.warn('Daylight calendar add link could not be opened',error);}
+  });
 
 })();

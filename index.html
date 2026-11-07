@@ -2749,7 +2749,11 @@
             finally{toggle.disabled=false;}
           });
           share.querySelector("#calCopyLink").onclick=function(){if(!urlInput.value)return; navigator.clipboard?.writeText(urlInput.value).then(()=>toast("Public link copied")).catch(()=>toast("Copy failed"));};
-          share.querySelector("#calAddInDaylight").onclick=function(){if(urlInput.value)window.daylightSubscribeDialog({url:urlInput.value,name:cal.name});};
+          share.querySelector("#calAddInDaylight").onclick=function(){
+            if(!urlInput.value)return;
+            var appUrl=new URL(window.location.href);appUrl.searchParams.set("addCalendar",urlInput.value);appUrl.searchParams.set("calendarName",cal.name);
+            window.open(appUrl.toString(),"_blank","noopener");
+          };
           share.querySelector("#calResetLink").onclick=async function(){
             this.disabled=true;shareStatus.textContent="Resetting public link…";
             try{var result=await window.daylightCalendarShareAction({action:"reset-public",calendar_id:cal.id});urlInput.value=result.public_url||"";shareStatus.textContent="New link created. The previous link is invalid.";}
