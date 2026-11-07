@@ -159,7 +159,14 @@ Deno.serve(async(req:Request)=>{
  if(action==="disable"){
   const update=await admin.from("calendars").update({share_feed_enabled:false,share_public_enabled:false,share_token_hash:null,share_token_prefix:null,share_public_token:null})
    .eq("id",id).eq("user_id",session.user.id);
-  return update.error?send({error:"Unable to disable feed"},503):send({enabled:false});
+  return update.error?send({error:"Unable to disable feed"},503):send({enabled:false,public_enabled:false,public_url:null});
+ }
+ if(action==="reset-public"){
+  if(!row.data!.share_public_enabled)return send({error:"Turn on Public link first"},409);
+  const publicToken=generate();
+  const update=await admin.from("calendars").update({share_public_token:publicToken}).eq("id",id).eq("user_id",session.user.id);
+  if(update.error)return send({error:"Unable to reset public link"},503);
+  return send({public_enabled:true,public_url:feedBase+encodeURIComponent(id)+"?public=1&token="+encodeURIComponent(publicToken)});
  }
  if(!["enable","reset"].includes(action))return send({error:"Unknown action"},400);
  if(action==="enable"&&row.data!.share_feed_enabled)return send({error:"Already enabled; use Reset link"},409);
