@@ -291,7 +291,7 @@
       const [tokens,settings,audit]=await Promise.all([
         db.from('mcp_tokens').select('id,name,token_prefix,scopes,created_at,last_used_at,revoked').eq('user_id',cloud.user.id).eq('revoked',false).order('created_at',{ascending:false}),
         db.from('user_settings').select('mcp_allow_delete').eq('user_id',cloud.user.id).maybeSingle(),
-        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
+        db.from('mcp_audit_log').select('tool,action,created_at,token_name,summary,target_id').eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75)
       ]);
       if(tokens.error)showError(status,tokens.error);
       const list=g.querySelector('#mcpTokens');list.innerHTML='';
@@ -312,13 +312,33 @@
       g.querySelector('#mcpDelete').checked=!!(settings.data&&settings.data.mcp_allow_delete);
       const history=g.querySelector('#mcpAudit');
       history.innerHTML=Array.from({length:4},()=>'<div class="feed-row dl-ai-skeleton"><span class="fr-url"><i></i><i></i></span></div>').join('');
-      const {data:legacyAudit}=await db.from('mcp_workspace_audit')
-        .select('tool,result,created_at,client_id,target_id').eq('user_id',cloud.user.id)
-        .order('created_at',{ascending:false}).limit(75);
+      const [{data:legacyAudit},{data:workspaceRow}]=await Promise.all([
+        db.from('mcp_workspace_audit').select('tool,result,created_at,client_id,target_id')
+          .eq('user_id',cloud.user.id).order('created_at',{ascending:false}).limit(75),
+        db.from('workspace_snapshots').select('payload').eq('user_id',cloud.user.id).maybeSingle()
+      ]);
+      const payload=workspaceRow&&workspaceRow.payload||{};
+      const events=Array.isArray(payload.events)?payload.events:[];
+      const calendars=Array.isArray(payload.calendars)?payload.calendars:[];
+      function resolveAuditTarget(targetId){
+        if(targetId==null||targetId==='')return '';
+        const id=String(targetId);
+        const event=events.find(e=>String(e.id)===id||String(e.uid||'')===id);
+        if(event){
+          const cal=calendars.find(c=>String(c.id)===String(event.cal));
+          return 'Event: '+String(event.title||'Untitled')+(cal?' · '+String(cal.name):'');
+        }
+        const calendar=calendars.find(c=>String(c.id)===id);
+        if(calendar)return 'Calendar: '+String(calendar.name||'Calendar');
+        return '';
+      }
       const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
         tool:a.tool,action:a.result,created_at:a.created_at,
-        token_name:a.client_id,summary:a.target_id||''
-      }))).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+        token_name:a.client_id,summary:'',target_id:a.target_id
+      }))).map(a=>{
+        const resolved=resolveAuditTarget(a.target_id);
+        return Object.assign({},a,{summary:resolved||a.summary||''});
+      }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
       function showAudit(limit){
         history.innerHTML='';
         merged.slice(0,limit).forEach(a=>{
