@@ -912,18 +912,22 @@
 
       /* Hide the login while the saved session is restored. */
       body.booting #authRoot { visibility: hidden; pointer-events: none; }
-      #bootScreen { position: fixed; inset: 0; z-index: 3000; background: var(--surface);
+      #bootScreen { position: fixed; inset: 0; z-index: 3000; background: var(--bg);
         color: var(--text); display: none; align-items: center; justify-content: center;
-        flex-direction: column; gap: 8px; }
+        flex-direction: column; gap: 10px; opacity: 1; transition: opacity 180ms var(--ease-out); }
       body:not(.booting) #bootScreen { display: none; }
       body.workspace-loading-visible #bootScreen { display: flex; }
+      body.workspace-loading-visible #app { visibility: hidden; }
       .boot-mark { font-size: clamp(30px, 4vw, 42px); font-weight: 650; letter-spacing: -0.065em; line-height: 1.1; }
       .boot-period { color: var(--accent); }
       .boot-note { font-size: 12px; color: var(--muted); font-weight: 500; }
-      .boot-line { margin-top: 13px; width: 74px; height: 2px; border-radius: 99px; background: var(--line); overflow: hidden; position: relative; }
-      .boot-line::after { content: ""; position: absolute; inset: 0; width: 45%; border-radius: inherit; background: var(--accent); animation: boot-slide 1.15s ease-in-out infinite alternate; }
-      @keyframes boot-slide { to { transform: translateX(125%); } }
-      @media (prefers-reduced-motion: reduce) { .boot-line::after { animation: none; width: 100%; } }
+      .boot-line { margin-top: 9px; width: 76px; height: 2px; border-radius: 99px; background: var(--line); overflow: hidden; position: relative; }
+      .boot-line::after { content: ""; position: absolute; inset: 0; width: 42%; border-radius: inherit; background: var(--accent); animation: boot-slide 1.25s var(--ease-out) infinite; }
+      @keyframes boot-slide { from { transform: translateX(-105%); } to { transform: translateX(245%); } }
+      @media (prefers-reduced-motion: reduce) {
+        .boot-line::after { animation: none; width: 100%; transform: none; }
+        #bootScreen { transition: none; }
+      }
       /* ---------- Settings — polished (Linear / Cron / Cal.com patterns) ----------
          Rail stays put; the pane gets clearer hierarchy: a quiet page
          intro, then grouped cards. Each group is one soft card with
@@ -2587,32 +2591,55 @@
         });
         return n;
       }
-      function persistCalendarChange() { if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); }
+      var calendarToggleLocks = Object.create(null);
+      function persistCalendarChange() {
+        if (window.daylightCloud && window.daylightCloud.save) {
+          requestAnimationFrame(function () { window.daylightCloud.save(); });
+        }
+      }
       function animateCalendarToggle(cal) {
-        var reduce=state.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-        var view=document.getElementById('viewWrap');
-        function toggle() { cal.hidden=!cal.hidden;persistCalendarChange();renderSidebar();renderView(false); }
-        if(reduce||!view){toggle();return;}
-        function items() {
-          return Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function(node) {
-            return node.getAttribute('data-calendar-id')===String(cal.id);
+        var id = String(cal.id);
+        if (calendarToggleLocks[id]) return;
+        calendarToggleLocks[id] = true;
+        var wasHidden = !!cal.hidden;
+        var reduce = state.reduceMotion || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        var view = document.getElementById('viewWrap');
+        var nodes = view ? Array.from(view.querySelectorAll('[data-calendar-id]')).filter(function (node) {
+          return node.getAttribute('data-calendar-id') === id;
+        }) : [];
+        function commit() {
+          cal.hidden = !wasHidden;
+          renderSidebar();
+          renderView(false);
+          requestAnimationFrame(function () {
+            if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
+            calendarToggleLocks[id] = false;
           });
         }
-        if(cal.hidden){
-          toggle();
-          items().forEach(function(node) {
-            node.animate([{opacity:0,transform:'scale(.96)'},{opacity:1,transform:'scale(1)'}],
-              {duration:190,easing:'cubic-bezier(.23,1,.32,1)'});
+        if (reduce || !view || !nodes.length) { commit(); return; }
+        if (!wasHidden) {
+          var fades = nodes.map(function (node) {
+            return node.animate(
+              [{ opacity: 1, transform: 'scale(1)' }, { opacity: 0, transform: 'scale(.985)' }],
+              { duration: 125, easing: 'cubic-bezier(.23,1,.32,1)', fill: 'forwards' }
+            ).finished.catch(function () {});
           });
-        } else {
-          var leaving=items();
-          if(!leaving.length){toggle();return;}
-          var pending=leaving.map(function(node){
-            return node.animate([{opacity:1,transform:'scale(1)'},{opacity:0,transform:'scale(.96)'}],
-              {duration:130,easing:'cubic-bezier(.23,1,.32,1)',fill:'forwards'}).finished.catch(function(){});
-          });
-          Promise.all(pending).then(function(){toggle();});
+          Promise.all(fades).then(commit);
+          return;
         }
+        commit();
+        requestAnimationFrame(function () {
+          var current = document.getElementById('viewWrap');
+          if (!current) return;
+          Array.from(current.querySelectorAll('[data-calendar-id]')).filter(function (node) {
+            return node.getAttribute('data-calendar-id') === id;
+          }).forEach(function (node) {
+            node.animate(
+              [{ opacity: 0, transform: 'scale(.985)' }, { opacity: 1, transform: 'scale(1)' }],
+              { duration: 170, easing: 'cubic-bezier(.23,1,.32,1)' }
+            );
+          });
+        });
       }
       function calRow(cal) {
         var row = el('<div class="cal-row"></div>');
@@ -2646,16 +2673,19 @@
         }
         m.appendChild(item("pencil", "Rename", false, function () { startRename(row, cal); }));
         m.appendChild(item("download", "Export .ics", false, function () { window.daylightExportCalendar(cal); }));
-        m.appendChild(item(cal.hidden ? "eye" : "eyeOff", cal.hidden ? "Show calendar" : "Hide calendar", false, function () { animateCalendarToggle(cal); }));
         m.appendChild(el('<div class="menu-sep"></div>'));
         m.appendChild(el('<div class="menu-label">Appearance · Color</div>'));
         var cur = el('<div class="menu-current"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span>Current: ' + esc(COLOR_NAMES[cal.color] || cal.color) + "</span></div>");
         m.appendChild(cur);
         var swWrap = el('<div class="menu-swatches"></div>');
         window.daylightColorPicker(swWrap,cal.color,function (key) {
-          cal.color=key;persistCalendarChange();cur.querySelector(".pop-dot").style.background=dotOf(cal);
-          cur.querySelector("span:last-child").textContent="Current: "+(COLOR_NAMES[key]||key);
-          renderSidebar();renderView(false);
+          if (!key || cal.color === key) return;
+          cal.color = key;
+          cur.querySelector(".pop-dot").style.background = dotOf(cal);
+          cur.querySelector("span:last-child").textContent = "Current: " + (COLOR_NAMES[key] || key);
+          renderSidebar();
+          renderView(false);
+          persistCalendarChange();
         });
         m.appendChild(swWrap);
         m.appendChild(el('<div class="menu-sep"></div>'));
