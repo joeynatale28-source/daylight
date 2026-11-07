@@ -2923,12 +2923,37 @@
            Settings → Default Calendar View. */
         var searchBtn = el('<button class="icon-btn" title="Search (Ctrl+K)" aria-label="Search">' + icon("search", 19) + "</button>");
         searchBtn.addEventListener("click", function () { openSearch(); });
+        var notificationBtn = el('<button class="icon-btn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">' + icon("bell", 19) + "</button>");
+        notificationBtn.addEventListener("click",function(){openNotifications(notificationBtn);});
         var gearBtn = el('<button class="icon-btn" title="Settings" aria-label="Settings">' + icon("settings", 19) + "</button>");
         gearBtn.addEventListener("click", function () { openSettings("general"); });
         var helpBtn = el('<button class="icon-btn" title="Help center" aria-label="Help center">' + icon("help", 19) + "</button>");
         helpBtn.addEventListener("click", function () { openHelp(); });
-        right.appendChild(searchBtn); right.appendChild(gearBtn); right.appendChild(helpBtn);
+        right.appendChild(searchBtn); right.appendChild(notificationBtn); right.appendChild(gearBtn); right.appendChild(helpBtn);
         hdr.appendChild(right);
+      }
+      var notificationPanelEl=null,notificationPanelAnchor=null;
+      function closeNotifications(){
+        if(!notificationPanelEl)return;
+        document.removeEventListener("mousedown",notificationOutside,true);
+        daylightExit(notificationPanelEl);notificationPanelEl=null;
+        if(notificationPanelAnchor)notificationPanelAnchor.setAttribute("aria-expanded","false");
+        notificationPanelAnchor=null;
+      }
+      function notificationOutside(e){
+        if(notificationPanelEl&&!notificationPanelEl.contains(e.target)&&e.target!==notificationPanelAnchor)closeNotifications();
+      }
+      function openNotifications(anchor){
+        if(notificationPanelEl&&notificationPanelAnchor===anchor){closeNotifications();return}
+        closeNotifications();closeMenu();closePopover();closeDropdown();
+        var panel=el('<section class="notification-panel" role="dialog" aria-label="Notifications"><div class="notification-panel-head"><strong>Notifications</strong><button type="button" class="icon-btn" aria-label="Close notifications">'+icon("x",15)+'</button></div><div class="notification-empty"><span class="notification-empty-icon">'+icon("bell",22)+'</span><strong>You’re all caught up</strong><p>New notifications will appear here.</p></div></section>');
+        document.body.appendChild(panel);
+        var r=anchor.getBoundingClientRect(),w=320;
+        panel.style.left=Math.max(8,Math.min(r.right-w,window.innerWidth-w-8))+"px";
+        panel.style.top=Math.min(window.innerHeight-panel.offsetHeight-8,r.bottom+8)+"px";
+        panel.querySelector("button").onclick=closeNotifications;
+        notificationPanelEl=panel;notificationPanelAnchor=anchor;anchor.setAttribute("aria-expanded","true");
+        document.addEventListener("mousedown",notificationOutside,true);
       }
       function showCalendar() {
         state.section = "calendar";
@@ -5478,6 +5503,14 @@
       .account-menu-header{display:flex;align-items:center;gap:10px;padding:12px 14px 13px;min-width:210px;border-bottom:1px solid var(--line);margin-bottom:5px}
       .account-menu-header strong{display:block;font-size:13px;font-weight:600;color:var(--text)}
       .account-menu-header small{display:block;font-size:11px;color:var(--muted);margin-top:3px;max-width:175px;overflow:hidden;text-overflow:ellipsis}
+
+      .notification-panel{position:fixed;z-index:510;width:min(320px,calc(100vw - 16px));min-height:250px;background:var(--surface);color:var(--text);border:1px solid var(--line);border-radius:var(--r-xl);box-shadow:var(--shadow-pop);overflow:hidden;animation:fadeIn 140ms var(--ease-out)}
+      .notification-panel-head{height:54px;display:flex;align-items:center;justify-content:space-between;padding:0 14px 0 18px;border-bottom:1px solid var(--line)}
+      .notification-panel-head strong{font-size:14px;font-weight:650}
+      .notification-empty{min-height:194px;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:20px}
+      .notification-empty-icon{width:42px;height:42px;border-radius:50%;display:grid;place-items:center;background:var(--hover);color:var(--muted);margin-bottom:12px}
+      .notification-empty strong{font-size:13px;font-weight:600}
+      .notification-empty p{font-size:12px;color:var(--muted);margin:5px 0 0}
 </style>
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
