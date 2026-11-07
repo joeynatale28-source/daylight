@@ -84,7 +84,7 @@ Deno.serve(async (req: Request) => {
   const cacheKey = auth.user.id + ":" + input.toLowerCase() + ":" + (bias ? bias.lat + "," + bias.lng : "");
   const cached = cache.get(cacheKey);
   if (cached && now - cached.time < 20000) return reply(req, cached.result);
-  const searchInput = input.replace(/\\bhungary\\s+creek\\b/i, "Hungry Creek");
+  const searchInput = input.replace(/\bhungary\s+creek\b/i, "Hungry Creek");
   const uri = new URL("https://api.tomtom.com/search/2/search/" + encodeURIComponent(searchInput) + ".json");
   uri.searchParams.set("key", apiKey);
   uri.searchParams.set("typeahead", "true");
@@ -110,7 +110,7 @@ Deno.serve(async (req: Request) => {
         const score = (entry: any) => {
           const name = string(entry.item?.poi?.name, 220).toLocaleLowerCase();
           const address = string(entry.item?.address?.freeformAddress, 500).toLocaleLowerCase();
-          const normalizedQuery = query.replace(/\\bhungary\\b/g, "hungry");
+          const normalizedQuery = query.replace(/\bhungary\s+creek\b/gi, "hungry creek");
           let value = 0;
           if (name === query || name === normalizedQuery) value += 100;
           else if (name.includes(query) || name.includes(normalizedQuery)) value += 70;
@@ -118,7 +118,7 @@ Deno.serve(async (req: Request) => {
           if (address === query) value += 60;
           else if (address.includes(query)) value += 35;
           if (/hungry\\s+creek\\s+middle\\s+school/i.test(normalizedQuery) && /francistown/i.test(address) && /23060/.test(address)) value += 90;
-          const words = query.split(/\\s+/).filter(Boolean);
+          const words = normalizedQuery.split(/\s+/).filter(Boolean);
           if (words.length && words.every((word: string) => name.includes(word))) value += 25;
           return value;
         };
