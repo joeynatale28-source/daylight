@@ -107,3 +107,15 @@ test('the browser client contains no provider endpoint or API credential',()=>{
   assert.equal(source.includes('apiKey'),false);
   assert.equal(source.includes('https://'),false);
 });
+
+
+test('places function reverse geocodes only returned records without street components',()=>{
+  const fn=readFileSync('supabase/functions/places/index.ts','utf8');
+  assert.match(fn,/search\\/2\\/reverseGeocode\\//);
+  assert.match(fn,/hasStreetComponents\\(entry\\.item\\)/);
+  assert.match(fn,/slice\\(0, MAX_RESULTS\\)/);
+  assert.match(fn,/addresses\\?\\.\\[0\\]\\?\\.address/);
+  assert.match(fn,/streetNumber/);
+  assert.match(fn,/streetName/);
+  assert.match(fn,/TomTom Reverse Geocoding HTTP/);
+});

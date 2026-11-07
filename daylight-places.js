@@ -105,7 +105,12 @@ window.daylightAttachPlaces=function(input,draft,dirty){
     if(result.data?.error==='not_configured'||result.data?.error==='TOMTOM_API_KEY is not configured'){
      results=[];row("Address search isn't set up yet",'quiet');return;
     }
-    if(result.data?.error)throw Error('Address search unavailable');
+    if(result.data?.error){
+     const message=String(result.data.error);
+     results=[];row(message,'quiet');
+     console.error('TomTom address lookup failed:',message);
+     return;
+    }
     results=Array.isArray(result.data?.suggestions)?result.data.suggestions.slice(0,6):[];
     render(query);
     if(!results.length)row('No matching addresses','quiet');

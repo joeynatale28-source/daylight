@@ -54,13 +54,66 @@ function formatTomTomItem(item: any) {
     string(address.postalCode, 24),
   ].filter(Boolean).join(", ");
   const fullAddress = string(address.freeformAddress, 500);
-  if (!primary || !fullAddress) return null;
+  if (!primary) return null;
   return {
     primary,
     secondary,
     address: fullAddress,
     lat: position?.lat ?? null,
     lng: position?.lng ?? null,
+  };
+}
+
+function hasStreetComponents(value: any) {
+  const address = value?.address || {};
+  return !!(string(address.streetNumber, 40) || string(address.streetName, 180));
+}
+
+async function reverseGeocodeAddress(position: { lat: number; lng: number }, apiKey: string) {
+  const uri = new URL(
+    "https://api.tomtom.com/search/2/reverseGeocode/" +
+      encodeURIComponent(position.lat + "," + position.lng) + ".json",
+  );
+  uri.searchParams.set("key", apiKey);
+  uri.searchParams.set("language", "en-US");
+  let response: Response;
+  try {
+    response = await fetch(uri.toString(), {
+      headers: { "Accept": "application/json" },
+      signal: AbortSignal.timeout(5000),
+    });
+  } catch (failure) {
+    const reason = failure instanceof Error ? failure.message : String(failure);
+    throw new Error("TomTom Reverse Geocoding request failed: " + reason);
+  }
+  if (!response.ok) {
+    const detail = (await response.text()).trim();
+    throw new Error("TomTom Reverse Geocoding HTTP " + response.status + ": " + (detail || response.statusText));
+  }
+  const payload = await response.json();
+  const address = payload?.addresses?.[0]?.address;
+  if (!address || typeof address !== "object") {
+    throw new Error("TomTom Reverse Geocoding returned no address for the supplied coordinates.");
+  }
+  const streetLine = [
+    string(address.streetNumber, 40),
+    string(address.streetName, 180),
+  ].filter(Boolean).join(" ");
+  if (!streetLine) {
+    throw new Error("TomTom Reverse Geocoding returned no street number or street name for the supplied coordinates.");
+  }
+  return {
+    address: [
+      streetLine,
+      string(address.municipality, 120),
+      string(address.countrySubdivision, 100),
+      string(address.postalCode, 24),
+    ].filter(Boolean).join(", "),
+    secondary: [
+      string(address.municipality, 120),
+      string(address.countrySubdivision, 100),
+      string(address.postalCode, 24),
+    ].filter(Boolean).join(", "),
   };
 }
 Deno.serve(async (req: Request) => {
@@ -102,7 +155,7 @@ Deno.serve(async (req: Request) => {
     });
     if (!response.ok) throw Error("TomTom returned HTTP " + response.status);
     const payload = await response.json();
-    const suggestions = (Array.isArray(payload.results) ? payload.results : [])
+    const ranked = (Array.isArray(payload.results) ? payload.results : [])
       .map((item: any, index: number) => ({ formatted: formatTomTomItem(item), item, index }))
       .filter((entry: any) => entry.formatted)
       .sort((a: any, b: any) => {
@@ -124,12 +177,26 @@ Deno.serve(async (req: Request) => {
         };
         return score(b) - score(a) || a.index - b.index;
       })
-      .map((entry: any) => entry.formatted).slice(0, MAX_RESULTS);
+      .slice(0, MAX_RESULTS);
+
+    // Only the at-most-six results that lack both street components and have
+    // coordinates incur one reverse-geocoding request each.
+    const suggestions = await Promise.all(ranked.map(async (entry: any) => {
+      const position = validPosition(entry.item?.position);
+      if (hasStreetComponents(entry.item) || !position) return entry.formatted;
+      const reverse = await reverseGeocodeAddress(position, apiKey);
+      return Object.assign({}, entry.formatted, { address: reverse.address, secondary: reverse.secondary });
+    }));
     const result = { suggestions, attribution: "© TomTom" };
     if (cache.size > 400) cache.clear();
     cache.set(cacheKey, { time: now, result });
     return reply(req, result);
   } catch (failure) {
+    const message = failure instanceof Error ? failure.message : "Unknown TomTom error";
+    if (message.startsWith("TomTom Reverse Geocoding")) {
+      console.error("Daylight TomTom reverse geocoding failure:", message);
+      return reply(req, { error: message }, 502);
+    }
     console.error("Daylight TomTom Search failure:", failure instanceof Error ? failure.name : "unknown");
     return reply(req, { error: "Address suggestions temporarily unavailable" }, 200);
   }
