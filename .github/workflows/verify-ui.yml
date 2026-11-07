@@ -9,6 +9,29 @@ on:
       - daylight-oauth.js
       - daylight-settings.js
       - daylight-enhancements.js
+      - supabase/functions/places/index.ts
+      - supabase/functions/ical-feed/index.ts
+      - supabase/sql/**
+      - assets/sun-arc-*-transparent.png
+      - assets/favicon-*.png
+      - assets/apple-touch-icon.png
+      - tests/daylight-ui-smoke.mjs
+      - .github/workflows/verify-ui.yml
+  pull_request:
+    branches: [main]
+    paths:
+      - index.html
+      - daylight-cloud.js
+      - daylight-integrations.js
+      - daylight-oauth.js
+      - daylight-settings.js
+      - daylight-enhancements.js
+      - supabase/functions/places/index.ts
+      - supabase/functions/ical-feed/index.ts
+      - supabase/sql/**
+      - assets/sun-arc-*-transparent.png
+      - assets/favicon-*.png
+      - assets/apple-touch-icon.png
       - tests/daylight-ui-smoke.mjs
       - .github/workflows/verify-ui.yml
   workflow_dispatch:
