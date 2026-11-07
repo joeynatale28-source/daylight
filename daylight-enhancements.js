@@ -27,10 +27,10 @@ style.textContent=`
 .dl-color-modal .dialog-body{display:grid;gap:10px}
 .dl-color-modal .dialog-body .field{margin:0}
 .month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.month-grid{flex:1 1 auto;min-height:0;height:100%;overflow:hidden;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(0,1fr))}
-.month-week{min-height:0;height:100%;overflow:hidden}
+.month-grid{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(82px,1fr));scrollbar-gutter:stable;align-content:stretch}
+.month-week{min-height:82px;height:100%;overflow:visible}
 .day-cell{min-height:0;overflow:hidden}
-.cell-events{min-height:0;overflow:hidden}
+.cell-events{min-height:0;overflow:visible}
 .agenda-cal-name{font-weight:600;color:var(--muted)}
 @media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
 @media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}

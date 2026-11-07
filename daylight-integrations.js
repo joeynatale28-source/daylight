@@ -320,23 +320,31 @@
       const payload=workspaceRow&&workspaceRow.payload||{};
       const events=Array.isArray(payload.events)?payload.events:[];
       const calendars=Array.isArray(payload.calendars)?payload.calendars:[];
-      function resolveAuditTarget(targetId){
-        if(targetId==null||targetId==='')return '';
-        const id=String(targetId);
+      function resolveAuditTarget(record){
+        const storedTitle=[record.event_title,record.target_title,record.title,record.name,record.summary]
+          .map(value=>String(value||'').trim())
+          .find(value=>value&&!/^(?:event|calendar|task|item|record)$/i.test(value));
+        if(storedTitle)return 'Event: '+storedTitle;
+        if(record.target_id==null||record.target_id==='')return '';
+        const raw=String(record.target_id).trim(),id=raw.replace(/^(?:event|calendar|task):/i,'');
         const event=events.find(e=>String(e.id)===id||String(e.uid||'')===id);
         if(event){
           const cal=calendars.find(c=>String(c.id)===String(event.cal));
           return 'Event: '+String(event.title||'Untitled')+(cal?' · '+String(cal.name):'');
         }
         const calendar=calendars.find(c=>String(c.id)===id);
-        if(calendar)return 'Calendar: '+String(calendar.name||'Calendar');
-        return '';
+        if(calendar)return 'Calendar: '+String(calendar.name||'Calendar')+' · event title not stored on this activity';
+        const task=Array.isArray(payload.tasks)?payload.tasks.find(task=>String(task.id)===id):null;
+        if(task)return 'Task: '+String(task.title||'Untitled');
+        if(/delete_event/i.test(String(record.tool)))return 'Event ID '+id+' · title is not in the audit record or current workspace';
+        if(/create_event/i.test(String(record.tool)))return 'Calendar target '+id+' · event title is not in the audit record';
+        return 'Target ID '+id+' · no title in the audit record or current workspace';
       }
       const merged=(audit.data||[]).concat((legacyAudit||[]).map(a=>({
         tool:a.tool,action:a.result,created_at:a.created_at,
         token_name:a.client_id,summary:'',target_id:a.target_id
       }))).map(a=>{
-        const resolved=resolveAuditTarget(a.target_id);
+        const resolved=resolveAuditTarget(a);
         return Object.assign({},a,{summary:resolved||a.summary||''});
       }).sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
       function showAudit(limit){
@@ -346,7 +354,7 @@
           const item=html('<div class="feed-row" style="'+(isDelete?'color:var(--danger)':'')+'">'+
             '<span class="fr-url">'+esc(a.tool)+' · '+esc(a.action)+
             '<br><span class="fr-sub">'+esc(a.token_name||'AI client')+' · '+
-            esc(a.summary||'')+' · '+esc(new Date(a.created_at).toLocaleString())+
+            esc(a.summary||('Target '+String(a.target_id||'not stored')+' · title unavailable'))+' · '+esc(new Date(a.created_at).toLocaleString())+
             '</span></span></div>');
           history.append(item);
         });
