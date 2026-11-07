@@ -153,6 +153,13 @@ try{
    assert.equal(bannerSlot.fit,'cover');
    await page.screenshot({path:path.join(out,'swim-banner-'+theme+'.png')});
    const popoverChecks=await page.evaluate(()=>{
+     if(!state.events.some(e=>e.title==='Thanksgiving'))state.events.push(
+       {id:960,cal:'c7',title:'Thanksgiving',start:new Date(2026,10,26),end:new Date(2026,10,26,23,59),allDay:true},
+       {id:961,cal:'c7',title:'Christmas Eve',start:new Date(2026,11,24),end:new Date(2026,11,24,23,59),allDay:true},
+       {id:962,cal:'c7',title:"Aiden's Birthday",start:new Date(2026,10,17),end:new Date(2026,10,17,23,59),allDay:true},
+       {id:963,cal:'c7',title:'Nov 17 Haircut',start:new Date(2026,10,17,15),end:new Date(2026,10,17,16),allDay:false},
+       {id:964,cal:'c4',title:'School Block',start:new Date(2026,11,10,8),end:new Date(2026,11,10,15),allDay:false}
+     );
      const cases=[
        ['Thanksgiving','/assets/banners/holidays/thanksgiving.webp'],
        ['Christmas Eve','/assets/banners/holidays/christmas-eve.webp'],
@@ -194,16 +201,7 @@ try{
    await page.evaluate(()=>document.getElementById('daylightOAuthConsent')?.remove());
  }
  // Date-cell creation and multi-day span checks.
- await page.evaluate(()=>{
-   state.events.push(
-     {id:960,cal:'c7',title:'Thanksgiving',start:new Date(2026,10,26),end:new Date(2026,10,26,23,59),allDay:true},
-     {id:961,cal:'c7',title:'Christmas Eve',start:new Date(2026,11,24),end:new Date(2026,11,24,23,59),allDay:true},
-     {id:962,cal:'c7',title:"Aiden's Birthday",start:new Date(2026,10,17),end:new Date(2026,10,17,23,59),allDay:true},
-     {id:963,cal:'c7',title:'Nov 17 Haircut',start:new Date(2026,10,17,15),end:new Date(2026,10,17,16),allDay:false},
-     {id:964,cal:'c4',title:'School Block',start:new Date(2026,11,10,8),end:new Date(2026,11,10,15),allDay:false}
-   );
-   state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
- });
+ await page.evaluate(()=>{state.view='month';state.cursor=new Date(2026,11,9);renderAll(false)});
  const spanCount=await page.$eval('.dl-continuous-bar',bars=>bars.length);
  assert.ok(spanCount>=1,'multi-day continuous bar missing');
  await page.evaluate(()=>{

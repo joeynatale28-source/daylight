@@ -54,7 +54,7 @@ jobs:
           test -s _site/404.html
           test -d _site/assets/banners
           banner_count="$(find _site/assets/banners -type f -name '*.webp' | wc -l | tr -d ' ')"
-          test "$banner_count" = "92"
+          test "$banner_count" = "91"
       - name: Configure GitHub Pages
         uses: actions/configure-pages@v5
       - name: Upload site artifact
