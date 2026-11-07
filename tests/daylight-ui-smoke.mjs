@@ -98,7 +98,7 @@ try{
      ['Thanksgiving','dl-banner-holidays-thanksgiving'],
      ['Christmas Eve','dl-banner-holidays-christmas-eve'],
      ['School Block',null],
-     ["Aiden's Birthday",'assets/banners/school-life/birthday.webp'],
+     ["Aiden's Birthday",'dl-banner-school-life-birthday'],
      ['Nov 17 Haircut','dl-banner-school-life-haircut'],
      ['Pickup Jeep – Florida','dl-banner-school-life-road-trip'],
      ['Christmas swim practice','dl-banner-sports-swim']
@@ -147,11 +147,31 @@ try{
      const box=element.getBoundingClientRect();
      return {src:image.getAttribute('src'),width:popover.getBoundingClientRect().width,height:box.height,fit:getComputedStyle(image).objectFit};
    });
-   assert.equal(bannerSlot.src,'dl-banner-sports-swim');
+   assert.ok(new URL(bannerSlot.src,document.baseURI).pathname.endsWith('/assets/banners/sports/swim.webp'));
    assert.equal(Math.round(bannerSlot.width),384);
    assert.equal(Math.round(bannerSlot.height),128);
    assert.equal(bannerSlot.fit,'cover');
    await page.screenshot({path:path.join(out,'swim-banner-'+theme+'.png')});
+   const popoverChecks=await page.evaluate(()=>{
+     const cases=[
+       ['Thanksgiving','/assets/banners/holidays/thanksgiving.webp'],
+       ['Christmas Eve','/assets/banners/holidays/christmas-eve.webp'],
+       ["Aiden's Birthday",'/assets/banners/school-life/birthday.webp'],
+       ['Nov 17 Haircut','/assets/banners/school-life/haircut.webp'],
+       ['School Block',null]
+     ];
+     return cases.map(([title,expected])=>{
+       const ev=state.events.find(e=>e.title===title);
+       openPopover({ev,start:ev.start,end:ev.end},document.querySelector('.day-cell'));
+       const pop=[...document.querySelectorAll('.popover')].find(p=>p.querySelector('.pop-title')?.textContent===title);
+       const src=pop?.querySelector('.pop-banner img')?.getAttribute('src')||null;
+       const path=src?new URL(src,document.baseURI).pathname:null;
+       const result={title,path,expected,hasBanner:!!pop?.querySelector('.pop-banner')};
+       closePopover();return result;
+     });
+   });
+   assert.deepEqual(popoverChecks.filter(x=>x.expected? !x.path?.endsWith(x.expected):x.hasBanner),[],
+     'holiday, birthday, haircut and bannerless school popovers must route correctly in both themes');
    await page.evaluate(()=>closePopover());
    await page.screenshot({path:path.join(out,'month-sidebar-'+theme+'.png')});
    const measure=await page.evaluate(()=>{
@@ -174,8 +194,17 @@ try{
    await page.evaluate(()=>document.getElementById('daylightOAuthConsent')?.remove());
  }
  // Date-cell creation and multi-day span checks.
- await page.evaluate(()=>{state.view='month';state.cursor=new Date(2026,11,9);renderAll(false)});
- const spanCount=await page.$$eval('.dl-continuous-bar',bars=>bars.length);
+ await page.evaluate(()=>{
+   state.events.push(
+     {id:960,cal:'c7',title:'Thanksgiving',start:new Date(2026,10,26),end:new Date(2026,10,26,23,59),allDay:true},
+     {id:961,cal:'c7',title:'Christmas Eve',start:new Date(2026,11,24),end:new Date(2026,11,24,23,59),allDay:true},
+     {id:962,cal:'c7',title:"Aiden's Birthday",start:new Date(2026,10,17),end:new Date(2026,10,17,23,59),allDay:true},
+     {id:963,cal:'c7',title:'Nov 17 Haircut',start:new Date(2026,10,17,15),end:new Date(2026,10,17,16),allDay:false},
+     {id:964,cal:'c4',title:'School Block',start:new Date(2026,11,10,8),end:new Date(2026,11,10,15),allDay:false}
+   );
+   state.view='month';state.cursor=new Date(2026,11,9);renderAll(false);
+ });
+ const spanCount=await page.$eval('.dl-continuous-bar',bars=>bars.length);
  assert.ok(spanCount>=1,'multi-day continuous bar missing');
  await page.evaluate(()=>{
    const cell=[...document.querySelectorAll('.day-cell')].find(c=>c.querySelector('.day-num')?.textContent.trim()==='15');

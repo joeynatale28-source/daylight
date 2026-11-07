@@ -200,7 +200,8 @@ var calendar=norm([ev.calendarName,cal&&cal.name,cal&&cal.id].map(val).join(" ")
 var swim=/\bswim[a-z]*\b|\baquatic\b|\bwater polo\b/.test(combined);
 var championship=/\bteam usa\b|\bworld championships?\b|\bnational championships?\b|\bchampionships?\b|\bolympics?\b/.test(title+" "+category);
 if(swim&&championship)return key("sports/swim");
-if(swim&&/\bteam usa\b/.test(title))return key("sports/swim");
+if(/\bteam usa\b/.test(title))return key("sports/swim");
+if(swim&&/\bpractice\b|\btraining\b|\bmeet\b|\bworkout\b/.test(title))return key("sports/swim");
 var hit=findRule(category);if(hit)return hit;
 hit=findRule(title);if(hit)return hit;
 hit=findRule(title+" "+category);if(hit)return hit;
