@@ -147,7 +147,7 @@ try{
      const box=element.getBoundingClientRect();
      return {src:image.getAttribute('src'),width:popover.getBoundingClientRect().width,height:box.height,fit:getComputedStyle(image).objectFit};
    });
-   assert.ok(new URL(bannerSlot.src,document.baseURI).pathname.endsWith('/assets/banners/sports/swim.webp'));
+   assert.ok(bannerSlot.src.endsWith('/assets/banners/sports/swim.webp'));
    assert.equal(Math.round(bannerSlot.width),384);
    assert.equal(Math.round(bannerSlot.height),128);
    assert.equal(bannerSlot.fit,'cover');
