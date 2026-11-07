@@ -71,7 +71,7 @@
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
-    ].join("\\n");
+    ].join("\n");
     document.head.appendChild(css);
   }
   makeStyle();
