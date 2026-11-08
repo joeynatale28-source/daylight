@@ -61,6 +61,7 @@ const STUB=`(function(){
   storage:{from:function(){return {upload:function(p){return Promise.resolve({data:{path:p},error:null})},remove:function(p){return Promise.resolve({data:p,error:null})},getPublicUrl:function(p){return {data:{publicUrl:'https://storage.example/avatars/'+p}}}}}},
   functions:{invoke:function(name,opts){
     var body=(opts&&opts.body)||{};window.__calls=window.__calls||[];window.__calls.push({name:name,body:body});
+    if(name==='caldav'&&window.__caldavInvoke)return window.__caldavInvoke(JSON.stringify(body)).then(function(r){return {data:JSON.parse(r),error:null}});
     if(name==='caldav')return Promise.resolve({data:null,error:{message:'Requested function was not found',context:{json:function(){return Promise.resolve({error:'not found'})}}}});
     if(name==='ical-subscribe'&&body.action==='preview')return Promise.resolve({data:{name:'Test Feed',source_host:'example.com'},error:null});
     if(name==='ical-subscribe'&&body.action==='add')return Promise.resolve({data:{ok:true},error:null});

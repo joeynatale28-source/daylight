@@ -74,7 +74,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   assert.deepEqual(loading,{text:'Connecting…',spinner:true,disabled:true},'loading state');
   await page.waitForFunction(()=>!document.querySelector('.dl-banner').hidden,{timeout:4000});
   const failed=await page.evaluate(()=>({banner:document.querySelector('.dl-banner').textContent,inputsEnabled:[...document.querySelectorAll('.dl-std input')].every(i=>!i.disabled),connect:document.querySelector('[data-connect]').textContent,
-   calls:(window.__calls||[]).filter(c=>c.name==='caldav'),stored:JSON.stringify({l:{...localStorage},s:{...sessionStorage}}).includes('s3cret-pass')}));
+   calls:(window.__calls||[]).filter(c=>c.name==='caldav'&&c.body.action==='test'),stored:JSON.stringify({l:{...localStorage},s:{...sessionStorage}}).includes('s3cret-pass')}));
   await page.screenshot({path:path.join(out,'stage1-caldav-error-'+theme+'.png')});
   assert.equal(failed.banner,'Couldn’t connect to that server. Check the address and your username and password, then try again.');
   assert.ok(failed.inputsEnabled&&failed.connect==='Connect','form re-enabled after the error');
