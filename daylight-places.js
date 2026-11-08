@@ -98,9 +98,11 @@ window.daylightAttachPlaces=function(input,draft,dirty){
     }else if(typeof bias==='string'&&/^\s*-?\d+(?:\.\d+)?\s*,\s*-?\d+(?:\.\d+)?\s*$/.test(bias)){
      const parts=bias.split(',').map(Number);if(Math.abs(parts[0])<=90&&Math.abs(parts[1])<=180)body.bias={lat:parts[0],lng:parts[1]};
     }
+    if(window.daylightCloud.ensureSession)await window.daylightCloud.ensureSession();
     const pending=window.daylightCloud.client.functions.invoke('places',{body});
     const result=await Promise.race([pending,new Promise((_,reject)=>setTimeout(()=>reject(Error('timeout')),5500))]);
     if(seq!==request||!input.isConnected)return;
+    if(result.error&&result.error.context&&window.daylightCloud.noteAuthFailure)window.daylightCloud.noteAuthFailure(result.error.context.status);
     if(result.error)throw Error('Address search unavailable');
     if(result.data?.error==='not_configured'||result.data?.error==='TOMTOM_API_KEY is not configured'){
      results=[];row("Address search isn't set up yet",'quiet');return;

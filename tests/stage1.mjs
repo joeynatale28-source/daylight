@@ -117,6 +117,17 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   assert.ok(failed.inputsEnabled&&failed.connect==='Connect','form re-enabled after the error');
   assert.deepEqual(failed.calls.map(c=>c.body),[{action:'test',server_url:'https://caldav.icloud.com/',username:'joey',password:'s3cret-pass'}],'request contract');
   assert.equal(failed.stored,false,'credentials are never stored');
+  // specific, plain reasons per failure (never internals): the test action rejects, or the account can't be saved
+  for(const [code,expected] of [['auth_failed','That username or password was rejected. Check them and try again.'],['unreachable','Couldn’t reach that server. Check the address and try again.'],['no_caldav','That address doesn’t look like a CalDAV server.']]){
+   await page.evaluate(c=>{window.__caldavInvoke=async()=>JSON.stringify({ok:false,error:{code:c,message:'x'}})},code);
+   await page.click('[data-connect]');
+   await page.waitForFunction(exp=>document.querySelector('.dl-banner').textContent===exp,{timeout:4000},expected);
+  }
+  await page.evaluate(()=>{window.__caldavInvoke=async json=>{const b=JSON.parse(json);return JSON.stringify(b.action==='test'?{ok:true,server:{name:'x',calendars:[]}}:{ok:false,error:{code:'save_failed',message:'x'}})}});
+  await page.click('[data-connect]');
+  await page.waitForFunction(()=>document.querySelector('.dl-banner').textContent==='Your account couldn’t be saved — try again.',{timeout:4000});
+  assert.ok(!(await page.$eval('.dl-banner',n=>n.textContent)).includes('s3cret-pass'));
+  await page.evaluate(()=>{delete window.__caldavInvoke});
   await page.click('.dl-back');
   await page.waitForSelector('.dl-opt');
 

@@ -18,6 +18,7 @@
   var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false, workspaceRetryTimer = null;
   var lastStatus = '';
   var committedSerialized = null;
+  var authBlockedUntil = 0;
   var warmShown = null; // what the cache render showed: {id, payload, name, avatar}
   // Per-user warm snapshot. Cached data is shown only after Supabase
   // authenticates the account, and it never changes the revision baseline.
@@ -79,6 +80,19 @@
     get user() { return user; },
     get ready() { return !!user && !loading && !conflict; },
     save: function () { changesQueued(); },
+    /* Edge functions authenticate with the access token supabase-js attaches. If the session is dead (refresh token
+       revoked/used, or the session was signed out elsewhere) every call comes back 401/403 from the function's own
+       auth check. So: resolve/refresh the session first, and after a 401/403 stop making background calls for a minute
+       instead of hammering the functions with a token that cannot work. */
+    ensureSession: async function () {
+      if (!client) throw new Error('Sign in to daylight first');
+      if (Date.now() < authBlockedUntil) throw new Error('Your session expired. Sign in again.');
+      var result;
+      try { result = await client.auth.getSession(); } catch (e) { result = { error: e }; }
+      if (result.error || !result.data || !result.data.session) { authBlockedUntil = Date.now() + 60000; throw new Error('Your session expired. Sign in again.'); }
+      return result.data.session;
+    },
+    noteAuthFailure: function (status) { if (status === 401 || status === 403) authBlockedUntil = Date.now() + 60000; },
     /* Save exactly the state at this moment, even while a Settings/calendar
        transaction stays open for further (preview-only) edits. */
     commit: function () {
@@ -733,6 +747,7 @@
     return;
   }
   client.auth.onAuthStateChange(function (event, session) {
+    if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') { if (session) authBlockedUntil = 0; }
     if (event === 'PASSWORD_RECOVERY') {
       recovery = true;
       loading = true; user = null;

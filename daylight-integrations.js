@@ -27,8 +27,10 @@
   const own = () => cloud && cloud.ready && cloud.user;
   async function call(fn, body) {
     if (!own()) throw Error('Sign in to daylight first');
+    await cloud.ensureSession();
     const {data,error} = await cloud.client.functions.invoke(fn,{body});
     if (error) {
+      if(error.context&&cloud.noteAuthFailure)cloud.noteAuthFailure(error.context.status);
       let msg=error.message||'Request failed';
       if(error.context && typeof error.context.json==='function') {
         try{const reply=await error.context.json(); msg=reply.error||msg;}catch{}
@@ -672,6 +674,28 @@
     /* CalDAV connect form. Stage 2 implements the `caldav` edge function;
        until then the request fails and the designed error state shows.
        Credentials live only in these closures: never stored anywhere. */
+    /* Specific, plain reasons (never a password or a stack trace). Anything unrecognized, including the sync service
+       itself being unavailable, keeps the designed generic message. */
+    const CALDAV_REASONS={
+      invalid_url:'That doesn’t look like a server address. Check it and try again.',
+      unreachable:'Couldn’t reach that server. Check the address and try again.',
+      auth_failed:'That username or password was rejected. Check them and try again.',
+      no_caldav:'That address doesn’t look like a CalDAV server.',
+      save_failed:'Your account couldn’t be saved — try again.',
+      db_error:'Something went wrong on our side — try again.'
+    };
+    function explainCalDav(reply){
+      const code=reply&&reply.error&&reply.error.code;
+      return CALDAV_REASONS[code]||CALDAV_ERROR;
+    }
+    async function caldavForm(body){
+      try{
+        await cloud.ensureSession();
+        const result=await cloud.client.functions.invoke('caldav',{body});
+        if(result.error){if(result.error.context&&cloud.noteAuthFailure)cloud.noteAuthFailure(result.error.context.status);return null}
+        return result.data||null;
+      }catch(error){return null}
+    }
     const CALDAV_ERROR="Couldn’t connect to that server. Check the address and your username and password, then try again.";
     function normalizeServer(value){
       let text=String(value||'').trim();
@@ -707,13 +731,12 @@
              { action:'test', server_url, username, password }
              -> 200 { ok:true, server:{ name, principal_url, calendars:[{ url, name, color|null, read_only }] } }
              -> non-2xx or { ok:false, error:{ code, message } }  (code: invalid_url | unreachable | auth_failed | no_caldav) */
-          const reply=await call('caldav',{action:'test',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value});
-          if(!(reply&&reply.ok===true))throw Error('connect failed');
+          const reply=await caldavForm({action:'test',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value});
+          if(!(reply&&reply.ok===true)){say(dlg,explainCalDav(reply));return}
           // The server checked out: save the account (server-side only) and add its calendars to Subscriptions.
           connect.innerHTML=SPIN+'Adding calendars…';
-          const saved=await cloud.client.functions.invoke('caldav',{body:{action:'connect',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value}});
-          const data=saved&&saved.data;
-          if(saved.error||!data||data.ok!==true)throw Error('save failed');
+          const data=await caldavForm({action:'connect',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value});
+          if(!data||data.ok!==true){say(dlg,explainCalDav(data));return}
           pass.value='';
           window.daylightCaldavConnected(data);
           dlg.close();
@@ -840,8 +863,8 @@
     async function caldavCall(body){
       if(!own())throw Error('Sign in to daylight first');
       let reply;
-      try{reply=await cloud.client.functions.invoke('caldav',{body})}catch(e){return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}}}
-      if(reply.error)return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}};
+      try{await cloud.ensureSession();reply=await cloud.client.functions.invoke('caldav',{body})}catch(e){return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}}}
+      if(reply.error){if(reply.error.context&&cloud.noteAuthFailure)cloud.noteAuthFailure(reply.error.context.status);return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}}}
       return reply.data||{ok:false,error:{code:'server_error',message:'Unexpected reply.'}};
     }
     function removeCaldavLocal(){

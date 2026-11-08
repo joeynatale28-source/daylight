@@ -10,7 +10,7 @@ import path from 'node:path';
 import {spawn} from 'node:child_process';
 import ICAL from 'ical.js';
 import {createCalDav} from '../supabase/functions/caldav/lib.mjs';
-import {createHandlers} from '../supabase/functions/caldav/handlers.mjs';
+import {createHandlers,DbError} from '../supabase/functions/caldav/handlers.mjs';
 
 const PORT=5290,B='http://127.0.0.1:'+PORT,USER='joey',PASS='correct-horse-1',NOW=new Date('2026-11-07T12:00:00Z');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'rad-'));
@@ -55,6 +55,27 @@ try{
  const call=(u,body)=>H.handle(u,body).then(r=>r.body);
 
  // ===== PART A =====
+ // -- the failure Joey hit: the account save fails in the database. The app must get a plain message; the LOGS get the real code.
+ {const logs=[];let broken=true;
+  const flaky={...memoryStore()};const real=memoryStore();
+  const flakyStore={...real,async upsertAccount(u,f){if(broken)throw new DbError('upsertAccount','42P10','there is no unique or exclusion constraint matching the ON CONFLICT specification',null);return real.upsertAccount(u,f)}};
+  const HF=createHandlers({store:flakyStore,dav:spy,now:()=>NOW,log:o=>logs.push(JSON.stringify(o))});
+  const r=(await HF.handle(A,{action:'connect',server_url:B,username:USER,password:PASS})).body;
+  check("A failed save -> plain 'Your account couldn't be saved' (code save_failed), no stack, no password",!r.ok&&r.error.code==='save_failed'&&r.error.message==="Your account couldn't be saved — try again."&&!JSON.stringify(r).includes(PASS)&&!/42P10|ON CONFLICT|at /.test(JSON.stringify(r)),JSON.stringify(r));
+  check('A failed save -> the log line carries the REAL Postgres code and message, and never the password',logs.length===1&&/"code":"42P10"/.test(logs[0])&&/no unique or exclusion constraint/.test(logs[0])&&/"op":"upsertAccount"/.test(logs[0])&&!logs[0].includes(PASS)&&!logs[0].includes(USER),logs.join('|'));
+  broken=false;
+  const ok=(await HF.handle(A,{action:'connect',server_url:B,username:USER,password:PASS})).body;
+  check('A the same connect succeeds once the save works',ok.ok,JSON.stringify(ok).slice(0,150));
+  const wrong=(await HF.handle(A,{action:'connect',server_url:B,username:USER,password:'nope'})).body;
+  check('A wrong password -> "That username or password was rejected." and the log says auth_failed',!wrong.ok&&wrong.error.message==='That username or password was rejected.'&&logs.some(l=>/"code":"auth_failed"/.test(l)&&!l.includes('nope')),JSON.stringify(wrong.error)+logs.join('|'));
+  const down=(await HF.handle(A,{action:'connect',server_url:'http://127.0.0.1:5999',username:USER,password:PASS})).body;
+  check("A unreachable server -> 'Couldn't reach that server' (different from a save failure)",!down.ok&&down.error.code==='unreachable'&&/reach that server/.test(down.error.message),JSON.stringify(down.error));
+  const calFail={...real,async insertCalendar(){throw new DbError('insertCalendar','23505','duplicate key value violates unique constraint',null)}};
+  const HC=createHandlers({store:calFail,dav:spy,now:()=>NOW,log:()=>{}});
+  const rc=(await HC.handle('user-C',{action:'connect',server_url:B,username:USER,password:PASS})).body;
+  check('A calendars that could not be saved make connect fail instead of "succeeding" with an empty list',!rc.ok&&rc.error.code==='save_failed',JSON.stringify(rc));
+  real.accounts.length=0;real.calendars.length=0;
+ }
  for(const [label,url] of [['bare server URL',B],['link to one calendar',B+`/${USER}/work/`],['/.well-known/caldav',B+'/.well-known/caldav']]){
   const r=await call(A,{action:'test',server_url:url,username:USER,password:PASS});
   check('A discovery from '+label,r.ok&&r.server.calendars.length===2&&eq(r.server.calendars.map(c=>c.name).sort(),['Home','Work']),JSON.stringify(r).slice(0,200));
@@ -125,6 +146,7 @@ try{
   const sneaky=await H.handle(Bu,{action:'list',user_id:A});
   check('A a user_id in the request body is ignored',sneaky.body.accounts.length===0,'leaked');
  }
+ {const acct=store.accounts[0];check('A the saved account row holds the discovered principal and home URLs',acct&&/\/joey\/$/.test(acct.home_url)&&acct.principal_url&&acct.server_url===B+'/'&&acct.username===USER,JSON.stringify({...acct,password:'[hidden]'}))}
  const partA=!failed;
 
  // ===== PART B (only if A is fully verified) =====

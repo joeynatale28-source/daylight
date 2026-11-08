@@ -16,17 +16,42 @@
 //   delete      {calendar_id, href, uid, scope, occurrence:{start}}
 import { CalDavError } from "./lib.mjs";
 
-const fail = (e) => {
-  if (e instanceof CalDavError) return { ok: false, error: { code: e.code, message: e.message } };
-  return { ok: false, error: { code: "server_error", message: "Something went wrong talking to that server." } };
+/** A database failure. Carries the real Postgres/PostgREST code + message for the LOGS (never details/values: a
+ *  not-null violation's details contain the whole row, password included). The app only ever sees `save_failed`. */
+export class DbError extends Error {
+  constructor(op, code, message, hint) { super(message || "database error"); this.name = "DbError"; this.op = op; this.code = code || null; this.hint = hint || null; }
+}
+
+const PLAIN = {
+  invalid_url: "That doesn't look like a server address.",
+  unreachable: "Couldn't reach that server. Check the address and try again.",
+  auth_failed: "That username or password was rejected.",
+  no_caldav: "That address doesn't look like a CalDAV server.",
+  conflict: "This event changed on the server, so your edit wasn't saved.",
+  not_found: "That item isn't there any more.",
+  server_error: "The server answered with an error. Try again in a moment.",
+  save_failed: "Your account couldn't be saved — try again.",
+  db_error: "Something went wrong on our side — try again.",
 };
+const fail = (e) => {
+  if (e instanceof DbError) {
+    const code = e.op === "upsertAccount" || e.op === "insertCalendar" ? "save_failed" : "db_error";
+    return { ok: false, error: { code, message: PLAIN[code] } };
+  }
+  if (e instanceof CalDavError) return { ok: false, error: { code: e.code, message: e.code === "refused" ? e.message : (PLAIN[e.code] && e.code !== "conflict" && e.code !== "not_found" ? PLAIN[e.code] : e.message) } };
+  return { ok: false, error: { code: "server_error", message: PLAIN.server_error } };
+};
+/** What gets logged for a failure: the real code and message, never credentials or row values. */
+const logShape = (action, e) => e instanceof DbError ? { action, kind: "db", op: e.op, code: e.code, message: String(e.message).slice(0, 300), hint: e.hint }
+  : e instanceof CalDavError ? { action, kind: "caldav", code: e.code, message: String(e.message).slice(0, 300) }
+  : { action, kind: "unexpected", name: e && e.name, message: String(e && e.message).slice(0, 300) };
 const publicAccount = (a) => ({ id: a.id, server_url: a.server_url, username: a.username, last_synced_at: a.last_synced_at || null, last_error: a.last_error || null });
 const publicCalendar = (c) => ({ id: c.id, account_id: c.account_id, href: c.href, name: c.name, color: c.color || null, read_only: !!c.read_only,
   last_synced_at: c.last_synced_at || null, last_error: c.last_error || null, cached_events: c.cached_events || [] });
 const PALETTE = ["teal", "blue", "violet", "green", "amber", "rose"];
 const safeColor = (c) => (/^#[0-9a-f]{6}$/i.test(c || "") ? c.toUpperCase() : null);
 
-export function createHandlers({ store, dav, now = () => new Date() }) {
+export function createHandlers({ store, dav, now = () => new Date(), log = () => {} }) {
   const events = (resource) => dav.eventsFromResource(resource, { now: now().getTime() });
   const credsOf = (account) => [account.username, account.password];
 
@@ -115,9 +140,13 @@ export function createHandlers({ store, dav, now = () => new Date() }) {
       const found = await dav.discover(serverUrl, username, password);
       // Reconnecting the same account updates its credentials: no duplicate account or calendars.
       const account = await store.upsertAccount(userId, { server_url: serverUrl, username, password, principal_url: found.principal_url, home_url: found.home_url });
-      await syncAccount(userId, account, { force: true }).catch(() => { /* surfaced through last_error; calendars still created */ });
+      let syncError = null;
+      await syncAccount(userId, account, { force: true }).catch((e) => { syncError = e; });
       const fresh = await store.getAccount(userId, account.id);
-      return { ok: true, account: publicAccount(fresh), calendars: await accountCalendars(userId, fresh) };
+      const calendars = await accountCalendars(userId, fresh);
+      // A first sync that produced nothing is a failed connect, not a success with an empty list.
+      if (!calendars.length && syncError) throw syncError;
+      return { ok: true, account: publicAccount(fresh), calendars };
     },
 
     async list(userId) {
@@ -132,6 +161,7 @@ export function createHandlers({ store, dav, now = () => new Date() }) {
       if (!account) throw new CalDavError("not_found", "That account isn't connected.");
       try { await syncAccount(userId, account, { force: !!body.force }); }
       catch (e) {
+        try { log(logShape("sync", e)); } catch { /* ignore */ }
         const reply = fail(e);
         return { ...reply, kept_cache: true, calendars: await accountCalendars(userId, account) };
       }
@@ -228,7 +258,7 @@ export function createHandlers({ store, dav, now = () => new Date() }) {
     const action = String((body && body.action) || "");
     if (!Object.prototype.hasOwnProperty.call(handlers, action)) return { status: 400, body: { ok: false, error: { code: "bad_request", message: "Unknown action" } } };
     try { return { status: 200, body: await handlers[action](userId, body) }; }
-    catch (e) { return { status: 200, body: fail(e) }; }
+    catch (e) { try { log(logShape(action, e)); } catch { /* logging must never break a reply */ } return { status: 200, body: fail(e) }; }
   }
   return { handle, handlers, syncAccount };
 }
