@@ -1,0 +1,9 @@
+# Local secrets and migration working files; never commit these
+.env
+.env.*
+!.env.example
+migration-local/
+*.dump
+*.backup
+node_modules/
+ui-screenshots/
