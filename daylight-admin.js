@@ -5,6 +5,7 @@
      was sent. The entry is only shown to owners, and every action is refused again by the database for anyone else. */
 (function () {
   "use strict";
+  /* Banners list only this account's own announcements; every owner action is re-checked by the database. */
   var banners = [], pollTimer = null, bannerSeq = 0, host = null;
 
   /* ------------------------------------------------------------------ banners (everyone) */
