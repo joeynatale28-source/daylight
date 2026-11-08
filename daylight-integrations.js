@@ -229,6 +229,7 @@
       }else if(window.daylightCloud?.save)window.daylightCloud.save();
     }
     function draw(){
+      host.dispatchEvent(new CustomEvent('dl-share-state',{bubbles:true,detail:{enabled}}));
       toggle.checked=enabled;
       area.hidden=!enabled;
       linkInput.value=enabled?(cal.publicLink||''):'';
@@ -631,7 +632,7 @@
     /* ---- Add to Subscriptions: chooser + three forms (design standard) ---- */
     function stdDialog(title,opts){
       opts=opts||{};
-      const bd=el('<div class="backdrop"><div class="dialog dl-std" role="dialog" aria-modal="true" aria-label="'+esc(title)+'">'+
+      const bd=el('<div class="backdrop"><div class="dialog dl-std'+(opts.variant?' '+opts.variant:'')+'" role="dialog" aria-modal="true" aria-label="'+esc(title)+'">'+
         '<div class="dialog-head">'+(opts.onBack?'<button type="button" class="icon-btn dl-back" data-back title="Back" aria-label="Back">'+icon('chevL',18)+'</button>':'')+
         '<span class="dialog-title">'+esc(title)+'</span><button type="button" class="icon-btn dl-x" data-x title="Close" aria-label="Close">'+icon('x',18)+'</button></div>'+
         '<div class="dialog-body"></div><div class="dialog-foot"></div></div></div>');
@@ -654,7 +655,7 @@
     }
 
     window.daylightAddToSubscriptions=function(){
-      const dlg=stdDialog('Add to Subscriptions');
+      const dlg=stdDialog('Add to Subscriptions',{variant:'dl-chooser'});
       dlg.body.innerHTML='<div class="dl-opts">'+
         [['caldav','calendarSync','CalDAV server','iCloud, Nextcloud, Fastmail and other CalDAV servers · syncs both ways'],
          ['ical','link','iCal link','Subscribe to a calendar by URL'],
@@ -679,7 +680,7 @@
       try{const u=new URL(text);return /^https?:$/.test(u.protocol)&&/^[^.]+\..+|^localhost$/.test(u.hostname)?u.toString():null}catch{return null}
     }
     function openCalDavForm(){
-      const dlg=stdDialog('Connect a CalDAV server',{onBack:window.daylightAddToSubscriptions});
+      const dlg=stdDialog('Connect a CalDAV server',{onBack:window.daylightAddToSubscriptions,variant:'dl-form'});
       dlg.body.innerHTML=
         field('dlCdServer','Server address','<input class="text-input" id="dlCdServer" autocomplete="off" spellcheck="false" inputmode="url">'+helper('The server’s address — or a link to one of its calendars. Discovery finds the rest.'))+
         field('dlCdUser','Username','<input class="text-input" id="dlCdUser" autocomplete="off" spellcheck="false">')+
@@ -731,7 +732,7 @@
     /* iCal link: the app's existing ical-subscribe machinery (preview + add). */
     window.daylightSubscribeDialog=function(prefill){
       prefill=prefill||{};
-      const dlg=stdDialog('Subscribe by link',{onBack:prefill.back?window.daylightAddToSubscriptions:null});
+      const dlg=stdDialog('Subscribe by link',{onBack:prefill.back?window.daylightAddToSubscriptions:null,variant:'dl-form'});
       dlg.body.innerHTML=
         field('dlSubUrl','Calendar link','<input class="text-input" id="dlSubUrl" placeholder="https:// or webcal://" autocomplete="off" spellcheck="false" inputmode="url">')+
         field('dlSubName','Name','<input class="text-input" id="dlSubName" autocomplete="off">'+helper('Optional — defaults to the calendar’s own name.'))+banner;
@@ -765,7 +766,7 @@
     /* ICS file: the app's existing ical-import machinery (into a calendar you own). */
     function openIcsForm(){
       let imported=false;
-      const dlg=stdDialog('Import an ICS file',{onBack:window.daylightAddToSubscriptions,onClose:()=>{if(imported)location.reload()}});
+      const dlg=stdDialog('Import an ICS file',{onBack:window.daylightAddToSubscriptions,variant:'dl-form',onClose:()=>{if(imported)location.reload()}});
       const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin);
       dlg.body.innerHTML=
         '<div class="dl-drop" data-drop tabindex="0" role="button" aria-label="Choose an .ics file"><span class="dl-drop-ic">'+icon('upload',24)+'</span><span class="dl-drop-text">Drop an .ics file here, or <u>browse</u></span><span class="dl-drop-file" data-file></span></div>'+
@@ -1008,10 +1009,12 @@
       const draw=()=>{
         const row=caldavRows.find(r=>r.id===cal.caldavId)||{};
         const account=caldavAccounts.find(a=>a.id===cal.caldavAccountId)||{};
-        host.innerHTML='<div class="set-group-title">Sync</div>'+
-          '<div class="set-row switch-row"><span><span class="sw-label">Last synced</span><div class="sw-sub" data-last></div></span><button type="button" class="btn-ghost dl-btn-sm" data-sync>'+icon('refresh',14)+' Sync now</button></div>'+
+        host.innerHTML=
+          '<button type="button" class="dl-cs2-row" data-sync>'+icon('refresh',18)+'<span>Sync now</span><span class="dl-cs2-right" data-last></span></button>'+
           '<div class="dl-cd-error" role="alert" hidden></div>'+
-          '<div class="set-row switch-row"><span><span class="sw-label">Account</span><div class="sw-sub" data-account></div></span><button type="button" class="btn-ghost dl-btn-sm dl-btn-danger-ghost" data-disconnect>'+icon('logout',14)+' Disconnect account</button></div>';
+          '<div class="dl-cs2-account" data-account></div>'+
+          '<div class="dl-cs2-divider"></div>'+
+          '<button type="button" class="dl-cs2-row is-danger" data-disconnect>'+icon('logout',18)+'<span>Disconnect account</span></button>';
         host.querySelector('[data-last]').textContent=fmt(row.last_synced_at);
         host.querySelector('[data-account]').textContent=(account.username?account.username+' · ':'')+(()=>{try{return new URL(account.server_url).hostname}catch{return 'CalDAV server'}})();
         const err=host.querySelector('.dl-cd-error');
@@ -1022,7 +1025,7 @@
       host.addEventListener('click',async e=>{
         const sync=e.target.closest('[data-sync]'),leave=e.target.closest('[data-disconnect]');
         if(sync){
-          sync.disabled=true;sync.innerHTML='<span class="dl-btn-spin"></span> Syncing…';
+          sync.disabled=true;sync.querySelector('span:not(.dl-cs2-right)').textContent='Syncing…';
           const reply=await caldavCall({action:'sync',account_id:cal.caldavAccountId,force:true});
           if(reply.calendars){caldavAccounts=caldavAccounts.map(a=>a.id===cal.caldavAccountId?{...a,last_error:reply.ok?null:(reply.error&&reply.error.message)||'Sync failed',last_synced_at:reply.ok?new Date().toISOString():a.last_synced_at}:a);
             materialize2(caldavRows.filter(r=>r.account_id!==cal.caldavAccountId).concat(reply.calendars),null)}

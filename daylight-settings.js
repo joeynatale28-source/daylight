@@ -63,7 +63,7 @@
       ".settings-saving .settings-pane{opacity:.82}",
       ".settings-dialog>.settings-close,.dl-calsettings>.settings-close{position:absolute;z-index:40;right:12px;top:12px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;margin:0;display:grid;place-items:center;border:0;border-radius:0;background:transparent!important;color:var(--muted);cursor:pointer;pointer-events:auto;isolation:isolate}.settings-dialog>.settings-close::before,.dl-calsettings>.settings-close::before{content:\"\";position:absolute;inset:3px;border-radius:12px;background:transparent;transition:background 120ms;z-index:-1;pointer-events:none}.settings-dialog>.settings-close:hover,.dl-calsettings>.settings-close:hover{color:var(--text)}.settings-dialog>.settings-close:hover::before,.dl-calsettings>.settings-close:hover::before{background:var(--hover)}.settings-dialog>.settings-close:active::before,.dl-calsettings>.settings-close:active::before{background:var(--selected)}.settings-dialog>.settings-close svg{pointer-events:none}.settings-pane h2,.settings-pane>.pane-sub{padding-right:48px}",
       ".settings-rail{position:relative;padding-bottom:58px}.settings-rail-footer{position:absolute;bottom:14px;left:16px;right:16px;display:flex;align-items:center;gap:8px;padding-top:10px;border-top:1px solid var(--line-soft);font-size:11px;color:var(--muted);white-space:nowrap}.settings-rail-footer img{width:20px;height:20px;object-fit:contain}.settings-rail-footer .daylight-mark-dark{display:none}[data-theme=dark] .settings-rail-footer .daylight-mark-light{display:none}[data-theme=dark] .settings-rail-footer .daylight-mark-dark{display:block}",
-      ".dl-identity-card{display:flex;align-items:center;gap:18px;padding:4px 0 14px}.dl-profile-photo{flex:none}.dl-profile-avatar{width:72px;height:72px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--selected);color:var(--text);font-size:24px;font-weight:650;letter-spacing:-.01em}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}.dl-profile-logout-row{padding:4px 0 8px}.dl-profile-logout{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));background:transparent;color:var(--danger);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:background 120ms}.dl-profile-logout:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}",
+      ".dl-identity-grid{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:end;padding:4px 0 12px}.dl-idf{display:flex;flex-direction:column;gap:6px;min-width:0}.dl-idf-key{font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.dl-idf-input{height:40px;border:1px solid transparent;border-radius:10px;background:var(--input-bg);padding:0 12px;font:inherit;font-size:13.5px;color:var(--text);outline:none;min-width:0;width:100%;transition:background 120ms,border-color 120ms,box-shadow 120ms}.dl-idf-input:hover{background:var(--hover)}.dl-idf-input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}.dl-idf-lock{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--input-bg);color:var(--muted);font-size:13px;min-width:0}.dl-idf-lock .ic{flex:none}.dl-idf-lock span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}.dl-profile-photo{flex:none}.dl-profile-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--text);color:var(--bg);font-size:14px;font-weight:650;letter-spacing:.01em}.dl-sec-row{display:flex;align-items:center;gap:12px;padding:4px 0 8px}.dl-sec-tile{width:36px;height:36px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.dl-sec-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dl-sec-text .sw-label{font-size:14px;font-weight:550}.dl-sec-text .sw-sub{font-size:12.5px;color:var(--muted)}.dl-signout-others{padding:2px 4px 14px}.dl-link-danger{color:var(--danger);font-size:13px;font-weight:600;padding:6px 0;cursor:pointer}.dl-link-danger:hover{text-decoration:underline}.dl-link-danger[hidden]{display:none}@media(max-width:560px){.dl-identity-grid{grid-template-columns:auto 1fr}.dl-identity-grid .dl-idf:last-child{grid-column:1/-1}}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}.dl-profile-logout-row{padding:4px 0 8px}.dl-profile-logout{display:inline-flex;align-items:center;gap:8px;height:38px;padding:0 16px;border-radius:999px;border:1px solid color-mix(in srgb,var(--danger) 40%,var(--line));background:transparent;color:var(--danger);font:inherit;font-size:13.5px;font-weight:600;cursor:pointer;transition:background 120ms}.dl-profile-logout:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
@@ -298,16 +298,15 @@
     paneHead(pane, "Profile", "Your name, photo, sign-in security, and the devices signed in to your account.");
     var user = window.daylightCloud && window.daylightCloud.user;
     var client = window.daylightCloud && window.daylightCloud.client;
-    var email = user && user.email || "";
+    var email = (user && user.email) || window.__dlIdentityEmail || "";
 
     var identity = el('<div class="set-group dl-identity">' +
-      '<div class="dl-identity-card"><div class="dl-profile-photo"><div class="dl-profile-avatar" aria-label="Profile photo"></div></div>' +
-      '<div class="dl-identity-text"><div class="dl-identity-name"></div><div class="dl-identity-email"></div>' +
-      '<div class="dl-profile-photo-actions"><button type="button" class="btn-ghost dl-btn-sm" data-upload>Upload photo</button><button type="button" class="btn-ghost dl-btn-sm" data-remove>Remove photo</button></div></div>' +
-      '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden></div>' +
+      '<div class="dl-identity-grid"><div class="dl-profile-photo"><div class="dl-profile-avatar" aria-label="Profile photo"></div></div>' +
+      '<label class="dl-idf"><span class="dl-idf-key">Full name</span><input id="profileFullName" class="dl-idf-input" maxlength="80" autocomplete="name" required></label>' +
+      '<div class="dl-idf"><span class="dl-idf-key">Email</span><div class="dl-idf-lock" title="Your sign-in address. It can’t be changed here.">' + icon("lock", 14) + '<span data-email></span></div></div></div>' +
+      '<div class="dl-profile-photo-actions"><button type="button" class="btn-ghost dl-btn-sm" data-upload>Upload photo</button><button type="button" class="btn-ghost dl-btn-sm" data-remove>Remove photo</button></div>' +
+      '<input type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>' +
       '<div class="dl-profile-status" role="status" aria-live="polite"></div>' +
-      '<div class="set-row switch-row"><span><span class="sw-label">Full name</span><div class="sw-sub">Shown in the sidebar and account menu.</div></span><input id="profileFullName" class="text-input dl-row-input" maxlength="80" autocomplete="name" required></div>' +
-      '<div class="set-row switch-row"><span><span class="sw-label">Email</span><div class="sw-sub">Your sign-in address. It can’t be changed here.</div></span><span class="dl-readonly-value" data-email></span></div>' +
       '</div>');
     var nameInput = identity.querySelector("#profileFullName");
     var photo = identity.querySelector(".dl-profile-avatar");
@@ -316,7 +315,6 @@
     var removeButton = identity.querySelector("[data-remove]");
     function showAvatar() {
       photo.innerHTML = state.avatarUrl ? '<img src="' + esc(state.avatarUrl) + '" alt="">' : esc(initialsOf(state.profileName));
-      identity.querySelector(".dl-identity-name").textContent = state.profileName || "Your name";
       removeButton.hidden = !state.avatarUrl;
     }
     function setStatus(message, isError) {
@@ -330,7 +328,6 @@
     }
     nameInput.value = state.profileName || "";
     identity.querySelector("[data-email]").textContent = email || "Not available";
-    identity.querySelector(".dl-identity-email").textContent = email;
     showAvatar();
     nameInput.addEventListener("input", function () {
       state.profileName = nameInput.value.trim();
@@ -416,7 +413,7 @@
     pane.appendChild(identity);
 
     var security = el('<div class="set-group"><div class="set-group-title">Security</div>' +
-      '<div class="set-row switch-row"><span><span class="sw-label">Password</span><div class="sw-sub">We’ll email a secure link to set a new password.</div></span><button type="button" class="btn-ghost dl-btn-sm" data-reset-password>Change password</button></div>' +
+      '<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("lock", 18) + '</span><span class="dl-sec-text"><span class="sw-label">Password</span><span class="sw-sub">We’ll email you a secure link to set a new password.</span></span><button type="button" class="btn-ghost dl-btn-sm" data-reset-password>Change</button></div>' +
       '<div class="dl-profile-status" data-security-status role="status" aria-live="polite"></div></div>');
     security.querySelector("[data-reset-password]").addEventListener("click", async function () {
       var securityStatus = security.querySelector("[data-security-status]");
@@ -432,9 +429,28 @@
 
     var sessions = el('<div class="set-group"><div class="set-group-title">Active sessions</div><div class="dl-session-list" role="list"></div><div class="dl-profile-status" data-session-status role="status" aria-live="polite"></div></div>');
     pane.appendChild(sessions);
+    var othersRow = el('<div class="dl-signout-others"><button type="button" class="dl-link-danger" data-signout-others hidden>Sign out all other sessions</button></div>');
+    pane.appendChild(othersRow);
+    var othersButton = othersRow.querySelector("button");
+    var otherSessions = [];
+    othersButton.addEventListener("click", function () {
+      openConfirm({ title: "Sign out all other sessions?", body: "Every device except this one will need to sign in again.", confirmLabel: "Sign out", danger: true, fn: async function () {
+        othersButton.disabled = true;
+        var failed = 0;
+        for (var n = 0; n < otherSessions.length; n++) {
+          var res = await client.rpc("daylight_revoke_my_session", { p_session_id: String(otherSessions[n].id) });
+          if (res.error) failed++;
+        }
+        othersButton.disabled = false;
+        await loadSessions();
+        sessionStatus.textContent = failed ? "Couldn’t sign out " + failed + " of the other sessions." : "All other sessions were signed out.";
+        sessionStatus.classList.toggle("is-error", !!failed);
+      } });
+    });
     var list = sessions.querySelector(".dl-session-list");
     var sessionStatus = sessions.querySelector("[data-session-status]");
     async function loadSessions() {
+      if (typeof othersButton !== "undefined") othersButton.hidden = true;
       list.innerHTML = '<div class="dl-session-row dl-session-loading"><span class="dl-session-device-icon"></span><span class="dl-session-text"><i></i><i></i></span></div>';
       sessionStatus.textContent = ""; sessionStatus.classList.remove("is-error");
       if (!client || !user) { list.textContent = ""; sessionStatus.textContent = "Sign in to see your active sessions."; return; }
@@ -468,6 +484,8 @@
         }
         list.appendChild(row);
       });
+      otherSessions = rows.filter(function (r) { return !r.current; });
+      othersButton.hidden = !otherSessions.length;
     }
     loadSessions();
 
@@ -511,7 +529,7 @@
     var viewField = pick(scratch, "#csView");
     if (viewField) {
       var viewSelect = viewField.querySelector(".dd") || viewField.querySelector("#csView");
-      var viewRow = el('<div class="set-row switch-row"><span><span class="sw-label">Default calendar view</span><div class="sw-sub">The view daylight opens in.</div></span></div>');
+      var viewRow = el('<div class="set-row switch-row"><span><span class="sw-label">Default Calendar View</span><div class="sw-sub">The view daylight opens in.</div></span></div>');
       viewRow.appendChild(viewSelect);
       viewField = viewRow;
     }
@@ -770,26 +788,41 @@ tidy();
   "use strict";
   var css = document.createElement("style");
   css.textContent = [
-    ".dl-calsettings:focus{outline:none}",
-    ".dl-calsettings{width:min(600px,94vw);max-height:min(860px,calc(100dvh - 32px));display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0}",
-    ".dl-cs-head{display:flex;align-items:center;gap:12px;padding:22px 64px 14px 24px;border-bottom:1px solid var(--line-soft)}",
-    ".dl-cs-dot{width:14px;height:14px;border-radius:5px;flex:none}",
-    ".dl-cs-title{font-size:18px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
-    ".dl-cs-sub{font-size:12.5px;color:var(--muted);margin-top:1px}",
-    ".dl-cs-body{overflow-y:auto;padding:16px 24px 96px;min-height:0}",
-    ".dl-cs-body .set-group{margin-bottom:14px}",
-    ".dl-cs-current{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin:2px 0 6px}",
-    ".dl-cs-current .dl-cs-swatch{width:22px;height:22px;border-radius:7px;border:1px solid var(--line)}",
-    ".dl-cs-current b{color:var(--text);font-weight:600}",
-    ".dl-cs-label{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.04em;margin:12px 0 4px}",
-    ".dl-cs-custom-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:2px}",
-    ".dl-calsettings .settings-savebar{left:50%!important}",
+    ".dialog.dl-calsettings:focus{outline:none}",
+    ".dialog.dl-calsettings{width:336px;max-width:calc(100vw - 24px);max-height:min(740px,calc(100dvh - 24px));display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.1)}",
+    ".dl-cs2-head{display:flex;align-items:center;gap:10px;padding:16px 50px 0 18px;min-height:52px;flex:none}",
+    ".dl-cs2-dot{width:12px;height:12px;border-radius:50%;flex:none}",
+    ".dl-cs2-name,.dl-cs2-title{flex:1;min-width:0;font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
+    ".dl-cs2-name{background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;margin:-5px -7px;width:calc(100% + 14px)}",
+    ".dl-cs2-name:hover{background:var(--hover)}.dl-cs2-name:focus{outline:none;background:var(--input-bg);border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
+    ".dialog.dl-calsettings>.settings-close{right:8px;top:8px;width:36px;height:36px;min-width:36px;min-height:36px}.dialog.dl-calsettings>.settings-close::before{inset:2px;border-radius:8px}",
+    ".dl-cs2-body{overflow-y:auto;padding:4px 18px 18px;min-height:0}.dl-cs2-body.has-pill{padding-bottom:70px}",
+    ".dl-cs2-label{font-size:11px;font-weight:650;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;margin:16px 0 10px}",
+    ".dl-cs2-swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center}",
+    ".dl-sw-wrap{position:relative;width:26px;height:26px}",
+    ".dl-sw{width:26px;height:26px;border-radius:50%;border:0;padding:0;background:var(--c);position:relative;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);transition:transform 120ms var(--ease-out)}",
+    "[data-theme=dark] .dl-sw{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}",
+    ".dl-sw:hover{transform:scale(1.08)}.dl-sw:focus-visible{outline:2px solid var(--accent);outline-offset:3px}",
+    ".dl-sw[aria-pressed=true]{box-shadow:0 0 0 2px var(--surface),0 0 0 4px var(--c)}",
+    ".dl-sw svg{color:#fff;filter:drop-shadow(0 0 1.5px rgba(0,0,0,.55));display:none}.dl-sw[aria-pressed=true] svg{display:block}",
+    ".dl-sw-add{background:transparent;border:1.5px dashed color-mix(in srgb,var(--muted) 75%,transparent);color:var(--muted);box-shadow:none!important}.dl-sw-add:hover{color:var(--text);border-color:var(--text);transform:none}",
+    ".dl-sw-wrap .dl-color-remove{position:absolute;right:-5px;top:-5px;width:15px;height:15px;font-size:11px;line-height:13px;opacity:0;transition:opacity 120ms;z-index:2}",
+    ".dl-sw-wrap:hover .dl-color-remove,.dl-sw-wrap:focus-within .dl-color-remove{opacity:1}",
+    ".dl-cs2-empty{font-size:12.5px;color:var(--muted);margin-right:4px}",
+    ".dl-cs2-divider{height:1px;background:var(--line-soft);margin:16px -4px}",
+    ".dl-cs2-row{display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500;text-align:left;color:var(--text);cursor:pointer;transition:background 120ms var(--ease-out)}",
+    ".dl-cs2-row:hover{background:var(--hover)}.dl-cs2-row:disabled{opacity:.55;cursor:default}.dl-cs2-row .ic{flex:none;color:var(--muted)}",
+    ".dl-cs2-right{margin-left:auto;color:var(--muted);font-weight:400;font-size:13px;display:inline-flex;align-items:center;gap:6px}",
+    ".dl-cs2-row.is-danger,.dl-cs2-row.is-danger .ic{color:var(--danger)}.dl-cs2-row.is-danger:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}",
+    ".dl-cs2-chev{transition:transform 160ms var(--ease-out)}.dl-cs2-row[aria-expanded=true] .dl-cs2-chev{transform:rotate(90deg)}",
+    ".dl-cs2-panel{padding:4px 8px 8px 8px}.dl-cs2-panel[hidden]{display:none}.dl-cs2-panel .set-group-title{display:none}.dl-cs2-panel .set-row{padding:6px 0}",
+    ".dl-cs2-account{font-size:12px;color:var(--muted);padding:2px 8px 0}",
+    ".dialog.dl-calsettings .settings-savebar{left:50%!important;bottom:12px;gap:10px;padding:6px 6px 6px 14px;font-size:12px;white-space:nowrap}",
     ".dl-cs-link{display:flex;gap:8px;align-items:center;margin-top:10px}",
-    ".dl-cs-link .text-input{flex:1;min-width:0;height:36px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}",
+    ".dl-cs-link .text-input{flex:1;min-width:0;height:36px;font-size:12px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;border-radius:8px}",
     ".dl-cs-share-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}",
     ".dl-cs-note{font-size:12px;color:var(--muted);margin:8px 0 2px;line-height:1.5}",
-    ".dl-cs-note.is-error{color:var(--danger)}.dl-cd-error{margin:6px 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45;color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);border:1px solid color-mix(in srgb,var(--danger) 24%,transparent)}.dl-cd-error[hidden]{display:none}",
-    ".dl-cs-danger .sw-label{color:var(--danger)}",
+    ".dl-cs-note.is-error{color:var(--danger)}.dl-cd-error{margin:6px 0 4px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45;color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);border:1px solid color-mix(in srgb,var(--danger) 24%,transparent)}.dl-cd-error[hidden]{display:none}",
     ".dl-btn-danger-ghost{color:var(--danger)!important;border-color:color-mix(in srgb,var(--danger) 40%,var(--line))!important}"
   ].join("\n");
   document.head.appendChild(css);
@@ -806,23 +839,23 @@ tidy();
 
     var bd = el('<div class="backdrop"></div>');
     var dlg = el('<div class="dialog dl-calsettings" role="dialog" aria-modal="true" aria-label="Calendar settings"></div>');
+    var chev = icon("chevR", 16);
     dlg.innerHTML =
-      '<div class="dl-cs-head"><span class="dl-cs-dot"></span><div style="min-width:0"><div class="dl-cs-title"></div><div class="dl-cs-sub">' + (builtin ? "Built-in calendar" : "Calendar settings") + "</div></div></div>" +
-      '<div class="dl-cs-body">' +
-        (builtin ? "" : '<div class="set-group"><div class="set-group-title">Name</div><div class="set-row switch-row"><span><span class="sw-label">Calendar name</span><div class="sw-sub">Shown in the sidebar, event forms and exports.</div></span><input id="calSettingsName" class="text-input dl-row-input" maxlength="80" autocomplete="off"></div></div>') +
-        (cal.caldav ? '<div class="set-group" data-caldav></div>' : "") +
-        '<div class="set-group"><div class="set-group-title">Appearance</div>' +
-          '<div class="dl-cs-current"><span class="dl-cs-swatch"></span><span>Current: <b data-current-color></b></span></div>' +
-          '<div class="dl-cs-label">Presets</div><div data-color-picker></div>' +
-          '<div class="dl-cs-label">Custom color</div><div data-inline-picker></div>' +
-          '<div class="dl-cs-custom-actions"><button type="button" class="btn-ghost dl-btn-sm" data-save-custom>Add to Your colors</button></div>' +
-        "</div>" +
-        (builtin || cal.caldav ? "" : '<div class="set-group" data-share></div>') +
-        (cal.caldav ? "" : '<div class="set-group"><div class="set-group-title">Export</div><div class="set-row switch-row"><span><span class="sw-label">Export .ics</span><div class="sw-sub">Download this calendar as an iCalendar file.</div></span><button type="button" class="btn-ghost dl-btn-sm" data-export>Export .ics</button></div></div>') +
-        (builtin || cal.caldav ? "" : '<div class="set-group dl-cs-danger"><div class="set-row switch-row"><span><span class="sw-label">Delete calendar</span><div class="sw-sub">Permanently remove this calendar and its events.</div></span><button type="button" class="btn-ghost dl-btn-sm dl-btn-danger-ghost" data-delete>Delete…</button></div></div>') +
+      '<div class="dl-cs2-head"><span class="dl-cs2-dot"></span>' +
+        (builtin ? '<span class="dl-cs2-title"></span>' : '<input id="calSettingsName" class="dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name">') +
+      "</div>" +
+      '<div class="dl-cs2-body">' +
+        '<div class="dl-cs2-label" style="margin-top:14px">Color</div><div class="dl-cs2-swatches" data-presets></div>' +
+        '<div class="dl-cs2-label">Your colors</div><div class="dl-cs2-swatches" data-saved></div>' +
+        '<div data-inline-picker></div>' +
+        '<div class="dl-cs2-divider"></div>' +
+        (cal.caldav ? '<div data-caldav></div>' :
+          (builtin ? "" : '<button type="button" class="dl-cs2-row" data-share-row aria-expanded="false">' + icon("upload", 18) + '<span>Share calendar</span><span class="dl-cs2-right"><span data-share-state>' + (cal.publicLink ? "On" : "Off") + "</span>" + '<span class="dl-cs2-chev" style="display:inline-flex">' + chev + "</span></span></button>" + '<div class="dl-cs2-panel" data-share hidden></div>') +
+          '<button type="button" class="dl-cs2-row" data-export>' + icon("download", 18) + "<span>Export .ics</span></button>" +
+          (builtin ? "" : '<div class="dl-cs2-divider"></div><button type="button" class="dl-cs2-row is-danger" data-delete>' + icon("trash", 18) + "<span>Delete calendar</span></button>")) +
       "</div>";
-    var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">You have unsaved changes</span>' +
-      '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save changes</span><svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
+    var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">Unsaved changes</span>' +
+      '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save</span><svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
     var closeButton = el('<button type="button" class="icon-btn settings-close" title="Close" aria-label="Close calendar settings">' + icon("x", 18) + "</button>");
     dlg.appendChild(bar);
     dlg.appendChild(closeButton);
@@ -830,55 +863,75 @@ tidy();
     overlayRoot.appendChild(bd);
 
     var nameInput = dlg.querySelector("#calSettingsName");
-    var titleEl = dlg.querySelector(".dl-cs-title");
+    var titleEl = dlg.querySelector(".dl-cs2-title");
+    var bodyEl = dlg.querySelector(".dl-cs2-body");
     if (nameInput) nameInput.value = cal.name;
-    var gridHost = dlg.querySelector("[data-color-picker]");
     var inline = null;
+    var hexOf = function (key) { return /^#/.test(key) ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#FF7A00"); };
 
     function currentName() { return nameInput ? nameInput.value.trim() : cal.name; }
     function isDirty() {
       return (nameInput && currentName() !== original.name) || cal.color !== original.color || !sameList(state.customColors, original.customColors);
     }
     function paintHeader() {
-      titleEl.textContent = currentName() || original.name;
-      dlg.querySelector(".dl-cs-dot").style.background = dotOf(cal);
-      dlg.querySelector(".dl-cs-swatch").style.background = dotOf(cal);
-      dlg.querySelector("[data-current-color]").textContent = colorName(cal.color);
+      if (titleEl) titleEl.textContent = currentName() || original.name;
+      dlg.querySelector(".dl-cs2-dot").style.background = dotOf(cal);
+      dlg.style.setProperty("--cs-thumb", dotOf(cal));
     }
     function markDirty() {
       if (bar.classList.contains("is-saved")) return;
       var dirty = isDirty();
       bar.hidden = !dirty;
+      bodyEl.classList.toggle("has-pill", dirty);
       bar.setAttribute("aria-hidden", String(!dirty));
       bar.querySelector("[data-save]").disabled = !!(nameInput && !currentName());
-      bar.querySelector(".savebar-message").textContent = nameInput && !currentName() ? "Enter a calendar name" : "You have unsaved changes";
+      bar.querySelector(".savebar-message").textContent = nameInput && !currentName() ? "Enter a name" : "Unsaved changes";
     }
     function previewColor(key) {
       if (!key) return;
       cal.color = key;
-      paintHeader();
+      paintHeader(); drawSwatches();
+      if (inline && key !== inline.value) inline.set(hexOf(key));
       renderSidebar(); renderView(false);
       markDirty();
     }
-    function drawGrid() {
-      window.daylightColorPicker(gridHost, cal.color, function (key) {
-        previewColor(key);
-        if (inline && /^#/.test(key)) inline.set(key);
-      }, { remember: false, deferSavedColors: true, noCustomButton: true, alwaysShowSaved: true, onSavedColorsChange: function () { markDirty(); } });
+    function swatchButton(key, label) {
+      var b = el('<button type="button" class="dl-sw" aria-pressed="' + (cal.color === key) + '" title="' + esc(label || key) + '" aria-label="Color ' + esc(label || key) + '" data-color="' + esc(key) + '">' + icon("check", 14) + "</button>");
+      b.style.setProperty("--c", hexOf(key));
+      b.addEventListener("click", function () { previewColor(key); });
+      return b;
     }
-    drawGrid();
-    inline = window.daylightInlineColorPicker(dlg.querySelector("[data-inline-picker]"), /^#/.test(cal.color) ? cal.color : (window.PALETTE && PALETTE[cal.color] ? PALETTE[cal.color].dot : "#FF7A00"), function (hex) {
-      previewColor(hex);
-      gridHost.querySelectorAll(".dl-color-item").forEach(function (b) { b.setAttribute("aria-pressed", String(b.dataset.color === hex)); });
-    });
-    dlg.querySelector("[data-save-custom]").addEventListener("click", function () {
-      var hex = inline.value;
-      var saved = (state.customColors || []).filter(function (c) { return c !== hex; });
-      state.customColors = [hex].concat(saved).slice(0, 30);
-      previewColor(hex);
-      drawGrid();
-      markDirty();
-    });
+    function drawSwatches() {
+      var presets = dlg.querySelector("[data-presets]"), saved = dlg.querySelector("[data-saved]");
+      presets.innerHTML = ""; saved.innerHTML = "";
+      var list = (window.daylightPresetColors || []).slice();
+      /* A named palette color (or any color not in the list) shows as the selected swatch too. */
+      if (list.indexOf(cal.color) === -1 && (state.customColors || []).indexOf(cal.color) === -1) list.unshift(cal.color);
+      list.forEach(function (key) { presets.appendChild(swatchButton(key, key === cal.color && !/^#/.test(key) ? colorName(key) : null)); });
+      var mine = (state.customColors || []).filter(function (c) { return /^#[0-9A-F]{6}$/i.test(c); });
+      mine.forEach(function (key) {
+        var wrap = el('<span class="dl-sw-wrap"></span>');
+        wrap.appendChild(swatchButton(key));
+        var remove = el('<button type="button" class="dl-color-remove" title="Remove saved color" aria-label="Remove saved color ' + esc(key) + '">×</button>');
+        remove.addEventListener("click", function (event) {
+          event.preventDefault(); event.stopPropagation();
+          state.customColors = (state.customColors || []).filter(function (c) { return c !== key; });
+          drawSwatches(); markDirty();
+        });
+        wrap.appendChild(remove);
+        saved.appendChild(wrap);
+      });
+      var add = el('<button type="button" class="dl-sw dl-sw-add" data-save-custom title="Save this color to Your colors" aria-label="Add the current color to Your colors">' + icon("plus", 14) + "</button>");
+      add.querySelector("svg").style.cssText = "display:block;color:inherit;filter:none";
+      add.addEventListener("click", function () {
+        var hex = inline.value;
+        state.customColors = [hex].concat((state.customColors || []).filter(function (c) { return c !== hex; })).slice(0, 30);
+        previewColor(hex);
+      });
+      saved.appendChild(add);
+    }
+    inline = window.daylightInlineColorPicker(dlg.querySelector("[data-inline-picker]"), hexOf(cal.color), function (hex) { previewColor(hex); }, { compact: true });
+    drawSwatches();
     paintHeader();
     if (nameInput) nameInput.addEventListener("input", function () { paintHeader(); markDirty(); });
     var exportButton = dlg.querySelector("[data-export]");
@@ -887,14 +940,23 @@ tidy();
     if (caldavHost && window.daylightCaldavPopup) window.daylightCaldavPopup(cal, caldavHost, { close: function () { finish(false); } });
     var deleteButton = dlg.querySelector("[data-delete]");
     if (deleteButton) deleteButton.addEventListener("click", function () { finish(false); confirmDeleteCalendar(cal); });
-    if (!builtin && !cal.caldav && window.daylightShareCalendar) window.daylightShareCalendar(cal, dlg.querySelector("[data-share]"));
+    var shareRow = dlg.querySelector("[data-share-row]"), sharePanel = dlg.querySelector("[data-share]");
+    if (shareRow) {
+      shareRow.addEventListener("click", function () {
+        var open = sharePanel.hidden;
+        sharePanel.hidden = !open;
+        shareRow.setAttribute("aria-expanded", String(open));
+      });
+      sharePanel.addEventListener("dl-share-state", function (e) { dlg.querySelector("[data-share-state]").textContent = e.detail.enabled ? "On" : "Off"; });
+      if (window.daylightShareCalendar) window.daylightShareCalendar(cal, sharePanel);
+    }
 
     function revert() {
       cal.color = original.color;
       state.customColors = original.customColors.slice();
       if (nameInput) nameInput.value = original.name;
-      inline.set(/^#/.test(cal.color) ? cal.color : (window.PALETTE && PALETTE[cal.color] ? PALETTE[cal.color].dot : inline.value));
-      drawGrid(); paintHeader();
+      inline.set(hexOf(cal.color));
+      drawSwatches(); paintHeader();
       renderSidebar(); renderView(false);
     }
     function persist() {
@@ -947,20 +1009,20 @@ tidy();
       saveButton.disabled = true;
       bar.classList.add("is-saved");
       bar.querySelector(".savebar-save-label").textContent = "Saved";
-      bar.querySelector(".savebar-message").textContent = "Changes saved";
+      bar.querySelector(".savebar-message").textContent = "Saved";
       setTimeout(function () {
         bar.classList.add("is-dismissing");
         setTimeout(function () {
           bar.hidden = true; bar.setAttribute("aria-hidden", "true");
           bar.classList.remove("is-saved", "is-dismissing");
           saveButton.disabled = false;
-          bar.querySelector(".savebar-save-label").textContent = "Save changes";
-          bar.querySelector(".savebar-message").textContent = "You have unsaved changes";
+          bar.querySelector(".savebar-save-label").textContent = "Save";
+          bar.querySelector(".savebar-message").textContent = "Unsaved changes";
           markDirty();
         }, 180);
       }, 520);
     });
     dlg.setAttribute("tabindex", "-1");
-    if (nameInput) nameInput.focus(); else dlg.focus({ preventScroll: true });
+    dlg.focus({ preventScroll: true });
   };
 })();

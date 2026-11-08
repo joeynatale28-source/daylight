@@ -206,10 +206,12 @@ function custom(onApply,seed,options){
 /* Item 13: inline custom colour picker — a draggable saturation/brightness
    field plus hue spectrum, with HEX and RGB entry. All three stay in sync
    live; onChange receives each valid #RRGGBB as it changes. */
-window.daylightInlineColorPicker=function(host,seed,onChange){
+window.daylightPresetColors=colors.slice();
+window.daylightInlineColorPicker=function(host,seed,onChange,options){
+ options=options||{};
  let hex=/^#[0-9A-F]{6}$/i.test(seed||"")?seed.toUpperCase():"#FF7A00";
  let [h,s,v]=hsvFromHex(hex);
- host.classList.add("dl-inline-picker");
+ host.classList.add("dl-inline-picker");if(options.compact)host.classList.add("dl-compact");
  host.innerHTML='<div class="dl-color-square" role="slider" tabindex="0" aria-label="Saturation and brightness" aria-valuemin="0" aria-valuemax="100"><span class="dl-color-point"></span></div>'+
   '<input class="dl-color-hue" type="range" min="0" max="359" step="1" aria-label="Hue spectrum">'+
   '<div class="dl-inline-values"><span class="dl-color-preview" aria-hidden="true"></span>'+
@@ -235,7 +237,7 @@ window.daylightInlineColorPicker=function(host,seed,onChange){
  square.addEventListener("pointerdown",e=>{square.setPointerCapture(e.pointerId);adjust(e)});
  square.addEventListener("pointermove",e=>{if(e.buttons)adjust(e)});
  square.addEventListener("keydown",e=>{const d=e.key==="ArrowRight"||e.key==="ArrowUp"?.02:e.key==="ArrowLeft"||e.key==="ArrowDown"?-.02:0;if(!d)return;e.preventDefault();if(e.key==="ArrowUp"||e.key==="ArrowDown")v=Math.max(0,Math.min(1,v+d));else s=Math.max(0,Math.min(1,s+d));paint();emit()});
- hue.addEventListener("input",()=>{h=Number(hue.value);paint("hue");emit()});
+ hue.addEventListener("input",()=>{h=Number(hue.value);if(options.compact&&(s<.15||v<.15)){s=.82;v=.94}paint("hue");emit()});
  hexInput.addEventListener("input",()=>{let t=hexInput.value.trim();if(t&&t[0]!=="#")t="#"+t;if(!/^#[0-9A-F]{6}$/i.test(t)){err.textContent=t.length>=7?"Enter a color as #RRGGBB":"";return}fromHex(t,"hex")});
  rgbInputs.forEach(field=>field.addEventListener("input",()=>{
   if(field.value==="")return;
