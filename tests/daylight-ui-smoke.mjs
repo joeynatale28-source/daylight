@@ -680,4 +680,9 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    assert.equal(run.status,0,script+' failed: '+detail+' '+(run.stderr||'').slice(0,800));
  }
  console.log('Daylight visual smoke passed. Screenshots:',fs.readdirSync(out));
+}catch(error){
+ // Surface the failure as a GitHub Actions error annotation (readable from the run page and API).
+ const text=String(error&&error.stack||error).split(String.fromCharCode(10)).slice(0,6).join('%0A').slice(0,1500);
+ console.log('::error title=Visual suite failed::'+text);
+ throw error;
 }finally{await browser.close()}
