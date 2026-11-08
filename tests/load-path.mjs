@@ -46,7 +46,7 @@ for(const theme of GOOD){
   let before;
   {
    const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:0});
-   try{await app.load();await sleep(2800);
+   try{await app.load();await sleep(1500);
     const snap=await app.page.evaluate(()=>({snap:!!localStorage.getItem('daylight-first-paint:00000000-0000-4000-8000-000000000001'),warm:!!localStorage.getItem('daylight-warm-workspace:00000000-0000-4000-8000-000000000001')}));
     assert.deepEqual(snap,{snap:true,warm:true},'snapshot and workspace cache are written after a normal load');
    }finally{await app.close()}
@@ -80,5 +80,26 @@ for(const theme of GOOD){
    assert.ok(moved.length<=3,'only chips in the changed cell may move: '+JSON.stringify(moved));
   }finally{await app.close()}
  }
+}
+
+// ---- C. workspace cache present but no first-paint snapshot (e.g. window size changed):
+// once scripts run, the calendar renders from the cache at once; no spinner, no hold, before the network answers.
+for(const theme of GOOD){
+ const dir=fresh();
+ {const app=await launch({theme,port:PORT,userDataDir:dir});
+  try{await app.load();await sleep(1500);
+  }finally{await app.close()}}
+ const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:3000});
+ try{
+  await app.page.evaluateOnNewDocument(()=>{try{localStorage.removeItem('daylight-first-paint:00000000-0000-4000-8000-000000000001')}catch(e){}});
+  app.page.goto(app.url).catch(()=>{});
+  await app.page.waitForFunction(()=>!!window.daylightCloud,{timeout:10000});
+  await sleep(400);
+  const state=await app.page.evaluate(()=>({snapshot:document.documentElement.getAttribute('data-dl-snapshot')==='1',spinner:!!document.getElementById('dlWorkspaceLoading'),
+   hold:document.body.classList.contains('dl-canvas-holding'),chips:document.querySelectorAll('.month-grid .day-cell .chip').length,fetching:!window.daylightCloud.ready}));
+  await app.page.screenshot({path:path.join(out,'load-cache-only-'+theme+'.png')});
+  assert.deepEqual([state.snapshot,state.spinner,state.hold,state.chips>20,state.fetching],[false,false,false,true,true],'cache render shows the calendar before the network answers: '+JSON.stringify(state));
+  await app.ready();
+ }finally{await app.close()}
 }
 console.log('load-path checks passed');

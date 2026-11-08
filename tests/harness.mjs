@@ -82,8 +82,9 @@ export function busyPayload({month=11,spans=4,busyDay=9}={}){
  * a previous launch via userDataDir), month cursor via ?; returns handles.
  */
 export async function launch(opts={}){
- const {width=1919,height=998,theme='dark',payload=busyPayload(),delayMs=0,signedIn=true,userDataDir,port=0,cdnDelayMs=0}=opts;
- const {server,url}=await serve(port);
+ const {width=1919,height=998,theme='dark',payload=busyPayload(),delayMs=0,signedIn=true,userDataDir,port=0,cdnDelayMs=0,baseUrl}=opts;
+ // baseUrl: measure a DEPLOYED build (real files, real fonts); only Supabase is stubbed.
+ const {server,url}=baseUrl?{server:{close(){}},url:baseUrl}:await serve(port);
  const browser=await puppeteer.launch({executablePath:chrome,headless:'new',userDataDir,args:['--no-sandbox']});
  const page=await browser.newPage();
  await page.setViewport({width,height,deviceScaleFactor:1});

@@ -138,6 +138,9 @@
     }catch(e){console.warn('Subscription refresh failed; cached events remain',e);}
   }
   document.addEventListener('daylight:workspace-ready',loadSubscriptions);
+  /* Scripts load in order; the workspace can be ready before this file runs. */
+  if(cloud&&cloud.ready&&!window.__dlSubscriptionsRequested){window.__dlSubscriptionsRequested=true;loadSubscriptions();}
+  document.addEventListener('daylight:workspace-ready',()=>{window.__dlSubscriptionsRequested=true});
   document.addEventListener('daylight:workspace-preview-ready',()=>{
     if(!cloud?.user)return;
     try{

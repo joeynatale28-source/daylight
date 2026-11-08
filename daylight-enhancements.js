@@ -47,6 +47,7 @@ function revealCanvas(){
  const shell=document.getElementById("dlWorkspaceLoading");
  canvasGate.active=false;
  document.body.classList.remove("dl-canvas-holding");
+ document.dispatchEvent(new Event("daylight:canvas-revealed"));
  if(!shell)return;
  shell.classList.add("is-exiting");
  canvasGate.removeTimer=setTimeout(()=>shell.remove(),170);
@@ -72,7 +73,13 @@ function tryRevealCanvas(){
   },remaining);
  });
 }
-function hideWorkspaceLoading(){canvasGate.workspace=true;tryRevealCanvas()}
+function hideWorkspaceLoading(){
+ canvasGate.workspace=true;
+ /* Subscribed calendars have their own 8 s timeout; never hold longer than that + a margin. */
+ const token=canvasGate.token;
+ setTimeout(()=>{if(token===canvasGate.token&&canvasGate.active&&!canvasGate.subscriptions){canvasGate.subscriptions=true;tryRevealCanvas()}},4000);
+ tryRevealCanvas();
+}
 document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
 document.addEventListener("daylight:workspace-ready",hideWorkspaceLoading);
 document.addEventListener("daylight:subscriptions-ready",()=>{canvasGate.subscriptions=true;tryRevealCanvas()});
@@ -81,7 +88,7 @@ document.addEventListener("daylight:workspace-signed-out",()=>{canvasGate.token+
    file has run, so "loading"/"ready" may already have fired. The page's own
    shell spinner marks a cold load in progress: adopt it and catch up on what
    was missed instead of waiting for events that will not come again. */
-if(window.__dlShellSpinner&&document.getElementById("dlWorkspaceLoading")){
+if(window.__dlShellSpinner&&!window.__dlFromCache&&document.getElementById("dlWorkspaceLoading")){
  showWorkspaceLoading();
  if(window.daylightCloud&&window.daylightCloud.ready)canvasGate.workspace=true;
  if(window.__dlSubscriptionsReady)canvasGate.subscriptions=true;

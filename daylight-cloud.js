@@ -45,6 +45,12 @@
       document.getElementById('app').hidden=false;
       originalRenderAll(false);
       warmShown={id:account.id,payload:JSON.stringify(entry.payload),name:state.profileName,avatar:state.avatarUrl};
+      /* The calendar is on screen from the cache: the page's shell spinner and
+         canvas hold (cold loads only) must not stay up over it. */
+      window.__dlFromCache=true;
+      var shellSpinner=document.getElementById('dlWorkspaceLoading');
+      if(shellSpinner)shellSpinner.remove();
+      document.body.classList.remove('dl-canvas-holding');
       document.dispatchEvent(new Event('daylight:workspace-preview-ready'));
       return true;
     }catch(error){console.warn('Warm calendar preview unavailable',error);return false}
@@ -678,6 +684,8 @@
   var snapshotTimer = null;
   function scheduleSnapshot(delay) { clearTimeout(snapshotTimer); snapshotTimer = setTimeout(saveFirstPaint, delay || 1800); }
   document.addEventListener('daylight:workspace-ready', function () { scheduleSnapshot(2200); });
+  document.addEventListener('daylight:canvas-revealed', function () { scheduleSnapshot(500); });
+  window.addEventListener('pagehide', saveFirstPaint);
   document.addEventListener('daylight:settings-committed', function () { scheduleSnapshot(1200); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) saveFirstPaint(); });
   window.addEventListener('resize', function () { scheduleSnapshot(2500); });
