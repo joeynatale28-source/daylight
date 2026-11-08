@@ -628,37 +628,184 @@
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 
   // Reachable before Settings has ever been opened.
+    /* ---- Add to Subscriptions: chooser + three forms (design standard) ---- */
+    function stdDialog(title,opts){
+      opts=opts||{};
+      const bd=el('<div class="backdrop"><div class="dialog dl-std" role="dialog" aria-modal="true" aria-label="'+esc(title)+'">'+
+        '<div class="dialog-head">'+(opts.onBack?'<button type="button" class="icon-btn dl-back" data-back title="Back" aria-label="Back">'+icon('chevL',18)+'</button>':'')+
+        '<span class="dialog-title">'+esc(title)+'</span><button type="button" class="icon-btn dl-x" data-x title="Close" aria-label="Close">'+icon('x',18)+'</button></div>'+
+        '<div class="dialog-body"></div><div class="dialog-foot"></div></div></div>');
+      overlayRoot.appendChild(bd);
+      const api={root:bd,body:bd.querySelector('.dialog-body'),foot:bd.querySelector('.dialog-foot'),
+        close(){ if(opts.onClose)opts.onClose(); if(window.daylightExit)window.daylightExit(bd);else bd.remove(); }};
+      bd.querySelector('[data-x]').addEventListener('click',api.close);
+      bd.addEventListener('mousedown',e=>{if(e.target===bd)api.close()});
+      const back=bd.querySelector('[data-back]');
+      if(back)back.addEventListener('click',()=>{api.close();opts.onBack()});
+      return api;
+    }
+    const field=(id,label,extra)=>'<div class="field dl-std-field"><label for="'+id+'">'+esc(label)+'</label>'+extra+'</div>';
+    const helper=text=>'<div class="dl-helper">'+esc(text)+'</div>';
+    const banner='<div class="dl-banner" role="alert" hidden></div>';
+    const SPIN='<span class="dl-btn-spin" aria-hidden="true"></span>';
+    function say(dlg,message,kind){
+      const b=dlg.body.querySelector('.dl-banner');
+      b.hidden=!message;b.textContent=message||'';b.classList.toggle('is-ok',kind==='ok');
+    }
+
+    window.daylightAddToSubscriptions=function(){
+      const dlg=stdDialog('Add to Subscriptions');
+      dlg.body.innerHTML='<div class="dl-opts">'+
+        [['caldav','calendarSync','CalDAV server','iCloud, Nextcloud, Fastmail and other CalDAV servers · syncs both ways'],
+         ['ical','link','iCal link','Subscribe to a calendar by URL'],
+         ['ics','upload','ICS file','Upload an .ics file from your device']].map(o=>
+          '<button type="button" class="dl-opt" data-opt="'+o[0]+'"><span class="dl-opt-ic">'+icon(o[1],20)+'</span><span class="dl-opt-text"><span class="dl-opt-title">'+o[2]+'</span><span class="dl-opt-sub">'+esc(o[3])+'</span></span></button>').join('')+'</div>';
+      dlg.foot.remove();
+      const go=fn=>()=>{dlg.close();fn()};
+      dlg.body.querySelector('[data-opt="caldav"]').addEventListener('click',go(openCalDavForm));
+      dlg.body.querySelector('[data-opt="ical"]').addEventListener('click',go(()=>window.daylightSubscribeDialog({back:true})));
+      dlg.body.querySelector('[data-opt="ics"]').addEventListener('click',go(openIcsForm));
+      dlg.body.querySelector('.dl-opt').focus();
+    };
+
+    /* CalDAV connect form. Stage 2 implements the `caldav` edge function;
+       until then the request fails and the designed error state shows.
+       Credentials live only in these closures: never stored anywhere. */
+    const CALDAV_ERROR="Couldn’t connect to that server. Check the address and your username and password, then try again.";
+    function normalizeServer(value){
+      let text=String(value||'').trim();
+      if(!text)return null;
+      if(!/^[a-z][a-z0-9+.-]*:\/\//i.test(text))text='https://'+text;
+      try{const u=new URL(text);return /^https?:$/.test(u.protocol)&&/^[^.]+\..+|^localhost$/.test(u.hostname)?u.toString():null}catch{return null}
+    }
+    function openCalDavForm(){
+      const dlg=stdDialog('Connect a CalDAV server',{onBack:window.daylightAddToSubscriptions});
+      dlg.body.innerHTML=
+        field('dlCdServer','Server address','<input class="text-input" id="dlCdServer" autocomplete="off" spellcheck="false" inputmode="url">'+helper('The server’s address — or a link to one of its calendars. Discovery finds the rest.'))+
+        field('dlCdUser','Username','<input class="text-input" id="dlCdUser" autocomplete="off" spellcheck="false">')+
+        field('dlCdPass','Password','<div class="dl-pass"><input class="text-input" id="dlCdPass" type="password" autocomplete="off"><button type="button" class="dl-eye" data-eye title="Show password" aria-label="Show password">'+icon('eye',18)+'</button></div>'+helper('For iCloud, use an app-specific password.'))+
+        banner;
+      dlg.foot.innerHTML='<button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-primary" data-connect disabled>Connect</button>';
+      const server=dlg.body.querySelector('#dlCdServer'),user=dlg.body.querySelector('#dlCdUser'),pass=dlg.body.querySelector('#dlCdPass');
+      const connect=dlg.foot.querySelector('[data-connect]'),inputs=[server,user,pass];
+      let busy=false;
+      const valid=()=>!!normalizeServer(server.value)&&!!user.value.trim()&&!!pass.value;
+      const sync=()=>{connect.disabled=busy||!valid()};
+      inputs.forEach(i=>i.addEventListener('input',()=>{say(dlg,'');sync()}));
+      dlg.body.querySelector('[data-eye]').addEventListener('click',function(){
+        const show=pass.type==='password';pass.type=show?'text':'password';
+        this.innerHTML=icon(show?'eyeOff':'eye',18);this.title=this.ariaLabel=show?'Hide password':'Show password';
+      });
+      dlg.foot.querySelector('[data-cancel]').addEventListener('click',dlg.close);
+      async function submit(){
+        if(busy||!valid())return;
+        busy=true;inputs.forEach(i=>i.disabled=true);say(dlg,'');
+        connect.disabled=true;connect.innerHTML=SPIN+'Connecting…';
+        try{
+          /* Contract (Stage 2): POST functions/v1/caldav
+             { action:'test', server_url, username, password }
+             -> 200 { ok:true, server:{ name, principal_url, calendars:[{ url, name, color|null, read_only }] } }
+             -> non-2xx or { ok:false, error:{ code, message } }  (code: invalid_url | unreachable | auth_failed | no_caldav) */
+          const reply=await call('caldav',{action:'test',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value});
+          if(reply&&reply.ok===true){say(dlg,'Connected'+(reply.server&&reply.server.name?' to '+reply.server.name:'')+'. Saving calendars isn’t available yet.','ok')}
+          else throw Error('connect failed');
+        }catch(error){
+          say(dlg,CALDAV_ERROR);
+        }finally{
+          busy=false;inputs.forEach(i=>i.disabled=false);connect.textContent='Connect';sync();
+        }
+      }
+      connect.addEventListener('click',submit);
+      dlg.body.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();submit()}});
+      server.focus();
+    }
+
+    /* iCal link: the app's existing ical-subscribe machinery (preview + add). */
     window.daylightSubscribeDialog=function(prefill){
       prefill=prefill||{};
-      const content=html('<div class="dl-subscribe-form">'+
-        '<div class="field"><label for="dl-sub-name">Name (optional)</label><input class="text-input" id="dl-sub-name" placeholder="Use the calendar feed name"></div>'+
-        '<div class="field"><label for="dl-sub-url">iCal URL</label><input class="text-input" id="dl-sub-url" placeholder="https://example.com/calendar.ics" autocomplete="off"></div>'+
-        '<div class="field"><label>Calendar color</label><div class="dl-color-grid" id="dl-sub-colors"></div></div>'+
-        '<p class="inline-note" role="status" id="dl-sub-feedback"></p>'+
-        '<div style="display:flex;justify-content:flex-end">'+btn(prefill.url?'Add this calendar':'Subscribe','dl-sub-save','btn-primary')+'</div></div>');
-      const dlg=modal('Subscribe to a calendar',content);
-      let color='teal';
-      window.daylightColorPicker(content.querySelector('#dl-sub-colors'),color,k=>{color=k});
-      const feedback=content.querySelector('#dl-sub-feedback'),button=content.querySelector('#dl-sub-save');
-      content.querySelector('#dl-sub-url').value=prefill.url||'';
-      content.querySelector('#dl-sub-name').value=prefill.name||'';
-      if(prefill.url)button.focus();else content.querySelector('#dl-sub-url').focus();
-      button.onclick=async()=>{
-        let url=content.querySelector('#dl-sub-url').value.trim();
-        if(/^webcal:\/\//i.test(url))url='https://'+url.slice(9);
-        let parsed;
-        try{parsed=new URL(url);if(parsed.protocol!=='https:')throw Error('Invalid protocol')}
-        catch{feedback.textContent='Enter a valid HTTPS or webcal URL.';feedback.style.color='var(--danger)';return}
-        button.disabled=true;feedback.style.color='var(--muted)';feedback.textContent='Checking calendar feed…';
+      const dlg=stdDialog('Subscribe by link',{onBack:prefill.back?window.daylightAddToSubscriptions:null});
+      dlg.body.innerHTML=
+        field('dlSubUrl','Calendar link','<input class="text-input" id="dlSubUrl" placeholder="https:// or webcal://" autocomplete="off" spellcheck="false" inputmode="url">')+
+        field('dlSubName','Name','<input class="text-input" id="dlSubName" autocomplete="off">'+helper('Optional — defaults to the calendar’s own name.'))+banner;
+      dlg.foot.innerHTML='<button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-primary" data-sub disabled>'+(prefill.url?'Add this calendar':'Subscribe')+'</button>';
+      const urlIn=dlg.body.querySelector('#dlSubUrl'),nameIn=dlg.body.querySelector('#dlSubName'),go=dlg.foot.querySelector('[data-sub]');
+      urlIn.value=prefill.url||'';nameIn.value=prefill.name||'';
+      let busy=false;
+      const parse=()=>{let v=urlIn.value.trim();if(/^webcal:\/\//i.test(v))v='https://'+v.slice(9);try{const u=new URL(v);return u.protocol==='https:'&&u.hostname.includes('.')?v:null}catch{return null}};
+      const sync=()=>{go.disabled=busy||!parse()};
+      urlIn.addEventListener('input',()=>{say(dlg,'');sync()});
+      dlg.foot.querySelector('[data-cancel]').addEventListener('click',dlg.close);
+      async function submit(){
+        const url=parse();
+        if(!url){say(dlg,'Enter a valid link starting with https:// or webcal://');return}
+        if(busy)return;busy=true;[urlIn,nameIn].forEach(i=>i.disabled=true);go.disabled=true;go.innerHTML=SPIN+'Subscribing…';say(dlg,'');
         try{
           const preview=await call('ical-subscribe',{action:'preview',url});
-          const name=content.querySelector('#dl-sub-name').value.trim()||preview.name||preview.source_host||'Calendar feed';
-          feedback.textContent='Subscribing…';
-          await call('ical-subscribe',{action:'add',url,name,color});
+          const name=nameIn.value.trim()||preview.name||preview.source_host||'Calendar feed';
+          await call('ical-subscribe',{action:'add',url,name,color:'teal'});
           dlg.close();await loadSubscriptions();renderAll(false);toast('Calendar subscribed');
-        }catch(err){showError(feedback,err)}finally{button.disabled=false}
-      };
+        }catch(error){
+          say(dlg,error.message||'Couldn’t subscribe to that link. Check it and try again.');
+          busy=false;[urlIn,nameIn].forEach(i=>i.disabled=false);go.textContent=prefill.url?'Add this calendar':'Subscribe';sync();
+        }
+      }
+      go.addEventListener('click',submit);
+      dlg.body.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT'){e.preventDefault();submit()}});
+      sync();(prefill.url?go:urlIn).focus();
     };
+
+    /* ICS file: the app's existing ical-import machinery (into a calendar you own). */
+    function openIcsForm(){
+      let imported=false;
+      const dlg=stdDialog('Import an ICS file',{onBack:window.daylightAddToSubscriptions,onClose:()=>{if(imported)location.reload()}});
+      const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin);
+      dlg.body.innerHTML=
+        '<div class="dl-drop" data-drop tabindex="0" role="button" aria-label="Choose an .ics file"><span class="dl-drop-ic">'+icon('upload',24)+'</span><span class="dl-drop-text">Drop an .ics file here, or <u>browse</u></span><span class="dl-drop-file" data-file></span></div>'+
+        '<input type="file" accept=".ics,text/calendar" data-picker hidden>'+
+        field('dlIcsCal','Add events to','<select class="text-input dl-select" id="dlIcsCal">'+owned.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select>'+helper('Importing the same file again updates events instead of duplicating them.'))+banner;
+      dlg.foot.innerHTML='<button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-primary" data-import disabled>Import</button>';
+      const drop=dlg.body.querySelector('[data-drop]'),picker=dlg.body.querySelector('[data-picker]'),label=dlg.body.querySelector('[data-file]'),
+        select=dlg.body.querySelector('#dlIcsCal'),go=dlg.foot.querySelector('[data-import]');
+      const defaultId=typeof defaultCalId==='function'?defaultCalId():null;
+      if(defaultId&&owned.some(c=>c.id===defaultId))select.value=defaultId;
+      let file=null,busy=false;
+      const sync=()=>{go.disabled=busy||!file||!select.value};
+      function choose(f){
+        say(dlg,'');
+        if(!f)return;
+        if(!/\.ics$/i.test(f.name)&&!/calendar/i.test(f.type)){file=null;label.textContent='';say(dlg,'That isn’t an .ics file. Choose a calendar file ending in .ics.');sync();return}
+        if(f.size>2500000){file=null;label.textContent='';say(dlg,'That file is larger than 2.5 MB.');sync();return}
+        file=f;label.textContent=f.name+' · '+Math.max(1,Math.round(f.size/1024))+' KB';drop.classList.add('has-file');sync();
+      }
+      drop.addEventListener('click',()=>picker.click());
+      drop.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();picker.click()}});
+      picker.addEventListener('change',()=>{choose(picker.files&&picker.files[0]);picker.value=''});
+      ['dragenter','dragover'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.add('is-over')}));
+      ['dragleave','drop'].forEach(t=>drop.addEventListener(t,e=>{e.preventDefault();drop.classList.remove('is-over')}));
+      drop.addEventListener('drop',e=>choose(e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0]));
+      select.addEventListener('change',sync);
+      if(!owned.length){say(dlg,'Create a calendar of your own first — imported events need a calendar to live in.')}
+      dlg.foot.querySelector('[data-cancel]').addEventListener('click',dlg.close);
+      go.addEventListener('click',async()=>{
+        if(busy||!file||!select.value)return;
+        busy=true;go.disabled=true;go.innerHTML=SPIN+'Importing…';say(dlg,'');select.disabled=true;
+        dlg.body.classList.add('is-busy');
+        try{
+          const result=await call('ical-import',{action:'import',calendar_id:select.value,ics:await file.text()});
+          const count=(result.added||0)+(result.updated||0);
+          imported=true;
+          dlg.body.innerHTML='<div class="dl-done"><span class="dl-done-ic">'+icon('check',22)+'</span><div class="dl-done-title">Imported '+count+' event'+(count===1?'':'s')+'</div><div class="dl-done-sub">'+
+            esc((result.added||0)+' added, '+(result.updated||0)+' updated'+(result.skipped?', '+result.skipped+' skipped':''))+'</div></div>';
+          dlg.foot.innerHTML='<button type="button" class="btn-primary" data-done>Done</button>';
+          dlg.foot.querySelector('[data-done]').addEventListener('click',dlg.close);
+          dlg.foot.querySelector('[data-done]').focus();
+        }catch(error){
+          busy=false;select.disabled=false;dlg.body.classList.remove('is-busy');go.textContent='Import';sync();
+          say(dlg,error.message||'Couldn’t import that file. Check it and try again.');
+        }
+      });
+    }
+
     /* A shared public link opened from its landing page arrives as
        #add_calendar=<feed>&calendar_name=<name>; after sign-in (or straight
        away when signed in) it offers a one-click "Add this calendar". */

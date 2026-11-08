@@ -22,6 +22,20 @@
   // Per-user warm snapshot. Cached data is shown only after Supabase
   // authenticates the account, and it never changes the revision baseline.
   function cacheKey(id){return 'daylight-warm-workspace:'+id}
+  /* Cached identity (name, email, photo URL) for the sidebar account block. Same
+     lifetime rules as the other caches: per account, build-stamped, removed on sign-out. */
+  function readIdentity(id){
+    try{
+      var who=JSON.parse(localStorage.getItem('daylight-identity:'+id)||'null');
+      return who&&who.b===(window.__DL_BUILD||'dev')&&typeof who.n==='string'?who:null;
+    }catch(e){return null}
+  }
+  function writeIdentity(){
+    if(!user)return;
+    try{
+      localStorage.setItem('daylight-identity:'+user.id,JSON.stringify({b:window.__DL_BUILD||'dev',n:state.profileName||'',a:state.avatarUrl||'',e:user.email||''}));
+    }catch(e){}
+  }
   function cacheWorkspace(id,document,rev){
     try{
       const serialized=JSON.stringify({payload:document,revision:rev,build:window.__DL_BUILD||'dev'});
@@ -40,6 +54,11 @@
       state.profileName=accountName(account);
       state.firstName=state.profileName.split(/\s+/)[0];
       readWorkspace(entry.payload);
+      /* Name, email and photo come from the cached identity so the account
+         block is final in this very render (no initials-then-photo swap). */
+      var who=readIdentity(account.id);
+      if(who){state.profileName=who.n||state.profileName;state.firstName=state.profileName.split(/\s+/)[0];if(typeof who.a==='string')state.avatarUrl=who.a;window.__dlIdentityEmail=who.e||account.email||'';}
+      else if(account.email)window.__dlIdentityEmail=account.email;
       applyTheme();
       document.getElementById('authRoot').innerHTML='';
       document.getElementById('app').hidden=false;
@@ -425,8 +444,10 @@
       var unchanged = fromCache && warmShown && warmShown.id === account.id && hasRow &&
         warmShown.payload === JSON.stringify(response.data.payload) &&
         warmShown.name === state.profileName && warmShown.avatar === state.avatarUrl;
+      if (account.email) window.__dlIdentityEmail = account.email;
       if (!unchanged) originalRenderAll(false);
       warmShown = null;
+      writeIdentity();
       document.dispatchEvent(new Event('daylight:workspace-ready'));
       document.body.classList.remove('booting');
       status('Saved to cloud');
@@ -445,7 +466,7 @@
 
   function forgetCaches(id) {
     try {
-      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
+      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-identity:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
     } catch (e) {}
   }
   function showSignedOut() {
@@ -581,7 +602,8 @@
   renderSidebar = function () {
     originalRenderSidebar.apply(this, arguments);
     var emailNode = document.querySelector('.profile-email');
-    if (emailNode) emailNode.textContent = user && user.email || '';
+    /* Until the session resolves, keep the cached email (never blank it). */
+    if (emailNode) emailNode.textContent = (user && user.email) || window.__dlIdentityEmail || '';
   };
   paneGeneral = function (pane, close) {
     originalPaneGeneral(pane, close);
@@ -665,6 +687,7 @@
     } catch (e) { return false; }
   }
   function saveFirstPaint() {
+    if (user && !loading) writeIdentity();
     if (!user || loading || conflict || !homeState()) return;
     try {
       var d = new Date();
@@ -686,7 +709,7 @@
   document.addEventListener('daylight:workspace-ready', function () { scheduleSnapshot(2200); });
   document.addEventListener('daylight:canvas-revealed', function () { scheduleSnapshot(500); });
   window.addEventListener('pagehide', saveFirstPaint);
-  document.addEventListener('daylight:settings-committed', function () { scheduleSnapshot(1200); });
+  document.addEventListener('daylight:settings-committed', function () { writeIdentity(); scheduleSnapshot(1200); });
   document.addEventListener('visibilitychange', function () { if (document.hidden) saveFirstPaint(); });
   window.addEventListener('resize', function () { scheduleSnapshot(2500); });
 

@@ -10,77 +10,6 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./daylight-places.css">
-    <style id="dl-critical-css">
-/* Moved from late-loading scripts / end-of-body so the first paint is final. */
-
-.cal-row{align-items:center;min-height:28px;height:30px;gap:7px}
-.cal-row .cal-name{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
-.cal-row .cal-menu-btn{flex:0 0 28px}
-.cal-row .cal-check{flex:0 0 auto}
-.dl-color-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:8px 0}
-.dl-color-grid .dl-color-item{height:25px;min-width:0;width:100%;border-radius:9px;position:relative;border:2px solid transparent;outline-offset:2px;cursor:pointer}
-.dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
-[data-theme="dark"] .dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.dl-color-grid .dl-color-item[aria-pressed=true]{outline:2px solid var(--text)}
-.dl-color-grid .dl-color-item:focus-visible{outline:2px solid var(--accent)}
-.dl-color-entry{position:relative;display:block;min-width:0}
-.dl-color-remove{position:absolute;right:-5px;top:-5px;z-index:2;width:18px;height:18px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);font-size:13px;line-height:16px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.dl-color-remove:hover{background:var(--hover);color:var(--danger)}
-.dl-color-remove:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.dl-color-plus{border:1px solid var(--line)!important;background:var(--surface);color:var(--text);font-size:19px;font-weight:500}
-.dl-color-label{font-size:11px;color:var(--muted);margin:9px 0 2px;font-weight:600}
-.dl-color-square{height:172px;border-radius:12px;position:relative;cursor:crosshair;touch-action:none;background-image:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent);border:1px solid var(--line)}
-.dl-color-point{position:absolute;height:14px;width:14px;border:2px solid #fff;box-shadow:0 0 0 1px #333;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
-.dl-color-hue{display:block;width:100%;height:18px;margin:12px 0;appearance:none;border-radius:999px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer}
-.dl-color-hue::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
-.dl-color-hue::-moz-range-thumb{width:14px;height:14px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
-.dl-color-preview{height:28px;width:28px;flex:none;border-radius:8px;border:1px solid var(--line)}
-.dl-color-rgb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.dl-color-rgb .field{margin:0}
-.dl-color-rgb input{width:100%;min-width:0}
-.dl-color-error{font-size:12px;color:var(--danger);min-height:16px}
-.dl-inline-picker{display:grid;gap:10px}
-.dl-inline-picker .dl-color-square{height:150px}
-.dl-inline-picker .dl-color-hue{margin:2px 0}
-.dl-inline-values{display:grid;grid-template-columns:34px minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:8px;align-items:end}
-.dl-inline-values .dl-color-preview{width:34px;height:34px;border-radius:10px}
-.dl-inline-field{display:grid;gap:4px;min-width:0}
-.dl-inline-field>span{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.04em}
-.dl-inline-field .text-input{height:34px;padding:0 10px;min-width:0;width:100%;font-variant-numeric:tabular-nums;border-radius:10px}
-.dl-inline-picker .dl-color-error{min-height:0}
-.dl-color-empty{font-size:12px;color:var(--muted);padding:2px 0 4px}
-.dl-color-remove{opacity:.9}
-.dl-color-modal .dialog-body{display:grid;gap:10px}
-.dl-color-modal .dialog-body .field{margin:0}
-.month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.month-grid{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(var(--month-row-min,92px),1fr));scrollbar-gutter:stable;align-content:stretch}
-.month-week{min-height:var(--month-row-min,92px);height:100%;overflow:visible}
-.day-cell{min-height:0;overflow:hidden}
-.cell-events{min-height:0;overflow:visible}
-.agenda-cal-name{font-weight:600;color:var(--muted)}
-
-@media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
-@media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
-
-
-/* Daylight sidebar: stable single-line labels and compact adaptive rows. */
-.cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
-.cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
-.sidebar .cal-list,.sidebar .calendars-list{min-height:0}
-.sidebar .cal-check{flex-shrink:0}
-.sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
-.sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
-.dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
-@keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
-
-
-.dl-month-span-layer,.dl-week-span-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
-.dl-continuous-bar{position:absolute;pointer-events:auto;height:23px;border-radius:6px;padding:2px 8px 2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;transition:filter 160ms cubic-bezier(.23,1,.32,1),box-shadow 160ms cubic-bezier(.23,1,.32,1)}
-.dl-continuous-bar:hover,.dl-continuous-bar.dl-span-active,.dl-continuous-bar.dl-span-selected{filter:brightness(1.15);outline:1px solid currentColor;outline-offset:-1px}
-@media(prefers-reduced-motion:reduce){.dl-continuous-bar{transition:none}}
-
-.agenda-details{display:flex;flex-direction:column;min-width:0;gap:3px}.agenda-location{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}.agenda-location svg{flex:none}
-</style>
     <script>
       /* Runs before anything paints. (1) Theme: the saved mode (system / light /
          dark) or the system preference, so a dark user never sees a light frame
@@ -103,6 +32,14 @@
             boot.hint = true;
             var snap = JSON.parse(localStorage.getItem("daylight-first-paint:" + id) || "null");
             var d = new Date(), key = d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+            var who = JSON.parse(localStorage.getItem("daylight-identity:" + id) || "null");
+            if (who && who.b === window.__DL_BUILD && typeof who.n === "string") {
+              var esc = function (t) { return String(t || "").replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); };
+              var initials = who.n.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "?";
+              boot.identity = '<div class="profile-wrap"><button class="profile-row" title="Account"><span class="avatar">' + (who.a ? '<img src="' + esc(who.a) + '" alt="">' : esc(initials)) +
+                '</span><span class="rail-hide" style="min-width:0"><span class="profile-name">' + esc(who.n) + '</span><br><span class="profile-email">' + esc(who.e) + '</span></span></button></div>';
+              window.__dlIdentityEmail = who.e || "";
+            }
             if (snap && snap.b === window.__DL_BUILD && snap.d === key && snap.t === theme &&
                 Math.abs(snap.w - innerWidth) < 160 && Math.abs(snap.h - innerHeight) < 120) boot.snap = snap;
           }
@@ -292,6 +229,8 @@
       .dl-shell-row b { height: 9px; border-radius: 5px; background: var(--hover); width: 90px; }
       .dl-shell-row.is-active { background: var(--sidebar-selected); border-radius: var(--r-md, 10px); }
       .dl-shell-gap { height: 190px; }
+      .dl-shell-sidebar { min-height: 100%; }
+      .dl-shell-grow { flex: 1 1 auto; }
       #main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 
       /* ---------- Sidebar ---------- */
@@ -492,11 +431,6 @@
       .dl-notif-empty-ic { width: 40px; height: 40px; border-radius: 12px; display: grid; place-items: center; background: var(--hover); color: var(--muted); margin-bottom: 10px; }
       .dl-notif-empty-title { font-size: 14px; font-weight: 600; }
       .dl-notif-empty-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; }
-      .menu-identity { display: flex; align-items: center; gap: 10px; padding: 8px 10px 6px; min-width: 0; }
-      .menu-identity .avatar { flex: none; }
-      .menu-identity-text { display: flex; flex-direction: column; min-width: 0; }
-      .menu-identity-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .menu-identity-email { font-size: 11.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .profile-name { font-size: 14px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
       .profile-email { font-size: 12px; color: var(--muted); line-height: 1.25; white-space: nowrap; }
       .profile-row .icon-btn { margin-left: auto; }
@@ -1683,6 +1617,158 @@
       body.dl-reduce-motion .menu,body.dl-reduce-motion .dialog,body.dl-reduce-motion .palette,
       body.dl-reduce-motion .backdrop,body.dl-reduce-motion .palette-backdrop{animation:none!important;transition:none!important;}
 </style>
+    <style id="dl-critical-css">
+
+/* ===== Popup standard: ONE language for every dialog, popover and menu =====
+   Scrim ~50%, 12px radius, soft shadow (no hard border), 24px padding, 18px
+   semibold title, plain 36x36 close, 36px buttons (8px radius) with the
+   secondary = surface + 1px border. Scoped to .dialog / menus so Settings
+   (the benchmark) is untouched. Motion reuses the app's own keyframes. */
+.backdrop { background: rgba(0, 0, 0, 0.5); }
+.dialog:not(.settings-dialog) {
+  border: 1px solid transparent; border-radius: 12px;
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--text) 6%, transparent), 0 24px 64px rgba(0, 0, 0, 0.32), 0 4px 14px rgba(0, 0, 0, 0.14);
+}
+.dialog:not(.settings-dialog) .dialog-head { padding: 20px 14px 0 24px; gap: 8px; }
+.dialog:not(.settings-dialog) .dialog-title { font-size: 18px; font-weight: 600; letter-spacing: -0.012em; flex: 1; min-width: 0; }
+.dialog:not(.settings-dialog) .dialog-body { padding: 16px 24px 8px; }
+.dialog:not(.settings-dialog) .dialog-body > p { color: var(--muted); margin: 0 0 8px; font-size: 14px; line-height: 1.5; }
+.dialog:not(.settings-dialog) .dialog-foot { padding: 14px 24px 22px; gap: 10px; }
+.event-form-dialog .dialog-body { padding-top: 10px; padding-bottom: 0; }
+.event-form-dialog .dialog-foot { padding-top: 10px; padding-bottom: 18px; }
+.event-form-dialog .field { margin-bottom: 8px; }
+.event-form-dialog .field label { margin-bottom: 6px; }
+.event-form-dialog .dialog-head { padding-top: 18px; }
+.dialog:not(.settings-dialog) .dialog-head .icon-btn { width: 36px; height: 36px; border-radius: 8px; background: transparent; margin: 0; flex: none; }
+.dialog:not(.settings-dialog) .dialog-head .icon-btn:hover { background: var(--hover); color: var(--text); }
+.dialog:not(.settings-dialog) .btn-primary,
+.dialog:not(.settings-dialog) .btn-ghost,
+.dialog:not(.settings-dialog) .btn-danger,
+.dialog:not(.settings-dialog) .btn-danger-outline { height: 36px; padding: 0 16px; border-radius: 8px; font-size: 14px; margin-left: 0; }
+.dialog:not(.settings-dialog) .btn-ghost { background: var(--surface); border: 1px solid var(--line); color: var(--text); }
+.dialog:not(.settings-dialog) .btn-ghost:hover { background: var(--hover); }
+.dialog:not(.settings-dialog) .text-input,
+.dialog:not(.settings-dialog) .text-area,
+.dialog:not(.settings-dialog) .picker-btn { border-radius: 12px; }
+.dialog:not(.settings-dialog) .field label { font-size: 12.5px; margin-bottom: 8px; }
+.dialog:not(.settings-dialog) .set-group-title { font-size: 11.5px; margin-bottom: 10px; }
+.dl-std { width: min(460px, 94vw); }
+.dl-std .text-input { height: 52px; padding: 0 16px; }
+.dl-std .dl-std-field { margin-bottom: 16px; }
+.dl-std .dl-helper { font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 8px; }
+.dl-std .dl-x { margin-left: auto; }
+.dl-std .dl-back { margin-left: -8px; }
+.dl-std .dl-pass { position: relative; }
+.dl-std .dl-pass .text-input { padding-right: 52px; }
+.dl-std .dl-eye { position: absolute; right: 8px; top: 8px; width: 36px; height: 36px; border-radius: 8px; display: grid; place-items: center; color: var(--muted); cursor: pointer; }
+.dl-std .dl-eye:hover { background: var(--hover); color: var(--text); }
+.dl-std .dl-banner { margin: 4px 0 8px; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 24%, transparent); }
+.dl-std .dl-banner.is-ok { color: var(--text); background: var(--hover); border-color: var(--line); }
+.dl-std .dl-banner[hidden] { display: none; }
+.dl-std .btn-primary:disabled { opacity: 0.45; cursor: default; }
+.dl-btn-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: dlLoadingSpin 700ms linear infinite; display: inline-block; }
+.dl-opts { display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
+.dl-opt { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: transparent; text-align: left; cursor: pointer; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out); }
+.dl-opt:hover, .dl-opt:focus-visible { background: var(--hover); border-color: color-mix(in srgb, var(--text) 24%, var(--line)); outline: none; }
+.dl-opt-ic { width: 32px; height: 32px; border-radius: 8px; background: var(--surface2); display: grid; place-items: center; color: var(--text); flex: none; }
+.dl-opt-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dl-opt-title { font-size: 16px; font-weight: 600; line-height: 1.3; }
+.dl-opt-sub { font-size: 13px; color: var(--muted); line-height: 1.4; }
+.dl-drop { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; min-height: 148px; padding: 20px; border: 1.5px dashed var(--line); border-radius: 12px; cursor: pointer; text-align: center; margin-bottom: 16px; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out); }
+.dl-drop:hover, .dl-drop.is-over, .dl-drop:focus-visible { background: var(--hover); border-color: color-mix(in srgb, var(--text) 35%, var(--line)); outline: none; }
+.dl-drop-ic { color: var(--muted); display: grid; }
+.dl-drop-text { font-size: 14px; }
+.dl-drop-text u { text-underline-offset: 3px; }
+.dl-drop-file { font-size: 13px; color: var(--muted); min-height: 18px; }
+.dl-drop.has-file .dl-drop-file { color: var(--text); font-weight: 500; }
+.dl-std .dl-select { appearance: none; background-image: none; }
+.dialog-body.is-busy { opacity: 0.6; pointer-events: none; }
+.dl-done { display: flex; flex-direction: column; align-items: center; text-align: center; padding: 20px 0 16px; gap: 6px; }
+.dl-done-ic { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; background: color-mix(in srgb, #218838 16%, transparent); color: #218838; margin-bottom: 6px; }
+.dl-done-title { font-size: 18px; font-weight: 600; }
+.dl-done-sub { font-size: 13.5px; color: var(--muted); }
+/* Event dialog calendar field: one line, truncated, never grows the dialog. */
+.picker-btn.dl-cal-field { overflow: hidden; white-space: nowrap; }
+.picker-btn.dl-cal-field > span:first-child { flex: 1 1 auto; min-width: 0; overflow: hidden; }
+.dl-cal-field-main { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.dl-cal-field-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Anchored menus */
+.menu { border-radius: 12px; padding: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.28), 0 2px 8px rgba(0, 0, 0, 0.12); }
+.menu-item { min-height: 40px; padding: 0 10px; border-radius: 8px; font-size: 14px; }
+.menu-item .mi-label { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.menu-item .mi-right { flex: none; width: 16px; justify-content: center; }
+.dl-notif-panel { border-radius: 12px; }
+.popover { border-radius: 12px; }
+/* Moved from late-loading scripts / end-of-body so the first paint is final. */
+
+.cal-row{align-items:center;min-height:28px;height:30px;gap:7px}
+.cal-row .cal-name{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
+.cal-row .cal-menu-btn{flex:0 0 28px}
+.cal-row .cal-check{flex:0 0 auto}
+.dl-color-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:8px 0}
+.dl-color-grid .dl-color-item{height:25px;min-width:0;width:100%;border-radius:9px;position:relative;border:2px solid transparent;outline-offset:2px;cursor:pointer}
+.dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
+[data-theme="dark"] .dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.dl-color-grid .dl-color-item[aria-pressed=true]{outline:2px solid var(--text)}
+.dl-color-grid .dl-color-item:focus-visible{outline:2px solid var(--accent)}
+.dl-color-entry{position:relative;display:block;min-width:0}
+.dl-color-remove{position:absolute;right:-5px;top:-5px;z-index:2;width:18px;height:18px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);font-size:13px;line-height:16px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.dl-color-remove:hover{background:var(--hover);color:var(--danger)}
+.dl-color-remove:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+.dl-color-plus{border:1px solid var(--line)!important;background:var(--surface);color:var(--text);font-size:19px;font-weight:500}
+.dl-color-label{font-size:11px;color:var(--muted);margin:9px 0 2px;font-weight:600}
+.dl-color-square{height:172px;border-radius:12px;position:relative;cursor:crosshair;touch-action:none;background-image:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent);border:1px solid var(--line)}
+.dl-color-point{position:absolute;height:14px;width:14px;border:2px solid #fff;box-shadow:0 0 0 1px #333;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
+.dl-color-hue{display:block;width:100%;height:18px;margin:12px 0;appearance:none;border-radius:999px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer}
+.dl-color-hue::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
+.dl-color-hue::-moz-range-thumb{width:14px;height:14px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
+.dl-color-preview{height:28px;width:28px;flex:none;border-radius:8px;border:1px solid var(--line)}
+.dl-color-rgb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.dl-color-rgb .field{margin:0}
+.dl-color-rgb input{width:100%;min-width:0}
+.dl-color-error{font-size:12px;color:var(--danger);min-height:16px}
+.dl-inline-picker{display:grid;gap:10px}
+.dl-inline-picker .dl-color-square{height:150px}
+.dl-inline-picker .dl-color-hue{margin:2px 0}
+.dl-inline-values{display:grid;grid-template-columns:34px minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:8px;align-items:end}
+.dl-inline-values .dl-color-preview{width:34px;height:34px;border-radius:10px}
+.dl-inline-field{display:grid;gap:4px;min-width:0}
+.dl-inline-field>span{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.04em}
+.dl-inline-field .text-input{height:34px;padding:0 10px;min-width:0;width:100%;font-variant-numeric:tabular-nums;border-radius:10px}
+.dl-inline-picker .dl-color-error{min-height:0}
+.dl-color-empty{font-size:12px;color:var(--muted);padding:2px 0 4px}
+.dl-color-remove{opacity:.9}
+.dl-color-modal .dialog-body{display:grid;gap:10px}
+.dl-color-modal .dialog-body .field{margin:0}
+.month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
+.month-grid{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(var(--month-row-min,92px),1fr));scrollbar-gutter:stable;align-content:stretch}
+.month-week{min-height:var(--month-row-min,92px);height:100%;overflow:visible}
+.day-cell{min-height:0;overflow:hidden}
+.cell-events{min-height:0;overflow:visible}
+.agenda-cal-name{font-weight:600;color:var(--muted)}
+
+@media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
+@media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
+
+
+/* Daylight sidebar: stable single-line labels and compact adaptive rows. */
+.cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
+.cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
+.sidebar .cal-list,.sidebar .calendars-list{min-height:0}
+.sidebar .cal-check{flex-shrink:0}
+.sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
+.sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
+.dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
+@keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
+
+
+.dl-month-span-layer,.dl-week-span-layer{position:absolute;inset:0;z-index:3;pointer-events:none}
+.dl-continuous-bar{position:absolute;pointer-events:auto;height:23px;border-radius:6px;padding:2px 8px 2px 10px;font-size:11.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-align:left;transition:filter 160ms cubic-bezier(.23,1,.32,1),box-shadow 160ms cubic-bezier(.23,1,.32,1)}
+.dl-continuous-bar:hover,.dl-continuous-bar.dl-span-active,.dl-continuous-bar.dl-span-selected{filter:brightness(1.15);outline:1px solid currentColor;outline-offset:-1px}
+@media(prefers-reduced-motion:reduce){.dl-continuous-bar{transition:none}}
+
+.agenda-details{display:flex;flex-direction:column;min-width:0;gap:3px}.agenda-location{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}.agenda-location svg{flex:none}
+</style>
   </head>
   <body class="booting">
     <div id="authRoot"></div>
@@ -1718,7 +1804,7 @@
             document.getElementById("sidebar").innerHTML = '<div class="dl-shell-sidebar" aria-hidden="true"><div class="brand-row">' + mark +
               '<div class="rail-hide"><div class="brand-name">daylight.</div><div class="brand-sub">Personal calendar</div></div></div>' +
               '<div class="dl-shell-pill"></div><div class="dl-shell-gap"></div>' +
-              '<div class="dl-shell-row is-active"><i></i><b></b></div><div class="dl-shell-row"><i></i><b></b></div></div>';
+              '<div class="dl-shell-row is-active"><i></i><b></b></div><div class="dl-shell-row"><i></i><b></b></div><div class="dl-shell-grow"></div>' + (boot.identity ? boot.identity : "") + '</div>';
             var spin = document.createElement("div");
             spin.id = "dlWorkspaceLoading"; spin.setAttribute("role", "status"); spin.setAttribute("aria-label", "Loading calendar");
             spin.dataset.startedAt = String(performance.now());
@@ -1791,6 +1877,8 @@
         phone: '<rect x="6" y="2" width="12" height="20" rx="2.5"/><path d="M11 18h2"/>',
         tablet: '<rect x="4" y="2" width="16" height="20" rx="2.5"/><path d="M11 18h2"/>',
         sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7Z"/>',
+        upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
+        calendarSync: '<rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4"/><path d="M16 2v4"/><path d="M3 9h18"/><path d="M8 13.5h8"/><path d="m14 11.5 2 2-2 2"/><path d="M16 18H8"/><path d="m10 16-2 2 2 2"/>',
         link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
         copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
         refresh: '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/>'
@@ -2461,14 +2549,16 @@
         items.forEach(function (it) {
           if (it.sep) { m.appendChild(el('<div class="menu-sep"></div>')); return; }
           if (it.label2) { m.appendChild(el('<div class="menu-label">' + esc(it.label2) + "</div>")); return; }
-          if (it.html) { m.appendChild(el(it.html)); return; }
-          var b = el('<button class="menu-item' + (it.danger ? " danger" : "") + '">' + (it.right === "check" ? '<span class="mi-check-left">' + icon("check", 15) + "</span>" : "") + (it.icon ? icon(it.icon, 16) : "") + "<span>" + esc(it.label) + "</span>" + (it.right && it.right !== "check" ? '<span class="mi-right">' + icon(it.right, 15) + "</span>" : "") + "</button>");
+          var b = el('<button class="menu-item' + (it.danger ? " danger" : "") + '"' + (it.title ? ' title="' + esc(it.title) + '"' : "") + ">" + (it.right === "check" ? '<span class="mi-check-left">' + icon("check", 15) + "</span>" : "") + (it.dot ? '<span class="pop-dot" style="background:' + it.dot + ';margin:0;flex:none"></span>' : "") + (it.icon ? icon(it.icon, 16) : "") + '<span class="mi-label">' + esc(it.label) + "</span>" + (it.checkRight ? '<span class="mi-right">' + (it.selected ? icon("check", 15) : "") + "</span>" : "") + (it.right && it.right !== "check" ? '<span class="mi-right">' + icon(it.right, 15) + "</span>" : "") + "</button>");
           b.addEventListener("click", function () { closeMenu(); it.fn && it.fn(); });
           m.appendChild(b);
         });
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
-        var mw = 220, mh = m.offsetHeight;
+        var mw = opts.matchWidth ? Math.round(r.width) : 220;
+        if (opts.matchWidth) m.style.width = mw + "px";
+        if (opts.maxHeight) { m.style.maxHeight = opts.maxHeight + "px"; m.style.overflowY = "auto"; }
+        var mh = m.offsetHeight;
         var left = opts.align === "right" ? r.right - mw : r.left;
         left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
         var top = r.bottom + 6;
@@ -2743,8 +2833,8 @@
         if (true) {
           var subLabel = el('<div class="side-label rail-hide"><span>Subscriptions</span></div>');
           var subActions = el('<span class="side-label-actions"></span>');
-          var addSubscription = el('<button class="side-label-btn add" title="Subscribe by URL" aria-label="Subscribe by URL">' + icon("plus",16) + '</button>');
-          addSubscription.addEventListener("click",function(){window.daylightSubscribeDialog();});
+          var addSubscription = el('<button class="side-label-btn add" title="Add to Subscriptions" aria-label="Add to Subscriptions">' + icon("plus",16) + '</button>');
+          addSubscription.addEventListener("click",function(){closeDrawer();if(window.daylightAddToSubscriptions)window.daylightAddToSubscriptions();});
           subActions.appendChild(addSubscription);
           var collapseSub = el('<button class="side-label-btn" title="' + (state.subSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.subSectionOpen ? "Collapse Subscriptions" : "Expand Subscriptions") + '" aria-expanded="' + state.subSectionOpen + '">' + icon(state.subSectionOpen ? "chevU" : "chevD", 16) + "</button>");
           collapseSub.addEventListener("click", function () { state.subSectionOpen = !state.subSectionOpen; renderSidebar(); });
@@ -2774,18 +2864,12 @@
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
             '<span class="avatar">' + (state.avatarUrl ? '<img src="' + esc(state.avatarUrl) + '" alt="">' : esc(profileInitials)) + "</span>" +
-            '<span class="rail-hide" style="min-width:0"><span class="profile-name">' + esc(state.profileName) + '</span><br><span class="profile-email">' + esc(window.daylightCloud?.user?.email || "") + '</span></span>' +
+            '<span class="rail-hide" style="min-width:0"><span class="profile-name">' + esc(state.profileName) + '</span><br><span class="profile-email">' + esc((window.daylightCloud && window.daylightCloud.user && window.daylightCloud.user.email) || window.__dlIdentityEmail || "") + '</span></span>' +
             '<span class="icon-btn rail-hide" style="pointer-events:none">' + icon("dotsV", 17) + "</span>" +
           "</button></div>"
         );
-        pw.querySelector(".profile-row").addEventListener("click", function (e) {
-          openMenu(e.currentTarget, [
-            { html: '<div class="menu-identity"><span class="avatar">' + (state.avatarUrl ? '<img src="' + esc(state.avatarUrl) + '" alt="">' : esc(profileInitials)) + '</span><span class="menu-identity-text"><span class="menu-identity-name">' + esc(state.profileName) + '</span><span class="menu-identity-email">' + esc(window.daylightCloud && window.daylightCloud.user && window.daylightCloud.user.email || "") + "</span></span></div>" },
-            { sep: true },
-            { icon: "settings", label: "Settings", fn: function () { openSettings("profile"); } },
-            { icon: "logout", label: "Log out", fn: function () { logOut(); } }
-          ], { align: "right" });
-        });
+        /* The account block opens Settings on Profile directly (no popup). */
+        pw.querySelector(".profile-row").addEventListener("click", function () { closeDrawer(); openSettings("profile"); });
         sidebarEl.appendChild(pw);
       }
       /* The main view's visible range — sidebar counts are the number
@@ -4006,7 +4090,7 @@
         if (kids.length) kids[kids.length - 1].remove();
       }
       function openConfirm(opts) {
-        var bd = el('<div class="backdrop"><div class="dialog" style="width:400px">' +
+        var bd = el('<div class="backdrop"><div class="dialog dl-std dl-confirm">' +
           '<div class="dialog-head"><span class="dialog-title">' + esc(opts.title) + '</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body"><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">' + esc(opts.body) + "</p></div>" +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="' + (opts.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok>' + esc(opts.confirmLabel) + "</button></div></div></div>");
@@ -4035,7 +4119,7 @@
       }
       function openNewCalendar() {
         var chosen = "teal";
-        var bd = el('<div class="backdrop"><div class="dialog" style="width:400px">' +
+        var bd = el('<div class="backdrop"><div class="dialog dl-std">' +
           '<div class="dialog-head"><span class="dialog-title">New calendar</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body"><div class="field"><label for="ncName">Name</label><input class="text-input" id="ncName" placeholder="Calendar name"><div class="field-err" id="ncErr">Add a name</div></div>' +
           '<div class="field"><label>Color</label><div class="swatches" id="ncSwatches"></div></div></div>' +
@@ -4190,7 +4274,9 @@
           repEndBtn.querySelector("span").textContent=f.repeatEnd?fmtDateShort(f.repeatEnd):"Never";
           remBtn.querySelector("span").textContent = f.reminder != null ? fmtReminder(f.reminder) : "None";
           var cal = calOf(f.cal);
-          calBtn.querySelector("span").innerHTML = '<span style="display:inline-flex;align-items:center;gap:8px"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span>' + esc(cal.name) + "</span>";
+          calBtn.classList.add("dl-cal-field");
+          calBtn.title = cal.name;
+          calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
         titleIn.focus();
@@ -4238,10 +4324,10 @@
         calBtn.addEventListener("click", function () {
           var items = [{ label2: "Calendar" }];
           writableCalendars().forEach(function (c) {
-            items.push({ label: c.name, right: f.cal === c.id ? "check" : null, fn: function () { f.cal = c.id; markDirty(); syncUI(); } });
+            items.push({ label: c.name, title: c.name, dot: dotOf(c), checkRight: true, selected: f.cal === c.id, fn: function () { f.cal = c.id; markDirty(); syncUI(); } });
           });
           if (!writableCalendars().length) items.push({ label: "No writable calendars yet — create one from the sidebar", fn: function () {} });
-          openMenu(calBtn, items);
+          openMenu(calBtn, items, { matchWidth: true, maxHeight: 280 });
         });
         function tryClose() {
           closeDatePicker(); closeMenu();
