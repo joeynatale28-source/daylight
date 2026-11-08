@@ -109,9 +109,9 @@ try{
    await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent==='Work');row.querySelector('.cal-menu-btn').click()});
    await page.waitForSelector('.dl-calsettings [data-sync]');
    await sleep(450);
-   const popup=await page.evaluate(()=>({sections:[...document.querySelectorAll('.dl-calsettings .set-group-title')].map(n=>n.textContent.trim()),last:document.querySelector('[data-last]').textContent,hasDisconnect:!!document.querySelector('[data-disconnect]')}));
+   const popup=await page.evaluate(()=>({sections:[...document.querySelectorAll('.dl-calsettings .dl-cs2-row')].map(n=>n.textContent.replace(/\s+/g,' ').trim().replace(/ (Never|[A-Z][a-z]{2} \d.*)$/,'')),last:document.querySelector('[data-last]').textContent,hasDisconnect:!!document.querySelector('[data-disconnect]')}));
    await page.screenshot({path:path.join(out,'06-calendar-popup-'+theme+'.png')});
-   assert.deepEqual(popup.sections,['Name','Sync','Appearance'],'CalDAV popup sections: '+JSON.stringify(popup));
+   assert.deepEqual(popup.sections,['Sync now','Disconnect account'],'CalDAV popup sections: '+JSON.stringify(popup));
    assert.notEqual(popup.last,'Never');assert.ok(popup.hasDisconnect);
    await raw('PUT',`/${USER}/work/seed-3.ics`,ics('seed-3','Appeared after Sync now','20261124T150000Z','20261124T160000Z'),{'Content-Type':'text/calendar'});
    await page.click('[data-sync]');

@@ -561,8 +561,16 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.waitForSelector('.dl-calsettings',{timeout:3000});
  await page.waitForFunction(()=>!document.querySelector('.dl-calsettings [aria-label="Public link"]')?.disabled,{timeout:3000});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
- const popupSections=await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .set-group-title')].map(n=>n.textContent.trim()));
- assert.deepEqual(popupSections,['Name','Appearance','Share','Export'],'calendar popup sections');
+ const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-calsettings'),dot=d.querySelector('.dl-cs2-dot'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
+   return {width:d.offsetWidth,radius:getComputedStyle(d).borderRadius,dot:dot.offsetWidth,x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,
+    labels:[...d.querySelectorAll('.dl-cs2-label')].map(n=>n.textContent.trim()),rows:[...d.querySelectorAll('.dl-cs2-row')].map(n=>n.innerText.replace(/\s+/g,' ').trim()),
+    nameInput:!!d.querySelector('input.dl-cs2-name'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
+ assert.deepEqual([popup.width,popup.radius,popup.dot,popup.swatch],[336,'14px',12,26],'popup shell: 336px, radius 14, 12px dot, 26px swatches: '+JSON.stringify(popup));
+ assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');
+ assert.deepEqual(popup.labels,['Color','Your colors']);
+ assert.deepEqual(popup.rows,['Share calendar Off','Export .ics','Delete calendar'],'action rows: '+JSON.stringify(popup.rows));
+ assert.deepEqual(popup.fields,['HEX','R','G','B'],'one row of HEX + R + G + B');
+ assert.ok(popup.nameInput,'name stays editable in the header');
  const colorSync=await page.evaluate(()=>{
    const hex=document.querySelector('.dl-calsettings [data-hex]');
    hex.value='#FF7A00';hex.dispatchEvent(new Event('input',{bubbles:true}));
@@ -623,7 +631,8 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // US Holidays: Appearance + Export only.
  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()});
  await page.waitForSelector('.dl-calsettings',{timeout:3000});
- assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .set-group-title')].map(n=>n.textContent.trim())),['Appearance','Export'],'US Holidays popup has Appearance + Export only');
+ assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .dl-cs2-row')].map(n=>n.textContent.replace(/\s+/g,' ').trim())),['Export .ics'],'US Holidays popup: colors + Export only (no Share, no Delete)');
+ assert.equal(await page.$('.dl-calsettings input.dl-cs2-name'),null,'US Holidays cannot be renamed');
  await page.evaluate(()=>document.querySelector('.dl-calsettings .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-calsettings'),{timeout:2000});
  // Verify custom color is applied to a practice calendar, without touching the backend.

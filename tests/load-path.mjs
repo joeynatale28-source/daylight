@@ -14,6 +14,8 @@ const lum=c=>{const [r,g,b]=rgb(c);return (r*299+g*587+b*114)/1000};
 const GOOD=['dark','light'];
 const who=()=>{const row=document.querySelector('#sidebar .profile-row');if(!row)return null;const img=row.querySelector('.avatar img');const r=row.getBoundingClientRect();
  return {name:row.querySelector('.profile-name')?.textContent,email:row.querySelector('.profile-email')?.textContent,avatar:img?img.getAttribute('src'):null,initials:img?null:row.querySelector('.avatar')?.textContent,box:[Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]}};
+const names=()=>[...document.querySelectorAll('#sidebar .cal-name')].map(n=>n.textContent);
+const EXPECTED_NAMES=['Hungary Creek Recreation Association','swimRVA Rapids','Personal','School Events and Assignments','US Holidays'];
 const FINAL={name:'Calendar Demo',email:'demo@example.com',avatar:TINY_AVATAR};
 const rects=()=>{const q=s=>[...document.querySelectorAll(s)].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]});
  return {sidebar:q('#sidebar'),header:q('#headerBand'),cells:q('.month-grid .day-cell'),dow:q('.dow-cell'),chips:q('.day-cell .chip:not([hidden])')}};
@@ -56,6 +58,7 @@ for(const theme of GOOD){
   }
   // second visit: slow network, and the server now has one extra event
   const changed=busyPayload({avatar:TINY_AVATAR});
+  changed.calendars.find(c=>c.id==='c2').name='swimRVA Rapids (renamed)';
   changed.events.push({id:9999,cal:'c3',title:'Fresh from server',start:new Date(2026,10,3,13).toISOString(),end:new Date(2026,10,3,14).toISOString(),allDay:false,loc:'',desc:''});
   const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:2200,cdnDelayMs:1200,payload:changed});
   try{
@@ -67,6 +70,8 @@ for(const theme of GOOD){
    assert.ok(painted.snapshot&&painted.chips>20&&!painted.spinner,'warm load paints the calendar immediately, no spinner: '+JSON.stringify(painted));
    assert.equal(painted.scripts,false,'...before any app script ran');
    before=await app.page.evaluate(rects);
+   const namesFirst=await app.page.evaluate(names);
+   assert.deepEqual(namesFirst,EXPECTED_NAMES,'calendar names are final in the very first frame (before any script ran): '+JSON.stringify(namesFirst));
    const idFirst=await app.page.evaluate(who);
    assert.deepEqual([idFirst.name,idFirst.email,idFirst.avatar],[FINAL.name,FINAL.email,FINAL.avatar],'account block is final in the very first frame: '+JSON.stringify(idFirst));
    await app.page.screenshot({path:path.join(out,'load-identity-first-frame-'+theme+'.png'),clip:{x:0,y:app.page.viewport().height-110,width:300,height:110}});
@@ -81,6 +86,8 @@ for(const theme of GOOD){
    await app.page.screenshot({path:path.join(out,'load-warm-after-refresh-'+theme+'.png')});
    for(const k of ['sidebar','header','cells','dow'])assert.deepEqual(after[k],before[k],'refresh must not move '+k);
    assert.deepEqual(await app.page.evaluate(who),idFirst,'identity block unchanged (content and position) after the profile refresh');
+   const namesAfter=await app.page.evaluate(names);
+   assert.deepEqual(namesAfter,EXPECTED_NAMES.map(n=>n==='swimRVA Rapids'?'swimRVA Rapids (renamed)':n),'a name changed on the server updates silently in place: '+JSON.stringify(namesAfter));
    // existing chips stay exactly where they were (the new event only adds a chip in its own cell)
    const cellOf=r=>r;
    const moved=before.chips.filter(c=>!after.chips.some(a=>a[0]===c[0]&&a[1]===c[1]&&a[2]===c[2]&&a[3]===c[3]));
@@ -106,6 +113,7 @@ for(const theme of GOOD){
    hold:document.body.classList.contains('dl-canvas-holding'),chips:document.querySelectorAll('.month-grid .day-cell .chip').length,fetching:!window.daylightCloud.ready}));
   await app.page.screenshot({path:path.join(out,'load-cache-only-'+theme+'.png')});
   assert.deepEqual([state.snapshot,state.spinner,state.hold,state.chips>20,state.fetching],[false,false,false,true,true],'cache render shows the calendar before the network answers: '+JSON.stringify(state));
+  assert.deepEqual(await app.page.evaluate(names),EXPECTED_NAMES,'cache render paints the final calendar names');
   const idEarly=await app.page.evaluate(who);
   assert.deepEqual([idEarly.name,idEarly.email,idEarly.avatar],[FINAL.name,FINAL.email,FINAL.avatar],'cache render paints the final identity: '+JSON.stringify(idEarly));
   await app.ready();

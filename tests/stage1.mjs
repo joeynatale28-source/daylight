@@ -23,6 +23,33 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
  const {page}=app;
  try{
   await app.load();
+  // ---- Item 5: sidebar: no Support section, quiet copyright block, Settings still reachable
+  const side=await page.evaluate(()=>{const sb=document.getElementById('sidebar'),legal=sb.querySelector('.dl-sidebar-legal'),profile=sb.querySelector('.profile-wrap');const cs=legal&&getComputedStyle(legal);
+   return {labels:[...sb.querySelectorAll('.side-label')].map(n=>n.textContent.trim()),settingsRow:!!sb.querySelector('.side-row[title="Settings"]'),help:!!sb.querySelector('.side-row[title="Help center"]'),
+    legal:legal&&legal.innerText.split(String.fromCharCode(10)).map(t=>t.trim()),font:cs&&cs.fontSize,weight:cs&&cs.fontWeight,border:cs&&cs.borderTopWidth,above:legal&&profile&&legal.getBoundingClientRect().bottom<=profile.getBoundingClientRect().top+1,
+    sbText:sb.innerText.includes('Support')}});
+  assert.deepEqual(side.labels,['My calendars','Subscriptions'],'sidebar sections: '+JSON.stringify(side));
+  assert.ok(!side.settingsRow&&!side.help&&!side.sbText,'Support section (and its Settings entry) is gone');
+  assert.deepEqual(side.legal,['© 2026 daylight. All rights reserved.','Version 1.0']);
+  assert.deepEqual([side.font,side.weight,side.border,side.above],['11.5px','400','1px',true],'copyright block: '+JSON.stringify(side));
+  // ---- Item 2: Profile pane (mockup)
+  await page.evaluate(()=>openSettings('profile'));
+  await page.waitForSelector('.dl-session-signout');
+  await sleep(500);
+  const prof=await page.evaluate(()=>({rail:[...document.querySelectorAll('.settings-rail .sr-item')].map(b=>b.textContent.trim()),active:document.querySelector('.settings-rail .sr-item.active').textContent.trim(),
+   avatar:!!document.querySelector('.dl-profile-avatar'),name:document.querySelector('#profileFullName').value,lock:!!document.querySelector('.dl-idf-lock svg'),emailText:document.querySelector('.dl-idf-lock [data-email]').textContent,emailEditable:!!document.querySelector('.dl-idf-lock input'),
+   sec:{tile:!!document.querySelector('.dl-sec-tile svg'),button:document.querySelector('.dl-sec-row [data-reset-password]').textContent},
+   badge:document.querySelector('.dl-session-badge')?.textContent,others:!document.querySelector('[data-signout-others]').hidden}));
+  assert.deepEqual(prof.rail,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
+  assert.equal(prof.active,'Profile');
+  assert.ok(prof.avatar&&prof.lock&&!prof.emailEditable&&prof.emailText==='demo@example.com'&&prof.name==='Calendar Demo','identity card: '+JSON.stringify(prof));
+  assert.deepEqual([prof.sec.tile,prof.sec.button,prof.badge,prof.others],[true,'Change','This device',true],'security + sessions: '+JSON.stringify(prof));
+  await page.click('[data-signout-others]');
+  await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');
+  await page.click('#overlayRoot > .backdrop:last-child [data-ok]');
+  await page.waitForFunction(()=>document.querySelectorAll('.dl-session-row').length===1&&document.querySelector('[data-signout-others]').hidden,{timeout:3000});
+  await page.evaluate(()=>{window.__revoked=false;document.querySelector('.settings-dialog>.settings-close').click()});
+  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
   // ---- Item 1: chooser
   await page.click('button[aria-label="Add to Subscriptions"]');
   await page.waitForSelector('.dl-std .dl-opt');
@@ -35,8 +62,13 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   assert.deepEqual(chooser.rows.map(r=>[r.t,r.s]),[['CalDAV server','iCloud, Nextcloud, Fastmail and other CalDAV servers · syncs both ways'],['iCal link','Subscribe to a calendar by URL'],['ICS file','Upload an .ics file from your device']]);
   assert.ok(chooser.rows.every(r=>r.h>=56&&r.icon),'option rows are >=56px with a drawn icon: '+JSON.stringify(chooser.rows));
   assert.ok(chooser.x[0]>=36&&chooser.x[1]>=36,'close target >=36px');
-  assert.equal(chooser.radius,'12px');
-  assert.ok(chooser.width>=440&&chooser.width<=480,'dialog width '+chooser.width);
+  const rowStyle=await page.evaluate(()=>{const r=document.querySelector('.dl-opt'),rows=[...document.querySelectorAll('.dl-opt')],cs=getComputedStyle(r),tile=r.querySelector('.dl-opt-ic');
+   return {pad:cs.paddingLeft,radius:cs.borderRadius,border:cs.borderTopWidth,tile:[tile.offsetWidth,tile.offsetHeight],svgs:r.querySelectorAll('svg').length,
+    gap:Math.round(rows[1].getBoundingClientRect().top-rows[0].getBoundingClientRect().bottom),title:getComputedStyle(r.querySelector('.dl-opt-title')).fontSize,dialogPad:getComputedStyle(document.querySelector('.dl-std .dialog-body')).paddingLeft}});
+  assert.deepEqual([rowStyle.pad,rowStyle.radius,rowStyle.border,rowStyle.tile.join('x'),rowStyle.svgs,rowStyle.title,rowStyle.dialogPad],['14px','14px','1px','40x40',1,'15px','24px'],'chooser rows: '+JSON.stringify(rowStyle));
+  assert.ok(rowStyle.gap>=10&&rowStyle.gap<=12,'rows are separated by a 10-12px gap, not hairlines: '+rowStyle.gap);
+  assert.equal(chooser.radius,'16px');
+  assert.equal(chooser.width,440,'chooser is 440px wide');
   await page.click('.dl-std .dl-x');
   await page.waitForFunction(()=>!document.querySelector('.dl-std'),{timeout:2000});
   // My calendars + is unchanged: it opens the new-calendar form directly
@@ -56,9 +88,14 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
    connectDisabled:document.querySelector('[data-connect]').disabled,fieldH:document.querySelector('#dlCdServer').offsetHeight,back:!!document.querySelector('.dl-back')}));
   await page.screenshot({path:path.join(out,'stage1-caldav-'+theme+'.png')});
   assert.equal(form.title,'Connect a CalDAV server');
+  const shell=await page.evaluate(()=>{const d=document.querySelector('.dl-std'),f=document.querySelector('#dlCdServer'),c=document.querySelector('[data-connect]'),l=document.querySelector('.dl-std .field label');
+   return {width:d.offsetWidth,radius:getComputedStyle(d).borderRadius,head:getComputedStyle(document.querySelector('.dl-std .dialog-title')).fontSize,fieldRadius:getComputedStyle(f).borderRadius,label:getComputedStyle(l).fontSize,labelWeight:getComputedStyle(l).fontWeight,
+    connect:[c.offsetHeight,getComputedStyle(c).borderRadius],bodyPad:getComputedStyle(document.querySelector('.dl-std .dialog-body')).paddingLeft,footJustify:getComputedStyle(document.querySelector('.dl-std .dialog-foot')).justifyContent}});
+  assert.deepEqual([shell.width,shell.radius,shell.head,shell.fieldRadius,shell.label,shell.connect.join('/'),shell.bodyPad,shell.footJustify],[480,'16px','18px','10px','12px','36/8px','24px','flex-end'],'connect form shell: '+JSON.stringify(shell));
+  assert.ok(Number(shell.labelWeight)>=600);
   assert.deepEqual(form.labels,['Server address','Username','Password']);
   assert.deepEqual(form.helpers,['The server’s address — or a link to one of its calendars. Discovery finds the rest.','For iCloud, use an app-specific password.']);
-  assert.ok(form.connectDisabled&&form.fieldH>=52&&form.back);
+  assert.ok(form.connectDisabled&&form.fieldH>=44&&form.back);
   await page.type('#dlCdServer','not a url');await page.type('#dlCdUser','joey');await page.type('#dlCdPass','s3cret-pass');
   assert.equal(await page.$eval('[data-connect]',b=>b.disabled),true,'invalid address keeps Connect disabled');
   await page.$eval('#dlCdServer',i=>{i.value='';});
@@ -88,6 +125,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.waitForSelector('#dlSubUrl');
   await sleep(350);
   await page.screenshot({path:path.join(out,'stage1-ical-'+theme+'.png')});
+  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,getComputedStyle(document.querySelector('#dlSubUrl')).borderRadius,document.querySelector('[data-sub]').offsetHeight]}),[480,'16px','10px',36],'iCal form uses the same shell');
   assert.equal(await page.$eval('[data-sub]',b=>b.disabled),true);
   await page.type('#dlSubUrl','webcal://example.com/TEST-feed.ics');await page.type('#dlSubName','TEST feed');
   await page.evaluate(()=>{window.__calls=[]});
@@ -104,6 +142,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.waitForSelector('[data-drop]');
   await sleep(350);
   await page.screenshot({path:path.join(out,'stage1-ics-'+theme+'.png')});
+  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,document.querySelector('[data-import]').offsetHeight]}),[480,'16px',36],'ICS form uses the same shell');
   assert.equal(await page.$eval('[data-import]',b=>b.disabled),true);
   assert.match(await page.$eval('[data-drop]',n=>n.textContent),/Drop an \.ics file here, or browse/);
   await (await page.$('[data-picker]')).uploadFile(ics);
