@@ -17,7 +17,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.evaluate(()=>{const ev=state.events.find(e=>e.title==='Practice 12');openPopover({ev,start:ev.start,end:ev.end},document.querySelector('.day-cell[data-date="2026-12-12"], .day-cell .chip'))});
   await page.waitForSelector('.popover');await shot('event-popover');await clear();
   await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent==='Personal');row.querySelector('.cal-menu-btn').click()});
-  await page.waitForSelector('.dl-calsettings, .menu');await shot('calendar-menu');await clear();
+  await page.waitForSelector('.dl-manage, .menu');await shot('calendar-menu');await clear();
   await page.evaluate(()=>openSettings('calendar'));await page.waitForSelector('.settings-dialog');
   await page.evaluate(()=>{const i=document.querySelector('#csWeekends');i.checked=!i.checked;i.dispatchEvent(new Event('change',{bubbles:true}))});await sleep(300);
   await page.evaluate(()=>document.querySelector('.settings-savebar [data-discard]').click());await sleep(300);await clear();

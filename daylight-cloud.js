@@ -92,6 +92,33 @@
       if (result.error || !result.data || !result.data.session) { authBlockedUntil = Date.now() + 60000; throw new Error('Your session expired. Sign in again.'); }
       return result.data.session;
     },
+    /* Someone else may have changed this account's calendar (a person it is shared with who can edit). If the server copy is
+       newer and nothing here is unsaved, quietly take it. Skipped while any dialog is open or a save is in flight. */
+    refreshIfBehind: async function () {
+      if (!user || loading || recovery || conflict || saving || !hasRow || document.hidden) return false;
+      if (window.settingsState && window.settingsState.transactionActive) return false;
+      var overlays = document.getElementById('overlayRoot');
+      if (overlays && overlays.children.length) return false;
+      try { if (JSON.stringify(workspace()) !== lastSaved) return false; } catch (e) { return false; }
+      var who = user.id, seq0 = sessionSequence;
+      try {
+        var head = await client.from('workspace_snapshots').select('revision').eq('user_id', who).maybeSingle();
+        if (head.error || !head.data || Number(head.data.revision) <= revision) return false;
+        var full = await client.from('workspace_snapshots').select('payload,revision').eq('user_id', who).maybeSingle();
+        if (full.error || !full.data || seq0 !== sessionSequence || !user || user.id !== who) return false;
+        if (saving || JSON.stringify(workspace()) !== lastSaved) return false;
+        var remoteCals = state.calendars.filter(function (c) { return c.remoteSubscriptionId || c.remoteShareId; });
+        var remoteEvents = state.events.filter(function (e) { return e.feedSubscriptionId || e.feedShareId; });
+        readWorkspace(full.data.payload);
+        state.calendars = state.calendars.concat(remoteCals);
+        state.events = state.events.concat(remoteEvents);
+        revision = Number(full.data.revision) || revision;
+        lastSaved = JSON.stringify(workspace());
+        cacheWorkspace(who, full.data.payload, revision);
+        originalRenderAll(false);
+        return true;
+      } catch (e) { return false; }
+    },
     /* A person pressing "Try again" is not background hammering: let that one attempt through. */
     resetAuthBlock: function () { authBlockedUntil = 0; },
     noteAuthFailure: function (status) { if (status === 401 || status === 403) authBlockedUntil = Date.now() + 60000; },
@@ -155,6 +182,7 @@
     state.firstName = 'Account';
     state.avatarUrl = '';
     state.birthday = '';
+    state.shareColors = {};
     state.customColors = [];
     state.view = 'month';
     state.section = 'calendar';
@@ -309,6 +337,7 @@
     if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
     if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
     state.avatarUrl = [metadata.avatar_url, settings.avatarUrl].filter(function (u) { return ownsAvatar(u); })[0] || '';
+    state.shareColors = settings.shareColors && typeof settings.shareColors === 'object' && !Array.isArray(settings.shareColors) ? settings.shareColors : {};
     state.birthday = typeof settings.birthday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(settings.birthday) ? settings.birthday : '';
     state.customColors = Array.isArray(settings.customColors)
       ? settings.customColors.filter(function (color) { return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color); }).slice(0,30)
@@ -326,13 +355,14 @@
   function workspace() {
     return {
       version: 2,
-      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId; }).map(function (c) {
+      /* Subscribed and shared-with-me calendars (and their events) are never part of this account's own workspace. */
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId && !c.remoteShareId; }).map(function (c) {
         var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
         if (c.publicLink) out.publicLink = String(c.publicLink);
         return out;
       }),
-      events: state.events.filter(function (e) { return !e.feedSubscriptionId; }).map(function (e) {
+      events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedShareId && String(e.cal).indexOf('share:') !== 0; }).map(function (e) {
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
@@ -351,7 +381,7 @@
         themeMode:state.themeMode, firstName:state.firstName,
         profileName:state.profileName, sidebarRail:state.sidebarRail,
         reduceMotion:state.reduceMotion, remind15:state.remind15,
-        dailySummary:state.dailySummary, avatarUrl:state.avatarUrl || '', birthday:state.birthday || '', identityOwner:user ? user.id : null,
+        dailySummary:state.dailySummary, avatarUrl:state.avatarUrl || '', birthday:state.birthday || '', shareColors:state.shareColors || {}, identityOwner:user ? user.id : null,
         customColors:Array.isArray(state.customColors)?state.customColors.slice(0,30):[]
       }),
       /* No navigation state is persisted (see the restore note):

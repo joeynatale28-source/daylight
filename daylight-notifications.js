@@ -5,7 +5,7 @@
    Sending, banners and removing for everyone live in the Admin dashboard (daylight-admin.js), not here. */
 (function () {
   "use strict";
-  var items = [], unread = 0, owner = false, loaded = false, buttons = new Set(), pollTimer = null, panelRefresh = null, seq = 0;
+  var items = [], invites = [], unread = 0, owner = false, loaded = false, buttons = new Set(), pollTimer = null, panelRefresh = null, seq = 0;
   var ownerWaiters = [], ownerKnown = false;
 
   var css = document.createElement("style");
@@ -36,7 +36,19 @@
     ".dl-notif-item:hover .dl-notif-clear,.dl-notif-clear:focus-visible{opacity:1}",
     "@media (hover:none){.dl-notif-clear{opacity:1}}",
     ".dl-notif-clear:hover{background:var(--hover);color:var(--text)}",
-    ".dl-notif-item.is-leaving{overflow:hidden}"
+    ".dl-notif-item.is-leaving{overflow:hidden}",
+    ".dl-notif-person{flex:none}",
+    ".dl-inv-body{display:block}",
+    ".dl-inv-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin:0 6px 0 1px;vertical-align:baseline;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}",
+    ".dl-inv-cal{color:var(--text);font-weight:600}",
+    ".dl-inv-permline{margin-top:2px;font-size:12px;color:var(--faint)}",
+    ".dl-inv-slot{margin-top:10px}",
+    ".dl-inv-actions{display:flex;gap:8px}",
+    ".dl-inv-actions .btn-primary,.dl-inv-actions .btn-ghost{height:32px;padding:0 16px;font-size:13px;margin:0}",
+    ".dl-inv-state{display:inline-flex;align-items:center;gap:6px;font-size:12.5px;font-weight:600;color:var(--muted);animation:dlInvIn 200ms var(--ease-out)}",
+    ".dl-inv-error{margin-top:8px;font-size:12px;color:var(--danger)}",
+    "@keyframes dlInvIn{from{opacity:0;transform:translateY(2px)}to{opacity:1;transform:none}}"
+
   ].join("\n");
   document.head.appendChild(css);
 
@@ -71,6 +83,8 @@
       b.setAttribute("aria-label", unread ? "Notifications, " + unread + " unread" : "Notifications");
     });
   }
+  /* A calendar invite counts toward the badge until it has been added or declined. */
+  function pendingInvites() { return invites.filter(function (i) { return i.status === "pending"; }).length; }
   function settleOwner() {
     ownerKnown = true;
     ownerWaiters.splice(0).forEach(function (fn) { fn(owner); });
@@ -80,18 +94,21 @@
     var list = [], isOwner = false;
     try { list = (await rpc("daylight_list_broadcasts")) || []; } catch (e) { list = []; }
     try { isOwner = (await rpc("daylight_is_owner")) === true; } catch (e) { isOwner = false; }   /* only an exact true shows owner-only UI */
+    var inv = [];
+    try { inv = (await rpc("daylight_list_my_invites")) || []; } catch (e) { inv = []; }
     if (mine !== seq) return;
+    invites = Array.isArray(inv) ? inv : [];
     items = Array.isArray(list) ? list : [];
     owner = isOwner;
     loaded = true;
     /* ONE source for both the badge and the panel: the same list. */
-    unread = items.filter(function (x) { return !x.read; }).length;
+    unread = items.filter(function (x) { return !x.read; }).length + pendingInvites();
     paint();
     settleOwner();
     if (panelRefresh) panelRefresh();
   }
   function reset() {
-    seq++; items = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
+    seq++; items = []; invites = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
     clearInterval(pollTimer); pollTimer = null; panelRefresh = null;
     paint();
   }
@@ -125,10 +142,103 @@
       '<img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt="" width="20" height="20">';
     return span;
   }
+  function personAvatar(inv) {
+    if (window.daylightSharing && window.daylightSharing.avatar) {
+      var a = window.daylightSharing.avatar({ name: inv.owner_name, avatar: inv.owner_avatar }, 36);
+      a.classList.add("dl-notif-person");
+      return a;
+    }
+    var d = document.createElement("span"); d.className = "dl-notif-avatar"; d.textContent = (inv.owner_name || "?").charAt(0).toUpperCase(); return d;
+  }
+  function colorHex(key) { return /^#[0-9a-f]{6}$/i.test(key || "") ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#5B8DEF"); }
+  function permissionText(p) { return p === "edit" ? "Can edit" : "View only"; }
+
+  /* One calendar invite: the sender's picture, their name, "<Name> shared <dot> <Calendar> with you", the permission, the
+     time, and Add / Decline. Answering updates this same card in place; while pending it cannot be cleared. */
+  function inviteRow(inv, highlight, afterChange) {
+    var row = document.createElement("div");
+    row.className = "dl-notif-item dl-notif-invite" + (highlight ? " is-unread" : "");
+    row.setAttribute("data-invite-id", inv.id);
+    row.appendChild(personAvatar(inv));
+    var main = document.createElement("div"); main.className = "dl-notif-main";
+    var top = document.createElement("div"); top.className = "dl-notif-top";
+    var from = document.createElement("span"); from.className = "dl-notif-from dl-inv-from"; from.textContent = inv.owner_name || "Someone";
+    var time = document.createElement("span"); time.className = "dl-notif-time"; time.textContent = when(inv.created_at);
+    top.appendChild(from); top.appendChild(time);
+    var body = document.createElement("div"); body.className = "dl-notif-msg dl-inv-body";
+    body.appendChild(document.createTextNode((inv.owner_name || "Someone") + " shared "));
+    var dot = document.createElement("span"); dot.className = "dl-inv-dot"; dot.style.background = colorHex(inv.calendar_color);
+    var cal = document.createElement("b"); cal.className = "dl-inv-cal"; cal.textContent = inv.calendar_name || "a calendar";
+    body.appendChild(dot); body.appendChild(cal); body.appendChild(document.createTextNode(" with you"));
+    var perm = document.createElement("div"); perm.className = "dl-inv-permline"; perm.textContent = permissionText(inv.permission);
+    var slot = document.createElement("div"); slot.className = "dl-inv-slot";
+    main.appendChild(top); main.appendChild(body); main.appendChild(perm); main.appendChild(slot);
+    row.appendChild(main);
+    var clearBtn = null;
+    function addClear() {
+      if (clearBtn) return;
+      clearBtn = document.createElement("button");
+      clearBtn.type = "button"; clearBtn.className = "dl-notif-clear"; clearBtn.title = "Clear";
+      clearBtn.setAttribute("aria-label", "Clear notification: " + (inv.calendar_name || "calendar invite"));
+      clearBtn.innerHTML = typeof icon === "function" ? icon("x", 14) : "×";
+      clearBtn.addEventListener("click", async function (e) {
+        e.stopPropagation(); clearBtn.disabled = true;
+        try {
+          await rpc("daylight_clear_calendar_invite", { p_id: inv.id });
+          invites = invites.filter(function (x) { return x.id !== inv.id; });
+          await collapse(row);
+          afterChange(true);
+        } catch (err) { clearBtn.disabled = false; }
+      });
+      row.appendChild(clearBtn);
+    }
+    function showState(text, icn) {
+      slot.innerHTML = "";
+      var st = document.createElement("div"); st.className = "dl-inv-state"; st.setAttribute("role", "status");
+      st.innerHTML = (icn && typeof icon === "function" ? icon(icn, 14) : "") + "<span></span>";
+      st.querySelector("span").textContent = text;
+      slot.appendChild(st);
+      row.classList.remove("is-unread");
+      addClear();
+    }
+    if (inv.status === "accepted") showState("Added", "check");
+    else if (inv.status === "declined") showState("Declined", null);
+    else {
+      var actions = document.createElement("div"); actions.className = "dl-inv-actions";
+      var add = document.createElement("button"); add.type = "button"; add.className = "btn-primary dl-btn-sm"; add.textContent = "Add"; add.setAttribute("data-invite-add", "");
+      var dec = document.createElement("button"); dec.type = "button"; dec.className = "btn-ghost dl-btn-sm"; dec.textContent = "Decline"; dec.setAttribute("data-invite-decline", "");
+      actions.appendChild(add); actions.appendChild(dec); slot.appendChild(actions);
+      var busy = false;
+      var respond = async function (accept) {
+        if (busy) return;
+        busy = true; add.disabled = true; dec.disabled = true;
+        try {
+          await rpc("daylight_respond_calendar_share", { p_id: inv.id, p_accept: accept });
+          inv.status = accept ? "accepted" : "declined";
+          unread = items.filter(function (x) { return !x.read; }).length + pendingInvites();
+          paint();
+          slot.style.minHeight = slot.offsetHeight + "px";
+          showState(accept ? "Added" : "Declined", accept ? "check" : null);
+          if (accept && window.daylightSharing) window.daylightSharing.load();
+        } catch (err) {
+          busy = false; add.disabled = false; dec.disabled = false;
+          slot.insertAdjacentHTML("beforeend", '<div class="dl-inv-error" role="alert">This invite is no longer available.</div>');
+          setTimeout(function () { refresh(); }, 600);
+        }
+      };
+      add.addEventListener("click", function () { respond(true); });
+      dec.addEventListener("click", function () { respond(false); });
+    }
+    return row;
+  }
+
   function mount(panel) {
     var wasUnread = {};
     var empty = panel.querySelector(".dl-notif-empty");
-    function markSeen() { items.forEach(function (n) { if (!n.read) wasUnread[n.id] = true; }); }
+    function markSeen() {
+      items.forEach(function (n) { if (!n.read) wasUnread[n.id] = true; });
+      invites.forEach(function (i) { if (i.status === "pending") wasUnread["inv:" + i.id] = true; });
+    }
     function render() {
       var old = panel.querySelector(".dl-notif-list"), spin = panel.querySelector(".dl-notif-loading");
       if (old) old.remove();
@@ -138,11 +248,19 @@
         var l = document.createElement("div"); l.className = "dl-notif-loading"; l.textContent = "Loading…"; panel.appendChild(l);
         return;
       }
-      if (empty) empty.hidden = items.length > 0;
-      if (!items.length) return;
+      var entries = items.map(function (n) { return { kind: "broadcast", at: n.created_at, n: n }; })
+        .concat(invites.map(function (i) { return { kind: "invite", at: i.created_at, n: i }; }));
+      entries.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
+      if (empty) empty.hidden = entries.length > 0;
+      if (!entries.length) return;
       var list = document.createElement("div");
       list.className = "dl-notif-list";
-      items.forEach(function (n) {
+      entries.forEach(function (entry) {
+        if (entry.kind === "invite") {
+          list.appendChild(inviteRow(entry.n, !!wasUnread["inv:" + entry.n.id], function (removed) { if (removed && !panel.querySelector(".dl-notif-item")) render(); }));
+          return;
+        }
+        var n = entry.n;
         var row = document.createElement("div");
         row.className = "dl-notif-item" + (wasUnread[n.id] ? " is-unread" : "");
         row.setAttribute("data-id", n.id);
@@ -166,7 +284,7 @@
           try {
             await rpc("daylight_clear_broadcast", { p_id: n.id });
             items = items.filter(function (x) { return x.id !== n.id; });
-            unread = items.filter(function (x) { return !x.read; }).length;
+            unread = items.filter(function (x) { return !x.read; }).length + pendingInvites();
             paint();
             await collapse(row);
             if (!panel.querySelector(".dl-notif-item")) render();
@@ -178,9 +296,10 @@
       panel.appendChild(list);
     }
     markSeen(); render();
-    if (loaded && unread > 0) {
+    var hasUnreadBroadcast = function () { return items.some(function (n) { return !n.read; }); };
+    if (loaded && hasUnreadBroadcast()) {
       items.forEach(function (n) { n.read = true; });
-      unread = 0; paint();
+      unread = pendingInvites(); paint();
       rpc("daylight_mark_broadcasts_read").catch(function () {});
     }
     panelRefresh = function () {
@@ -188,7 +307,11 @@
       markSeen(); render();
     };
     refresh().then(function () {
-      if (panel.isConnected && unread > 0) { rpc("daylight_mark_broadcasts_read").catch(function () {}); items.forEach(function (n) { n.read = true; }); unread = 0; paint(); }
+      if (panel.isConnected && hasUnreadBroadcast()) {
+        rpc("daylight_mark_broadcasts_read").catch(function () {});
+        items.forEach(function (n) { n.read = true; });
+        unread = pendingInvites(); paint();
+      }
     });
   }
 

@@ -799,6 +799,13 @@
         border-radius: var(--r-sm); font-size: 13.5px; text-align: left; transition: background 120ms var(--ease-out);
       }
       .menu-item:hover, .menu-item:focus-visible { background: var(--hover); outline: none; }
+      .menu-item .mi-text { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; min-width: 0; padding: 4px 0; }
+      .menu-item .mi-sub { font-size: 12px; color: var(--muted); line-height: 1.35; font-weight: 400; }
+      .menu-item:has(.mi-sub) { align-items: flex-start; }
+      .cal-name-stack { display: flex; flex-direction: column; min-width: 0; flex: 1; line-height: 1.25; }
+      .cal-name-stack .cal-name { flex: none; }
+      .cal-owner { font-size: 11px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+      #sidebar .cal-row.has-owner { height: auto !important; min-height: 40px; padding-top: 2px; padding-bottom: 2px; }
       .dl-account-menu { padding: 6px; transform-origin: bottom center; }
       .dl-account-menu .menu-item { min-height: 40px; padding: 0 12px; gap: 11px; font-size: 14px; }
       .menu-item .ic { color: var(--muted); }
@@ -1913,6 +1920,7 @@
         trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
         dotsV: '<circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
         dotsH: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+        users: '<path d="M16 19v-1a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v1"/><circle cx="9.5" cy="8" r="3.5"/><path d="M17 4.6a3.5 3.5 0 0 1 0 6.8M21 19v-1a4 4 0 0 0-3-3.9"/>',
         shield: '<path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6l-7-3Z"/><path d="m9.5 12 1.8 1.8 3.4-3.6"/>',
         keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01"/><path d="M10 10h.01"/><path d="M14 10h.01"/><path d="M18 10h.01"/><path d="M6 14h.01"/><path d="M18 14h.01"/><path d="M9 14h6"/>',
         briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
@@ -2035,6 +2043,8 @@
         sidebarRail: false,
         calSectionOpen: true,
         subSectionOpen: true,
+        sharedSectionOpen: true,
+        shareColors: {},
         weekStart: SETTINGS_DEFAULTS.weekStart,
         timeFormat: SETTINGS_DEFAULTS.timeFormat,
         dateFormat: SETTINGS_DEFAULTS.dateFormat,
@@ -2302,7 +2312,8 @@
         return 1 + Math.round(((x - first) / DAY_MS) / 7);
       }
       function calOf(id) { for (var i = 0; i < state.calendars.length; i++) if (state.calendars[i].id === id) return state.calendars[i]; return state.calendars[0]; }
-      function isSubscribed(cal) { return !!(cal && (cal.subscribed || cal.shared)); }
+      /* A calendar is read-only here when it is a subscription, or when it was shared with you as "View only". */
+      function isSubscribed(cal) { return !!(cal && (cal.subscribed || cal.shared || (cal.sharedFrom && cal.sharedFrom.permission !== "edit"))); }
       function isReadOnlyEvent(ev) { return isSubscribed(calOf(ev.cal)); }
       function writableCalendars() { return state.calendars.filter(function (c) { return !isSubscribed(c); }); }
       function defaultCalId() {
@@ -2619,7 +2630,7 @@
         items.forEach(function (it) {
           if (it.sep) { m.appendChild(el('<div class="menu-sep"></div>')); return; }
           if (it.label2) { m.appendChild(el('<div class="menu-label">' + esc(it.label2) + "</div>")); return; }
-          var b = el('<button class="menu-item' + (it.danger ? " danger" : "") + '"' + (it.title ? ' title="' + esc(it.title) + '"' : "") + ">" + (it.right === "check" ? '<span class="mi-check-left">' + icon("check", 15) + "</span>" : "") + (it.dot ? '<span class="pop-dot" style="background:' + it.dot + ';margin:0;flex:none"></span>' : "") + (it.icon ? icon(it.icon, 16) : "") + '<span class="mi-label">' + esc(it.label) + "</span>" + (it.checkRight ? '<span class="mi-right">' + (it.selected ? icon("check", 15) : "") + "</span>" : "") + (it.right && it.right !== "check" ? '<span class="mi-right">' + icon(it.right, 15) + "</span>" : "") + "</button>");
+          var b = el('<button class="menu-item' + (it.danger ? " danger" : "") + '"' + (it.title ? ' title="' + esc(it.title) + '"' : "") + ">" + (it.right === "check" ? '<span class="mi-check-left">' + icon("check", 15) + "</span>" : "") + (it.dot ? '<span class="pop-dot" style="background:' + it.dot + ';margin:0;flex:none"></span>' : "") + (it.icon ? icon(it.icon, 16) : "") + (it.sub ? '<span class="mi-text"><span class="mi-label">' + esc(it.label) + '</span><span class="mi-sub">' + esc(it.sub) + "</span></span>" : '<span class="mi-label">' + esc(it.label) + "</span>") + (it.checkRight ? '<span class="mi-right">' + (it.selected ? icon("check", 15) : "") + "</span>" : "") + (it.right && it.right !== "check" ? '<span class="mi-right">' + icon(it.right, 15) + "</span>" : "") + "</button>");
           b.setAttribute("role", "menuitem"); if (it.id) b.setAttribute("data-menu-id", it.id);
           b.addEventListener("click", function () { closeMenu(); it.fn && it.fn(); });
           m.appendChild(b);
@@ -2886,8 +2897,9 @@
         sidebarEl.appendChild(nav);
         /* Two calendar sections. "My calendars" holds owned calendars;
            "Subscriptions" holds subscribed calendars, including US Holidays. */
-        var ownedCals = state.calendars.filter(function (c) { return !isSubscribed(c); });
-        var subCals = state.calendars.filter(function (c) { return isSubscribed(c); });
+        var ownedCals = state.calendars.filter(function (c) { return !isSubscribed(c) && !c.remoteShareId; });
+        var sharedCals = state.calendars.filter(function (c) { return !!c.remoteShareId; });
+        var subCals = state.calendars.filter(function (c) { return isSubscribed(c) && !c.remoteShareId; });
         var label = el('<div class="side-label rail-hide"><span>My calendars</span></div>');
         var labelActions = el('<span class="side-label-actions"></span>');
         var addBtn = el('<button class="side-label-btn add" title="New calendar" aria-label="New calendar">' + icon("plus", 16) + "</button>");
@@ -2902,6 +2914,21 @@
           var list = el('<div class="cal-list"></div>');
           ownedCals.forEach(function (cal) { list.appendChild(calRow(cal)); });
           sidebarEl.appendChild(list);
+        }
+        /* Calendars other Daylight accounts have shared with you. The owner's name sits under each calendar's name. */
+        if (sharedCals.length) {
+          var shLabel = el('<div class="side-label rail-hide"><span>Shared</span></div>');
+          var shActions = el('<span class="side-label-actions"></span>');
+          var collapseSh = el('<button class="side-label-btn" title="' + (state.sharedSectionOpen ? "Collapse section" : "Expand section") + '" aria-label="' + (state.sharedSectionOpen ? "Collapse Shared" : "Expand Shared") + '">' + icon(state.sharedSectionOpen ? "chevU" : "chevD", 16) + "</button>");
+          collapseSh.addEventListener("click", function () { state.sharedSectionOpen = !state.sharedSectionOpen; renderSidebar(); });
+          shActions.appendChild(collapseSh);
+          shLabel.appendChild(shActions);
+          sidebarEl.appendChild(shLabel);
+          if (state.sidebarRail || state.sharedSectionOpen) {
+            var shList = el('<div class="cal-list"></div>');
+            sharedCals.forEach(function (cal) { shList.appendChild(calRow(cal)); });
+            sidebarEl.appendChild(shList);
+          }
         }
         if (true) {
           var subLabel = el('<div class="side-label rail-hide"><span>Subscriptions</span></div>');
@@ -3030,13 +3057,19 @@
         chk.addEventListener("click", function () { animateCalendarToggle(cal); });
         row.appendChild(chk);
         var name = el('<span class="cal-name' + (cal.hidden ? " off" : "") + '">' + esc(cal.name) + "</span>");
-        row.appendChild(name);
+        if (cal.sharedFrom) {
+          var stack = el('<span class="cal-name-stack"></span>');
+          stack.appendChild(name);
+          stack.appendChild(el('<span class="cal-owner">' + esc(cal.sharedFrom.ownerName || "") + "</span>"));
+          row.classList.add("has-owner");
+          row.appendChild(stack);
+        } else row.appendChild(name);
         /* Subscribed/shared rows get NO badge and NO menu: no lock
            icon, and no rename / color / delete controls at all —
            read-only is expressed by the section they live in and by
            their events' popovers, not by chrome on the row. Only
            owned calendars (My calendars) get the options menu. */
-        if (!isSubscribed(cal) || cal.id === "holidays") {
+        if (!isSubscribed(cal) || cal.id === "holidays" || cal.remoteShareId) {
           var mb = el('<button class="icon-btn cal-menu-btn" title="Calendar settings" aria-label="Settings for ' + esc(cal.name) + '">' + icon("dotsV", 16) + "</button>");
           mb.addEventListener("click", function () { openCalMenu(mb, cal, row); });
           row.appendChild(mb);
@@ -3046,7 +3079,7 @@
       function openCalMenu(anchor, cal, row) {
         /* Item 13: the ⋯ button opens the calendar settings popup
            (daylight-settings.js). Subscriptions keep their own manager. */
-        if (isSubscribed(cal) && cal.id !== "holidays") return;
+        if (isSubscribed(cal) && cal.id !== "holidays" && !cal.remoteShareId) return;
         closeMenu(); closePopover();
         if (window.daylightCalendarSettings) window.daylightCalendarSettings(cal);
       }
@@ -5849,6 +5882,8 @@
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-notifications.js"></script>
     <script src="./daylight-admin.js"></script>
+    <script src="./daylight-sharing.js"></script>
+    <script src="./daylight-manage.js"></script>
     <script src="./daylight-integrations.js"></script>
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>

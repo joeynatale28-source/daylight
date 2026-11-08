@@ -8,6 +8,8 @@ on:
       - daylight-cloud.js
       - daylight-notifications.js
       - daylight-admin.js
+      - daylight-sharing.js
+      - daylight-manage.js
       - daylight-settings.js
       - daylight-integrations.js
       - daylight-places.js
@@ -42,7 +44,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site/assets
-          cp index.html daylight-cloud.js daylight-notifications.js daylight-admin.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
+          cp index.html daylight-cloud.js daylight-notifications.js daylight-admin.js daylight-sharing.js daylight-manage.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
           cp -R assets/. _site/assets/
           # Version-bust every deploy: caches and first-paint snapshots written by a
           # different build are ignored (see window.__DL_BUILD in index.html).
@@ -52,6 +54,8 @@ jobs:
           test -s _site/daylight-cloud.js
           test -s _site/daylight-notifications.js
           test -s _site/daylight-admin.js
+          test -s _site/daylight-sharing.js
+          test -s _site/daylight-manage.js
           test -s _site/daylight-settings.js
           test -s _site/daylight-integrations.js
           test -s _site/daylight-places.js

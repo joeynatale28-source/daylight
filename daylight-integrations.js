@@ -636,10 +636,12 @@
     row.querySelector('.cal-check')?.addEventListener('click',persist);
     visibility.onclick=()=>{animateCalendarToggle(cal);persist()};
     const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
-    menu.onclick=()=>manageSubscription(cal,menu);
+    menu.onclick=()=>{if(window.daylightCalendarSettings)window.daylightCalendarSettings(cal);else manageSubscription(cal,menu)};
     row.append(visibility,menu);return row;
   };
   window.daylightOpenSubscriptions=function(){openSettings('data');};
+  /* What the Manage dialog needs to show and change a subscribed calendar. */
+  window.daylightSubscriptions={row:id=>subscriptionRows.find(s=>s.id===id)||null,call,reload:()=>loadSubscriptions()};
 
   // Refreshes only session-owned subscription caches; snapshot saves exclude read-only rows.
 

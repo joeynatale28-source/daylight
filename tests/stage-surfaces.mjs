@@ -16,7 +16,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.evaluate(()=>{state.customColors=['#13A5C7','#6C5CE7']});
   for(const name of ['Personal','US Holidays']){
    await page.evaluate(n=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent===n);row.querySelector('.cal-menu-btn').click()},name);
-   await page.waitForSelector('.dl-calsettings, .menu');await shot('menu-'+name.replace(' ',''));await clear();
+   await page.waitForSelector('.dl-manage, .menu');await shot('menu-'+name.replace(' ',''));await clear();
   }
   for(const section of ['profile','appearance','calendar','notifications','ai','shortcuts']){
    await page.evaluate(sec=>openSettings(sec),section);await page.waitForSelector('.settings-dialog');await shot('settings-'+section);await clear();
