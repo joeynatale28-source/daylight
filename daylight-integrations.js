@@ -98,7 +98,7 @@
     });
     renderAll(false);
   }
-  function subscriptionsSettled(){document.dispatchEvent(new Event('daylight:subscriptions-ready'))}
+  function subscriptionsSettled(){window.__dlSubscriptionsReady=true;document.dispatchEvent(new Event('daylight:subscriptions-ready'))}
   async function loadSubscriptions() {
     try{await refreshSubscriptions()}finally{subscriptionsSettled()}
   }

@@ -18,12 +18,13 @@
   var lastSaved = '', saveTimer = null, saveAgain = false, sessionSequence = 0, conflict = false, workspaceRetryTimer = null;
   var lastStatus = '';
   var committedSerialized = null;
+  var warmShown = null; // what the cache render showed: {id, payload, name, avatar}
   // Per-user warm snapshot. Cached data is shown only after Supabase
   // authenticates the account, and it never changes the revision baseline.
   function cacheKey(id){return 'daylight-warm-workspace:'+id}
   function cacheWorkspace(id,document,rev){
     try{
-      const serialized=JSON.stringify({payload:document,revision:rev});
+      const serialized=JSON.stringify({payload:document,revision:rev,build:window.__DL_BUILD||'dev'});
       if(serialized.length<3000000)localStorage.setItem(cacheKey(id),serialized);
     }catch(error){console.warn('Workspace cache unavailable',error)}
   }
@@ -33,6 +34,8 @@
       if(!raw)return false;
       const entry=JSON.parse(raw);
       if(!entry||typeof entry.payload!=='object'||!Number.isFinite(Number(entry.revision)))return false;
+      /* A cache written by a different build may have a different shape. */
+      if(entry.build!==(window.__DL_BUILD||'dev'))return false;
       clearPreviewData();
       state.profileName=accountName(account);
       state.firstName=state.profileName.split(/\s+/)[0];
@@ -41,6 +44,7 @@
       document.getElementById('authRoot').innerHTML='';
       document.getElementById('app').hidden=false;
       originalRenderAll(false);
+      warmShown={id:account.id,payload:JSON.stringify(entry.payload),name:state.profileName,avatar:state.avatarUrl};
       document.dispatchEvent(new Event('daylight:workspace-preview-ready'));
       return true;
     }catch(error){console.warn('Warm calendar preview unavailable',error);return false}
@@ -384,9 +388,14 @@
     if(authRoot)authRoot.innerHTML='';
     const appRoot=document.getElementById('app');
     if(appRoot)appRoot.hidden=false;
-    document.dispatchEvent(new Event('daylight:workspace-loading'));
-    const warmShown=warmWorkspace(account,seq);
-    if(!warmShown) originalRenderAll(false);
+    /* Cache first: with a snapshot the calendar is already on screen (page
+       shell + early cache render) and there is no artificial hold. Only a
+       true cold load shows the spinner. */
+    var fromCache = (warmShown && warmShown.id === account.id) || warmWorkspace(account,seq);
+    if (!fromCache) {
+      document.dispatchEvent(new Event('daylight:workspace-loading'));
+      originalRenderAll(false);
+    }
     try {
       var response = await client.from('workspace_snapshots')
         .select('payload,revision').eq('user_id', account.id).maybeSingle();
@@ -405,7 +414,13 @@
       applyTheme();
       document.getElementById('authRoot').innerHTML = '';
       document.getElementById('app').hidden = false;
-      originalRenderAll(false);
+      /* Refresh behind the cache: identical data repaints nothing; changed data
+         re-renders inside the same layout. */
+      var unchanged = fromCache && warmShown && warmShown.id === account.id && hasRow &&
+        warmShown.payload === JSON.stringify(response.data.payload) &&
+        warmShown.name === state.profileName && warmShown.avatar === state.avatarUrl;
+      if (!unchanged) originalRenderAll(false);
+      warmShown = null;
       document.dispatchEvent(new Event('daylight:workspace-ready'));
       document.body.classList.remove('booting');
       status('Saved to cloud');
@@ -422,7 +437,15 @@
     }
   }
 
+  function forgetCaches(id) {
+    try {
+      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
+    } catch (e) {}
+  }
   function showSignedOut() {
+    if (user) forgetCaches(user.id);
+    else if (warmShown) forgetCaches(warmShown.id);
+    warmShown = null;
     sessionSequence++;
     clearTimeout(workspaceRetryTimer);
     user = null; hasRow = false; revision = 0; lastSaved = '';
@@ -617,6 +640,59 @@
   resetDemoData = function () {
     toast('Demo reset is unavailable for cloud accounts. Your data is safe.');
   };
+
+  /* ---- First-paint snapshot (see the shell in index.html) -------------
+     After a normal load, once the calendar is in its home state (calendar
+     section, default view, this month, nothing open), the rendered sidebar,
+     header and view are stored for this account. The next load paints them
+     straight from the HTML, before any script runs. Keyed by account; used
+     only for the same build, the same day, the same theme and a similar
+     window size; removed on sign-out. */
+  function homeState() {
+    try {
+      var today = new Date();
+      return state.section === 'calendar' && state.view === (state.defaultView || 'month') &&
+        state.cursor && state.cursor.getFullYear() === today.getFullYear() && state.cursor.getMonth() === today.getMonth() &&
+        !document.querySelector('#overlayRoot > *') && !document.querySelector('.popover,.menu,.dl-notif-panel') &&
+        !document.body.classList.contains('dl-canvas-holding') && !document.getElementById('dlWorkspaceLoading') &&
+        !(window.settingsState && window.settingsState.transactionActive);
+    } catch (e) { return false; }
+  }
+  function saveFirstPaint() {
+    if (!user || loading || conflict || !homeState()) return;
+    try {
+      var d = new Date();
+      var snap = {
+        b: window.__DL_BUILD || 'dev', d: d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(),
+        t: document.documentElement.getAttribute('data-theme'), w: innerWidth, h: innerHeight,
+        s: document.getElementById('sidebar').innerHTML, hd: document.getElementById('headerBand').innerHTML,
+        v: document.getElementById('viewWrap').innerHTML,
+        rail: document.getElementById('sidebar').classList.contains('rail'),
+        rh: document.documentElement.style.getPropertyValue('--dl-cal-row-height'),
+        bc: document.body.className.split(/\s+/).filter(function (c) { return c && c !== 'booting' && c !== 'dl-canvas-holding'; }).join(' ')
+      };
+      var text = JSON.stringify(snap);
+      if (text.length < 1500000) localStorage.setItem('daylight-first-paint:' + user.id, text);
+    } catch (e) { /* storage full or unavailable: the next load simply has no snapshot */ }
+  }
+  var snapshotTimer = null;
+  function scheduleSnapshot(delay) { clearTimeout(snapshotTimer); snapshotTimer = setTimeout(saveFirstPaint, delay || 1800); }
+  document.addEventListener('daylight:workspace-ready', function () { scheduleSnapshot(2200); });
+  document.addEventListener('daylight:settings-committed', function () { scheduleSnapshot(1200); });
+  document.addEventListener('visibilitychange', function () { if (document.hidden) saveFirstPaint(); });
+  window.addEventListener('resize', function () { scheduleSnapshot(2500); });
+
+  /* Early cache render: do not wait for the Supabase round trip. The saved
+     session in storage names the account; if a cache for that account exists
+     (and this build wrote it) the calendar is rendered from it now. */
+  (function earlyCacheRender() {
+    if (recovery) return;
+    try {
+      var stored = JSON.parse(localStorage.getItem('sb-qrqemjgpzoqhtmsowmqv-auth-token') || 'null');
+      var hinted = stored && stored.user && stored.user.id ? stored.user : null;
+      if (hinted) warmWorkspace(hinted, 0);
+    } catch (e) { console.warn('Early cache render skipped', e); }
+  })();
 
   /* Resolve the session before constructing any login UI.
      Returning users never build the login screen at all. */

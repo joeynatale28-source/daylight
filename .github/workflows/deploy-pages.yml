@@ -42,6 +42,10 @@ jobs:
           mkdir -p _site/assets
           cp index.html daylight-cloud.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
           cp -R assets/. _site/assets/
+          # Version-bust every deploy: caches and first-paint snapshots written by a
+          # different build are ignored (see window.__DL_BUILD in index.html).
+          sed -i "s/__BUILD_ID__/${GITHUB_SHA}/g" _site/index.html
+          grep -q "${GITHUB_SHA}" _site/index.html
           test -s _site/index.html
           test -s _site/daylight-cloud.js
           test -s _site/daylight-settings.js

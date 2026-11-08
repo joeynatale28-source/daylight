@@ -14,78 +14,7 @@ function hsvFromHex(value){
 }
 function rgbHex(red,green,blue){return "#"+[red,green,blue].map(n=>Math.round(n).toString(16).padStart(2,"0")).join("").toUpperCase()}
 function esc(x){return String(x).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
-const style=document.createElement("style");
-style.textContent=`
-.cal-row{align-items:center;min-height:28px;height:30px;gap:7px}
-.cal-row .cal-name{flex:1 1 auto;min-width:0;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.25}
-.cal-row .cal-menu-btn{flex:0 0 28px}
-.cal-row .cal-check{flex:0 0 auto}
-.dl-color-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:7px;margin:8px 0}
-.dl-color-grid .dl-color-item{height:25px;min-width:0;width:100%;border-radius:9px;position:relative;border:2px solid transparent;outline-offset:2px;cursor:pointer}
-.dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(0,0,0,.14)}
-[data-theme="dark"] .dl-color-grid .dl-color-item:not(.dl-color-plus){box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
-.dl-color-grid .dl-color-item[aria-pressed=true]{outline:2px solid var(--text)}
-.dl-color-grid .dl-color-item:focus-visible{outline:2px solid var(--accent)}
-.dl-color-entry{position:relative;display:block;min-width:0}
-.dl-color-remove{position:absolute;right:-5px;top:-5px;z-index:2;width:18px;height:18px;padding:0;border:1px solid var(--line);border-radius:50%;background:var(--surface);color:var(--text);font-size:13px;line-height:16px;cursor:pointer;box-shadow:0 1px 3px rgba(0,0,0,.2)}
-.dl-color-remove:hover{background:var(--hover);color:var(--danger)}
-.dl-color-remove:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
-.dl-color-plus{border:1px solid var(--line)!important;background:var(--surface);color:var(--text);font-size:19px;font-weight:500}
-.dl-color-label{font-size:11px;color:var(--muted);margin:9px 0 2px;font-weight:600}
-.dl-color-square{height:172px;border-radius:12px;position:relative;cursor:crosshair;touch-action:none;background-image:linear-gradient(to top,#000,transparent),linear-gradient(to right,#fff,transparent);border:1px solid var(--line)}
-.dl-color-point{position:absolute;height:14px;width:14px;border:2px solid #fff;box-shadow:0 0 0 1px #333;border-radius:50%;transform:translate(-50%,-50%);pointer-events:none}
-.dl-color-hue{display:block;width:100%;height:18px;margin:12px 0;appearance:none;border-radius:999px;background:linear-gradient(to right,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00);cursor:pointer}
-.dl-color-hue::-webkit-slider-thumb{appearance:none;width:18px;height:18px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
-.dl-color-hue::-moz-range-thumb{width:14px;height:14px;border:2px solid white;border-radius:50%;background:#555;box-shadow:0 0 0 1px #333}
-.dl-color-preview{height:28px;width:28px;flex:none;border-radius:8px;border:1px solid var(--line)}
-.dl-color-rgb{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.dl-color-rgb .field{margin:0}
-.dl-color-rgb input{width:100%;min-width:0}
-.dl-color-error{font-size:12px;color:var(--danger);min-height:16px}
-.dl-inline-picker{display:grid;gap:10px}
-.dl-inline-picker .dl-color-square{height:150px}
-.dl-inline-picker .dl-color-hue{margin:2px 0}
-.dl-inline-values{display:grid;grid-template-columns:34px minmax(0,1.6fr) repeat(3,minmax(0,1fr));gap:8px;align-items:end}
-.dl-inline-values .dl-color-preview{width:34px;height:34px;border-radius:10px}
-.dl-inline-field{display:grid;gap:4px;min-width:0}
-.dl-inline-field>span{font-size:11px;font-weight:650;color:var(--muted);letter-spacing:.04em}
-.dl-inline-field .text-input{height:34px;padding:0 10px;min-width:0;width:100%;font-variant-numeric:tabular-nums;border-radius:10px}
-.dl-inline-picker .dl-color-error{min-height:0}
-.dl-color-empty{font-size:12px;color:var(--muted);padding:2px 0 4px}
-.dl-color-remove{opacity:.9}
-.dl-color-modal .dialog-body{display:grid;gap:10px}
-.dl-color-modal .dialog-body .field{margin:0}
-.month-wrap{height:100%;min-height:0;display:flex;flex-direction:column;overflow:hidden}
-.month-grid{flex:1 1 auto;min-height:0;overflow-x:hidden;overflow-y:auto;overscroll-behavior:contain;grid-template-rows:repeat(6,minmax(0,1fr));scrollbar-gutter:stable;align-content:stretch}
-.month-week{min-height:0;height:100%;overflow:visible}
-.day-cell{min-height:0;overflow:hidden}
-.cell-events{min-height:0;overflow:visible}
-.agenda-cal-name{font-weight:600;color:var(--muted)}
-@media(max-height:680px){.month-grid{grid-template-rows:repeat(6,minmax(96px,1fr))}.month-week{min-height:96px}}
-@media(max-height:750px){.dow-cell{padding-top:5px;padding-bottom:5px}.day-cell{padding-top:2px;padding-bottom:1px}.day-num{height:22px;min-height:22px}}
-@media(prefers-reduced-motion:reduce){.dl-color-modal,.dl-color-modal *{animation:none!important;transition:none!important}}
-`;
-style.textContent += `
-/* Daylight sidebar: stable single-line labels and compact adaptive rows. */
-.cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
-.cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
-.sidebar .cal-list,.sidebar .calendars-list{min-height:0}
-.sidebar .cal-check{flex-shrink:0}
-.sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
-.sidebar.collapsed .cal-visibility-btn,.sidebar.rail .cal-visibility-btn{display:none!important}
-.dl-rail-tooltip{position:fixed;z-index:99999;pointer-events:none;padding:7px 10px;border-radius:7px;background:var(--surface2);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:500;white-space:nowrap;animation:dlTipIn 120ms var(--ease-out)}
-@keyframes dlTipIn{from{opacity:0;transform:translateX(-3px)}to{opacity:1;transform:translateX(0)}}
-#main{position:relative}
-body.dl-canvas-holding #headerBand,body.dl-canvas-holding #viewWrap{visibility:hidden}
-#dlWorkspaceLoading{position:absolute;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:var(--bg);opacity:1;transition:opacity 160ms cubic-bezier(.23,1,.32,1);pointer-events:auto}
-#dlWorkspaceLoading.is-exiting{opacity:0;pointer-events:none}
-#dlWorkspaceLoading .dl-loading-spinner{width:30px;height:30px;box-sizing:border-box;border:3px solid rgba(64,62,58,.18);border-top-color:#57544e;border-radius:50%;animation:dlLoadingSpin 800ms linear infinite}
-[data-theme="dark"] #dlWorkspaceLoading .dl-loading-spinner{border-color:rgba(255,255,255,.22);border-top-color:#fff}
-@keyframes dlLoadingSpin{to{transform:rotate(360deg)}}
-@media(prefers-reduced-motion:reduce){#dlWorkspaceLoading .dl-loading-spinner{animation-duration:1600ms}}
-`;
-
-document.head.append(style);
+/* Layout CSS for the calendar chrome now lives in index.html (<style id="dl-critical-css">) so it applies at first paint. */
 /* Item 1: the calendar canvas (header band + view) is never shown until it
    is fully formatted. The sidebar renders immediately; the canvas stays blank
    behind one spinner until (a) at least one second has passed, (b) the real
@@ -99,7 +28,8 @@ function showWorkspaceLoading(){
  if(!main)return;
  let shell=document.getElementById("dlWorkspaceLoading");
  if(!canvasGate.active||!shell){
-  canvasGate.startedAt=performance.now();
+  /* A shell spinner painted by the page itself counts from when it appeared. */
+  canvasGate.startedAt=shell&&Number(shell.dataset.startedAt)?Number(shell.dataset.startedAt):performance.now();
   canvasGate.workspace=false;canvasGate.subscriptions=false;
  }
  canvasGate.active=true;canvasGate.token++;
@@ -146,6 +76,16 @@ document.addEventListener("daylight:workspace-loading",showWorkspaceLoading);
 document.addEventListener("daylight:workspace-ready",hideWorkspaceLoading);
 document.addEventListener("daylight:subscriptions-ready",()=>{canvasGate.subscriptions=true;tryRevealCanvas()});
 document.addEventListener("daylight:workspace-signed-out",()=>{canvasGate.token++;clearTimeout(canvasGate.timer);revealCanvas()});
+/* Scripts load in document order and Supabase can restore a session before this
+   file has run, so "loading"/"ready" may already have fired. The page's own
+   shell spinner marks a cold load in progress: adopt it and catch up on what
+   was missed instead of waiting for events that will not come again. */
+if(window.__dlShellSpinner&&document.getElementById("dlWorkspaceLoading")){
+ showWorkspaceLoading();
+ if(window.daylightCloud&&window.daylightCloud.ready)canvasGate.workspace=true;
+ if(window.__dlSubscriptionsReady)canvasGate.subscriptions=true;
+ tryRevealCanvas();
+}
 /* Item 6: "Your colors" live only in each account's own workspace
    (state.customColors → settings.customColors). The old browser-wide list
    ("daylight-custom-colors" in localStorage) was created by the owner, so it
