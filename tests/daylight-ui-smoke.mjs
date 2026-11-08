@@ -494,9 +494,9 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),false,'Save bar did not appear immediately');
  await page.screenshot({path:path.join(out,'settings-unsaved.png')});
  await page.evaluate(()=>document.querySelector('[data-discard]').click());
- await page.waitForSelector('#dlSettingsDiscardConfirm',{timeout:2000});
- await page.screenshot({path:path.join(out,'settings-discard-confirm.png')});
- await page.evaluate(()=>document.querySelector('[data-confirm-discard]').click());
+ await new Promise(resolve=>setTimeout(resolve,150));
+ assert.equal(await page.$('#dlSettingsDiscardConfirm'),null,'Discard on the pill is the only gate: no second confirmation popup');
+ assert.equal(await page.evaluate(()=>document.querySelectorAll('#overlayRoot > .backdrop').length),1,'nothing is stacked on top of Settings');
  assert.equal(await page.evaluate(()=>state.showWeekends),oldWeekends,'Discard failed to restore the setting');
  const afterDiscard=await page.evaluate(keys=>Object.fromEntries(keys.map(key=>[key,Array.isArray(state[key])?state[key].slice():state[key]])),savedSettingKeys);
  assert.deepEqual(afterDiscard,oldSettings,'Discard failed to restore every saved setting');
@@ -547,8 +547,8 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    document.querySelector('[data-remove]').click();
    document.querySelector('[data-discard]').click();
  });
- await page.waitForSelector('#dlSettingsDiscardConfirm',{timeout:2000});
- await page.evaluate(()=>document.querySelector('[data-confirm-discard]').click());
+ await new Promise(resolve=>setTimeout(resolve,150));
+ assert.equal(await page.$('#dlSettingsDiscardConfirm'),null,'no second popup on Discard');
  assert.equal(await page.evaluate(()=>state.avatarUrl),uploadedAvatar.url,'discarding a removal should restore the saved photo');
  await page.evaluate(()=>document.querySelector('.settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.backdrop .settings-dialog'),{timeout:2000});
@@ -564,12 +564,13 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
  const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-calsettings'),dot=d.querySelector('.dl-cs2-dot'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
    return {width:d.offsetWidth,radius:getComputedStyle(d).borderRadius,dot:dot.offsetWidth,x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,
-    labels:[...d.querySelectorAll('.dl-cs2-label')].map(n=>n.textContent.trim()),rows:[...d.querySelectorAll('.dl-cs2-row')].map(n=>n.innerText.replace(/\s+/g,' ').trim()),
+    labels:[...d.querySelectorAll('.dl-cs2-label')].map(n=>n.textContent.trim()),rows:[...d.querySelectorAll('[data-section="actions"] .set-row .sw-label')].map(n=>n.innerText.replace(/\s+/g,' ').trim()),
     nameInput:!!d.querySelector('input.dl-cs2-name'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
  assert.deepEqual([popup.width,popup.radius,popup.dot,popup.swatch],[420,'14px',12,26],'popup shell: 420px (Settings-grade width), radius 14, 12px dot, 26px swatches: '+JSON.stringify(popup));
  assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');
  assert.deepEqual(popup.labels,['Name','Color','Your colors','Sharing','Actions'],'sections: Name, Color, Sharing, Actions');
- assert.deepEqual(popup.rows,['Export .ics','Delete calendar'],'action rows: '+JSON.stringify(popup.rows));
+ assert.deepEqual(popup.rows,['Export calendar','Delete calendar'],'action rows: '+JSON.stringify(popup.rows));
+ assert.ok(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings [data-export],.dl-calsettings [data-delete]')].every(b=>b.tagName==='BUTTON'&&/btn-ghost|btn-danger-outline/.test(b.className))),'Export and Delete are proper buttons in Settings-style rows');
  assert.ok(await page.$('.dl-calsettings [data-section="sharing"] [aria-label="Public link"]'),'the public-link controls live in the Sharing section');
  assert.ok(await page.evaluate(()=>{const d=document.querySelector('.dl-calsettings');return d.getBoundingClientRect().right<=innerWidth-16&&d.getBoundingClientRect().bottom<=innerHeight-8}),'popup stays inside the window');
  assert.deepEqual(popup.fields,['HEX','R','G','B'],'one row of HEX + R + G + B');
@@ -634,7 +635,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // US Holidays: Appearance + Export only.
  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()});
  await page.waitForSelector('.dl-calsettings',{timeout:3000});
- assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .dl-cs2-row')].map(n=>n.textContent.replace(/\s+/g,' ').trim())),['Export .ics'],'US Holidays popup: colors + Export only (no Share, no Delete)');
+ assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings [data-section="actions"] .set-row .sw-label')].map(n=>n.textContent.replace(/\s+/g,' ').trim())),['Export calendar'],'US Holidays popup: colors + Export only (no Share, no Delete)');
  assert.equal(await page.$('.dl-calsettings input.dl-cs2-name'),null,'US Holidays cannot be renamed');
  assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .dl-cs2-label')].map(n=>n.textContent.trim())),['Color','Your colors','Actions'],'US Holidays: colors + Export only (no Name, no Sharing)');
  await page.evaluate(()=>document.querySelector('.dl-calsettings .settings-close').click());
@@ -697,7 +698,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/broadcast.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/editor-polish.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

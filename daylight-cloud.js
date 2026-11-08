@@ -92,6 +92,8 @@
       if (result.error || !result.data || !result.data.session) { authBlockedUntil = Date.now() + 60000; throw new Error('Your session expired. Sign in again.'); }
       return result.data.session;
     },
+    /* A person pressing "Try again" is not background hammering: let that one attempt through. */
+    resetAuthBlock: function () { authBlockedUntil = 0; },
     noteAuthFailure: function (status) { if (status === 401 || status === 403) authBlockedUntil = Date.now() + 60000; },
     /* Save exactly the state at this moment, even while a Settings/calendar
        transaction stays open for further (preview-only) edits. */
@@ -152,6 +154,7 @@
     state.profileName = 'Account';
     state.firstName = 'Account';
     state.avatarUrl = '';
+    state.birthday = '';
     state.customColors = [];
     state.view = 'month';
     state.section = 'calendar';
@@ -169,6 +172,17 @@
   }
   clearPreviewData();
 
+  /* An address counts as this account's photo only if it sits inside the account's own storage folder. */
+  function ownsAvatar(url) {
+    return typeof url === 'string' && !!url && !!user && url.indexOf('/' + user.id + '/') !== -1;
+  }
+  /* Does a stored name plausibly belong to this email address? ("Alex Rivera" fits alexrivera@...; it does not fit user@...) */
+  function nameFitsEmail(name, email) {
+    var norm = function (t) { return String(t || '').toLowerCase().replace(/[^a-z0-9]/g, ''); };
+    var n = norm(name), local = norm(String(email || '').split('@')[0]);
+    if (n.length < 3 || local.length < 3) return false;
+    return local.indexOf(n) !== -1 || n.indexOf(local) !== -1;
+  }
   function accountName(account) {
     var metadata = account.user_metadata || {};
     return String(metadata.full_name || metadata.name || (account.email || '').split('@')[0] || 'Account').trim() || 'Account';
@@ -236,7 +250,7 @@
         return {
           id: id, title: String(e.title || 'Untitled'), cal: String(e.cal || 'personal'),
           start: start, end: end, allDay: allDay, loc: String(e.loc || ''),
-          desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null, weekdaysOnly:!!e.weekdaysOnly,
+          desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
@@ -274,11 +288,19 @@
     var settings = payload.settings || {};
     applySettingsSnapshot(settings);
     if (typeof settings.themeMode === 'string' && ['dark','light','system'].indexOf(settings.themeMode) !== -1) state.themeMode = settings.themeMode;
-    var savedFullName = typeof settings.profileName === 'string' ? settings.profileName.trim() : '';
-    var savedFirstName = typeof settings.firstName === 'string' ? settings.firstName.trim() : '';
+    /* Identity (name, photo) belongs to the SIGNED-IN account's own record, never to whatever a stored workspace
+       happens to carry. The account's record (auth metadata, then its email) is the base; a name saved in the workspace
+       is honored only when it is stamped as this account's own, or (older workspaces without a stamp) only when it
+       plausibly belongs to this account's email and the account's record has no name. A photo is honored only when its
+       address is inside this account's own folder. Anything else is ignored. */
     var metadata = (user && user.user_metadata) || {};
+    var savedFullName = typeof settings.profileName === 'string' ? settings.profileName.trim() : '';
+    if (savedFullName && user) {
+      var stamped = settings.identityOwner === user.id;
+      var metaHasName = !!String(metadata.full_name || metadata.name || '').trim();
+      if (!(stamped || (!settings.identityOwner && !metaHasName && nameFitsEmail(savedFullName, user.email)))) savedFullName = '';
+    } else savedFullName = '';
     if (savedFullName) state.profileName = savedFullName;
-    else if (savedFirstName && !metadata.full_name && !metadata.name) state.profileName = savedFirstName;
     /* Keep the first-name and full-name fields in sync (never show a stale
        hard-coded profile name or the email username when a name exists). */
     state.firstName = state.profileName.split(/\s+/)[0] || 'Account';
@@ -286,9 +308,8 @@
     if (typeof settings.reduceMotion === 'boolean') state.reduceMotion = settings.reduceMotion;
     if (typeof settings.remind15 === 'boolean') state.remind15 = settings.remind15;
     if (typeof settings.dailySummary === 'boolean') state.dailySummary = settings.dailySummary;
-    state.avatarUrl = typeof metadata.avatar_url === 'string' && metadata.avatar_url
-      ? metadata.avatar_url
-      : (typeof settings.avatarUrl === 'string' ? settings.avatarUrl : '');
+    state.avatarUrl = [metadata.avatar_url, settings.avatarUrl].filter(function (u) { return ownsAvatar(u); })[0] || '';
+    state.birthday = typeof settings.birthday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(settings.birthday) ? settings.birthday : '';
     state.customColors = Array.isArray(settings.customColors)
       ? settings.customColors.filter(function (color) { return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color); }).slice(0,30)
       : [];
@@ -315,7 +336,7 @@
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
-          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, reminder:e.reminder == null ? null : e.reminder,
+          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,
@@ -330,7 +351,7 @@
         themeMode:state.themeMode, firstName:state.firstName,
         profileName:state.profileName, sidebarRail:state.sidebarRail,
         reduceMotion:state.reduceMotion, remind15:state.remind15,
-        dailySummary:state.dailySummary, avatarUrl:state.avatarUrl || '',
+        dailySummary:state.dailySummary, avatarUrl:state.avatarUrl || '', birthday:state.birthday || '', identityOwner:user ? user.id : null,
         customColors:Array.isArray(state.customColors)?state.customColors.slice(0,30):[]
       }),
       /* No navigation state is persisted (see the restore note):
@@ -729,7 +750,7 @@
       var snap = {
         b: window.__DL_BUILD || 'dev', d: d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate(),
         t: document.documentElement.getAttribute('data-theme'), w: innerWidth, h: innerHeight,
-        s: document.getElementById('sidebar').innerHTML, hd: document.getElementById('headerBand').innerHTML,
+        s: document.getElementById('sidebar').innerHTML, hd: document.getElementById('headerBand').innerHTML.replace(/<span class="dl-notif-badge"[^>]*>[^<]*<\/span>/g, ''),
         v: document.getElementById('viewWrap').innerHTML,
         rail: document.getElementById('sidebar').classList.contains('rail'),
         rh: document.documentElement.style.getPropertyValue('--dl-cal-row-height'),

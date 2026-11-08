@@ -15,12 +15,39 @@
     "tzLabel", "notifSound", "quietEnabled", "quietStart", "quietEnd", "summaryTime",
     "workDays", "workStart", "workEnd", "useDeviceTz", "themeMode",
     "firstName", "profileName", "reduceMotion", "remind15", "dailySummary",
-    "sidebarRail", "avatarUrl", "customColors", "defaultView", "view"
+    "sidebarRail", "avatarUrl", "birthday", "customColors", "defaultView", "view"
     /* "view"/"prevView" are deliberately NOT transactional (11.6):
        the Default Calendar View applies the moment it is picked —
        exactly what its pane copy says — so it is never held hostage
        by Save/Discard and X never asks about it. */
   ];
+
+  /* First name = the display name up to the first space. A dash does not split it ("Mary-Kate Lee" gives "Mary-Kate"). */
+  function firstNameOf(name) {
+    var t = String(name || "").trim();
+    var m = /^\S+/.exec(t);
+    return m ? m[0] : "";
+  }
+  /* One yearly, all-day "<FirstName>'s Birthday" event on the account's own default calendar: created when a birthday is set,
+     moved (same event) when the date changes, renamed when the first name changes, removed when the birthday is cleared. */
+  window.daylightSyncBirthday = function () {
+    var existing = state.events.filter(function (e) { return e.birthday; });
+    var keep = existing[0];
+    if (!state.birthday) { if (existing.length) state.events = state.events.filter(function (e) { return !e.birthday; }); return; }
+    var p = state.birthday.split("-").map(Number);
+    var year = new Date().getFullYear();
+    var day = p[2];
+    if (p[1] === 2 && day === 29 && new Date(year, 1, 29).getMonth() !== 1) day = 28;   // a leap-day birthday shows on Feb 28 in other years
+    var start = new Date(year, p[1] - 1, day), end = new Date(year, p[1] - 1, day, 23, 59);
+    var first = firstNameOf(state.profileName) || "My";
+    var title = first === "My" ? "My Birthday" : first + "'s Birthday";
+    if (existing.length > 1) state.events = state.events.filter(function (e) { return !e.birthday || e === keep; });
+    if (keep) { keep.title = title; keep.start = start; keep.end = end; keep.allDay = true; keep.repeat = "yearly"; keep.repeatEnd = null; return; }
+    var owned = function (c) { return c && !c.subscribed && !c.builtin; };
+    var cal = (state.calendars.filter(function (c) { return c.id === state.defaultCalendarId && owned(c); })[0]) || state.calendars.filter(owned)[0];
+    if (!cal) return;
+    state.events.push({ id: ++uid, title: title, cal: cal.id, start: start, end: end, allDay: true, loc: "", desc: "", repeat: "yearly", repeatEnd: null, reminder: null, uid: "daylight-birthday", birthday: true });
+  };
 
   function snapshot() {
     var result = {};
@@ -65,7 +92,8 @@
       ".settings-saving .settings-pane{opacity:.82}",
       ".settings-dialog>.settings-close,.dl-calsettings>.settings-close{position:absolute;z-index:40;right:12px;top:12px;width:44px;height:44px;min-width:44px;min-height:44px;padding:0;margin:0;display:grid;place-items:center;border:0;border-radius:0;background:transparent!important;color:var(--muted);cursor:pointer;pointer-events:auto;isolation:isolate}.settings-dialog>.settings-close::before,.dl-calsettings>.settings-close::before{content:\"\";position:absolute;inset:3px;border-radius:12px;background:transparent;transition:background 120ms;z-index:-1;pointer-events:none}.settings-dialog>.settings-close:hover,.dl-calsettings>.settings-close:hover{color:var(--text)}.settings-dialog>.settings-close:hover::before,.dl-calsettings>.settings-close:hover::before{background:var(--hover)}.settings-dialog>.settings-close:active::before,.dl-calsettings>.settings-close:active::before{background:var(--selected)}.settings-dialog>.settings-close svg{pointer-events:none}.settings-pane h2,.settings-pane>.pane-sub{padding-right:48px}",
       "",
-      ".dl-identity-grid{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:end;padding:4px 0 12px}.dl-idf{display:flex;flex-direction:column;gap:6px;min-width:0}.dl-idf-key{font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.dl-idf-input{height:40px;border:1px solid transparent;border-radius:10px;background:var(--input-bg);padding:0 12px;font:inherit;font-size:13.5px;color:var(--text);outline:none;min-width:0;width:100%;transition:background 120ms,border-color 120ms,box-shadow 120ms}.dl-idf-input:hover{background:var(--hover)}.dl-idf-input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}.dl-idf-lock{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--input-bg);color:var(--muted);font-size:13px;min-width:0}.dl-idf-lock .ic{flex:none}.dl-idf-lock span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}.dl-profile-photo{flex:none}.dl-profile-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--text);color:var(--bg);font-size:14px;font-weight:650;letter-spacing:.01em}.dl-sec-row{display:flex;align-items:center;gap:12px;padding:4px 0 8px}.dl-sec-tile{width:36px;height:36px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.dl-sec-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dl-sec-text .sw-label{font-size:14px;font-weight:550}.dl-sec-text .sw-sub{font-size:12.5px;color:var(--muted)}.dl-signout-others{padding:2px 4px 14px}.dl-link-danger{color:var(--danger);font-size:13px;font-weight:600;padding:6px 0;cursor:pointer}.dl-link-danger:hover{text-decoration:underline}.dl-link-danger[hidden]{display:none}@media(max-width:560px){.dl-identity-grid{grid-template-columns:auto 1fr}.dl-identity-grid .dl-idf:last-child{grid-column:1/-1}}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}",
+      ".dl-birthday-ctl{display:inline-flex;align-items:center;gap:8px;flex:none}.dl-birthday-input{width:auto;min-width:150px;height:38px}.dl-birthday-ctl .btn-ghost[hidden]{display:none}",
+    ".dl-identity-grid{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:end;padding:4px 0 12px}.dl-idf{display:flex;flex-direction:column;gap:6px;min-width:0}.dl-idf-key{font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.dl-idf-input{height:40px;border:1px solid transparent;border-radius:10px;background:var(--input-bg);padding:0 12px;font:inherit;font-size:13.5px;color:var(--text);outline:none;min-width:0;width:100%;transition:background 120ms,border-color 120ms,box-shadow 120ms}.dl-idf-input:hover{background:var(--hover)}.dl-idf-input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}.dl-idf-lock{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--input-bg);color:var(--muted);font-size:13px;min-width:0}.dl-idf-lock .ic{flex:none}.dl-idf-lock span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}.dl-profile-photo{flex:none}.dl-profile-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--text);color:var(--bg);font-size:14px;font-weight:650;letter-spacing:.01em}.dl-sec-row{display:flex;align-items:center;gap:12px;padding:4px 0 8px}.dl-sec-tile{width:36px;height:36px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.dl-sec-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dl-sec-text .sw-label{font-size:14px;font-weight:550}.dl-sec-text .sw-sub{font-size:12.5px;color:var(--muted)}.dl-signout-others{padding:2px 4px 14px}.dl-link-danger{color:var(--danger);font-size:13px;font-weight:600;padding:6px 0;cursor:pointer}.dl-link-danger:hover{text-decoration:underline}.dl-link-danger[hidden]{display:none}@media(max-width:560px){.dl-identity-grid{grid-template-columns:auto 1fr}.dl-identity-grid .dl-idf:last-child{grid-column:1/-1}}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
@@ -141,16 +169,10 @@
       var focused = document.activeElement;
       if (focused && dlg.contains(focused) && focused.tagName === "INPUT") focused.blur();
       markDirty();
-      if (!isDirty()) { finish(false); return; }
-      // One confirm, not a toast or a second save bar.
-      if (document.getElementById("dlSettingsDiscardConfirm")) return;
-      var confirm = el('<div class="backdrop" id="dlSettingsDiscardConfirm"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="Discard changes?" style="width:min(400px,92vw)"><div class="dialog-head"><span class="dialog-title">Discard changes?</span></div><div class="dialog-body"><p>Unsaved settings changes will be lost.</p></div><div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-primary" data-confirm-discard>Discard changes</button></div></div></div>');
-      overlayRoot.appendChild(confirm);
-      var dismiss = function(){ if(window.daylightExit)window.daylightExit(confirm);else confirm.remove(); };
-      confirm.querySelector("[data-keep]").addEventListener("click",dismiss);
-      confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){ dismiss();finish(false); });
-      confirm.addEventListener("mousedown",function(e){if(e.target===confirm)dismiss();});
-      confirm.querySelector("[data-keep]").focus();
+      /* Unsaved changes: the pill (Save / Discard) is the ONLY gate. Closing from the X, the backdrop or Esc simply does
+         nothing while it is showing: no second popup, no animation. */
+      if (isDirty()) return;
+      finish(false);
     }
 
     [
@@ -164,6 +186,8 @@
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
         icon(s[1], 17) + "<span>" + s[2] + "</span></button>");
       btn.addEventListener("click", function () {
+        markDirty();
+        if (isDirty()) return;   /* the pill is the only way out of unsaved changes */
         settingsState.section = s[0];
         rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.remove("active"); });
         btn.classList.add("active");
@@ -172,6 +196,23 @@
       });
       rail.appendChild(btn);
     });
+    /* Owners get one more entry at the very bottom. Only shown to owner accounts (the database refuses admin actions to anyone else). */
+    function addAdminEntry() {
+      if (rail.querySelector("[data-admin]")) return;
+      var btn = el('<button class="sr-item' + (settingsState.section === "admin" ? " active" : "") + '" data-admin>' + icon("shield", 17) + "<span>Admin dashboard</span></button>");
+      btn.addEventListener("click", function () {
+        markDirty();
+        if (isDirty()) return;
+        settingsState.section = "admin";
+        rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.remove("active"); });
+        btn.classList.add("active");
+        drawPane();
+        markDirty();
+      });
+      rail.appendChild(btn);
+    }
+    if (window.daylightAdmin && window.daylightAdmin.isOwner && window.daylightAdmin.isOwner()) addAdminEntry();
+    else if (window.daylightAdmin && window.daylightAdmin.whenKnown) window.daylightAdmin.whenKnown().then(function (isOwner) { if (isOwner && bd.isConnected) addAdminEntry(); });
     dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
     /* Item 11: the close button lives on the dialog itself (not inside the
        scrolling, animating pane) with a 40×40 hit area above everything. */
@@ -201,6 +242,11 @@
       bar.classList.add("is-saved");
       bar.querySelector(".savebar-save-label").textContent="Saved";
       bar.querySelector(".savebar-message").textContent="Changes saved";
+      /* The birthday event follows the birthday and the first name, but only when one of them actually changed. */
+      if(previous.birthday!==committed.birthday||(committed.birthday&&firstNameOf(previous.profileName)!==firstNameOf(committed.profileName))){
+        if(window.daylightSyncBirthday)window.daylightSyncBirthday();
+        renderAll(false);
+      }
       if(window.daylightCloud&&window.daylightCloud.commit)window.daylightCloud.commit();
       document.dispatchEvent(new CustomEvent("daylight:settings-committed",{
         detail:{previousName:previous.profileName,name:state.profileName}
@@ -221,21 +267,12 @@
       },520);
     });
     bar.querySelector("[data-discard]").addEventListener("click", function () {
-      if (!isDirty() || document.getElementById("dlSettingsDiscardConfirm")) return;
-      var confirm = el('<div class="backdrop" id="dlSettingsDiscardConfirm"><div class="dialog" role="alertdialog" aria-modal="true" aria-label="Discard changes?" style="width:min(400px,92vw)"><div class="dialog-head"><span class="dialog-title">Discard changes?</span></div><div class="dialog-body"><p>Unsaved settings changes will be lost.</p></div><div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-primary" data-confirm-discard>Discard changes</button></div></div></div>');
-      overlayRoot.appendChild(confirm);
-      var dismiss = function(){ if(window.daylightExit)window.daylightExit(confirm);else confirm.remove(); };
-      confirm.querySelector("[data-keep]").addEventListener("click",dismiss);
-      confirm.querySelector("[data-confirm-discard]").addEventListener("click",function(){
-        dismiss();
-        if (settingsState.onDiscard) settingsState.onDiscard();
-        restore(original);
-        renderAll(false);
-        drawPane();
-        markDirty();
-      });
-      confirm.addEventListener("mousedown",function(e){if(e.target===confirm)dismiss();});
-      confirm.querySelector("[data-keep]").focus();
+      if (!isDirty()) return;
+      if (settingsState.onDiscard) settingsState.onDiscard();
+      restore(original);
+      renderAll(false);
+      drawPane();
+      markDirty();
     });
     bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
     ["input", "change", "click"].forEach(function (eventType) {
@@ -248,7 +285,7 @@
       var fn = {
         profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
-        ai: window.daylightAiPane
+        ai: window.daylightAiPane, admin: window.daylightAdminPane
       }[settingsState.section];
       fn(pane, close);
       bindDropdowns(pane);
@@ -413,8 +450,27 @@
     };
     pane.appendChild(identity);
 
+    /* Birthday: saved with Save; it keeps one yearly all-day "<First name>'s Birthday" event on the account's own default
+       calendar in step (created, moved, renamed or removed when the birthday or the first name changes). */
+    var birthday = el('<div class="set-group"><div class="set-group-title">Birthday</div>' +
+      '<div class="set-row switch-row"><span><span class="sw-label">Your birthday</span><div class="sw-sub">Adds a yearly all-day event to your calendar. Clear it to remove the event.</div></span>' +
+      '<span class="dl-birthday-ctl"><input type="date" class="text-input dl-birthday-input" id="profileBirthday" aria-label="Birthday"><button type="button" class="btn-ghost dl-btn-sm" data-birthday-clear>Clear</button></span></div></div>');
+    var birthdayInput = birthday.querySelector("#profileBirthday"), birthdayClear = birthday.querySelector("[data-birthday-clear]");
+    birthdayInput.value = state.birthday || "";
+    birthdayClear.hidden = !state.birthday;
+    birthdayInput.addEventListener("input", function () {
+      state.birthday = /^\d{4}-\d{2}-\d{2}$/.test(birthdayInput.value) ? birthdayInput.value : "";
+      birthdayClear.hidden = !state.birthday;
+      if (settingsState.markDirty) settingsState.markDirty();
+    });
+    birthdayClear.addEventListener("click", function () {
+      state.birthday = ""; birthdayInput.value = ""; birthdayClear.hidden = true;
+      if (settingsState.markDirty) settingsState.markDirty();
+    });
+    pane.appendChild(birthday);
+
     var security = el('<div class="set-group"><div class="set-group-title">Security</div>' +
-      '<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("lock", 18) + '</span><span class="dl-sec-text"><span class="sw-label">Password</span><span class="sw-sub">We’ll email you a secure link to set a new password.</span></span><button type="button" class="btn-ghost dl-btn-sm" data-reset-password>Change</button></div>' +
+      '<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("lock", 18) + '</span><span class="dl-sec-text"><span class="sw-label">Password</span><span class="sw-sub">We’ll email you a secure link to set a new password.</span></span><button type="button" class="btn-ghost dl-btn-sm" data-reset-password aria-label="Change password">Change password</button></div>' +
       '<div class="dl-profile-status" data-security-status role="status" aria-live="polite"></div></div>');
     security.querySelector("[data-reset-password]").addEventListener("click", async function () {
       var securityStatus = security.querySelector("[data-security-status]");
@@ -613,6 +669,7 @@ style.textContent=`
 .dl-claude-state::before{content:"";width:7px;height:7px;border-radius:50%;background:var(--faint)}
 .dl-claude-state.is-on{color:#238b59}.dl-claude-state.is-on::before{background:#238b59}
 .dl-claude-instructions{font-size:13px;line-height:1.6;margin:0 0 18px}
+.dl-ai-note{margin:14px 0 0;font-size:12.5px;line-height:1.55;color:var(--muted)}.dl-ai-note[hidden]{display:none}
 .dl-ai-audit-row{padding:10px 0;min-height:42px;gap:10px;font-size:13px!important;border-top:1px solid var(--line-soft)}
 .dl-ai-wrap .set-group-title+.dl-ai-audit-row{border-top:0}
 .dl-ai-audit-row strong,.dl-ai-audit-row span{font-size:13px!important}
@@ -772,6 +829,14 @@ function organizeAiCards(wrapper){
  }
  const claudeState=claude.querySelector(".dl-claude-state");claudeState.textContent=connectedClaude?"Connected":"Not connected";claudeState.classList.toggle("is-on",!!connectedClaude);
  syncAppGrantRow(chat,/chatgpt|openai/i);
+ /* Recent activity is history: it stays after an app is disconnected. Say so on a card that is not connected but has history. */
+ const activityText=Array.from(wrapper.querySelectorAll('.dl-ai-audit-row')).map(r=>r.textContent||'');
+ [[chat,/chatgpt|openai/i,'ChatGPT',!!chat.querySelector('.dl-connected-label')||!!connectedChat],[claude,/claude|anthropic/i,'Claude',!!connectedClaude]].forEach(function(entry){
+  const card=entry[0];let note=card.querySelector('.dl-ai-note');
+  const stale=!entry[3]&&activityText.some(t=>entry[1].test(t));
+  if(stale&&!note){note=document.createElement('p');note.className='dl-ai-note';note.setAttribute('role','status');card.appendChild(note)}
+  if(note){note.hidden=!stale;note.textContent='Not connected right now. The '+entry[2]+' activity listed below is from when it was connected.'}
+ });
  syncAppGrantRow(claude,/claude|anthropic/i);
  const otherRows=Array.from(area.querySelectorAll(".dl-connected-item"));
  primary.style.display=otherRows.length?"":"none";
@@ -833,17 +898,23 @@ tidy();
   var css = document.createElement("style");
   css.textContent = [
     ".dialog.dl-calsettings:focus{outline:none}",
-    ".dialog.dl-calsettings{width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:min(780px,calc(100dvh - 32px));display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.1)}",
-    ".dl-cs2-head{display:flex;align-items:center;gap:10px;padding:22px 56px 6px 24px;min-height:56px;flex:none}",
+    ".dialog.dl-calsettings{width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:calc(100dvh - 32px);display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.1)}",
+    ".dl-cs2-head{display:flex;align-items:center;gap:10px;padding:20px 56px 4px 24px;min-height:52px;flex:none}",
     ".dl-cs2-dot{width:12px;height:12px;border-radius:50%;flex:none}",
     ".dl-cs2-name,.dl-cs2-title{flex:1;min-width:0;font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
     ".dl-cs2-name{display:block;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;margin:0;width:100%;font-size:14px;font-weight:500;letter-spacing:0}",
     ".dl-cs2-name:hover{border-color:var(--faint)}.dl-cs2-name:focus{outline:none;background:var(--input-bg);border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
     ".dialog.dl-calsettings>.settings-close{right:8px;top:8px;width:36px;height:36px;min-width:36px;min-height:36px}.dialog.dl-calsettings>.settings-close::before{inset:2px;border-radius:8px}",
-    ".dl-cs2-body{overflow-y:auto;padding:8px 24px 24px;min-height:0}.dl-cs2-body.has-pill{margin-bottom:64px}",
-    ".dl-cs2-section+.dl-cs2-section{margin-top:26px}.dl-cs2-section>.dl-cs2-label:first-child{margin-top:0}.dl-cs2-label.is-sub{margin:18px 0 10px}",
-    ".dl-cs2-label{font-size:11px;font-weight:650;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}",
+    ".dl-cs2-body{overflow-y:auto;padding:6px 24px 14px;min-height:0}.dl-cs2-body.has-pill{margin-bottom:64px}",
+    ".dl-cs2-section+.dl-cs2-section{margin-top:22px}.dl-cs2-section>.dl-cs2-label:first-child{margin-top:0}.dl-cs2-label.is-sub{margin:14px 0 9px}",
+    ".dl-cs2-label{font-size:11px;font-weight:650;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;margin:0 0 10px}",
     ".dl-cs2-swatches{display:flex;flex-wrap:wrap;gap:12px;align-items:center}",
+    /* The preset palette fills whole rows (no half-empty last row, no dead gap before "Your colors"). */
+    ".dl-cs2-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),1fr);justify-items:center;gap:8px 0}",
+    ".dl-cs2-swatches[data-saved]{min-height:26px}",
+    ".dl-cs2-body{scrollbar-color:var(--line) transparent;scrollbar-width:thin}.dl-cs2-body::-webkit-scrollbar{width:6px}.dl-cs2-body::-webkit-scrollbar-thumb{background:var(--line);border-radius:5px}",
+    ".dl-calsettings [data-section=\"actions\"] .set-row:last-child{padding-bottom:4px}",
+    ".dl-calsettings [data-section=\"actions\"] .dl-btn-sm{flex:none}",
     ".dl-sw-wrap{position:relative;width:26px;height:26px}",
     ".dl-sw{width:26px;height:26px;border-radius:50%;border:0;padding:0;background:var(--c);position:relative;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);transition:transform 120ms var(--ease-out)}",
     "[data-theme=dark] .dl-sw{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}",
@@ -860,7 +931,7 @@ tidy();
     ".dl-cs2-right{margin-left:auto;color:var(--muted);font-weight:400;font-size:13px;display:inline-flex;align-items:center;gap:6px}",
     ".dl-cs2-row.is-danger,.dl-cs2-row.is-danger .ic{color:var(--danger)}.dl-cs2-row.is-danger:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}",
     ".dl-cs2-chev{transition:transform 160ms var(--ease-out)}.dl-cs2-row[aria-expanded=true] .dl-cs2-chev{transform:rotate(90deg)}",
-    ".dl-cs2-panel{padding:0}.dl-cs2-panel[hidden]{display:none}.dl-cs2-panel .set-group-title{display:none}.dl-cs2-panel .set-row{padding:6px 0}",
+    ".dl-cs2-panel{padding:0}.dl-cs2-panel[hidden]{display:none}.dl-cs2-panel .set-group-title{display:none}",
     ".dl-cs2-account{font-size:12px;color:var(--muted);padding:2px 8px 0}",
     ".dialog.dl-calsettings .settings-savebar{left:50%!important;bottom:12px;gap:10px;padding:6px 6px 6px 14px;font-size:12px;white-space:nowrap}",
     ".dl-cs-link{display:flex;gap:8px;align-items:center;margin-top:10px}",
@@ -891,11 +962,11 @@ tidy();
         (builtin ? "" : '<div class="dl-cs2-section" data-section="name"><div class="dl-cs2-label">Name</div><input id="calSettingsName" class="dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name"></div>') +
         '<div class="dl-cs2-section" data-section="color"><div class="dl-cs2-label">Color</div><div class="dl-cs2-swatches" data-presets></div>' +
           '<div class="dl-cs2-label is-sub">Your colors</div><div class="dl-cs2-swatches" data-saved></div>' +
-          '<div data-inline-picker style="margin-top:14px"></div></div>' +
+          '<div data-inline-picker style="margin-top:8px"></div></div>' +
         (builtin ? "" : '<div class="dl-cs2-section" data-section="sharing"><div class="dl-cs2-label">Sharing</div><div class="dl-cs2-panel" data-share></div></div>') +
         '<div class="dl-cs2-section" data-section="actions"><div class="dl-cs2-label">Actions</div>' +
-          '<button type="button" class="dl-cs2-row" data-export>' + icon("download", 18) + "<span>Export .ics</span></button>" +
-          (builtin ? "" : '<div class="dl-cs2-divider"></div><button type="button" class="dl-cs2-row is-danger" data-delete>' + icon("trash", 18) + "<span>Delete calendar</span></button>") +
+          '<div class="set-row switch-row"><span><span class="sw-label">Export calendar</span></span><button type="button" class="btn-ghost dl-btn-sm" data-export>Export .ics</button></div>' +
+          (builtin ? "" : '<div class="set-row switch-row"><span><span class="sw-label">Delete calendar</span></span><button type="button" class="btn-danger-outline dl-btn-sm" data-delete>Delete calendar</button></div>') +
         "</div>" +
       "</div>";
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">Unsaved changes</span>' +
@@ -951,6 +1022,7 @@ tidy();
       var list = (window.daylightPresetColors || []).slice();
       /* A named palette color (or any color not in the list) shows as the selected swatch too. */
       if (list.indexOf(cal.color) === -1 && (state.customColors || []).indexOf(cal.color) === -1) list.unshift(cal.color);
+      presets.style.setProperty("--cols", String(Math.max(6, Math.ceil(list.length / 3))));
       list.forEach(function (key) { presets.appendChild(swatchButton(key, key === cal.color && !/^#/.test(key) ? colorName(key) : null)); });
       var mine = (state.customColors || []).filter(function (c) { return /^#[0-9A-F]{6}$/i.test(c); });
       mine.forEach(function (key) {

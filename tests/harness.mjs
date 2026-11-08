@@ -42,30 +42,49 @@ const STUB=`(function(){
   single(){return q.maybeSingle()},
   maybeSingle(){
    if(table==='workspace_snapshots'){
-     return new Promise(function(r){setTimeout(function(){var acct=window.__accounts&&window.__accounts[q._uid];r({data:{payload:(acct&&acct.payload)||cfg.payload,revision:1},error:null})},cfg.delayMs||0)});
+     return new Promise(function(r){setTimeout(function(){var acct=window.__accounts&&window.__accounts[q._uid];if(acct&&acct.payload===null){r({data:null,error:null});return}r({data:{payload:(acct&&acct.payload)||cfg.payload,revision:1},error:null})},cfg.delayMs||0)});
    }
    return Promise.resolve({data:null,error:null});
   },
   then(done){return Promise.resolve({data:[],error:null}).then(done)}};return q}
  var client={auth:{getSession:function(){return Promise.resolve({data:{session:session},error:null})},
    getUser:function(){return Promise.resolve({data:{user:session&&session.user},error:null})},
-   updateUser:function(){return Promise.resolve({data:{user:user},error:null})},
-   resetPasswordForEmail:function(){return Promise.resolve({data:{},error:null})},
+   updateUser:function(a){window.__metaUpdates=(window.__metaUpdates||[]).concat([a&&a.data]);return Promise.resolve({data:{user:user},error:null})},
+   resetPasswordForEmail:function(e){window.__resetCalls=(window.__resetCalls||[]).concat([e]);return Promise.resolve({data:{},error:null})},
    signOut:function(){return Promise.resolve({})},
    onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
    oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
   rpc:function(name,args){
-   var B=window.__bc;   /* stand-in for the broadcast functions: same rules as supabase/sql/20261124_broadcast_notifications.sql */
-   if(B&&/^daylight_(is_owner|list_broadcasts|mark_broadcasts_read|send_broadcast|delete_broadcast)$/.test(name)){
+   var B=window.__bc;   /* stand-in for the notification, banner and clear functions: same rules as supabase/sql/2026112[45]_*.sql */
+   if(B&&/^daylight_(is_owner|list_broadcasts|mark_broadcasts_read|send_broadcast|delete_broadcast|send_notification|clear_broadcast|admin_list_notifications|send_banner|list_banners|admin_list_banners|delete_banner)$/.test(name)){
     args=args||{};var uid=window.daylightCloud&&window.daylightCloud.user&&window.daylightCloud.user.id;
     var isOwner=!!uid&&B.owners.indexOf(uid)!==-1;B.calls=(B.calls||[]).concat([name]);
-    if(!uid)return Promise.resolve({data:null,error:{message:'Authenticated session required'}});
-    if(name==='daylight_is_owner')return Promise.resolve({data:isOwner,error:null});
-    if(name==='daylight_list_broadcasts'){var reads=B.reads[uid]||(B.reads[uid]={});return Promise.resolve({data:B.items.slice().sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,sender:'daylight',created_at:new Date(i.t).toISOString(),read:!!reads[i.id]}}),error:null})}
-    if(name==='daylight_mark_broadcasts_read'){var r2=B.reads[uid]||(B.reads[uid]={});B.items.forEach(function(i){r2[i.id]=1});return Promise.resolve({data:{ok:true},error:null})}
-    if(!isOwner)return Promise.resolve({data:null,error:{message:'Only the owner can '+(name==='daylight_send_broadcast'?'send notifications':'remove notifications')}});
-    if(name==='daylight_send_broadcast'){var t=String(args.p_title||'').trim(),b=String(args.p_body||'').trim();if(!t||!b)return Promise.resolve({data:null,error:{message:'Title must be 1 to 120 characters'}});var id='bc-'+(B.items.length+1)+'-'+Date.now();B.items.push({id:id,title:t,body:b,t:Date.now()});return Promise.resolve({data:{id:id},error:null})}
-    B.items=B.items.filter(function(i){return i.id!==args.p_id});return Promise.resolve({data:{deleted:true},error:null});
+    B.banners=B.banners||[];B.clears=B.clears||{};
+    var ok=function(d){return Promise.resolve({data:d,error:null})},bad=function(m){return Promise.resolve({data:null,error:{message:m}})};
+    if(!uid)return bad('Authenticated session required');
+    var accts=window.__accounts||{};
+    var resolve=function(list){var out={matched:[],missing:[],ids:[]};(list||[]).map(function(e){return String(e).trim().toLowerCase()}).filter(Boolean).filter(function(e,i,a){return a.indexOf(e)===i}).forEach(function(e){var hit=Object.keys(accts).filter(function(k){return String(accts[k].user.email).toLowerCase()===e})[0];if(hit){out.matched.push(e);out.ids.push(hit)}else out.missing.push(e)});return out};
+    var emailsOf=function(ids){return (ids||[]).map(function(k){return accts[k]&&accts[k].user.email}).filter(Boolean)};
+    var visible=function(i){return i.audience==='specific'?(i.recipients||[]).indexOf(uid)!==-1:true};
+    if(name==='daylight_is_owner')return ok(isOwner);
+    if(name==='daylight_list_broadcasts'){var reads=B.reads[uid]||(B.reads[uid]={}),clr=B.clears[uid]||{};return ok(B.items.filter(function(i){return visible(i)&&!clr[i.id]}).sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,sender:'daylight',created_at:new Date(i.t).toISOString(),read:!!reads[i.id]}}))}
+    if(name==='daylight_mark_broadcasts_read'){var r2=B.reads[uid]||(B.reads[uid]={});B.items.forEach(function(i){r2[i.id]=1});return ok({ok:true})}
+    if(name==='daylight_clear_broadcast'){(B.clears[uid]||(B.clears[uid]={}))[args.p_id]=1;return ok({cleared:true})}
+    if(name==='daylight_list_banners')return ok(B.banners.filter(visible).sort(function(a,b){return b.t-a.t}).map(function(b){return {id:b.id,body:b.body,color:b.color,link:b.link||null,created_at:new Date(b.t).toISOString()}}));
+    if(!isOwner)return bad('Only the owner can do this');
+    if(name==='daylight_send_broadcast'||name==='daylight_send_notification'){var t=String(args.p_title||'').trim(),b=String(args.p_body||'').trim();if(!t||t.length>120)return bad('Title must be 1 to 120 characters');if(!b||b.length>1000)return bad('Message must be 1 to 1000 characters');
+     var em=args.p_emails;if(!em||!em.length){var id='bc-'+(B.items.length+1)+'-'+Date.now();B.items.push({id:id,title:t,body:b,t:Date.now(),audience:'everyone',recipients:[]});return ok({sent:true,id:id,audience:'everyone',matched:[],not_found:[]})}
+     var r=resolve(em);if(!r.ids.length)return ok({sent:false,audience:'specific',matched:[],not_found:r.missing});
+     var id2='bc-'+(B.items.length+1)+'-'+Date.now();B.items.push({id:id2,title:t,body:b,t:Date.now(),audience:'specific',recipients:r.ids});return ok({sent:true,id:id2,audience:'specific',matched:r.matched,not_found:r.missing})}
+    if(name==='daylight_admin_list_notifications')return ok(B.items.slice().sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,audience:i.audience,recipients:emailsOf(i.recipients),created_at:new Date(i.t).toISOString()}}));
+    if(name==='daylight_delete_broadcast'){B.items=B.items.filter(function(i){return i.id!==args.p_id});return ok({deleted:true})}
+    if(name==='daylight_send_banner'){var bt=String(args.p_body||'').trim();if(!bt||bt.length>200)return bad('Banner text must be 1 to 200 characters');if(!/^#[0-9A-Fa-f]{6}$/.test(String(args.p_color||'')))return bad('Pick a banner color');if(args.p_link&&!/^https?:[/][/][^ ]+$/i.test(args.p_link))return bad('The link must start with http:// or https://');
+     var be=args.p_emails,bid='bn-'+(B.banners.length+1)+'-'+Date.now();
+     if(!be||!be.length){B.banners.push({id:bid,body:bt,color:String(args.p_color).toUpperCase(),link:args.p_link||null,t:Date.now(),audience:'everyone',recipients:[]});return ok({sent:true,id:bid,audience:'everyone',matched:[],not_found:[]})}
+     var br=resolve(be);if(!br.ids.length)return ok({sent:false,audience:'specific',matched:[],not_found:br.missing});
+     B.banners.push({id:bid,body:bt,color:String(args.p_color).toUpperCase(),link:args.p_link||null,t:Date.now(),audience:'specific',recipients:br.ids});return ok({sent:true,id:bid,audience:'specific',matched:br.matched,not_found:br.missing})}
+    if(name==='daylight_admin_list_banners')return ok(B.banners.slice().sort(function(a,b){return b.t-a.t}).map(function(b){return {id:b.id,body:b.body,color:b.color,link:b.link,audience:b.audience,recipients:emailsOf(b.recipients),created_at:new Date(b.t).toISOString()}}));
+    if(name==='daylight_delete_banner'){B.banners=B.banners.filter(function(b){return b.id!==args.p_id});return ok({deleted:true})}
    }
    var S=window.__srv;   /* a tiny stand-in for the sessions functions, switched on by tests that need it */
    if(S){
@@ -89,7 +108,7 @@ const STUB=`(function(){
 })();`;
 
 /** A realistic December workspace: stacked multi-day bars, busy days, holidays. */
-export const TINY_AVATAR='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGNk+M/wn4EIwDiqEAEAAJwDAXH0H7sAAAAASUVORK5CYII=';
+export const TINY_AVATAR='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGNk+M/wn4EIwDiqEAEAAJwDAXH0H7sAAAAASUVORK5CYII=#/00000000-0000-4000-8000-000000000001/';
 export function busyPayload({month=11,spans=4,busyDay=9,avatar=''}={}){
  const events=[];let id=1;
  const add=(d,h,t,cal,extra)=>events.push(Object.assign({id:id++,cal,title:t,start:new Date(2026,month,d,h).toISOString(),end:new Date(2026,month,d,h,45).toISOString(),allDay:false,loc:'',desc:''},extra||{}));

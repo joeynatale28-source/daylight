@@ -20,7 +20,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.waitForSelector('.dl-calsettings, .menu');await shot('calendar-menu');await clear();
   await page.evaluate(()=>openSettings('calendar'));await page.waitForSelector('.settings-dialog');
   await page.evaluate(()=>{const i=document.querySelector('#csWeekends');i.checked=!i.checked;i.dispatchEvent(new Event('change',{bubbles:true}))});await sleep(300);
-  await page.evaluate(()=>document.querySelector('.settings-savebar [data-discard]').click());await page.waitForSelector('#dlSettingsDiscardConfirm');await shot('discard-confirm');await clear();
+  await page.evaluate(()=>document.querySelector('.settings-savebar [data-discard]').click());await sleep(300);await clear();
   await page.evaluate(()=>openConfirm({title:'Delete calendar?',body:'This permanently removes the calendar and its events.',confirmLabel:'Delete',danger:true,fn(){}}));await shot('confirm-dialog');await clear();
   await page.click('#headerBand .dl-notif-btn');await page.waitForSelector('.dl-notif-panel');await shot('notifications-panel');await page.keyboard.press('Escape');await clear();
   await page.keyboard.down('Control');await page.keyboard.press('k');await page.keyboard.up('Control');await sleep(300);await shot('search');await page.keyboard.press('Escape');await clear();

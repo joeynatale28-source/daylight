@@ -55,7 +55,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   assert.deepEqual(prof.rail,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
   assert.equal(prof.active,'Profile');
   assert.ok(prof.avatar&&prof.lock&&!prof.emailEditable&&prof.emailText==='demo@example.com'&&prof.name==='Calendar Demo','identity card: '+JSON.stringify(prof));
-  assert.deepEqual([prof.sec.tile,prof.sec.button,prof.badge,prof.others],[true,'Change','This device',true],'security + sessions: '+JSON.stringify(prof));
+  assert.deepEqual([prof.sec.tile,prof.sec.button,prof.badge,prof.others],[true,'Change password','This device',true],'security + sessions: '+JSON.stringify(prof));
   await page.click('[data-signout-others]');
   await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');
   await page.click('#overlayRoot > .backdrop:last-child [data-ok]');

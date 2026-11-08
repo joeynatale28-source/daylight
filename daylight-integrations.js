@@ -27,8 +27,10 @@
   const own = () => cloud && cloud.ready && cloud.user;
   async function call(fn, body) {
     if (!own()) throw Error('Sign in to daylight first');
-    await cloud.ensureSession();
-    const {data,error} = await cloud.client.functions.invoke(fn,{body});
+    const session = await cloud.ensureSession();
+    /* Send this account's own access token explicitly, so the function never sees a stale or missing one. */
+    const headers = session && session.access_token ? {Authorization:'Bearer '+session.access_token} : undefined;
+    const {data,error} = await cloud.client.functions.invoke(fn,headers?{body,headers}:{body});
     if (error) {
       if(error.context&&cloud.noteAuthFailure)cloud.noteAuthFailure(error.context.status);
       let msg=error.message||'Request failed';
@@ -262,12 +264,23 @@
       title:'Reset public link?',body:'The current link stops working immediately and a new link is created. Anyone using the old link will need the new one.',
       confirmLabel:'Reset link',danger:true,fn:()=>run('public-reset','Creating a new link…','New link created. The previous link no longer works.')
     }));
-    toggle.disabled=true;say('Checking sharing…');
-    call('ical-feed',{action:'public-status',calendar_id:cal.id}).then(result=>{
-      enabled=!!result.public_enabled;
-      if(!enabled&&cal.publicLink)remember('');
-      draw();say('');toggle.disabled=false;
-    }).catch(error=>{say((error.message||'Couldn’t load sharing')+'.',true);toggle.disabled=true});
+    /* Reading the sharing state. If it can't be read (for example the sign-in check on the server says no), show a calm,
+       plain message with a retry instead of a red error on a dead switch. */
+    function checkSharing(){
+      toggle.disabled=true;say('Checking sharing…');
+      call('ical-feed',{action:'public-status',calendar_id:cal.id}).then(result=>{
+        enabled=!!result.public_enabled;
+        if(!enabled&&cal.publicLink)remember('');
+        draw();say('');toggle.disabled=false;
+      }).catch(error=>{
+        const raw=String((error&&error.message)||'');
+        say(/authentication|sign in|session|jwt/i.test(raw)?'Sharing couldn’t confirm your sign-in just now.':'Sharing isn’t available right now.',false);
+        const retry=document.createElement('button');retry.type='button';retry.className='btn-ghost dl-btn-sm';retry.textContent='Try again';retry.style.marginLeft='10px';
+        retry.addEventListener('click',()=>{if(cloud&&cloud.resetAuthBlock)cloud.resetAuthBlock();checkSharing()});note.appendChild(retry);
+        toggle.disabled=true;
+      });
+    }
+    checkSharing();
   };
   function feedPane(pane) {
     const existing=pane.querySelector('.set-group');

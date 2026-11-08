@@ -6,6 +6,7 @@ on:
       - index.html
       - daylight-cloud.js
       - daylight-notifications.js
+      - daylight-admin.js
       - daylight-integrations.js
       - daylight-oauth.js
       - daylight-settings.js

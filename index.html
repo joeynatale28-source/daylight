@@ -17,6 +17,8 @@
          session, and is there a first-paint snapshot of the last real render
          for this account and build? Everything is wrapped: storage can throw. */
       window.__DL_BUILD = "__BUILD_ID__";
+      /* The real window height, so the layout never depends on dvh agreeing with what is actually visible. */
+      (function () { var set = function () { document.documentElement.style.setProperty("--dl-app-h", window.innerHeight + "px"); }; set(); window.addEventListener("resize", set); window.addEventListener("orientationchange", set); })();
       (function () {
         var theme = "dark", mode = "system", boot = { hint: false, snap: null };
         try { mode = localStorage.getItem("daylight-theme-mode") || "system"; } catch (e) {}
@@ -208,7 +210,8 @@
       svg.ic { flex: none; display: block; }
 
       /* ---------- App frame ---------- */
-      #app { display: flex; height: 100dvh; }
+      /* The app fills the real window height, minus any banner strip above it (see daylight-admin.js). */
+      #app { display: flex; height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); }
       html { background: var(--bg); }
       /* Calendar-area loading state (critical CSS: it paints with the shell). */
       #main{position:relative}
@@ -1275,12 +1278,12 @@
       }
       /* Below 640px — phones: off-canvas drawer sidebar, full-width main */
       @media (max-width: 639px) {
-        html, body { height: 100dvh; }
-        #app { height: 100dvh; }
+        html, body { height: var(--dl-app-h, 100dvh); }
+        #app { height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); }
         #main { width: 100%; min-width: 0; }
         #sidebar {
           display: none;
-          position: fixed; top: 0; left: 0; bottom: 0; height: 100dvh; z-index: 390;
+          position: fixed; top: var(--dl-banner-h, 0px); left: 0; bottom: 0; height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); z-index: 390;
           width: min(324px, 88vw) !important; padding: 20px 20px 14px;
           box-shadow: var(--shadow-pop);
         }
@@ -1789,7 +1792,7 @@
 /* compact: one spectrum bar + one row of HEX / R / G / B (no square, no preview chip) */
 .dl-inline-picker.dl-compact{gap:0}
 .dl-compact .dl-color-square,.dl-compact .dl-color-preview{display:none}
-.dl-compact .dl-color-hue{height:10px;border-radius:5px;margin:16px 0 12px}
+.dl-compact .dl-color-hue{height:10px;border-radius:5px;margin:12px 0 10px}
 .dl-compact .dl-color-hue::-webkit-slider-thumb{width:16px;height:16px;border:2px solid #fff;background:var(--cs-thumb,#555);box-shadow:0 0 0 1px rgba(0,0,0,.35),0 1px 3px rgba(0,0,0,.3)}
 .dl-compact .dl-color-hue::-moz-range-thumb{width:12px;height:12px;border:2px solid #fff;background:var(--cs-thumb,#555);box-shadow:0 0 0 1px rgba(0,0,0,.35)}
 .dl-compact .dl-inline-values{grid-template-columns:minmax(0,1fr) 54px 54px 54px;gap:6px;align-items:stretch}
@@ -1910,6 +1913,7 @@
         trash: '<path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><path d="M10 11v6"/><path d="M14 11v6"/>',
         dotsV: '<circle cx="12" cy="5" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="19" r="1.6" fill="currentColor" stroke="none"/>',
         dotsH: '<circle cx="5" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="19" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+        shield: '<path d="M12 3 5 6v6c0 4.4 3 7.4 7 9 4-1.6 7-4.6 7-9V6l-7-3Z"/><path d="m9.5 12 1.8 1.8 3.4-3.6"/>',
         keyboard: '<rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01"/><path d="M10 10h.01"/><path d="M14 10h.01"/><path d="M18 10h.01"/><path d="M6 14h.01"/><path d="M18 14h.01"/><path d="M9 14h6"/>',
         briefcase: '<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2"/>',
         eye: '<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
@@ -2018,9 +2022,11 @@
         miniCursor: dt(BOOT_TODAY.getFullYear(), BOOT_TODAY.getMonth(), 1),
         miniSelected: new Date(BOOT_TODAY),
         themeMode: "system",
-        firstName: "Joey",
-        profileName: "Joey Natale",
+        /* No account's identity is ever baked in: these are neutral until the signed-in account's own record is loaded. */
+        firstName: "Account",
+        profileName: "Account",
         avatarUrl: "",
+        birthday: "",
         customColors: [],
         tzLabel: "America/New_York",
         weekNumbers: false,
@@ -4776,8 +4782,8 @@
         state.section = "calendar"; state.taskFilter = "all";
         taskDraft.title = ""; taskDraft.date = null; taskDraft.cal = null;
         state.feeds = seedFeeds();
-        state.firstName = "Joey";
-        state.profileName = "Joey Natale";
+        state.firstName = "Account";
+        state.profileName = "Account";
         state.view = "month"; state.prevView = null;
         state.cursor = sod(TODAY); state.selected = sod(TODAY);
         state.miniCursor = dt(TODAY.getFullYear(), TODAY.getMonth(), 1); state.miniSelected = sod(TODAY);
@@ -4805,11 +4811,11 @@
         paneHead(pane, "General", "The basics of your daylight account.");
         var g = el('<div class="set-group"><div class="set-group-title">Profile</div>' +
           '<div class="field"><label for="gsName">First name</label><input class="text-input" id="gsName" style="max-width:300px" value="' + esc(state.firstName) + '"><p class="inline-note">Shown in your profile and account details.</p></div>' +
-          '<div class="field"><label>Email</label><input class="text-input" style="max-width:300px" value="joeynatale28@gmail.com" disabled><p class="inline-note">The email you sign in with. It cannot be changed here.</p></div></div>');
+          '<div class="field"><label>Email</label><input class="text-input" style="max-width:300px" value="" disabled><p class="inline-note">The email you sign in with. It cannot be changed here.</p></div></div>');
         pane.appendChild(g);
         var nameIn = g.querySelector("#gsName");
         nameIn.addEventListener("input", function () {
-          state.firstName = nameIn.value.trim() || "Joey";
+          state.firstName = nameIn.value.trim() || "Account";
           /* The sidebar profile shows the full name — swap its first
              word for the new first name, keeping the rest, so this
              field visibly takes effect in the profile footer. */
@@ -5842,6 +5848,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
     <script src="./daylight-notifications.js"></script>
+    <script src="./daylight-admin.js"></script>
     <script src="./daylight-integrations.js"></script>
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
