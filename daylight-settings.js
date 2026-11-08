@@ -43,7 +43,9 @@
     var css = document.createElement("style");
     css.textContent = [
       ".settings-dialog{position:relative;overflow:hidden;border-radius:var(--r-xl)}",
-      ".settings-pane{position:relative;isolation:isolate;padding-bottom:104px;overflow-y:auto;min-height:0}",
+      ".settings-pane{position:relative;isolation:isolate;padding-bottom:44px;overflow-y:auto;min-height:0}",
+      /* While the save pill shows, the scrolling area ends above it, so the pill never sits on a label, description or control. */
+      ".settings-dialog:has(.settings-savebar:not([hidden])) .settings-pane{margin-bottom:68px}",
       ".settings-savebar{position:absolute;left:calc(50% + 100px);right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-pop)!important;isolation:isolate}",
       ".settings-savebar[hidden]{display:none!important}",
@@ -432,26 +434,44 @@
     pane.appendChild(othersRow);
     var othersButton = othersRow.querySelector("button");
     var otherSessions = [];
+    var listRows = [];
+    /* A removed row fades while its height collapses, so the rows below glide up (no instant vanish, no jump).
+       Always resolves, and always removes the row, even if the transition never ends. */
+    function collapseRow(row) {
+      return new Promise(function (resolve) {
+        var reduce = document.body.classList.contains("reduce-motion") || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches);
+        if (reduce || !row.isConnected) { row.remove(); resolve(); return; }
+        var h = row.offsetHeight;
+        row.style.height = h + "px"; row.style.overflow = "hidden"; row.style.boxSizing = "border-box";
+        row.style.transition = "height 220ms var(--ease-out), opacity 160ms ease, padding 220ms var(--ease-out), margin 220ms var(--ease-out)";
+        row.getBoundingClientRect();
+        row.classList.add("is-leaving");
+        row.style.height = "0px"; row.style.opacity = "0"; row.style.paddingTop = "0"; row.style.paddingBottom = "0"; row.style.marginTop = "0"; row.style.marginBottom = "0"; row.style.borderWidth = "0";
+        setTimeout(function () { row.remove(); resolve(); }, 250);
+      });
+    }
     othersButton.addEventListener("click", function () {
       openConfirm({ title: "Sign out all other sessions?", body: "Every device except this one will need to sign in again.", confirmLabel: "Sign out", danger: true, fn: async function () {
         othersButton.disabled = true;
-        var failed = 0;
+        var failed = 0, gone = [];
         for (var n = 0; n < otherSessions.length; n++) {
           var res = await client.rpc("daylight_revoke_my_session", { p_session_id: String(otherSessions[n].id) });
-          if (res.error) failed++;
+          if (res.error) failed++; else gone.push(otherSessions[n]);
         }
+        /* Rows leave together, then the list is read back so it matches the server. */
+        await Promise.all(listRows.filter(function (ref) { return gone.indexOf(ref.session) !== -1; }).map(function (ref) { return collapseRow(ref.row); }));
         othersButton.disabled = false;
-        await loadSessions();
+        await loadSessions(true);
         sessionStatus.textContent = failed ? "Couldn’t sign out " + failed + " of the other sessions." : "All other sessions were signed out.";
         sessionStatus.classList.toggle("is-error", !!failed);
       } });
     });
     var list = sessions.querySelector(".dl-session-list");
     var sessionStatus = sessions.querySelector("[data-session-status]");
-    async function loadSessions() {
+    async function loadSessions(quiet) {
       if (typeof othersButton !== "undefined") othersButton.hidden = true;
-      list.innerHTML = '<div class="dl-session-row dl-session-loading"><span class="dl-session-device-icon"></span><span class="dl-session-text"><i></i><i></i></span></div>';
-      sessionStatus.textContent = ""; sessionStatus.classList.remove("is-error");
+      if (!quiet) list.innerHTML = '<div class="dl-session-row dl-session-loading"><span class="dl-session-device-icon"></span><span class="dl-session-text"><i></i><i></i></span></div>';
+      if (!quiet) { sessionStatus.textContent = ""; sessionStatus.classList.remove("is-error"); }
       if (!client || !user) { list.textContent = ""; sessionStatus.textContent = "Sign in to see your active sessions."; return; }
       var result;
       try { result = await client.rpc("daylight_list_my_sessions"); } catch (error) { result = { error: error }; }
@@ -461,6 +481,11 @@
       var rows = Array.isArray(result.data) ? result.data.slice() : [];
       rows.sort(function (a, b) { return (b.current ? 1 : 0) - (a.current ? 1 : 0) || new Date(b.last_active) - new Date(a.last_active); });
       if (!rows.length) { sessionStatus.textContent = "No active sessions found."; return; }
+      /* One row per device: the server already collapses a device's sign-ins; this keeps the list right even if a
+         row for the same registered device slips through. Rows with no device id are never merged. */
+      var seenDevices = {};
+      rows = rows.filter(function (r) { if (!r.device_id) return true; if (seenDevices[r.device_id]) return false; seenDevices[r.device_id] = true; return true; });
+      var rowRefs = [];
       rows.forEach(function (session) {
         var parsed = sessionDevice(session.user_agent);
         var row = el('<div class="dl-session-row" role="listitem"><span class="dl-session-device-icon" aria-hidden="true">' + icon(parsed.icon, 16) + '</span>' +
@@ -473,16 +498,22 @@
           revoke.addEventListener("click", function () {
             openConfirm({ title: "Sign out " + parsed.label + "?", body: "That device will need to sign in again.", confirmLabel: "Sign out", danger: true, fn: async function () {
               revoke.disabled = true;
+              /* The sign-out is done first; the animation is only the way the row leaves. */
               var revoked = await client.rpc("daylight_revoke_my_session", { p_session_id: String(session.id) });
               if (revoked.error) { sessionStatus.textContent = "Couldn’t sign out that session: " + revoked.error.message; sessionStatus.classList.add("is-error"); revoke.disabled = false; return; }
-              await loadSessions();
+              otherSessions = otherSessions.filter(function (r) { return r !== session; });
+              othersButton.hidden = !otherSessions.length;
               sessionStatus.textContent = parsed.label + " was signed out.";
+              await collapseRow(row);
+              if (!list.querySelector(".dl-session-row")) loadSessions(true);
             } });
           });
           row.querySelector(".dl-session-actions").appendChild(revoke);
         }
         list.appendChild(row);
+        rowRefs.push({ session: session, row: row });
       });
+      listRows = rowRefs;
       otherSessions = rows.filter(function (r) { return !r.current; });
       othersButton.hidden = !otherSessions.length;
     }
@@ -788,16 +819,17 @@ tidy();
   var css = document.createElement("style");
   css.textContent = [
     ".dialog.dl-calsettings:focus{outline:none}",
-    ".dialog.dl-calsettings{width:336px;max-width:calc(100vw - 24px);max-height:min(740px,calc(100dvh - 24px));display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.1)}",
-    ".dl-cs2-head{display:flex;align-items:center;gap:10px;padding:16px 50px 0 18px;min-height:52px;flex:none}",
+    ".dialog.dl-calsettings{width:min(420px,calc(100vw - 32px));max-width:calc(100vw - 32px);max-height:min(780px,calc(100dvh - 32px));display:flex;flex-direction:column;position:relative;overflow:hidden;padding:0;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 50px rgba(0,0,0,.28),0 2px 8px rgba(0,0,0,.1)}",
+    ".dl-cs2-head{display:flex;align-items:center;gap:10px;padding:22px 56px 6px 24px;min-height:56px;flex:none}",
     ".dl-cs2-dot{width:12px;height:12px;border-radius:50%;flex:none}",
     ".dl-cs2-name,.dl-cs2-title{flex:1;min-width:0;font:inherit;font-size:15px;font-weight:600;letter-spacing:-.01em;line-height:1.3;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}",
-    ".dl-cs2-name{background:transparent;border:1px solid transparent;border-radius:8px;padding:4px 6px;margin:-5px -7px;width:calc(100% + 14px)}",
-    ".dl-cs2-name:hover{background:var(--hover)}.dl-cs2-name:focus{outline:none;background:var(--input-bg);border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
+    ".dl-cs2-name{display:block;background:var(--input-bg);border:1px solid var(--line);border-radius:10px;padding:0 12px;height:40px;margin:0;width:100%;font-size:14px;font-weight:500;letter-spacing:0}",
+    ".dl-cs2-name:hover{border-color:var(--faint)}.dl-cs2-name:focus{outline:none;background:var(--input-bg);border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
     ".dialog.dl-calsettings>.settings-close{right:8px;top:8px;width:36px;height:36px;min-width:36px;min-height:36px}.dialog.dl-calsettings>.settings-close::before{inset:2px;border-radius:8px}",
-    ".dl-cs2-body{overflow-y:auto;padding:4px 18px 18px;min-height:0}.dl-cs2-body.has-pill{padding-bottom:70px}",
-    ".dl-cs2-label{font-size:11px;font-weight:650;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;margin:16px 0 10px}",
-    ".dl-cs2-swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center}",
+    ".dl-cs2-body{overflow-y:auto;padding:8px 24px 24px;min-height:0}.dl-cs2-body.has-pill{margin-bottom:64px}",
+    ".dl-cs2-section+.dl-cs2-section{margin-top:26px}.dl-cs2-section>.dl-cs2-label:first-child{margin-top:0}.dl-cs2-label.is-sub{margin:18px 0 10px}",
+    ".dl-cs2-label{font-size:11px;font-weight:650;letter-spacing:.09em;color:var(--muted);text-transform:uppercase;margin:0 0 12px}",
+    ".dl-cs2-swatches{display:flex;flex-wrap:wrap;gap:12px;align-items:center}",
     ".dl-sw-wrap{position:relative;width:26px;height:26px}",
     ".dl-sw{width:26px;height:26px;border-radius:50%;border:0;padding:0;background:var(--c);position:relative;display:grid;place-items:center;cursor:pointer;box-shadow:inset 0 0 0 1px rgba(0,0,0,.14);transition:transform 120ms var(--ease-out)}",
     "[data-theme=dark] .dl-sw{box-shadow:inset 0 0 0 1px rgba(255,255,255,.14)}",
@@ -808,13 +840,13 @@ tidy();
     ".dl-sw-wrap .dl-color-remove{position:absolute;right:-5px;top:-5px;width:15px;height:15px;font-size:11px;line-height:13px;opacity:0;transition:opacity 120ms;z-index:2}",
     ".dl-sw-wrap:hover .dl-color-remove,.dl-sw-wrap:focus-within .dl-color-remove{opacity:1}",
     ".dl-cs2-empty{font-size:12.5px;color:var(--muted);margin-right:4px}",
-    ".dl-cs2-divider{height:1px;background:var(--line-soft);margin:16px -4px}",
-    ".dl-cs2-row{display:flex;align-items:center;gap:12px;width:100%;height:40px;padding:0 8px;border-radius:8px;font-size:14px;font-weight:500;text-align:left;color:var(--text);cursor:pointer;transition:background 120ms var(--ease-out)}",
+    ".dl-cs2-divider{height:1px;background:var(--line-soft);margin:14px 0}",
+    ".dl-cs2-row{display:flex;align-items:center;gap:12px;width:100%;height:44px;padding:0 10px;margin-left:-10px;width:calc(100% + 20px);border-radius:8px;font-size:14px;font-weight:500;text-align:left;color:var(--text);cursor:pointer;transition:background 120ms var(--ease-out)}",
     ".dl-cs2-row:hover{background:var(--hover)}.dl-cs2-row:disabled{opacity:.55;cursor:default}.dl-cs2-row .ic{flex:none;color:var(--muted)}",
     ".dl-cs2-right{margin-left:auto;color:var(--muted);font-weight:400;font-size:13px;display:inline-flex;align-items:center;gap:6px}",
     ".dl-cs2-row.is-danger,.dl-cs2-row.is-danger .ic{color:var(--danger)}.dl-cs2-row.is-danger:hover{background:color-mix(in srgb,var(--danger) 10%,transparent)}",
     ".dl-cs2-chev{transition:transform 160ms var(--ease-out)}.dl-cs2-row[aria-expanded=true] .dl-cs2-chev{transform:rotate(90deg)}",
-    ".dl-cs2-panel{padding:4px 8px 8px 8px}.dl-cs2-panel[hidden]{display:none}.dl-cs2-panel .set-group-title{display:none}.dl-cs2-panel .set-row{padding:6px 0}",
+    ".dl-cs2-panel{padding:0}.dl-cs2-panel[hidden]{display:none}.dl-cs2-panel .set-group-title{display:none}.dl-cs2-panel .set-row{padding:6px 0}",
     ".dl-cs2-account{font-size:12px;color:var(--muted);padding:2px 8px 0}",
     ".dialog.dl-calsettings .settings-savebar{left:50%!important;bottom:12px;gap:10px;padding:6px 6px 6px 14px;font-size:12px;white-space:nowrap}",
     ".dl-cs-link{display:flex;gap:8px;align-items:center;margin-top:10px}",
@@ -840,18 +872,18 @@ tidy();
     var dlg = el('<div class="dialog dl-calsettings" role="dialog" aria-modal="true" aria-label="Calendar settings"></div>');
     var chev = icon("chevR", 16);
     dlg.innerHTML =
-      '<div class="dl-cs2-head"><span class="dl-cs2-dot"></span>' +
-        (builtin ? '<span class="dl-cs2-title"></span>' : '<input id="calSettingsName" class="dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name">') +
-      "</div>" +
+      '<div class="dl-cs2-head"><span class="dl-cs2-dot"></span><span class="dl-cs2-title"></span></div>' +
       '<div class="dl-cs2-body">' +
-        '<div class="dl-cs2-label" style="margin-top:14px">Color</div><div class="dl-cs2-swatches" data-presets></div>' +
-        '<div class="dl-cs2-label">Your colors</div><div class="dl-cs2-swatches" data-saved></div>' +
-        '<div data-inline-picker></div>' +
-        '<div class="dl-cs2-divider"></div>' +
-        (cal.caldav ? '<div data-caldav></div>' :
-          (builtin ? "" : '<button type="button" class="dl-cs2-row" data-share-row aria-expanded="false">' + icon("upload", 18) + '<span>Share calendar</span><span class="dl-cs2-right"><span data-share-state>' + (cal.publicLink ? "On" : "Off") + "</span>" + '<span class="dl-cs2-chev" style="display:inline-flex">' + chev + "</span></span></button>" + '<div class="dl-cs2-panel" data-share hidden></div>') +
-          '<button type="button" class="dl-cs2-row" data-export>' + icon("download", 18) + "<span>Export .ics</span></button>" +
-          (builtin ? "" : '<div class="dl-cs2-divider"></div><button type="button" class="dl-cs2-row is-danger" data-delete>' + icon("trash", 18) + "<span>Delete calendar</span></button>")) +
+        (builtin ? "" : '<div class="dl-cs2-section" data-section="name"><div class="dl-cs2-label">Name</div><input id="calSettingsName" class="dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name"></div>') +
+        '<div class="dl-cs2-section" data-section="color"><div class="dl-cs2-label">Color</div><div class="dl-cs2-swatches" data-presets></div>' +
+          '<div class="dl-cs2-label is-sub">Your colors</div><div class="dl-cs2-swatches" data-saved></div>' +
+          '<div data-inline-picker style="margin-top:14px"></div></div>' +
+        ((builtin || cal.caldav) ? "" : '<div class="dl-cs2-section" data-section="sharing"><div class="dl-cs2-label">Sharing</div><div class="dl-cs2-panel" data-share></div></div>') +
+        '<div class="dl-cs2-section" data-section="actions"><div class="dl-cs2-label">Actions</div>' +
+          (cal.caldav ? '<div data-caldav></div>' :
+            '<button type="button" class="dl-cs2-row" data-export>' + icon("download", 18) + "<span>Export .ics</span></button>" +
+            (builtin ? "" : '<div class="dl-cs2-divider"></div><button type="button" class="dl-cs2-row is-danger" data-delete>' + icon("trash", 18) + "<span>Delete calendar</span></button>")) +
+        "</div>" +
       "</div>";
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">Unsaved changes</span>' +
       '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save</span><svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
@@ -939,16 +971,8 @@ tidy();
     if (caldavHost && window.daylightCaldavPopup) window.daylightCaldavPopup(cal, caldavHost, { close: function () { finish(false); } });
     var deleteButton = dlg.querySelector("[data-delete]");
     if (deleteButton) deleteButton.addEventListener("click", function () { finish(false); confirmDeleteCalendar(cal); });
-    var shareRow = dlg.querySelector("[data-share-row]"), sharePanel = dlg.querySelector("[data-share]");
-    if (shareRow) {
-      shareRow.addEventListener("click", function () {
-        var open = sharePanel.hidden;
-        sharePanel.hidden = !open;
-        shareRow.setAttribute("aria-expanded", String(open));
-      });
-      sharePanel.addEventListener("dl-share-state", function (e) { dlg.querySelector("[data-share-state]").textContent = e.detail.enabled ? "On" : "Off"; });
-      if (window.daylightShareCalendar) window.daylightShareCalendar(cal, sharePanel);
-    }
+    var sharePanel = dlg.querySelector("[data-share]");
+    if (sharePanel && window.daylightShareCalendar) window.daylightShareCalendar(cal, sharePanel);
 
     function revert() {
       cal.color = original.color;

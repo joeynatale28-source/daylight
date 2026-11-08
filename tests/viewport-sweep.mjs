@@ -12,6 +12,9 @@ fs.mkdirSync(out,{recursive:true});
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const WIDTHS=(process.env.WIDTHS||'1920,1680,1512,1440,1366,1280').split(',').map(Number);
 const HEIGHTS=(process.env.HEIGHTS||'900,700').split(',').map(Number);
+const PAIRS=process.env.SIZES?process.env.SIZES.split(',').map(x=>x.split('x').map(Number)):HEIGHTS.flatMap(h=>WIDTHS.map(w=>[w,h]));
+const ALL=!!process.env.ALL_SHOTS;
+const vp=(w,h)=>({width:w,height:h,deviceScaleFactor:1,isMobile:w<=834,hasTouch:w<=834});
 const THEMES=(process.env.THEMES||'dark,light').split(',');
 const ONLY=process.env.SURFACES?process.env.SURFACES.split(','):null;
 
@@ -78,15 +81,15 @@ for(const theme of THEMES){
   await page.evaluate(()=>{state.customColors=['#13A5C7','#6C5CE7']});
   for(const [name,def] of Object.entries(surfaces)){
    if(ONLY&&!ONLY.includes(name))continue;
-   for(const h of HEIGHTS)for(const w of WIDTHS){
-    await page.setViewport({width:w,height:h,deviceScaleFactor:1});await sleep(120);
+   for(const [w,h] of PAIRS){
+    await page.setViewport(vp(w,h));await sleep(120);
     try{
      await page.evaluate(()=>{document.querySelectorAll('#overlayRoot>*,.menu,.popover,.dl-notif-panel,.palette-backdrop').forEach(n=>n.remove());try{closeSearch()}catch(e){}try{closeNotifPanel()}catch(e){}if(window.settingsState)settingsState.transactionActive=false;state.calendars=state.calendars.filter(c=>!c.caldav)});
      await sleep(80);
      await def.open(page);await sleep(520);
      const r=await page.evaluate(inspectPage,def.root||null);
      results.push({surface:name,theme,w,h,issues:r.issues});
-     const worst=(w===Math.min(...WIDTHS)&&h===Math.min(...HEIGHTS));
+     const worst=ALL||(w===Math.min(...PAIRS.map(x=>x[0]))&&h===Math.min(...PAIRS.map(x=>x[1])));
      if(r.issues.length||worst)await page.screenshot({path:path.join(out,`${name}-${theme}-${w}x${h}.png`)});
      if(def.close)await def.close(page);
     }catch(e){results.push({surface:name,theme,w,h,issues:['harness error: '+String(e.message).slice(0,120)]})}
@@ -99,13 +102,13 @@ for(const theme of THEMES){
  const app=await launch({theme,width:1440,height:900,signedIn:false,baseUrl:process.env.LIVE_URL||undefined});
  try{
   await app.page.goto(app.url);await app.page.waitForSelector('#authScreen',{timeout:15000});
-  for(const h of HEIGHTS)for(const w of WIDTHS){
+  for(const [w,h] of PAIRS){
    if(ONLY&&!ONLY.includes('sign-in'))continue;
-   await app.page.setViewport({width:w,height:h,deviceScaleFactor:1});await sleep(250);
+   await app.page.setViewport(vp(w,h));await sleep(250);
    const r=await app.page.evaluate(()=>{const issues=[];const s=document.getElementById('authScreen');if(document.documentElement.scrollWidth>innerWidth+1)issues.push('page scrolls horizontally');
     const form=document.querySelector('.auth-form-wrap');if(form){const b=form.getBoundingClientRect();if(b.bottom>innerHeight+1&&s.scrollHeight<=s.clientHeight+1)issues.push('sign-in form is cut off at the bottom');}return {issues}});
    results.push({surface:'sign-in',theme,w,h,issues:r.issues});
-   if(r.issues.length||(w===Math.min(...WIDTHS)&&h===Math.min(...HEIGHTS)))await app.page.screenshot({path:path.join(out,`sign-in-${theme}-${w}x${h}.png`)});
+   if(r.issues.length||(ALL||(w===Math.min(...PAIRS.map(x=>x[0]))&&h===Math.min(...PAIRS.map(x=>x[1])))))await app.page.screenshot({path:path.join(out,`sign-in-${theme}-${w}x${h}.png`)});
   }
  }finally{await app.close()}
 }
@@ -113,4 +116,4 @@ fs.writeFileSync(path.join(out,'results.json'),JSON.stringify(results,null,1));
 const by={};
 for(const r of results){const k=r.surface;(by[k]=by[k]||{cases:0,flagged:0,examples:new Set()});by[k].cases++;if(r.issues.length){by[k].flagged++;r.issues.slice(0,2).forEach(i=>by[k].examples.add(i))}}
 for(const [k,v] of Object.entries(by))console.log(k.padEnd(22),String(v.flagged).padStart(3)+'/'+v.cases,v.flagged?'  '+[...v.examples].slice(0,3).join(' | ').slice(0,260):'');
-console.log('sizes tested: widths '+WIDTHS.join(', ')+' ; heights '+HEIGHTS.join(', ')+' ; themes '+THEMES.join(', '));
+console.log('sizes tested: '+PAIRS.map(x=>x.join('x')).join(', ')+' ; themes '+THEMES.join(', '));

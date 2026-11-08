@@ -589,7 +589,7 @@
       .more-link:hover { background: var(--hover); color: var(--text); }
 
       /* ---------- Week / Day time grid ---------- */
-      .tg-wrap { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+      .tg-wrap { --tg-gutter: 64px; flex: 1; min-height: 0; display: flex; flex-direction: column; }
       .tg-head { display: grid; border-bottom: 1px solid var(--line); }
       .tg-gutter-head { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; gap: 1px; padding-bottom: 6px; font-size: 11px; color: var(--muted); letter-spacing: 0.04em; }
       .tg-tz-off { font-size: 10px; color: var(--faint); letter-spacing: 0.02em; }
@@ -640,6 +640,8 @@
         .ev-card:hover { filter: brightness(1.13); }
         [data-theme="light"] .ev-card:hover { filter: brightness(0.97); }
       }
+      .tg-body .ev-card { overflow: clip; }
+      .tg-body .ev-card .ev-title { position: sticky; top: 0; z-index: 1; background: inherit; }
       .ev-card .ev-title { font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.3; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
       .chip .chip-title { color: var(--text); font-weight: 600; }
       .ev-card .ev-time, .ev-card .ev-loc { font-size: 11.5px; color: var(--muted); line-height: 1.35; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -698,16 +700,18 @@
       .task-seg button { padding: 6px 15px; border-radius: 999px; font-size: 13px; font-weight: 550; color: var(--muted); transition: background 130ms var(--ease-out), color 130ms var(--ease-out); }
       .task-seg button:hover { color: var(--text); }
       .task-seg button.on { background: var(--selected); color: var(--text); }
-      .task-group-title { font-size: 15px; font-weight: 600; margin: 22px 0 10px; display: flex; align-items: baseline; gap: 9px; }
-      .task-group-title .tg-count { font-size: 12px; font-weight: 600; color: var(--muted); }
+      /* Group labels read like the app's other section labels (small, spaced, uppercase). */
+      .task-group-title { font-size: 11.5px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin: 28px 0 12px; display: flex; align-items: baseline; gap: 9px; }
+      .task-group-title .tg-count { font-size: 11.5px; font-weight: 600; letter-spacing: 0.02em; color: var(--faint); }
       .task-group-title.overdue { color: var(--danger); }
       .task-row {
         display: flex; gap: 12px; align-items: flex-start; width: 100%;
         background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg);
-        padding: 12px 14px; margin-bottom: 8px; min-height: 56px;
+        padding: 14px 16px; margin-bottom: 8px; min-height: 58px;
         transition: background 140ms var(--ease-out);
       }
-      .task-row:hover { background: var(--hover); }
+      @media (hover: hover) and (pointer: fine) { .task-row:hover { background: var(--hover); } }
+      .task-row:active { background: var(--selected); }
       .task-check {
         width: 22px; height: 22px; border-radius: 6px; flex: none; margin-top: 1px; padding: 0;
         border: 2px solid; display: inline-flex; align-items: center; justify-content: center;
@@ -972,7 +976,7 @@
       }
       .switch-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 4px 0; }
       .switch-row .sw-label { font-size: 14px; font-weight: 550; letter-spacing: -0.008em; line-height: 1.35; display: block; }
-      .switch-row .sw-sub { font-size: 12.5px; color: var(--muted); margin-top: 3px; line-height: 1.5; max-width: 430px; }
+      .switch-row .sw-sub { font-size: 12.5px; color: var(--muted); margin-top: 4px; line-height: 1.55; max-width: 430px; }
       .switch { position: relative; width: 42px; height: 24px; flex: none; cursor: pointer; }
       .switch input { position: absolute; opacity: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
       .switch .track { position: absolute; inset: 0; background: var(--selected); border-radius: 20px; transition: background 160ms var(--ease-out); pointer-events: none; }
@@ -999,6 +1003,8 @@
         box-shadow: var(--shadow-pop);
         animation: dialogIn 260ms var(--ease-out);
       }
+      /* Wide, tall monitors: Settings grows a little so it is not a small box in a large window. */
+      @media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { width: min(980px, 94vw); height: min(740px, 92dvh); } }
       /* Light Settings inverts the stack: the dialog takes the warm
          canvas tone and the group panels become the white cards on
          top of it — the same "white cards on #f5f5f5" logic as the
@@ -1033,10 +1039,10 @@
          the dialog surface in dark (deep inset) and one step below
          white in light, so filled controls (--input-bg / --surface2)
          and theme cards (--surface) read clearly on top of them. */
-      .set-group { margin-bottom: 20px; background: var(--gray-2); border: 1px solid var(--line-soft); border-radius: 16px; padding: 20px 22px 12px; }
+      .set-group { margin-bottom: 24px; background: var(--gray-2); border: 1px solid var(--line-soft); border-radius: 16px; padding: 22px 26px 14px; }
       .set-group:last-child { margin-bottom: 4px; }
       .set-group > .pane-sub { margin-bottom: 14px !important; }
-      .set-group-title { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: 8px; }
+      .set-group-title { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
       /* Theme — Cal.com preview cards: a real mini window in each
          theme's own colours (sidebar, top bar, lines, one event),
          label + one-line caption underneath, accent ring + check
@@ -1142,10 +1148,10 @@
       .dd-search input { flex: 1; min-width: 0; background: none; border: none; outline: none; font-size: 14px; color: var(--text); }
       .dd-search input::placeholder { color: var(--faint); }
       .dd-empty { padding: 14px 11px; font-size: 13.5px; color: var(--muted); text-align: center; }
-      .set-row { padding: 14px 0; border-bottom: 1px solid var(--line-soft); align-items: flex-start; }
+      .set-row { padding: 17px 0; border-bottom: 1px solid var(--line-soft); align-items: flex-start; }
       .set-row > span:first-child { flex: 1 1 auto; min-width: 0; padding-right: 18px; padding-top: 1px; }
       .set-row .dd, .set-row .switch { margin-top: 1px; flex: none; }
-      .set-row:last-child { border-bottom: none; padding-bottom: 8px; }
+      .set-row:last-child { border-bottom: none; padding-bottom: 10px; }
       .set-group .field:last-child { margin-bottom: 8px; }
       .feed-row { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--r-lg); margin-bottom: 8px; }
       .feed-row .fr-url { flex: 1; min-width: 0; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -1291,10 +1297,20 @@
         .more-link { font-size: 11px; padding: 1px 2px; letter-spacing: -0.01em; white-space: nowrap; }
         .cell-add { display: none !important; }
         /* Week on phones: horizontal scroll, columns keep min-width. Day stays full width via its single column exceeding? — week grid min-width applies only when it has 7 columns (inline min via wrap) */
-        .tg-wrap.tg-week { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
-        .tg-wrap.tg-week .tg-head, .tg-wrap.tg-week .allday-row { min-width: 728px; }
+        .tg-wrap { --tg-gutter: 44px; }
+        .tg-wrap.tg-week { overflow: hidden; }
         .tg-wrap.tg-week .tg-scroll { overflow-x: hidden; }
-        .tg-wrap.tg-week .tg-body { min-width: 728px; }
+        .tg-wrap.tg-week .tg-day-head { padding: 6px 2px 7px; text-align: center; }
+        .tg-wrap.tg-week .tg-day-head .dnum { min-width: 26px; height: 26px; font-size: 14px; }
+        .tg-wrap.tg-week .tg-gutter-head { font-size: 9px; letter-spacing: 0; }
+        .tg-wrap.tg-week .ev-card { padding: 3px 3px 3px 5px; }
+        .tg-wrap.tg-week .ev-card .ev-title { font-size: 11px; }
+        .tg-wrap.tg-week .ev-card .ev-time, .tg-wrap.tg-week .ev-card .ev-loc { display: none !important; }
+        .tg-wrap .allday-label { font-size: 10px; }
+        /* Settings rows with a dropdown/field stack the control under its label instead of squeezing the label to one word per line */
+        .set-row.switch-row:not(:has(.switch)) { flex-direction: column; align-items: stretch; gap: 10px; }
+        .set-row.switch-row:not(:has(.switch)) > span:first-child { padding-right: 0; }
+        .set-row.switch-row:not(:has(.switch)) .dd { width: 100%; }
         .tg-wrap.tg-day { overflow-x: hidden; }
         .tg-wrap.tg-day .tg-head, .tg-wrap.tg-day .allday-row, .tg-wrap.tg-day .tg-body { min-width: 0; width: 100%; }
         .agenda-scroll { padding: 16px 14px 32px; }
@@ -3564,7 +3580,7 @@
         var firstDay = days[0];
         var rangeEnd = addDays(days[numDays - 1], 1);
         var occs = occsInRange(firstDay, rangeEnd);
-        var gridCols = "64px repeat(" + numDays + ", 1fr)";
+        var gridCols = "var(--tg-gutter) repeat(" + numDays + ", minmax(0, 1fr))";
         var wrap = el('<div class="tg-wrap' + (numDays > 1 ? " tg-week" : " tg-day") + '"></div>');
         var head = el('<div class="tg-head" style="grid-template-columns:' + gridCols + '"></div>');
         head.appendChild(el('<div class="tg-gutter-head"><span>' + esc(gmtLabel(effectiveTz())) + "</span></div>"));
@@ -3600,8 +3616,8 @@
             var cal=calOf(o.ev.cal),bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
             var key=String(o.ev.id)+':'+(+o.start);
             bar.dataset.spanKey=key;bar.setAttribute("aria-label",o.ev.title);
-            bar.style.left='calc((100% - 64px) * '+positions[0]+'/'+numDays+' + 64px)';
-            bar.style.width='calc((100% - 64px) * '+(positions[positions.length-1]-positions[0]+1)+'/'+numDays+' - 3px)';
+            bar.style.left='calc((100% - var(--tg-gutter)) * '+positions[0]+'/'+numDays+' + var(--tg-gutter))';
+            bar.style.width='calc((100% - var(--tg-gutter)) * '+(positions[positions.length-1]-positions[0]+1)+'/'+numDays+' - 3px)';
             bar.style.top=(3+i*27)+'px';
             bar.addEventListener("mouseenter",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.add("dl-span-active")})});
             bar.addEventListener("mouseleave",function(){viewWrap.querySelectorAll('[data-span-key="'+key+'"]').forEach(function(n){n.classList.remove("dl-span-active")})});
@@ -3668,7 +3684,7 @@
           body.appendChild(colEl);
         });
         if (todayInRange) {
-          var line = el('<div class="now-line" style="top:' + nowMin / 60 * hourPx() + 'px;left:64px"></div>');
+          var line = el('<div class="now-line" style="top:' + nowMin / 60 * hourPx() + 'px;left:var(--tg-gutter)"></div>');
           body.appendChild(line);
           var nowTxt = fmtEventTime(now);
           var gutPill = el('<span class="now-pill" style="top:' + nowMin / 60 * hourPx() + 'px;left:2px;right:auto">' + nowTxt + "</span>");

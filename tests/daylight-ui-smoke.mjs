@@ -566,10 +566,12 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    return {width:d.offsetWidth,radius:getComputedStyle(d).borderRadius,dot:dot.offsetWidth,x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,
     labels:[...d.querySelectorAll('.dl-cs2-label')].map(n=>n.textContent.trim()),rows:[...d.querySelectorAll('.dl-cs2-row')].map(n=>n.innerText.replace(/\s+/g,' ').trim()),
     nameInput:!!d.querySelector('input.dl-cs2-name'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
- assert.deepEqual([popup.width,popup.radius,popup.dot,popup.swatch],[336,'14px',12,26],'popup shell: 336px, radius 14, 12px dot, 26px swatches: '+JSON.stringify(popup));
+ assert.deepEqual([popup.width,popup.radius,popup.dot,popup.swatch],[420,'14px',12,26],'popup shell: 420px (Settings-grade width), radius 14, 12px dot, 26px swatches: '+JSON.stringify(popup));
  assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');
- assert.deepEqual(popup.labels,['Color','Your colors']);
- assert.deepEqual(popup.rows,['Share calendar Off','Export .ics','Delete calendar'],'action rows: '+JSON.stringify(popup.rows));
+ assert.deepEqual(popup.labels,['Name','Color','Your colors','Sharing','Actions'],'sections: Name, Color, Sharing, Actions');
+ assert.deepEqual(popup.rows,['Export .ics','Delete calendar'],'action rows: '+JSON.stringify(popup.rows));
+ assert.ok(await page.$('.dl-calsettings [data-section="sharing"] [aria-label="Public link"]'),'the public-link controls live in the Sharing section');
+ assert.ok(await page.evaluate(()=>{const d=document.querySelector('.dl-calsettings');return d.getBoundingClientRect().right<=innerWidth-16&&d.getBoundingClientRect().bottom<=innerHeight-8}),'popup stays inside the window');
  assert.deepEqual(popup.fields,['HEX','R','G','B'],'one row of HEX + R + G + B');
  assert.ok(popup.nameInput,'name stays editable in the header');
  const colorSync=await page.evaluate(()=>{
@@ -634,6 +636,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.waitForSelector('.dl-calsettings',{timeout:3000});
  assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .dl-cs2-row')].map(n=>n.textContent.replace(/\s+/g,' ').trim())),['Export .ics'],'US Holidays popup: colors + Export only (no Share, no Delete)');
  assert.equal(await page.$('.dl-calsettings input.dl-cs2-name'),null,'US Holidays cannot be renamed');
+ assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-calsettings .dl-cs2-label')].map(n=>n.textContent.trim())),['Color','Your colors','Actions'],'US Holidays: colors + Export only (no Name, no Sharing)');
  await page.evaluate(()=>document.querySelector('.dl-calsettings .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-calsettings'),{timeout:2000});
  // Verify custom color is applied to a practice calendar, without touching the backend.
@@ -695,7 +698,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

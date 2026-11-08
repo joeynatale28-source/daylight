@@ -54,7 +54,14 @@ const STUB=`(function(){
    signOut:function(){return Promise.resolve({})},
    onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
    oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
-  rpc:function(name){
+  rpc:function(name,args){
+   var S=window.__srv;   /* a tiny stand-in for the sessions functions, switched on by tests that need it */
+   if(S){
+    args=args||{};
+    if(name==='daylight_register_device'){S.registered=(S.registered||[]).concat([args.p_device_id]);var me=S.sessions.find(function(x){return x.id===S.current});if(me){me.device=args.p_device_id;me.label=args.p_label;me.updated=Date.now()}return Promise.resolve({data:{registered:true},error:null})}
+    if(name==='daylight_list_my_sessions'){var seen={},out=[];S.sessions.slice().sort(function(a,b){return (b.id===S.current)-(a.id===S.current)||b.updated-a.updated}).forEach(function(x){if(x.device){if(seen[x.device])return;seen[x.device]=1}out.push({id:x.id,user_agent:x.ua,last_active:new Date(x.updated).toISOString(),current:x.id===S.current,device_id:x.device||null,device_label:x.label||''})});return Promise.resolve({data:out,error:null})}
+    if(name==='daylight_revoke_my_session'){S.revokeLog=(S.revokeLog||[]).concat([args.p_session_id]);var t=S.sessions.find(function(x){return x.id===args.p_session_id});S.sessions=S.sessions.filter(function(x){return x.id!==args.p_session_id&&!(t&&t.device&&x.device===t.device&&x.id!==S.current)});return Promise.resolve({data:{revoked:true},error:null})}
+   }
    if(name==='daylight_list_my_sessions')return Promise.resolve({data:[{id:'s-current',user_agent:'Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537',last_active:new Date().toISOString(),current:true}].concat(window.__revoked?[]:[{id:'s-phone',user_agent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17) Safari/604',last_active:new Date(Date.now()-3*3600e3).toISOString(),current:false}]),error:null});
    if(name==='daylight_revoke_my_session'){window.__revoked=true;return Promise.resolve({data:{revoked:true},error:null})}
    return Promise.resolve({data:[],error:null});},from:chain,

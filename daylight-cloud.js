@@ -746,7 +746,33 @@
     toast('Supabase could not load. Check your connection and reload.');
     return;
   }
+  /* One row per device: every browser keeps a stable random device id and tells the server which sign-in belongs to
+     it, so signing in again from the same browser refreshes that device's row instead of adding another. Best effort:
+     if the server function is not installed yet, or the call fails, nothing else is affected. */
+  var deviceRegistered = false;
+  function deviceId() {
+    try {
+      var id = localStorage.getItem('daylight-device-id');
+      if (id && /^[A-Za-z0-9-]{16,64}$/.test(id)) return id;
+      id = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Array.prototype.map.call(crypto.getRandomValues(new Uint8Array(16)), function (b) { return ('0' + b.toString(16)).slice(-2); }).join('');
+      localStorage.setItem('daylight-device-id', id);
+      return id;
+    } catch (e) { return null; }
+  }
+  function registerDevice() {
+    if (deviceRegistered || !client || typeof client.rpc !== 'function') return;
+    var id = deviceId();
+    if (!id) return;
+    deviceRegistered = true;
+    var label = '';
+    try { label = (window.daylightSessionDevice ? window.daylightSessionDevice(navigator.userAgent).label : ''); } catch (e) {}
+    try {
+      Promise.resolve(client.rpc('daylight_register_device', { p_device_id: id, p_label: label })).then(function () {}, function () {});
+    } catch (e) {}
+  }
   client.auth.onAuthStateChange(function (event, session) {
+    if (event === 'SIGNED_OUT') deviceRegistered = false;
+    if (session && (event === 'SIGNED_IN' || event === 'INITIAL_SESSION') && !recovery) setTimeout(registerDevice, 0);
     if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') { if (session) authBlockedUntil = 0; }
     if (event === 'PASSWORD_RECOVERY') {
       recovery = true;
