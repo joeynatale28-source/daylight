@@ -40,8 +40,8 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
   await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
   assert.ok(!NO_LEGAL.test(await page.evaluate(()=>document.body.innerText)),'no copyright/version text in the app shell');
-  await page.click('.profile-row');await page.waitForSelector('.settings-dialog');
-  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','the account block still opens Settings on Profile');
+  await page.click('.profile-row');await page.waitForSelector('.dl-account-menu');await page.click('.dl-account-menu [data-menu-id="settings"]');await page.waitForSelector('.settings-dialog');
+  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','Settings from the account menu opens on Profile');
   await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
   await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
   // ---- Item 2: Profile pane (mockup)
@@ -71,7 +71,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
    x:(()=>{const b=document.querySelector('.dl-std .dl-x');return [b.offsetWidth,b.offsetHeight]})(),radius:getComputedStyle(document.querySelector('.dl-std')).borderRadius,width:document.querySelector('.dl-std').offsetWidth}));
   await page.screenshot({path:path.join(out,'stage1-chooser-'+theme+'.png')});
   assert.equal(chooser.title,'Add to Subscriptions');
-  assert.deepEqual(chooser.rows.map(r=>[r.t,r.s]),[['CalDAV server','iCloud, Nextcloud, Fastmail and other CalDAV servers · syncs both ways'],['iCal link','Subscribe to a calendar by URL'],['ICS file','Upload an .ics file from your device']]);
+  assert.deepEqual(chooser.rows.map(r=>[r.t,r.s]),[['iCal link','Subscribe to a calendar by URL'],['ICS file','Upload an .ics file from your device']]);
   assert.ok(chooser.rows.every(r=>r.h>=56&&r.icon),'option rows are >=56px with a drawn icon: '+JSON.stringify(chooser.rows));
   assert.ok(chooser.x[0]>=36&&chooser.x[1]>=36,'close target >=36px');
   const rowStyle=await page.evaluate(()=>{const r=document.querySelector('.dl-opt'),rows=[...document.querySelectorAll('.dl-opt')],cs=getComputedStyle(r),tile=r.querySelector('.dl-opt-ic');
@@ -90,57 +90,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.click('.dialog [data-x]');
   await page.waitForFunction(()=>!document.querySelector('.dialog'),{timeout:2000});
 
-  // ---- Item 2: CalDAV form
   await page.click('button[aria-label="Add to Subscriptions"]');
-  await page.click('[data-opt="caldav"]');
-  await page.waitForSelector('#dlCdServer');
-  await sleep(350);
-  const form=await page.evaluate(()=>({title:document.querySelector('.dl-std .dialog-title').textContent,
-   labels:[...document.querySelectorAll('.dl-std .field label')].map(l=>l.textContent),helpers:[...document.querySelectorAll('.dl-std .dl-helper')].map(h=>h.textContent),
-   connectDisabled:document.querySelector('[data-connect]').disabled,fieldH:document.querySelector('#dlCdServer').offsetHeight,back:!!document.querySelector('.dl-back')}));
-  await page.screenshot({path:path.join(out,'stage1-caldav-'+theme+'.png')});
-  assert.equal(form.title,'Connect a CalDAV server');
-  const shell=await page.evaluate(()=>{const d=document.querySelector('.dl-std'),f=document.querySelector('#dlCdServer'),c=document.querySelector('[data-connect]'),l=document.querySelector('.dl-std .field label');
-   return {width:d.offsetWidth,radius:getComputedStyle(d).borderRadius,head:getComputedStyle(document.querySelector('.dl-std .dialog-title')).fontSize,fieldRadius:getComputedStyle(f).borderRadius,label:getComputedStyle(l).fontSize,labelWeight:getComputedStyle(l).fontWeight,
-    connect:[c.offsetHeight,getComputedStyle(c).borderRadius],bodyPad:getComputedStyle(document.querySelector('.dl-std .dialog-body')).paddingLeft,footJustify:getComputedStyle(document.querySelector('.dl-std .dialog-foot')).justifyContent}});
-  assert.deepEqual([shell.width,shell.radius,shell.head,shell.fieldRadius,shell.label,shell.connect.join('/'),shell.bodyPad,shell.footJustify],[480,'16px','18px','10px','12px','36/8px','24px','flex-end'],'connect form shell: '+JSON.stringify(shell));
-  assert.ok(Number(shell.labelWeight)>=600);
-  assert.deepEqual(form.labels,['Server address','Username','Password']);
-  assert.deepEqual(form.helpers,['The server’s address — or a link to one of its calendars. Discovery finds the rest.','For iCloud, use an app-specific password.']);
-  assert.ok(form.connectDisabled&&form.fieldH>=44&&form.back);
-  await page.type('#dlCdServer','not a url');await page.type('#dlCdUser','joey');await page.type('#dlCdPass','s3cret-pass');
-  assert.equal(await page.$eval('[data-connect]',b=>b.disabled),true,'invalid address keeps Connect disabled');
-  await page.$eval('#dlCdServer',i=>{i.value='';});
-  await page.type('#dlCdServer','caldav.icloud.com');
-  assert.equal(await page.$eval('[data-connect]',b=>b.disabled),false,'valid form enables Connect');
-  await page.click('[data-eye]');assert.equal(await page.$eval('#dlCdPass',i=>i.type),'text');await page.click('[data-eye]');
-  // hold the response so the loading state can be inspected
-  await page.evaluate(()=>{const c=window.daylightCloud.client;const orig=c.functions.invoke;c.functions.invoke=async function(n,o){if(n==='caldav')await new Promise(r=>setTimeout(r,600));return orig.call(c.functions,n,o)}});
-  await page.click('[data-connect]');
-  await sleep(150);
-  const loading=await page.evaluate(()=>({text:document.querySelector('[data-connect]').textContent,spinner:!!document.querySelector('[data-connect] .dl-btn-spin'),disabled:[...document.querySelectorAll('.dl-std input')].every(i=>i.disabled)}));
-  await page.screenshot({path:path.join(out,'stage1-caldav-loading-'+theme+'.png')});
-  assert.deepEqual(loading,{text:'Connecting…',spinner:true,disabled:true},'loading state');
-  await page.waitForFunction(()=>!document.querySelector('.dl-banner').hidden,{timeout:4000});
-  const failed=await page.evaluate(()=>({banner:document.querySelector('.dl-banner').textContent,inputsEnabled:[...document.querySelectorAll('.dl-std input')].every(i=>!i.disabled),connect:document.querySelector('[data-connect]').textContent,
-   calls:(window.__calls||[]).filter(c=>c.name==='caldav'&&c.body.action==='test'),stored:JSON.stringify({l:{...localStorage},s:{...sessionStorage}}).includes('s3cret-pass')}));
-  await page.screenshot({path:path.join(out,'stage1-caldav-error-'+theme+'.png')});
-  assert.equal(failed.banner,'Couldn’t connect to that server. Check the address and your username and password, then try again.');
-  assert.ok(failed.inputsEnabled&&failed.connect==='Connect','form re-enabled after the error');
-  assert.deepEqual(failed.calls.map(c=>c.body),[{action:'test',server_url:'https://caldav.icloud.com/',username:'joey',password:'s3cret-pass'}],'request contract');
-  assert.equal(failed.stored,false,'credentials are never stored');
-  // specific, plain reasons per failure (never internals): the test action rejects, or the account can't be saved
-  for(const [code,expected] of [['auth_failed','That username or password was rejected. Check them and try again.'],['unreachable','Couldn’t reach that server. Check the address and try again.'],['no_caldav','That address doesn’t look like a CalDAV server.']]){
-   await page.evaluate(c=>{window.__caldavInvoke=async()=>JSON.stringify({ok:false,error:{code:c,message:'x'}})},code);
-   await page.click('[data-connect]');
-   await page.waitForFunction(exp=>document.querySelector('.dl-banner').textContent===exp,{timeout:4000},expected);
-  }
-  await page.evaluate(()=>{window.__caldavInvoke=async json=>{const b=JSON.parse(json);return JSON.stringify(b.action==='test'?{ok:true,server:{name:'x',calendars:[]}}:{ok:false,error:{code:'save_failed',message:'x'}})}});
-  await page.click('[data-connect]');
-  await page.waitForFunction(()=>document.querySelector('.dl-banner').textContent==='Your account couldn’t be saved — try again.',{timeout:4000});
-  assert.ok(!(await page.$eval('.dl-banner',n=>n.textContent)).includes('s3cret-pass'));
-  await page.evaluate(()=>{delete window.__caldavInvoke});
-  await page.click('.dl-back');
   await page.waitForSelector('.dl-opt');
 
   // ---- Item 3: iCal link (existing ical-subscribe machinery)
@@ -180,18 +130,20 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   fs.unlinkSync(ics);
   await page.reload();await app.ready();
 
-  // ---- Item 6: account block opens Settings on Profile; the popup is gone
+  // ---- Item 6 (now superseded by the account menu): the account block, and its ⋯, open a menu with exactly Settings + Log out
   await page.click('.profile-row');
-  await page.waitForSelector('.settings-dialog');
-  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile');
-  assert.equal(await page.$('.menu'),null,'no account popup');
-  await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
-  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
+  await page.waitForSelector('.dl-account-menu');
+  assert.deepEqual(await page.$$eval('.dl-account-menu [role=menuitem]',n=>n.map(x=>x.textContent.trim())),['Settings','Log out'],'account menu rows');
+  assert.equal(await page.$('.settings-dialog'),null,'the account block no longer jumps straight into Settings');
+  await page.keyboard.press('Escape');await sleep(300);
+  assert.equal(await page.$('.dl-account-menu'),null,'Escape closes the account menu');
   const dots=await page.$eval('.profile-row .icon-btn',n=>{const r=n.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}});
   await page.mouse.click(dots.x,dots.y);
+  await page.waitForSelector('.dl-account-menu');
+  assert.equal(await page.$('.settings-dialog'),null,'the ⋯ opens the menu, not Settings');
+  await page.click('.dl-account-menu [data-menu-id="settings"]');
   await page.waitForSelector('.settings-dialog');
-  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','the ⋯ opens Profile settings');
-  assert.equal(await page.$('.menu'),null);
+  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','Settings opens on Profile');
   await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
   await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
 

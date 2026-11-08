@@ -62,17 +62,27 @@ for(const theme of ['dark','light']){
    if(wk.noScroll||!wk.n){console.log('note',theme,w,h,'week had no timed blocks to inspect',JSON.stringify(wk));}
    else{
     const worst=Math.min(...wk.tops);
-    const res=await page.evaluate(()=>{
+    const res=await page.evaluate(async()=>{
      const sc=document.querySelector('.tg-scroll');sc.style.scrollBehavior='auto';
+     const frames=()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(()=>setTimeout(r,30))));
      const bad=[];let tested=0;
-     [...document.querySelectorAll('.tg-body .ev-card')].forEach(c=>{
-      if(c.offsetHeight<50)return;               // needs room for a title plus a time line
-      sc.scrollTop=Math.max(0,c.offsetTop+18);   // the block's top edge is scrolled 18px out of view
-      if(sc.scrollTop<c.offsetTop+10)return;     // could not scroll that far
-      tested++;
-      const scr=sc.getBoundingClientRect();const t=c.querySelector('.ev-title').getBoundingClientRect();
-      if(t.top<scr.top-1)bad.push({why:'title scrolled out of view',t:c.querySelector('.ev-title').textContent.trim().slice(0,20),by:Math.round(scr.top-t.top)});
-     });
+     const cards=[...document.querySelectorAll('.tg-body .ev-card')].filter(c=>c.offsetHeight>=50&&c.querySelector('.ev-time'));
+     for(const c of cards){
+      for(const out of [12,18,24,30,36,44]){
+       sc.scrollTop=Math.max(0,c.offsetTop+out);await frames();
+       if(sc.scrollTop<c.offsetTop+out-1)continue;
+       tested++;
+       const scr=sc.getBoundingClientRect();const tEl=c.querySelector('.ev-title'),t=tEl.getBoundingClientRect(),name=tEl.textContent.trim().slice(0,20);
+       const cr=c.getBoundingClientRect();if(cr.bottom<scr.top+t.height+6)continue;   // almost scrolled away: nothing to show
+       if(t.top<scr.top-1)bad.push({why:'title scrolled out of view',t:name,by:Math.round(scr.top-t.top),out});
+       const tm=c.querySelector('.ev-time');
+       if(tm&&getComputedStyle(tm).visibility!=='hidden'){
+        const r=tm.getBoundingClientRect();
+        if(r.top<scr.top-0.5||r.bottom>scr.bottom+0.5)bad.push({why:'time line is cut by the scroll edge but still drawn (a fragment)',t:name,out});
+        else if(r.top<t.bottom-0.5)bad.push({why:'time line sits under the title (a fragment)',t:name,out,overlap:Math.round(t.bottom-r.top)});
+       }
+      }
+     }
      if(!tested)bad.push({why:'no tall block could be tested'});
      return bad;
     });

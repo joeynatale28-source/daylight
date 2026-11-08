@@ -1,7 +1,7 @@
 /**
  * Event colors must match their calendar on EVERY surface that draws events (month chips, multi-day bars, week/day
  * all-day bars, timed cards, agenda dots), for palette colors, per-account custom colors, US Holidays, iCal
- * subscriptions and CalDAV calendars, for events created in the dialog and for events loaded from storage
+ * subscriptions, for events created in the dialog and for events loaded from storage
  * (including ones saved with the old "graphite" accent), after a cold load, a warm (cached) reload, and in both themes.
  */
 import fs from 'node:fs';
@@ -75,14 +75,11 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   let app=await launch({theme,port:PORT,userDataDir:dir,width:1440,height:900,payload:colorPayload()});
   await app.load();
   const {page}=app;
-  // iCal subscription and CalDAV calendars (materialized the way the app does it)
+  // iCal subscription calendar (materialized the way the app does it)
   await page.evaluate(()=>{
    state.calendars.push({id:'subscription:s1',name:'Subscribed feed',color:'rose',hidden:false,subscribed:true,remoteSubscriptionId:'s1'});
-   state.calendars.push({id:'caldav:c1',name:'Work (CalDAV)',color:'#13A5C7',hidden:false,subscribed:true,caldav:true,remoteCaldavId:'c1'});
    const mk=(id,cal,title,s,e,extra)=>Object.assign({id,cal,title,start:new Date(s),end:new Date(e),allDay:false,loc:'',desc:'',repeat:null,reminder:null},extra);
    state.events.push(mk(901,'subscription:s1','Feed timed',2026*0+new Date(2026,10,10,11),new Date(2026,10,10,12),{feedSubscriptionId:'s1'}));
-   state.events.push(mk(902,'caldav:c1','CalDAV timed',new Date(2026,10,10,13),new Date(2026,10,10,14),{feedCaldavId:'c1'}));
-   state.events.push(mk(903,'caldav:c1','CalDAV allday',new Date(2026,10,11),new Date(2026,10,11,23,59),{feedCaldavId:'c1',allDay:true}));
    renderAll(false);
   });
   // an event created through the real dialog (this is where the gray default came from)

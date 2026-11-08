@@ -60,10 +60,8 @@ const surfaces={
  'event-dialog-edit':{root:'.event-form-dialog',open:async p=>p.evaluate(()=>{state.section='calendar';state.view='month';renderAll(false);const ev=state.events.find(e=>e.title==='Practice 12');openEventForm(ev,null,ev)})},
  'cal-menu':{root:'.dl-calsettings',open:async p=>p.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent==='Personal');row.querySelector('.cal-menu-btn').click()})},
  'cal-menu-holidays':{root:'.dl-calsettings',open:async p=>p.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()})},
- 'cal-menu-caldav':{root:'.dl-calsettings',open:async p=>p.evaluate(()=>{const cal={id:'caldav:x',name:'Work (CalDAV)',color:'#13A5C7',hidden:false,subscribed:true,caldav:true,remoteCaldavId:'x',caldavId:'x',caldavAccountId:'a',lastSyncedAt:null};state.calendars.push(cal);window.daylightCalendarSettings(cal)})},
  'new-calendar':{root:'#overlayRoot .dialog',open:async p=>p.evaluate(()=>document.querySelector('button[aria-label="New calendar"]').click())},
  'chooser':{root:'.dl-std',open:async p=>p.evaluate(()=>document.querySelector('button[aria-label="Add to Subscriptions"]').click())},
- 'form-caldav':{root:'.dl-std',open:async p=>{await p.evaluate(()=>document.querySelector('button[aria-label="Add to Subscriptions"]').click());await sleep(250);await p.evaluate(()=>document.querySelector('[data-opt="caldav"]').click())}},
  'form-ical':{root:'.dl-std',open:async p=>{await p.evaluate(()=>document.querySelector('button[aria-label="Add to Subscriptions"]').click());await sleep(250);await p.evaluate(()=>document.querySelector('[data-opt="ical"]').click())}},
  'form-ics':{root:'.dl-std',open:async p=>{await p.evaluate(()=>document.querySelector('button[aria-label="Add to Subscriptions"]').click());await sleep(250);await p.evaluate(()=>document.querySelector('[data-opt="ics"]').click())}},
  'notifications':{root:'.dl-notif-panel',open:async p=>p.evaluate(()=>document.querySelector('#headerBand .dl-notif-btn').click())},
@@ -84,7 +82,7 @@ for(const theme of THEMES){
    for(const [w,h] of PAIRS){
     await page.setViewport(vp(w,h));await sleep(120);
     try{
-     await page.evaluate(()=>{document.querySelectorAll('#overlayRoot>*,.menu,.popover,.dl-notif-panel,.palette-backdrop').forEach(n=>n.remove());try{closeSearch()}catch(e){}try{closeNotifPanel()}catch(e){}if(window.settingsState)settingsState.transactionActive=false;state.calendars=state.calendars.filter(c=>!c.caldav)});
+     await page.evaluate(()=>{document.querySelectorAll('#overlayRoot>*,.menu,.popover,.dl-notif-panel,.palette-backdrop').forEach(n=>n.remove());try{closeSearch()}catch(e){}try{closeNotifPanel()}catch(e){}if(window.settingsState)settingsState.transactionActive=false});
      await sleep(80);
      await def.open(page);await sleep(520);
      const r=await page.evaluate(inspectPage,def.root||null);

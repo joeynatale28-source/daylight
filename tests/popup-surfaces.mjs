@@ -29,7 +29,6 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.evaluate(()=>{const b=document.querySelector('.dl-session-row');b&&b.scrollIntoView()});await shot('settings-profile');await clear();
   if(tag==='after'){
    await page.click('button[aria-label="Add to Subscriptions"]');await page.waitForSelector('.dl-opt');await shot('subscriptions-chooser');
-   await page.click('[data-opt="caldav"]');await page.waitForSelector('#dlCdServer');await shot('caldav-form');await clear();
    await page.click('button[aria-label="Add to Subscriptions"]');await page.click('[data-opt="ical"]');await page.waitForSelector('#dlSubUrl');await shot('ical-form');await clear();
    await page.click('button[aria-label="Add to Subscriptions"]');await page.click('[data-opt="ics"]');await page.waitForSelector('[data-drop]');await shot('ics-form');await clear();
   }

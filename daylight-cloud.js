@@ -305,13 +305,13 @@
   function workspace() {
     return {
       version: 2,
-      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId && !c.remoteCaldavId; }).map(function (c) {
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId; }).map(function (c) {
         var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
         if (c.publicLink) out.publicLink = String(c.publicLink);
         return out;
       }),
-      events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedCaldavId; }).map(function (e) {
+      events: state.events.filter(function (e) { return !e.feedSubscriptionId; }).map(function (e) {
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
@@ -417,6 +417,7 @@
   async function loadForUser(account, retry) {
     if (!account || recovery) return;
     if (user && user.id === account.id && !retry) return;
+    if (user && user.id !== account.id) { forgetCaches(user.id); clearPreviewData(); teardownSessionUi(); }
     var seq = ++sessionSequence;
     loading = true;
     conflict = false;
@@ -480,8 +481,27 @@
 
   function forgetCaches(id) {
     try {
-      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-identity:' + id); localStorage.removeItem('daylight-caldav-cache:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
+      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-identity:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
+      /* Any other per-account cache an earlier build left behind (keys are 'daylight-<name>:<account id>'). */
+      if (id) { Object.keys(localStorage).forEach(function (k) { if (k.indexOf('daylight-') === 0 && k.slice(-(id.length + 1)) === ':' + id) localStorage.removeItem(k); }); }
     } catch (e) {}
+  }
+  /* Everything on the page that can name an account or belong to its session: open dialogs (Settings included),
+     menus, popovers, the drawer, the sidebar/header/view markup and the identity globals. Run on every sign-out and
+     whenever a different account takes over, so nothing of the previous account can show, even for one frame. */
+  function teardownSessionUi() {
+    ['closeMenu', 'closePopover', 'closeDrawer', 'closeNotifPanel', 'closeSearch'].forEach(function (name) {
+      try { if (typeof window[name] === 'function') window[name](); else if (typeof eval('typeof ' + name) === 'string' && eval('typeof ' + name) === 'function') eval(name + '()'); } catch (e) {}
+    });
+    var overlays = document.getElementById('overlayRoot');
+    if (overlays) overlays.innerHTML = '';
+    document.querySelectorAll('.menu, .popover, .dl-notif-panel, .palette-backdrop, #dlSettingsDiscardConfirm').forEach(function (n) { n.remove(); });
+    try { if (window.settingsState) { settingsState.transactionActive = false; settingsState.markDirty = null; settingsState.redrawPane = null; } } catch (e) {}
+    ['sidebar', 'headerBand', 'viewWrap'].forEach(function (id) { var n = document.getElementById(id); if (n) n.innerHTML = ''; });
+    window.__dlIdentityEmail = '';
+    window.__dlFromCache = false;
+    try { authState.email = ''; authState.password = ''; authState.newPassword = ''; authState.confirmPassword = ''; } catch (e) {}
+    try { state.section = 'calendar'; } catch (e) {}
   }
   function showSignedOut() {
     if (user) forgetCaches(user.id);
@@ -493,6 +513,7 @@
     loading = true; saving = false; saveAgain = false; conflict = false;
     clearTimeout(saveTimer);
     clearPreviewData();
+    teardownSessionUi();
     document.dispatchEvent(new Event('daylight:workspace-signed-out'));
     document.getElementById('app').hidden = true;
     authState.mode = 'login';

@@ -37,12 +37,12 @@ const STUB=`(function(){
  var cfg=window.__HARNESS||{};
  var user={id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}};
  var session=cfg.signedIn===false?null:{user:user,access_token:'t'};
- function chain(table){var q={select(){return q},eq(){return q},order(){return q},limit(){return q},is(){return q},
+ function chain(table){var q={select(){return q},eq(c,v){if(c==='user_id')q._uid=v;return q},order(){return q},limit(){return q},is(){return q},
   update(v){if(table==='workspace_snapshots')window.__lastUpdate=v;return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
   single(){return q.maybeSingle()},
   maybeSingle(){
    if(table==='workspace_snapshots'){
-     return new Promise(function(r){setTimeout(function(){r({data:{payload:cfg.payload,revision:1},error:null})},cfg.delayMs||0)});
+     return new Promise(function(r){setTimeout(function(){var acct=window.__accounts&&window.__accounts[q._uid];r({data:{payload:(acct&&acct.payload)||cfg.payload,revision:1},error:null})},cfg.delayMs||0)});
    }
    return Promise.resolve({data:null,error:null});
   },
@@ -55,6 +55,18 @@ const STUB=`(function(){
    onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
    oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
   rpc:function(name,args){
+   var B=window.__bc;   /* stand-in for the broadcast functions: same rules as supabase/sql/20261124_broadcast_notifications.sql */
+   if(B&&/^daylight_(is_owner|list_broadcasts|mark_broadcasts_read|send_broadcast|delete_broadcast)$/.test(name)){
+    args=args||{};var uid=window.daylightCloud&&window.daylightCloud.user&&window.daylightCloud.user.id;
+    var isOwner=!!uid&&B.owners.indexOf(uid)!==-1;B.calls=(B.calls||[]).concat([name]);
+    if(!uid)return Promise.resolve({data:null,error:{message:'Authenticated session required'}});
+    if(name==='daylight_is_owner')return Promise.resolve({data:isOwner,error:null});
+    if(name==='daylight_list_broadcasts'){var reads=B.reads[uid]||(B.reads[uid]={});return Promise.resolve({data:B.items.slice().sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,sender:'daylight',created_at:new Date(i.t).toISOString(),read:!!reads[i.id]}}),error:null})}
+    if(name==='daylight_mark_broadcasts_read'){var r2=B.reads[uid]||(B.reads[uid]={});B.items.forEach(function(i){r2[i.id]=1});return Promise.resolve({data:{ok:true},error:null})}
+    if(!isOwner)return Promise.resolve({data:null,error:{message:'Only the owner can '+(name==='daylight_send_broadcast'?'send notifications':'remove notifications')}});
+    if(name==='daylight_send_broadcast'){var t=String(args.p_title||'').trim(),b=String(args.p_body||'').trim();if(!t||!b)return Promise.resolve({data:null,error:{message:'Title must be 1 to 120 characters'}});var id='bc-'+(B.items.length+1)+'-'+Date.now();B.items.push({id:id,title:t,body:b,t:Date.now()});return Promise.resolve({data:{id:id},error:null})}
+    B.items=B.items.filter(function(i){return i.id!==args.p_id});return Promise.resolve({data:{deleted:true},error:null});
+   }
    var S=window.__srv;   /* a tiny stand-in for the sessions functions, switched on by tests that need it */
    if(S){
     args=args||{};
@@ -68,8 +80,6 @@ const STUB=`(function(){
   storage:{from:function(){return {upload:function(p){return Promise.resolve({data:{path:p},error:null})},remove:function(p){return Promise.resolve({data:p,error:null})},getPublicUrl:function(p){return {data:{publicUrl:'https://storage.example/avatars/'+p}}}}}},
   functions:{invoke:function(name,opts){
     var body=(opts&&opts.body)||{};window.__calls=window.__calls||[];window.__calls.push({name:name,body:body});
-    if(name==='caldav'&&window.__caldavInvoke)return window.__caldavInvoke(JSON.stringify(body)).then(function(r){return {data:JSON.parse(r),error:null}});
-    if(name==='caldav')return Promise.resolve({data:null,error:{message:'Requested function was not found',context:{json:function(){return Promise.resolve({error:'not found'})}}}});
     if(name==='ical-subscribe'&&body.action==='preview')return Promise.resolve({data:{name:'Test Feed',source_host:'example.com'},error:null});
     if(name==='ical-subscribe'&&body.action==='add')return Promise.resolve({data:{ok:true},error:null});
     if(name==='ical-import')return Promise.resolve({data:{added:3,updated:1,skipped:0},error:null});
