@@ -53,10 +53,24 @@ function repeat(e:Record<string,unknown>) {
 function buildCalendar(name:string,items:Record<string,unknown>[],stamp:string,timezone:string) {
  const cal=ical({name,prodId:{company:"Daylight",product:"Calendar",language:"EN"},method:ICalCalendarMethod.PUBLISH,ttl:3600});
  for(const item of items) {
-  const start=asDate(item.start??item.startMs),end=asDate(item.end??item.endMs);
+  let start=asDate(item.start??item.startMs),end=asDate(item.end??item.endMs);
   if(!Number.isFinite(+start)||!Number.isFinite(+end)||end<=start)continue;
   const allDay=!!item.allDay;
   const tz=String(item.timezone||timezone);
+  // "Only include weekdays" (one record in daylight) exports as a one-day all-day event repeating Mon-Fri until the
+  // last day, so other calendar apps show exactly the weekdays and no weekend days.
+  let ruleSource:Record<string,unknown>=item;
+  if(item.weekdaysOnly&&allDay&&!item.rrule&&!item.repeat) {
+   const first=new Date(start);
+   for(let n=0;n<7;n++) {
+    const dow=new Date(dayInZone(first,tz)+"T12:00:00Z").getUTCDay();
+    if(dow!==0&&dow!==6)break;
+    first.setTime(first.getTime()+86400000);
+   }
+   const lastDay=dayInZone(end,tz).replace(/-/g,"");
+   ruleSource={...item,rrule:"FREQ=DAILY;BYDAY=MO,TU,WE,TH,FR;UNTIL="+lastDay+"T235959Z"};
+   start=first;end=new Date(first.getTime()+3600000);
+  }
   const startValue=allDay?dayInZone(start,tz):start;
   // Daylight keeps inclusive end-of-day dates at 23:59. RFC 5545 requires an exclusive end.
   const endValue=allDay?dayInZone(new Date(end.getTime()+86400000),tz):end;
@@ -76,7 +90,7 @@ function buildCalendar(name:string,items:Record<string,unknown>[],stamp:string,t
     const address=String(item.loc||item.location_text||item.location||"");
     event.location({title:address,address,geo:{lat:latitude,lon:longitude}});
   }
-  const rule=repeat(item);
+  const rule=repeat(ruleSource);
   if(rule&&!item.recurrenceId)event.repeating(rule as any);
  }
  return cal.toString();

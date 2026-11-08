@@ -136,6 +136,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    Object.defineProperty(cloud,'ready',{get:()=>true,configurable:true});
    Object.defineProperty(cloud,'user',{get:()=>({id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}}),configurable:true});
    Object.defineProperty(cloud,'client',{get:()=>window.__fakeClient,configurable:true});
+   window.__fakeClient.auth.getSession=async()=>({data:{session:{access_token:'t',refresh_token:'r',user:{id:'00000000-0000-4000-8000-000000000001'}}}});
    state.calendars=[
      {id:'c1',name:'Hungary Creek Recreation Association',color:'teal',hidden:false,subscribed:false},
      {id:'c2',name:'swimRVA Rapids',color:'blue',hidden:false,subscribed:false},
@@ -694,7 +695,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

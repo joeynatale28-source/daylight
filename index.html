@@ -402,8 +402,6 @@
         border-radius: 6px; padding: 3px 7px; font-size: 14px; outline: none;
       }
       .side-spacer { flex: 1; min-height: 34px; }
-      .dl-sidebar-legal { border-top: 1px solid var(--sidebar-line, var(--line)); margin: 0 4px; padding: 10px 4px 8px; font-size: 11.5px; line-height: 1.5; color: var(--muted); font-weight: 400; }
-      #sidebar.rail .dl-sidebar-legal { display: none; }
       .side-row {
         display: flex; align-items: center; gap: 12px; width: 100%; min-height: 46px;
         padding: 10px 10px; border-radius: var(--r-md); color: var(--text); text-align: left;
@@ -1695,6 +1693,9 @@
 .dl-std .dl-banner[hidden] { display: none; }
 .dl-std .btn-primary:disabled { opacity: 0.45; cursor: default; }
 .dl-btn-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: dlLoadingSpin 700ms linear infinite; display: inline-block; }
+.dl-wd-check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; margin: 2px 0 12px; cursor: pointer; }
+.dl-wd-check[hidden] { display: none; }
+.dl-wd-check input { width: 16px; height: 16px; accent-color: var(--text); flex: none; margin: 0; cursor: pointer; }
 .dl-opts { display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
 .dl-opt { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: transparent; text-align: left; cursor: pointer; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out); }
 .dl-opt:hover, .dl-opt:focus-visible { background: var(--hover); border-color: color-mix(in srgb, var(--text) 24%, var(--line)); outline: none; }
@@ -2347,8 +2348,10 @@
       /* Event blocks take the palette's tint step for their calendar;
          the 4px left ribbon (ribbonOf) and the selected state use the
          full-saturation colour. */
-      function tintOf(cal,ev) { if(ev&&ev.accent==="graphite")return effectiveTheme()==="light"?"var(--surface)":"var(--surface2)";var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.light : p.dark; }
-      function tintTextOf(cal,ev) { if(ev&&ev.accent==="graphite")return "var(--text)";var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.lightText : p.darkText; }
+      /* An event is always drawn in its calendar's color. (The event dialog used to default new events to a
+         "graphite" accent with no control to change it, which drew them gray; that value is now ignored.) */
+      function tintOf(cal,ev) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.light : p.dark; }
+      function tintTextOf(cal,ev) { var p = daylightPalette(cal.color); return effectiveTheme() === "light" ? p.lightText : p.darkText; }
       function daylightPalette(key) {
         if (PALETTE[key]) return PALETTE[key];
         if (typeof key==="string" && /^#[0-9a-f]{6}$/i.test(key)) {
@@ -2366,7 +2369,7 @@
         });
         return match ? COLOR_NAMES[match] : key;
       }
-      function ribbonOf(cal,ev) { return "inset 4px 0 0 " + (ev&&ev.accent==="graphite"?"var(--line)":dotOf(cal)); }
+      function ribbonOf(cal,ev) { return "inset 4px 0 0 " + dotOf(cal); }
 
       /* Occurrences of an event overlapping [rs, re) — expands repeats. */
       function occurrenceStamp(value) {
@@ -2532,7 +2535,7 @@
         var set = {};
         occsInRange(rs, re).forEach(function (o) {
           var d = sod(o.start), last = sod(o.end);
-          if (o.ev.allDay) { var x = new Date(d); while (x <= last) { if (x.getMonth() === m) set[x.getDate()] = true; x = addDays(x, 1); } }
+          if (o.ev.allDay) { var x = new Date(d); while (x <= last) { if (x.getMonth() === m && coversDay(o, x)) set[x.getDate()] = true; x = addDays(x, 1); } }
           else if (d.getMonth() === m) set[d.getDate()] = true;
         });
         return set;
@@ -2891,13 +2894,18 @@
           }
         }
         sidebarEl.appendChild(el('<div class="side-spacer"></div>'));
-        /* Support section removed. Collapsed rail keeps its Expand control; Settings is reached from the account block. */
+        if (!state.sidebarRail) sidebarEl.appendChild(el('<div class="side-label rail-hide"><span>Support</span></div>'));
+        var help = el('<button class="side-row" title="Help center">' + icon("lifebuoy", 18) + '<span class="rail-hide">Help center</span></button>');
+        help.addEventListener("click", function () { closeDrawer(); openHelp(); });
+        sidebarEl.appendChild(help);
         if(state.sidebarRail){
           var expand=el('<button class="side-row sidebar-expand" title="Expand sidebar" aria-label="Expand sidebar">'+icon("expand",18)+'<span class="rail-hide">Expand sidebar</span></button>');
           expand.addEventListener("click",function(){state.sidebarRail=false;renderSidebar()});
           sidebarEl.appendChild(expand);
         }
-        if (!state.sidebarRail) sidebarEl.appendChild(el('<div class="dl-sidebar-legal"><div>© 2026 daylight. All rights reserved.</div><div>Version 1.0</div></div>'));
+        var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
+        set.addEventListener("click", function () { closeDrawer(); openSettings("profile"); });
+        sidebarEl.appendChild(set);
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "?";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -3308,6 +3316,23 @@
         return " seg-mid";
       }
       function isMultiDay(occ) { return sod(occ.end) - sod(occ.start) >= DAY_MS; }
+      /* "Only include weekdays": ONE event record (ev.weekdaysOnly) that covers Monday-Friday inside its full
+         start..end range. Every view asks coversDay() instead of comparing dates itself. */
+      function coversDay(o, date) {
+        if (sod(o.start) > date || sod(o.end) < date) return false;
+        if (o.ev && o.ev.weekdaysOnly) { var g = date.getDay(); if (g === 0 || g === 6) return false; }
+        return true;
+      }
+      function dayRuns(indexes) {
+        var runs = [], run = [];
+        indexes.forEach(function (n) { if (run.length && n !== run[run.length - 1] + 1) { runs.push(run); run = []; } run.push(n); });
+        if (run.length) runs.push(run);
+        return runs;
+      }
+      function rangeHasWeekday(start, end) {
+        for (var d = sod(start); d <= sod(end); d = addDays(d, 1)) { var g = d.getDay(); if (g !== 0 && g !== 6) return true; }
+        return false;
+      }
 
       function renderMonth() {
         var wrap = el('<div class="month-wrap"></div>');
@@ -3327,10 +3352,12 @@
           occs.forEach(function(o){
             if(!isMultiDay(o))return;
             var positions=dows.map(function(day,i){return {i:i,date:addDays(rowStart,(day-state.weekStart+7)%7)}})
-              .filter(function(x){return sod(o.start)<=x.date&&sod(o.end)>=x.date});
+              .filter(function(x){return coversDay(o,x.date)});
             if(!positions.length)return;
             if(spans.some(function(x){return x.o.ev.id===o.ev.id&&+x.o.start===+o.start}))return;
-            spans.push({o:o,first:positions[0].i,last:positions[positions.length-1].i});
+            dayRuns(positions.map(function(x){return x.i})).forEach(function(run){
+              spans.push({o:o,first:run[0],last:run[run.length-1]});
+            });
           });
           spans.sort(function(a,b){return a.o.start-b.o.start});
           var row = el('<div class="month-week' + (state.weekNumbers ? " has-wn" : "") + '"></div>');
@@ -3554,7 +3581,7 @@
         days.forEach(function(date){
           var cell=el('<div class="allday-cell"></div>');
           if(weekSpans.length)cell.style.paddingTop=(weekSpans.length*27+3)+"px";
-          occs.filter(function(o){return o.ev.allDay&&(numDays===1||!isMultiDay(o))&&sod(o.start)<=date&&sod(o.end)>=date})
+          occs.filter(function(o){return o.ev.allDay&&(numDays===1||!isMultiDay(o))&&coversDay(o,date)})
             .forEach(function(o){
               var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
               bar.setAttribute("data-calendar-id",o.ev.cal);
@@ -3567,8 +3594,9 @@
           adRow.style.position="relative";
           var layer=el('<div class="dl-week-span-layer"></div>');
           weekSpans.forEach(function(o,i){
-            var positions=days.map(function(d,k){return sod(o.start)<=d&&sod(o.end)>=d?k:-1}).filter(function(k){return k>=0});
-            if(!positions.length)return;
+            var allPositions=days.map(function(d,k){return coversDay(o,d)?k:-1}).filter(function(k){return k>=0});
+            if(!allPositions.length)return;
+            dayRuns(allPositions).forEach(function(positions){
             var cal=calOf(o.ev.cal),bar=el('<button class="dl-continuous-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
             var key=String(o.ev.id)+':'+(+o.start);
             bar.dataset.spanKey=key;bar.setAttribute("aria-label",o.ev.title);
@@ -3584,6 +3612,7 @@
   }
 });
             layer.appendChild(bar);
+            });
           });
           adRow.appendChild(layer);
         }
@@ -3655,7 +3684,9 @@
         var occs = occsInRange(start, end);
         var byDay = {};
         occs.forEach(function (o) {
-          var key = sod(o.start).getTime();
+          var first = sod(o.start);
+          if (o.ev.weekdaysOnly) { while (first <= sod(o.end) && !coversDay(o, first)) first = addDays(first, 1); if (first > sod(o.end)) return; }
+          var key = first.getTime();
           (byDay[key] = byDay[key] || []).push(o);
         });
         var scroll = el('<div class="agenda-scroll"></div>');
@@ -4263,7 +4294,8 @@
           eMin: base && !base.allDay ? base.end.getHours() * 60 + base.end.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60) + state.defaultDuration,
           repeat: src ? src.repeat : null,
           repeatEnd: src && src.repeatEnd ? new Date(src.repeatEnd) : null,
-          accent: src ? (src.accent || "calendar") : "graphite",
+          accent: "calendar",
+          weekdaysOnly: src ? !!src.weekdaysOnly : false,
           reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
           loc: src ? src.loc : "",
           placeId:src ? (src.placeId||null) : null,
@@ -4286,6 +4318,7 @@
               '<div class="field" id="efSTimeWrap"><label>Start time</label><button type="button" class="dd" id="efSTime" aria-haspopup="listbox" aria-expanded="false"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div>' +
               '<div class="field" id="efETimeWrap"><label>End time</label><button type="button" class="dd" id="efETime" aria-haspopup="listbox" aria-expanded="false"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div>' +
             "</div>" +
+            '<label class="dl-wd-check" id="efWeekdaysWrap" hidden><input type="checkbox" id="efWeekdays"><span>Only include weekdays</span></label>' +
             '<div class="field"><label>Repeats</label><button class="picker-btn" id="efRepeat">' + icon("repeat", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
             '<div class="field" id="efRepeatEndWrap"><label>Repeat until</label><button class="picker-btn" id="efRepeatEnd">' + icon("calendar",15) + '<span></span></button></div>' +
             '<div class="field"><label>Reminder</label><button class="picker-btn" id="efReminder">' + icon("bell", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
@@ -4316,6 +4349,10 @@
           dlg.querySelector("#efETimeWrap").style.display = f.allDay ? "none" : "";
           repBtn.querySelector("span").textContent = f.repeat ? f.repeat[0].toUpperCase() + f.repeat.slice(1) : "None";
           dlg.querySelector("#efRepeatEndWrap").style.display=f.repeat?"":"none";
+          /* Only for a multi-day all-day event on a local calendar that does not repeat. */
+          var wdShown = f.allDay && sod(f.eDate) > sod(f.sDate) && !f.repeat && !calOf(f.cal).caldav;
+          dlg.querySelector("#efWeekdaysWrap").hidden = !wdShown;
+          dlg.querySelector("#efWeekdays").checked = !!f.weekdaysOnly;
           repEndBtn.querySelector("span").textContent=f.repeatEnd?fmtDateShort(f.repeatEnd):"Never";
           remBtn.querySelector("span").textContent = f.reminder != null ? fmtReminder(f.reminder) : "None";
           var cal = calOf(f.cal);
@@ -4374,6 +4411,7 @@
           if (!writableCalendars().length) items.push({ label: "No writable calendars yet — create one from the sidebar", fn: function () {} });
           openMenu(calBtn, items, { matchWidth: true, maxHeight: 280 });
         });
+        dlg.querySelector("#efWeekdays").addEventListener("change", function (e) { f.weekdaysOnly = e.target.checked; markDirty(); });
         function tryClose() {
           closeDatePicker(); closeMenu();
           if (f.dirty) {
@@ -4400,6 +4438,8 @@
             end = new Date(f.eDate); end.setHours(Math.floor(f.eMin / 60), f.eMin % 60);
             if (end <= start) { end = new Date(start.getTime() + 30 * 60000); }
           }
+          var weekdaysOnly = f.allDay && sod(f.eDate) > sod(f.sDate) && !f.repeat && !calOf(f.cal).caldav && !!f.weekdaysOnly;
+          if (weekdaysOnly && !rangeHasWeekday(start, end)) { toast("That range has no weekdays. Pick other dates or uncheck “Only include weekdays”."); return; }
           /* CalDAV calendars write through the server (create/update); nothing is saved locally first. */
           var targetCal = calOf(f.cal);
           if (targetCal.caldav || (isEdit && src.caldav)) {
@@ -4412,6 +4452,7 @@
           if (isSubscribed(calOf(f.cal))) { toast("Subscribed calendars are read-only — pick another calendar"); return; }
           closeDatePicker();
           if (isEdit) {
+            src.weekdaysOnly = weekdaysOnly;
             src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
@@ -4426,7 +4467,7 @@
             var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
-            created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;
+            created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
             state.events.push(created);
             bd.remove(); renderAll(false); toast("Event created");
           }

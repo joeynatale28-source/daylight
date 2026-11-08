@@ -38,7 +38,7 @@ const STUB=`(function(){
  var user={id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}};
  var session=cfg.signedIn===false?null:{user:user,access_token:'t'};
  function chain(table){var q={select(){return q},eq(){return q},order(){return q},limit(){return q},is(){return q},
-  update(){return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
+  update(v){if(table==='workspace_snapshots')window.__lastUpdate=v;return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
   single(){return q.maybeSingle()},
   maybeSingle(){
    if(table==='workspace_snapshots'){

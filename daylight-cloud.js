@@ -236,7 +236,7 @@
         return {
           id: id, title: String(e.title || 'Untitled'), cal: String(e.cal || 'personal'),
           start: start, end: end, allDay: allDay, loc: String(e.loc || ''),
-          desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null,
+          desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null, weekdaysOnly:!!e.weekdaysOnly,
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
@@ -315,7 +315,7 @@
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
-          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, reminder:e.reminder == null ? null : e.reminder,
+          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,

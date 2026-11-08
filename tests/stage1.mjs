@@ -23,15 +23,27 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
  const {page}=app;
  try{
   await app.load();
-  // ---- Item 5: sidebar: no Support section, quiet copyright block, Settings still reachable
-  const side=await page.evaluate(()=>{const sb=document.getElementById('sidebar'),legal=sb.querySelector('.dl-sidebar-legal'),profile=sb.querySelector('.profile-wrap');const cs=legal&&getComputedStyle(legal);
-   return {labels:[...sb.querySelectorAll('.side-label')].map(n=>n.textContent.trim()),settingsRow:!!sb.querySelector('.side-row[title="Settings"]'),help:!!sb.querySelector('.side-row[title="Help center"]'),
-    legal:legal&&legal.innerText.split(String.fromCharCode(10)).map(t=>t.trim()),font:cs&&cs.fontSize,weight:cs&&cs.fontWeight,border:cs&&cs.borderTopWidth,above:legal&&profile&&legal.getBoundingClientRect().bottom<=profile.getBoundingClientRect().top+1,
-    sbText:sb.innerText.includes('Support')}});
-  assert.deepEqual(side.labels,['My calendars','Subscriptions'],'sidebar sections: '+JSON.stringify(side));
-  assert.ok(!side.settingsRow&&!side.help&&!side.sbText,'Support section (and its Settings entry) is gone');
-  assert.deepEqual(side.legal,['© 2026 daylight. All rights reserved.','Version 1.0']);
-  assert.deepEqual([side.font,side.weight,side.border,side.above],['11.5px','400','1px',true],'copyright block: '+JSON.stringify(side));
+  // ---- Sidebar: Support section is back (with Settings); no copyright / version text anywhere
+  const side=await page.evaluate(()=>{const sb=document.getElementById('sidebar');
+   return {labels:[...sb.querySelectorAll('.side-label')].map(n=>n.textContent.trim()),settingsRow:!!sb.querySelector('.side-row[title="Settings"]'),legal:!!sb.querySelector('.dl-sidebar-legal')}});
+  assert.deepEqual(side.labels,['My calendars','Subscriptions','Support'],'sidebar sections: '+JSON.stringify(side));
+  assert.ok(side.settingsRow&&!side.legal,'Support section with its Settings entry is back; the copyright block is gone');
+  await page.click('#sidebar .side-row[title="Settings"]');
+  await page.waitForSelector('.settings-dialog');
+  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','Support → Settings opens Settings (on Profile) as before');
+  const NO_LEGAL=/All rights reserved|Version\s*1\.0|v1\.0|© 2026/i;
+  for(const section of ['profile','appearance','calendar','notifications','ai','shortcuts']){
+   await page.evaluate(sec=>{const b=[...document.querySelectorAll('.settings-rail .sr-item')];b.find(x=>x.textContent.trim().toLowerCase().replace(' access','').startsWith(sec==='ai'?'ai':sec)).click()},section);
+   await sleep(250);
+   assert.ok(!NO_LEGAL.test(await page.evaluate(()=>document.body.innerText)),'no copyright/version text in Settings → '+section);
+  }
+  await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
+  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
+  assert.ok(!NO_LEGAL.test(await page.evaluate(()=>document.body.innerText)),'no copyright/version text in the app shell');
+  await page.click('.profile-row');await page.waitForSelector('.settings-dialog');
+  assert.equal(await page.$eval('.settings-rail .sr-item.active',n=>n.textContent.trim()),'Profile','the account block still opens Settings on Profile');
+  await page.evaluate(()=>document.querySelector('.settings-dialog>.settings-close').click());
+  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
   // ---- Item 2: Profile pane (mockup)
   await page.evaluate(()=>openSettings('profile'));
   await page.waitForSelector('.dl-session-signout');
