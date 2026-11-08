@@ -788,7 +788,7 @@ tidy();
     ".dl-cs-link .text-input{flex:1;min-width:0;height:36px;font-size:12.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}",
     ".dl-cs-share-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}",
     ".dl-cs-note{font-size:12px;color:var(--muted);margin:8px 0 2px;line-height:1.5}",
-    ".dl-cs-note.is-error{color:var(--danger)}",
+    ".dl-cs-note.is-error{color:var(--danger)}.dl-cd-error{margin:6px 0 10px;padding:10px 12px;border-radius:10px;font-size:13px;line-height:1.45;color:var(--danger);background:color-mix(in srgb,var(--danger) 10%,transparent);border:1px solid color-mix(in srgb,var(--danger) 24%,transparent)}.dl-cd-error[hidden]{display:none}",
     ".dl-cs-danger .sw-label{color:var(--danger)}",
     ".dl-btn-danger-ghost{color:var(--danger)!important;border-color:color-mix(in srgb,var(--danger) 40%,var(--line))!important}"
   ].join("\n");
@@ -810,15 +810,16 @@ tidy();
       '<div class="dl-cs-head"><span class="dl-cs-dot"></span><div style="min-width:0"><div class="dl-cs-title"></div><div class="dl-cs-sub">' + (builtin ? "Built-in calendar" : "Calendar settings") + "</div></div></div>" +
       '<div class="dl-cs-body">' +
         (builtin ? "" : '<div class="set-group"><div class="set-group-title">Name</div><div class="set-row switch-row"><span><span class="sw-label">Calendar name</span><div class="sw-sub">Shown in the sidebar, event forms and exports.</div></span><input id="calSettingsName" class="text-input dl-row-input" maxlength="80" autocomplete="off"></div></div>') +
+        (cal.caldav ? '<div class="set-group" data-caldav></div>' : "") +
         '<div class="set-group"><div class="set-group-title">Appearance</div>' +
           '<div class="dl-cs-current"><span class="dl-cs-swatch"></span><span>Current: <b data-current-color></b></span></div>' +
           '<div class="dl-cs-label">Presets</div><div data-color-picker></div>' +
           '<div class="dl-cs-label">Custom color</div><div data-inline-picker></div>' +
           '<div class="dl-cs-custom-actions"><button type="button" class="btn-ghost dl-btn-sm" data-save-custom>Add to Your colors</button></div>' +
         "</div>" +
-        (builtin ? "" : '<div class="set-group" data-share></div>') +
-        '<div class="set-group"><div class="set-group-title">Export</div><div class="set-row switch-row"><span><span class="sw-label">Export .ics</span><div class="sw-sub">Download this calendar as an iCalendar file.</div></span><button type="button" class="btn-ghost dl-btn-sm" data-export>Export .ics</button></div></div>' +
-        (builtin ? "" : '<div class="set-group dl-cs-danger"><div class="set-row switch-row"><span><span class="sw-label">Delete calendar</span><div class="sw-sub">Permanently remove this calendar and its events.</div></span><button type="button" class="btn-ghost dl-btn-sm dl-btn-danger-ghost" data-delete>Delete…</button></div></div>') +
+        (builtin || cal.caldav ? "" : '<div class="set-group" data-share></div>') +
+        (cal.caldav ? "" : '<div class="set-group"><div class="set-group-title">Export</div><div class="set-row switch-row"><span><span class="sw-label">Export .ics</span><div class="sw-sub">Download this calendar as an iCalendar file.</div></span><button type="button" class="btn-ghost dl-btn-sm" data-export>Export .ics</button></div></div>') +
+        (builtin || cal.caldav ? "" : '<div class="set-group dl-cs-danger"><div class="set-row switch-row"><span><span class="sw-label">Delete calendar</span><div class="sw-sub">Permanently remove this calendar and its events.</div></span><button type="button" class="btn-ghost dl-btn-sm dl-btn-danger-ghost" data-delete>Delete…</button></div></div>') +
       "</div>";
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">You have unsaved changes</span>' +
       '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save changes</span><svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
@@ -880,10 +881,13 @@ tidy();
     });
     paintHeader();
     if (nameInput) nameInput.addEventListener("input", function () { paintHeader(); markDirty(); });
-    dlg.querySelector("[data-export]").addEventListener("click", function () { window.daylightExportCalendar(cal); });
+    var exportButton = dlg.querySelector("[data-export]");
+    if (exportButton) exportButton.addEventListener("click", function () { window.daylightExportCalendar(cal); });
+    var caldavHost = dlg.querySelector("[data-caldav]");
+    if (caldavHost && window.daylightCaldavPopup) window.daylightCaldavPopup(cal, caldavHost, { close: function () { finish(false); } });
     var deleteButton = dlg.querySelector("[data-delete]");
     if (deleteButton) deleteButton.addEventListener("click", function () { finish(false); confirmDeleteCalendar(cal); });
-    if (!builtin && window.daylightShareCalendar) window.daylightShareCalendar(cal, dlg.querySelector("[data-share]"));
+    if (!builtin && !cal.caldav && window.daylightShareCalendar) window.daylightShareCalendar(cal, dlg.querySelector("[data-share]"));
 
     function revert() {
       cal.color = original.color;
@@ -937,6 +941,7 @@ tidy();
       if (nameInput && !currentName()) return;
       if (nameInput) cal.name = currentName();
       original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice() };
+      if (cal.caldav && window.daylightCaldavUpdateCalendar) window.daylightCaldavUpdateCalendar(cal);
       if (window.daylightCloud && window.daylightCloud.commit) window.daylightCloud.commit();
       renderSidebar(); renderView(false);
       saveButton.disabled = true;

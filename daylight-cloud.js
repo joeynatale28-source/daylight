@@ -291,13 +291,13 @@
   function workspace() {
     return {
       version: 2,
-      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId; }).map(function (c) {
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId && !c.remoteCaldavId; }).map(function (c) {
         var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
         if (c.publicLink) out.publicLink = String(c.publicLink);
         return out;
       }),
-      events: state.events.filter(function (e) { return !e.feedSubscriptionId; }).map(function (e) {
+      events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedCaldavId; }).map(function (e) {
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
@@ -466,7 +466,7 @@
 
   function forgetCaches(id) {
     try {
-      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-identity:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
+      if (id) { localStorage.removeItem(cacheKey(id)); localStorage.removeItem('daylight-first-paint:' + id); localStorage.removeItem('daylight-identity:' + id); localStorage.removeItem('daylight-caldav-cache:' + id); localStorage.removeItem('daylight-subscription-cache:' + id); }
     } catch (e) {}
   }
   function showSignedOut() {

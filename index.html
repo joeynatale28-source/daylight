@@ -469,7 +469,10 @@
          right-side actions. */
       .cal-toolbar { display: flex; align-items: center; gap: 2px; min-width: 0; }
       .cal-toolbar .icon-btn { width: 34px; height: 34px; }
-      .month-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; padding: 0 7px; white-space: nowrap; }
+      /* Fixed-width label area, sized for the longest label ("September 2026"), so the ‹ › buttons
+         never move with the month name. Day view shows a full date and gets a wider (still fixed) area. */
+      .month-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; padding: 0 7px; white-space: nowrap; box-sizing: border-box; display: inline-block; width: 9.2em; text-align: center; overflow: hidden; flex: none; }
+      .month-title.is-day { width: 19.5em; }
       .today-btn { margin-left: 6px; color: var(--muted); }
       .today-btn:hover { color: var(--accent); }
       /* Primary = the login's big pill at app scale: monochrome fill
@@ -1346,7 +1349,13 @@
       body.reduce-motion #app *, body.reduce-motion #app *::before, body.reduce-motion #app *::after,
       body.reduce-motion #overlayRoot *, body.reduce-motion #toastRoot *,
       body.reduce-motion > .menu, body.reduce-motion > .popover, body.reduce-motion > .date-pop {
-        animation: none !important;
+        /* Shorten, never remove: `animation: none` made every element that declares an
+           entrance animation START it again the moment Reduce motion was switched off
+           (backdrop, dialog, panes, save pill replayed). With only the duration changed,
+           animations that already finished stay finished in both directions. */
+        animation-duration: 0.01ms !important;
+        animation-delay: 0s !important;
+        animation-iteration-count: 1 !important;
         transition-property: opacity, background-color, color, border-color, box-shadow !important;
         transition-duration: 80ms !important;
       }
@@ -1615,7 +1624,7 @@
         .backdrop,.palette-backdrop,.palette-results>*,.feed-row{animation:none!important;transition:none!important;}
       }
       body.dl-reduce-motion .menu,body.dl-reduce-motion .dialog,body.dl-reduce-motion .palette,
-      body.dl-reduce-motion .backdrop,body.dl-reduce-motion .palette-backdrop{animation:none!important;transition:none!important;}
+      body.dl-reduce-motion .backdrop,body.dl-reduce-motion .palette-backdrop{animation-duration:.01ms!important;animation-delay:0s!important;animation-iteration-count:1!important;transition-duration:.01ms!important;transition-delay:0s!important;}
 </style>
     <style id="dl-critical-css">
 
@@ -2236,8 +2245,10 @@
       }
       function calOf(id) { for (var i = 0; i < state.calendars.length; i++) if (state.calendars[i].id === id) return state.calendars[i]; return state.calendars[0]; }
       function isSubscribed(cal) { return !!(cal && (cal.subscribed || cal.shared)); }
-      function isReadOnlyEvent(ev) { return isSubscribed(calOf(ev.cal)); }
-      function writableCalendars() { return state.calendars.filter(function (c) { return !isSubscribed(c); }); }
+      /* CalDAV calendars sit in Subscriptions but are two-way: writable unless the server says read-only. */
+      function isWritableRemote(c) { return !!(c && c.caldav && !c.readOnly); }
+      function isReadOnlyEvent(ev) { var c = calOf(ev.cal); return isSubscribed(c) && !isWritableRemote(c); }
+      function writableCalendars() { return state.calendars.filter(function (c) { return !isSubscribed(c) || isWritableRemote(c); }); }
       function defaultCalId() {
         if (state.defaultCalendarId) {
           var c = calOf(state.defaultCalendarId);
@@ -2951,7 +2962,7 @@
            read-only is expressed by the section they live in and by
            their events' popovers, not by chrome on the row. Only
            owned calendars (My calendars) get the options menu. */
-        if (!isSubscribed(cal) || cal.id === "holidays") {
+        if (!isSubscribed(cal) || cal.id === "holidays" || cal.caldav) {
           var mb = el('<button class="icon-btn cal-menu-btn" title="Calendar settings" aria-label="Settings for ' + esc(cal.name) + '">' + icon("dotsV", 16) + "</button>");
           mb.addEventListener("click", function () { openCalMenu(mb, cal, row); });
           row.appendChild(mb);
@@ -2961,7 +2972,7 @@
       function openCalMenu(anchor, cal, row) {
         /* Item 13: the ⋯ button opens the calendar settings popup
            (daylight-settings.js). Subscriptions keep their own manager. */
-        if (isSubscribed(cal) && cal.id !== "holidays") return;
+        if (isSubscribed(cal) && cal.id !== "holidays" && !cal.caldav) return;
         closeMenu(); closePopover();
         if (window.daylightCalendarSettings) window.daylightCalendarSettings(cal);
       }
@@ -3080,7 +3091,7 @@
           var nextName = isDay ? "Next day" : "Next month";
           var tb = el('<div class="cal-toolbar">' +
             '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>" +
-            '<span class="month-title" id="tbMonth">' + esc(label) + "</span>" +
+            '<span class="month-title' + (isDay ? " is-day" : "") + '" id="tbMonth">' + esc(label) + "</span>" +
             '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>" +
             '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + "</button>" +
           "</div>");
@@ -3210,6 +3221,7 @@
           var cell=e.target.closest(".day-cell");if(!cell||!dragEventId)return;e.preventDefault();
           var ev=state.events.find(x=>Number(x.id)===dragEventId),target=cell.dataset.date;if(!ev||!target)return;
           var p=target.split("-").map(Number),day=new Date(p[0],p[1]-1,p[2]),occStart=dragOccurrenceStart?new Date(dragOccurrenceStart):new Date(ev.start),delta=sod(day).getTime()-sod(occStart).getTime();
+          if(ev.caldav){dragEventId=null;dragOccurrenceStart=null;if(delta&&window.daylightCaldavWrite)window.daylightCaldavWrite.move(ev,occStart,delta);return}
           function move(scope){
             if(scope==="only"){ev.uid=ev.uid||("daylight-"+ev.id);var copy=Object.assign({},ev,{id:++uid,recurrenceId:occStart,repeat:null,exdates:[],start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start))});state.events.push(copy);ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occStart.toISOString())}
             else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,ev.repeat).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start)),repeatEnd:null}))}
@@ -3939,6 +3951,7 @@
         var d=new Date(date);if(frequency==="weekly")d.setDate(d.getDate()-7);else if(frequency==="monthly")d.setMonth(d.getMonth()-1);else if(frequency==="yearly")d.setFullYear(d.getFullYear()-1);else d.setDate(d.getDate()-1);return d;
       }
       function confirmDeleteEvent(ev,occ) {
+        if (ev.caldav && window.daylightCaldavWrite) { window.daylightCaldavWrite.remove(ev, occ); return; }
         var recurring=!!ev.repeat&&occ&&occ.start.getTime()!==ev.start.getTime();
         function remove(scope){
           closePopover();
@@ -3951,6 +3964,11 @@
         openConfirm({title:"Delete this event?",body:"“"+ev.title+"” will be removed from "+calOf(ev.cal).name+". This cannot be undone.",confirmLabel:"Delete",danger:true,fn:function(){remove("all")}});
       }
       function editOccurrence(ev,occ){
+        if(ev.caldav){
+          var open=function(scope){ev._caldavScope=scope;openEventForm(ev,null,occ||ev)};
+          if(ev.caldav.recurring)chooseRepeatScope("Edit repeating event","Choose which occurrences this change should affect.",open);else open("all");
+          return;
+        }
         if(!ev.repeat||!occ||occ.start.getTime()===ev.start.getTime()){openEventForm(ev,null,occ||ev);return}
         chooseRepeatScope("Edit repeating event","Choose which occurrences this change should affect.",function(scope){
           if(scope==="all"){openEventForm(ev,null,ev);return}
@@ -4354,6 +4372,15 @@
             start = new Date(f.sDate); start.setHours(Math.floor(f.sMin / 60), f.sMin % 60);
             end = new Date(f.eDate); end.setHours(Math.floor(f.eMin / 60), f.eMin % 60);
             if (end <= start) { end = new Date(start.getTime() + 30 * 60000); }
+          }
+          /* CalDAV calendars write through the server (create/update); nothing is saved locally first. */
+          var targetCal = calOf(f.cal);
+          if (targetCal.caldav || (isEdit && src.caldav)) {
+            if (!window.daylightCaldavWrite) { toast("Synced calendars aren't available right now"); return; }
+            var saveButton = this; saveButton.disabled = true;
+            window.daylightCaldavWrite.saveEvent({ isEdit: isEdit, src: src, f: f, start: start, end: end, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", cal: targetCal })
+              .then(function (outcome) { saveButton.disabled = false; if (outcome && outcome.close) { closeDatePicker(); bd.remove(); } });
+            return;
           }
           if (isSubscribed(calOf(f.cal))) { toast("Subscribed calendars are read-only — pick another calendar"); return; }
           closeDatePicker();

@@ -707,8 +707,16 @@
              -> 200 { ok:true, server:{ name, principal_url, calendars:[{ url, name, color|null, read_only }] } }
              -> non-2xx or { ok:false, error:{ code, message } }  (code: invalid_url | unreachable | auth_failed | no_caldav) */
           const reply=await call('caldav',{action:'test',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value});
-          if(reply&&reply.ok===true){say(dlg,'Connected'+(reply.server&&reply.server.name?' to '+reply.server.name:'')+'. Saving calendars isn’t available yet.','ok')}
-          else throw Error('connect failed');
+          if(!(reply&&reply.ok===true))throw Error('connect failed');
+          // The server checked out: save the account (server-side only) and add its calendars to Subscriptions.
+          connect.innerHTML=SPIN+'Adding calendars…';
+          const saved=await cloud.client.functions.invoke('caldav',{body:{action:'connect',server_url:normalizeServer(server.value),username:user.value.trim(),password:pass.value}});
+          const data=saved&&saved.data;
+          if(saved.error||!data||data.ok!==true)throw Error('save failed');
+          pass.value='';
+          window.daylightCaldavConnected(data);
+          dlg.close();
+          toast('Connected — '+data.calendars.length+(data.calendars.length===1?' calendar':' calendars')+' added to Subscriptions');
         }catch(error){
           say(dlg,CALDAV_ERROR);
         }finally{
@@ -820,5 +828,225 @@
       if((typeof subscriptionRows!=='undefined'?subscriptionRows:[]).some(row=>String(row.url||row.feed_url||'')===publicFeed)){toast('You already subscribe to this calendar');return}
       window.daylightSubscribeDialog({url:publicFeed,name});
     });
+
+
+    /* ================= CalDAV calendars (Subscriptions section, two-way) =================
+       The browser only talks to the `caldav` edge function. CalDAV calendars are kept
+       out of the workspace save (remoteCaldavId / feedCaldavId) exactly like iCal
+       subscriptions, so a CalDAV problem can never touch local calendars or their data. */
+    let caldavRows=[],caldavAccounts=[],caldavLoading=null;
+    const caldavCalId=row=>'caldav:'+row.id;
+    async function caldavCall(body){
+      if(!own())throw Error('Sign in to daylight first');
+      let reply;
+      try{reply=await cloud.client.functions.invoke('caldav',{body})}catch(e){return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}}}
+      if(reply.error)return {ok:false,error:{code:'unreachable',message:'Couldn’t reach the sync service.'}};
+      return reply.data||{ok:false,error:{code:'server_error',message:'Unexpected reply.'}};
+    }
+    function removeCaldavLocal(){
+      state.events=state.events.filter(e=>!e.feedCaldavId);
+      state.calendars=state.calendars.filter(c=>!c.remoteCaldavId);
+    }
+    function materializeCaldav(rows,accounts){
+      const former=new Map(state.calendars.filter(c=>c.remoteCaldavId).map(c=>[c.id,c.hidden]));
+      let stored={};
+      try{stored=JSON.parse(localStorage.getItem('daylight-feed-visibility:'+(cloud.user&&cloud.user.id))||'{}')}catch{}
+      removeCaldavLocal();
+      caldavRows=rows;if(accounts)caldavAccounts=accounts;
+      rows.forEach((r,index)=>{
+        const calId=caldavCalId(r);
+        const color=(PALETTE[r.color]||/^#[0-9a-f]{6}$/i.test(String(r.color||'')))?r.color:['teal','blue','violet','green','amber','rose'][index%6];
+        state.calendars.push({id:calId,name:r.name||'Calendar',color,hidden:former.has(calId)?former.get(calId):!!stored[calId],
+          subscribed:true,builtin:false,caldav:true,caldavId:r.id,caldavAccountId:r.account_id,readOnly:!!r.read_only,remoteCaldavId:r.id,
+          lastSyncedAt:r.last_synced_at||null,lastError:r.last_error||null});
+        (Array.isArray(r.cached_events)?r.cached_events:[]).forEach((e,i)=>{
+          try{
+            const start=e.allDay?localDate(e.start,0,0):new Date(e.start);
+            const end=e.allDay?localDate(e.end,23,59):new Date(e.end);
+            if(!(end>start))return;
+            state.events.push({id:newEventID('caldav:'+r.id+':'+(e.occurrence_id||i)),title:e.title||'Untitled',cal:calId,start,end,allDay:!!e.allDay,
+              loc:e.location||'',desc:e.description||'',repeat:null,reminder:null,declined:e.status==='CANCELLED',uid:e.uid,feedCaldavId:r.id,status:e.status||'CONFIRMED',
+              caldav:{calendarId:r.id,href:e.href,etag:e.etag,uid:e.uid,recurring:!!e.recurring,originalStart:e.original_start,recurrenceId:e.recurrence_id||null}});
+          }catch(error){console.warn('Ignoring invalid CalDAV event',error)}
+        });
+      });
+      renderAll(false);
+    }
+    const caldavSig=rows=>JSON.stringify(rows.map(r=>[r.id,r.name,r.color,r.last_synced_at,r.last_error,(r.cached_events||[]).length,(r.cached_events||[]).map(e=>e.etag).join(',')]));
+    function caldavCacheKey(){return 'daylight-caldav-cache:'+(cloud.user&&cloud.user.id)}
+    /** Load the account list, render it, then sync each account behind it (updates in place; failures keep the last good events). */
+    async function loadCaldav(){
+      if(!own())return;
+      if(caldavLoading)return caldavLoading;
+      caldavLoading=(async()=>{
+        try{
+          const listed=await caldavCall({action:'list'});
+          if(!listed.ok){return}
+          if(caldavSig(listed.calendars)!==caldavSig(caldavRows)||!caldavRows.length)materialize2(listed.calendars,listed.accounts);
+          for(const account of listed.accounts){
+            const synced=await caldavCall({action:'sync',account_id:account.id});
+            if(synced.calendars){
+              const merged=caldavRows.filter(r=>r.account_id!==account.id).concat(synced.calendars);
+              if(caldavSig(merged)!==caldavSig(caldavRows))materialize2(merged,null);
+            }
+          }
+        }catch(error){console.warn('CalDAV refresh failed; showing the last known events',error)}
+        finally{caldavLoading=null}
+      })();
+      return caldavLoading;
+    }
+    function materialize2(rows,accounts){
+      materializeCaldav(rows,accounts);
+      try{localStorage.setItem(caldavCacheKey(),JSON.stringify({rows:caldavRows,accounts:caldavAccounts}))}catch{}
+    }
+    window.daylightCaldavReload=loadCaldav;
+    document.addEventListener('daylight:workspace-preview-ready',()=>{
+      if(!cloud||!cloud.user)return;
+      try{const c=JSON.parse(localStorage.getItem('daylight-caldav-cache:'+cloud.user.id)||'null');if(c&&Array.isArray(c.rows)&&c.rows.length)materializeCaldav(c.rows,c.accounts)}catch{}
+    });
+    document.addEventListener('daylight:workspace-ready',()=>{loadCaldav()});
+    if(cloud&&cloud.ready)loadCaldav();
+    // Remember show/hide for CalDAV calendars the way subscribed feeds do.
+    if(typeof persistCalendarChange==='function'){
+      const original=persistCalendarChange;
+      persistCalendarChange=function(){
+        original.apply(this,arguments);
+        try{
+          const key='daylight-feed-visibility:'+(cloud.user&&cloud.user.id);
+          const prefs=JSON.parse(localStorage.getItem(key)||'{}');
+          state.calendars.filter(c=>c.caldav).forEach(c=>{prefs[c.id]=!!c.hidden});
+          localStorage.setItem(key,JSON.stringify(prefs));
+        }catch{}
+      };
+    }
+
+    function applyReturnedCalendar(row){
+      if(!row)return;
+      const next=caldavRows.map(r=>r.id===row.id?row:r);
+      materialize2(next,null);
+    }
+    function notice(title,message){
+      const dlg=stdDialog(title);
+      dlg.body.innerHTML='<p style="margin:0;color:var(--muted);font-size:14px;line-height:1.5"></p>';
+      dlg.body.firstChild.textContent=message;
+      dlg.foot.innerHTML='<button type="button" class="btn-primary" data-ok>OK</button>';
+      dlg.foot.querySelector('[data-ok]').addEventListener('click',dlg.close);
+      dlg.foot.querySelector('[data-ok]').focus();
+    }
+    const CONFLICT='This event changed on the server, so your edit wasn’t saved. It’s been refreshed — try again.';
+    const REFUSED='This change can’t be safely made on a synced calendar yet — the series was left unchanged.';
+    /** Show the outcome of a failed write. Nothing was changed locally. */
+    function reportFailure(reply){
+      const code=reply&&reply.error&&reply.error.code;
+      if(reply&&reply.calendar)applyReturnedCalendar(reply.calendar);
+      if(code==='conflict'||code==='not_found')notice('Not saved',CONFLICT);
+      else if(code==='refused')notice('Not saved',REFUSED);
+      else notice('Not saved','Couldn’t save to the server, so nothing was changed.'+(reply&&reply.error&&reply.error.message?' '+reply.error.message:''));
+      return code;
+    }
+    const REPEAT_RULE={daily:'FREQ=DAILY',weekly:'FREQ=WEEKLY',monthly:'FREQ=MONTHLY',yearly:'FREQ=YEARLY'};
+    const utcDay=d=>new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+    const eventTimes=(start,end,allDay)=>allDay?{start:utcDay(start).toISOString(),end:utcDay(end).toISOString()}:{start:start.toISOString(),end:end.toISOString()};
+    window.daylightCaldavWrite={
+      /** Create or edit from the event dialog. Resolves {close:true} when the dialog should close. */
+      async saveEvent(ctx){
+        const {isEdit,src,f,start,end,loc,desc,cal}=ctx;
+        const times=eventTimes(start,end,f.allDay);
+        try{
+          if(!isEdit){
+            if(!cal.caldav||cal.readOnly){notice('Not saved','That calendar is read-only.');return {close:false}}
+            let rrule=null;
+            if(f.repeat){
+              rrule=REPEAT_RULE[f.repeat];
+              if(!rrule){notice('Not saved',REFUSED);return {close:false}}
+              if(f.repeatEnd){const u=new Date(f.repeatEnd);rrule+=';UNTIL='+u.getFullYear()+String(u.getMonth()+1).padStart(2,'0')+String(u.getDate()).padStart(2,'0')+'T235959Z'}
+            }
+            const reply=await caldavCall({action:'create',calendar_id:cal.caldavId,event:{title:f.title,...times,allDay:!!f.allDay,location:loc,description:desc,rrule}});
+            if(!reply.ok){reportFailure(reply);return {close:false}}
+            applyReturnedCalendar(reply.calendar);toast('Event created');return {close:true};
+          }
+          if(!src.caldav||!cal.caldav||src.cal!==cal.id){notice('Not saved','Events can’t be moved between a synced calendar and another calendar. Create a new event on the calendar you want instead.');return {close:false}}
+          if((f.repeat||null)!==(src.repeat||null)){notice('Not saved',REFUSED);return {close:false}}
+          const scope=src._caldavScope||'all';
+          const reply=await caldavCall({action:'update',calendar_id:src.caldav.calendarId,href:src.caldav.href,uid:src.caldav.uid,scope,
+            occurrence:{start:src.caldav.originalStart},fields:{title:f.title,...times,allDay:!!f.allDay,location:loc,description:desc}});
+          if(!reply.ok){const code=reportFailure(reply);return {close:code==='conflict'||code==='not_found'}}
+          applyReturnedCalendar(reply.calendar);toast('Event updated');return {close:true};
+        }catch(error){notice('Not saved','Couldn’t save to the server, so nothing was changed.');return {close:false}}
+      },
+      /** Delete from the popover (own confirm + scope chooser). */
+      remove(ev,occ){
+        const run=async scope=>{
+          closePopover();
+          try{
+            const reply=await caldavCall({action:'delete',calendar_id:ev.caldav.calendarId,href:ev.caldav.href,uid:ev.caldav.uid,scope,occurrence:{start:ev.caldav.originalStart}});
+            if(!reply.ok){reportFailure(reply);return}
+            applyReturnedCalendar(reply.calendar);toast('Event deleted');
+          }catch(error){notice('Not deleted','Couldn’t reach the server, so nothing was changed.')}
+        };
+        if(ev.caldav.recurring){chooseRepeatScope('Delete repeating event','Choose which occurrences to delete.',run);return}
+        openConfirm({title:'Delete this event?',body:'“'+ev.title+'” will be deleted from '+calOf(ev.cal).name+' on the server. This cannot be undone.',confirmLabel:'Delete',danger:true,fn:()=>run('all')});
+      },
+      /** Drag a chip to another day. */
+      move(ev,occStart,delta){
+        const shift=async scope=>{
+          const start=new Date(ev.start.getTime()+delta),end=new Date(ev.end.getTime()+delta);
+          try{
+            const reply=await caldavCall({action:'update',calendar_id:ev.caldav.calendarId,href:ev.caldav.href,uid:ev.caldav.uid,scope,occurrence:{start:ev.caldav.originalStart},
+              fields:{...eventTimes(start,end,ev.allDay),allDay:!!ev.allDay}});
+            if(!reply.ok){reportFailure(reply);return}
+            applyReturnedCalendar(reply.calendar);toast('Event moved');
+          }catch(error){notice('Not moved','Couldn’t reach the server, so nothing was changed.')}
+        };
+        if(ev.caldav.recurring)chooseRepeatScope('Move repeating event','Choose which occurrences to move.',shift);else shift('all');
+      }
+    };
+
+    /** Calendar ⋯ popup: sync status, Sync now, Disconnect account. */
+    window.daylightCaldavPopup=function(cal,host,hooks){
+      const fmt=iso=>iso?new Date(iso).toLocaleString(undefined,{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Never';
+      const draw=()=>{
+        const row=caldavRows.find(r=>r.id===cal.caldavId)||{};
+        const account=caldavAccounts.find(a=>a.id===cal.caldavAccountId)||{};
+        host.innerHTML='<div class="set-group-title">Sync</div>'+
+          '<div class="set-row switch-row"><span><span class="sw-label">Last synced</span><div class="sw-sub" data-last></div></span><button type="button" class="btn-ghost dl-btn-sm" data-sync>'+icon('refresh',14)+' Sync now</button></div>'+
+          '<div class="dl-cd-error" role="alert" hidden></div>'+
+          '<div class="set-row switch-row"><span><span class="sw-label">Account</span><div class="sw-sub" data-account></div></span><button type="button" class="btn-ghost dl-btn-sm dl-btn-danger-ghost" data-disconnect>'+icon('logout',14)+' Disconnect account</button></div>';
+        host.querySelector('[data-last]').textContent=fmt(row.last_synced_at);
+        host.querySelector('[data-account]').textContent=(account.username?account.username+' · ':'')+(()=>{try{return new URL(account.server_url).hostname}catch{return 'CalDAV server'}})();
+        const err=host.querySelector('.dl-cd-error');
+        const message=row.last_error||account.last_error;
+        if(message){err.hidden=false;err.textContent='Last sync failed: '+message+' Your events are still shown from the last good sync.'}
+      };
+      draw();
+      host.addEventListener('click',async e=>{
+        const sync=e.target.closest('[data-sync]'),leave=e.target.closest('[data-disconnect]');
+        if(sync){
+          sync.disabled=true;sync.innerHTML='<span class="dl-btn-spin"></span> Syncing…';
+          const reply=await caldavCall({action:'sync',account_id:cal.caldavAccountId,force:true});
+          if(reply.calendars){caldavAccounts=caldavAccounts.map(a=>a.id===cal.caldavAccountId?{...a,last_error:reply.ok?null:(reply.error&&reply.error.message)||'Sync failed',last_synced_at:reply.ok?new Date().toISOString():a.last_synced_at}:a);
+            materialize2(caldavRows.filter(r=>r.account_id!==cal.caldavAccountId).concat(reply.calendars),null)}
+          draw();
+          if(!reply.ok){const err=host.querySelector('.dl-cd-error');err.hidden=false;err.textContent='Sync failed: '+((reply.error&&reply.error.message)||'Couldn’t reach the server.')+' Your events are still shown from the last good sync.'}
+        }
+        if(leave){
+          openConfirm({title:'Disconnect this account?',body:'All of its calendars will be removed from daylight. Nothing on the server is deleted.',confirmLabel:'Disconnect',danger:true,fn:async()=>{
+            const reply=await caldavCall({action:'disconnect',account_id:cal.caldavAccountId});
+            if(!reply.ok){notice('Not disconnected','Couldn’t disconnect right now. Nothing was changed.');return}
+            hooks.close();
+            materialize2(caldavRows.filter(r=>r.account_id!==cal.caldavAccountId),caldavAccounts.filter(a=>a.id!==cal.caldavAccountId));
+            toast('Account disconnected');
+          }});
+        }
+      });
+    };
+    window.daylightCaldavUpdateCalendar=async function(cal){
+      const reply=await caldavCall({action:'update_calendar',calendar_id:cal.caldavId,name:cal.name,color:cal.color});
+      if(reply.ok&&reply.calendar){caldavRows=caldavRows.map(r=>r.id===reply.calendar.id?{...r,name:reply.calendar.name,color:reply.calendar.color}:r);
+        try{localStorage.setItem(caldavCacheKey(),JSON.stringify({rows:caldavRows,accounts:caldavAccounts}))}catch{}}
+      else notice('Not saved','Couldn’t save that change to the calendar. It will revert on the next reload.');
+    };
+    /** The connect form calls this after a successful `connect` so the calendars appear immediately. */
+    window.daylightCaldavConnected=function(reply){materialize2(caldavRows.filter(r=>!reply.calendars.some(c=>c.id===r.id)).concat(reply.calendars),caldavAccounts.filter(a=>a.id!==reply.account.id).concat([reply.account]))};
 
 })();
