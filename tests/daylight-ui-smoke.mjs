@@ -690,6 +690,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  });
  console.log('Synthetic 7-calendar render timings:',JSON.stringify(timing));
  if(errors.length)console.warn('Browser runtime notices:',errors.slice(0,8));
+ // (Local-only, need python + radicale: tests/caldav-protocol.mjs and tests/caldav-ui.mjs.)
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
