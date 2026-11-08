@@ -54,7 +54,8 @@ function revealCanvas(){
 function tryRevealCanvas(){
  if(!canvasGate.active||!canvasGate.workspace||!canvasGate.subscriptions)return;
  const token=canvasGate.token;
- const fonts=document.fonts&&document.fonts.ready?document.fonts.ready.catch(()=>null):Promise.resolve();
+ /* Fonts may delay the reveal, but never for more than 1.5 s (slow or blocked font host). */
+ const fonts=document.fonts&&document.fonts.ready?Promise.race([document.fonts.ready.catch(()=>null),new Promise(resolve=>setTimeout(resolve,1500))]):Promise.resolve();
  fonts.then(()=>{
   if(token!==canvasGate.token||!canvasGate.active)return;
   const remaining=Math.max(0,1000-(performance.now()-canvasGate.startedAt));

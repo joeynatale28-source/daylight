@@ -98,11 +98,15 @@ export async function launch(opts={}){
   if(/supabase\.co/.test(u))return r.respond({status:200,contentType:'application/json',body:'{}'});
   r.continue();
  });
- const errors=[];page.on('pageerror',e=>errors.push(e.message));
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));const logs=[];page.on('console',m=>logs.push(m.text().slice(0,140)));page.on('requestfailed',r=>logs.push('FAILED '+r.url().slice(0,90)));
  const close=async()=>{await browser.close();server.close()};
  return {page,browser,url,errors,close,
   async load({wait=true}={}){await page.goto(url,{waitUntil:'load'});if(wait)await this.ready()},
-  async ready(){await page.waitForFunction(()=>!!document.querySelector('.month-grid')&&!document.getElementById('dlWorkspaceLoading')&&!document.body.classList.contains('dl-canvas-holding'),{timeout:20000});await page.evaluate(()=>document.fonts.ready);await new Promise(r=>setTimeout(r,500))}};
+  async ready(){try{await page.waitForFunction(()=>!!document.querySelector('.month-grid')&&!document.getElementById('dlWorkspaceLoading')&&!document.body.classList.contains('dl-canvas-holding'),{timeout:20000})}catch(e){
+   const state=await page.evaluate(()=>({body:document.body.className,grid:!!document.querySelector('.month-grid'),spinner:!!document.getElementById('dlWorkspaceLoading'),app:!document.getElementById('app').hidden,auth:document.getElementById('authRoot').children.length,cloudReady:window.daylightCloud&&window.daylightCloud.ready,fonts:document.fonts.status,sb:typeof window.supabase})).catch(x=>String(x));
+   throw new Error('app did not finish booting: '+JSON.stringify(state)+' errors='+JSON.stringify(errors.slice(0,3))+' console='+JSON.stringify(logs.slice(-4)));
+  }
+  await Promise.race([page.evaluate(()=>document.fonts.ready),new Promise(r=>setTimeout(r,4000))]);await new Promise(r=>setTimeout(r,500))}};
 }
 
 /** Measurements of the real month grid at the current viewport. */
