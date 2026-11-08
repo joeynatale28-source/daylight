@@ -52,16 +52,27 @@ const STUB=`(function(){
    updateUser:function(){return Promise.resolve({data:{user:user},error:null})},
    resetPasswordForEmail:function(){return Promise.resolve({data:{},error:null})},
    signOut:function(){return Promise.resolve({})},
-   onAuthStateChange:function(cb){setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
+   onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
    oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
-  rpc:function(){return Promise.resolve({data:[],error:null})},from:chain,
+  rpc:function(name){
+   if(name==='daylight_list_my_sessions')return Promise.resolve({data:[{id:'s-current',user_agent:'Mozilla/5.0 (Windows NT 10.0) Chrome/120 Safari/537',last_active:new Date().toISOString(),current:true}].concat(window.__revoked?[]:[{id:'s-phone',user_agent:'Mozilla/5.0 (iPhone; CPU iPhone OS 17) Safari/604',last_active:new Date(Date.now()-3*3600e3).toISOString(),current:false}]),error:null});
+   if(name==='daylight_revoke_my_session'){window.__revoked=true;return Promise.resolve({data:{revoked:true},error:null})}
+   return Promise.resolve({data:[],error:null});},from:chain,
   storage:{from:function(){return {upload:function(p){return Promise.resolve({data:{path:p},error:null})},remove:function(p){return Promise.resolve({data:p,error:null})},getPublicUrl:function(p){return {data:{publicUrl:'https://storage.example/avatars/'+p}}}}}},
-  functions:{invoke:function(){return Promise.resolve({data:{subscriptions:[]},error:null})}}};
+  functions:{invoke:function(name,opts){
+    var body=(opts&&opts.body)||{};window.__calls=window.__calls||[];window.__calls.push({name:name,body:body});
+    if(name==='caldav')return Promise.resolve({data:null,error:{message:'Requested function was not found',context:{json:function(){return Promise.resolve({error:'not found'})}}}});
+    if(name==='ical-subscribe'&&body.action==='preview')return Promise.resolve({data:{name:'Test Feed',source_host:'example.com'},error:null});
+    if(name==='ical-subscribe'&&body.action==='add')return Promise.resolve({data:{ok:true},error:null});
+    if(name==='ical-import')return Promise.resolve({data:{added:3,updated:1,skipped:0},error:null});
+    return Promise.resolve({data:{subscriptions:[]},error:null});
+  }}};
  window.supabase={createClient:function(){return client}};
 })();`;
 
 /** A realistic December workspace: stacked multi-day bars, busy days, holidays. */
-export function busyPayload({month=11,spans=4,busyDay=9}={}){
+export const TINY_AVATAR='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAYAAABytg0kAAAAFElEQVR4nGNk+M/wn4EIwDiqEAEAAJwDAXH0H7sAAAAASUVORK5CYII=';
+export function busyPayload({month=11,spans=4,busyDay=9,avatar=''}={}){
  const events=[];let id=1;
  const add=(d,h,t,cal,extra)=>events.push(Object.assign({id:id++,cal,title:t,start:new Date(2026,month,d,h).toISOString(),end:new Date(2026,month,d,h,45).toISOString(),allDay:false,loc:'',desc:''},extra||{}));
  for(let d=1;d<=30;d++){add(d,8,'Practice '+d,'c2');if(d%2)add(d,15,'Homework '+d,'c4')}
@@ -73,7 +84,7 @@ export function busyPayload({month=11,spans=4,busyDay=9}={}){
   {id:'c1',name:'Hungary Creek Recreation Association',color:'teal'},{id:'c2',name:'swimRVA Rapids',color:'blue'},
   {id:'c3',name:'Personal',color:'green'},{id:'c4',name:'School Events and Assignments',color:'violet'},
   {id:'holidays',name:'US Holidays',color:'amber',subscribed:true,builtin:true}],
-  events,tasks:[],feeds:[],settings:{themeMode:'system'},ui:{}};
+  events,tasks:[],feeds:[],settings:{themeMode:'system',avatarUrl:avatar},ui:{}};
 }
 
 /**

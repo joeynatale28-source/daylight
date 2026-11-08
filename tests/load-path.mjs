@@ -3,7 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
-import {launch,busyPayload} from './harness.mjs';
+import {launch,busyPayload,TINY_AVATAR} from './harness.mjs';
 const out=process.env.SHOTS||path.join(process.cwd(),'ui-screenshots');
 fs.mkdirSync(out,{recursive:true});
 const PORT=47831;
@@ -12,6 +12,9 @@ const fresh=()=>fs.mkdtempSync(path.join(os.tmpdir(),'dl-profile-'));
 const rgb=c=>c.match(/\d+/g).slice(0,3).map(Number);
 const lum=c=>{const [r,g,b]=rgb(c);return (r*299+g*587+b*114)/1000};
 const GOOD=['dark','light'];
+const who=()=>{const row=document.querySelector('#sidebar .profile-row');if(!row)return null;const img=row.querySelector('.avatar img');const r=row.getBoundingClientRect();
+ return {name:row.querySelector('.profile-name')?.textContent,email:row.querySelector('.profile-email')?.textContent,avatar:img?img.getAttribute('src'):null,initials:img?null:row.querySelector('.avatar')?.textContent,box:[Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]}};
+const FINAL={name:'Calendar Demo',email:'demo@example.com',avatar:TINY_AVATAR};
 const rects=()=>{const q=s=>[...document.querySelectorAll(s)].map(e=>{const r=e.getBoundingClientRect();return [Math.round(r.left),Math.round(r.top),Math.round(r.width),Math.round(r.height)]});
  return {sidebar:q('#sidebar'),header:q('#headerBand'),cells:q('.month-grid .day-cell'),dow:q('.dow-cell'),chips:q('.day-cell .chip:not([hidden])')}};
 for(const theme of GOOD){
@@ -45,14 +48,14 @@ for(const theme of GOOD){
   const dir=fresh();
   let before;
   {
-   const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:0});
+   const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:0,payload:busyPayload({avatar:TINY_AVATAR})});
    try{await app.load();await sleep(1500);
     const snap=await app.page.evaluate(()=>({snap:!!localStorage.getItem('daylight-first-paint:00000000-0000-4000-8000-000000000001'),warm:!!localStorage.getItem('daylight-warm-workspace:00000000-0000-4000-8000-000000000001')}));
     assert.deepEqual(snap,{snap:true,warm:true},'snapshot and workspace cache are written after a normal load');
    }finally{await app.close()}
   }
   // second visit: slow network, and the server now has one extra event
-  const changed=busyPayload();
+  const changed=busyPayload({avatar:TINY_AVATAR});
   changed.events.push({id:9999,cal:'c3',title:'Fresh from server',start:new Date(2026,10,3,13).toISOString(),end:new Date(2026,10,3,14).toISOString(),allDay:false,loc:'',desc:''});
   const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:2200,cdnDelayMs:1200,payload:changed});
   try{
@@ -64,6 +67,9 @@ for(const theme of GOOD){
    assert.ok(painted.snapshot&&painted.chips>20&&!painted.spinner,'warm load paints the calendar immediately, no spinner: '+JSON.stringify(painted));
    assert.equal(painted.scripts,false,'...before any app script ran');
    before=await app.page.evaluate(rects);
+   const idFirst=await app.page.evaluate(who);
+   assert.deepEqual([idFirst.name,idFirst.email,idFirst.avatar],[FINAL.name,FINAL.email,FINAL.avatar],'account block is final in the very first frame: '+JSON.stringify(idFirst));
+   await app.page.screenshot({path:path.join(out,'load-identity-first-frame-'+theme+'.png'),clip:{x:0,y:app.page.viewport().height-110,width:300,height:110}});
    await app.page.waitForFunction(()=>!!window.daylightCloud,{timeout:10000});
    await sleep(300);
    const early=await app.page.evaluate(()=>({spinner:!!document.getElementById('dlWorkspaceLoading'),hold:document.body.classList.contains('dl-canvas-holding'),chips:document.querySelectorAll('.month-grid .day-cell .chip').length}));
@@ -74,6 +80,7 @@ for(const theme of GOOD){
    const after=await app.page.evaluate(rects);
    await app.page.screenshot({path:path.join(out,'load-warm-after-refresh-'+theme+'.png')});
    for(const k of ['sidebar','header','cells','dow'])assert.deepEqual(after[k],before[k],'refresh must not move '+k);
+   assert.deepEqual(await app.page.evaluate(who),idFirst,'identity block unchanged (content and position) after the profile refresh');
    // existing chips stay exactly where they were (the new event only adds a chip in its own cell)
    const cellOf=r=>r;
    const moved=before.chips.filter(c=>!after.chips.some(a=>a[0]===c[0]&&a[1]===c[1]&&a[2]===c[2]&&a[3]===c[3]));
@@ -86,10 +93,10 @@ for(const theme of GOOD){
 // once scripts run, the calendar renders from the cache at once; no spinner, no hold, before the network answers.
 for(const theme of GOOD){
  const dir=fresh();
- {const app=await launch({theme,port:PORT,userDataDir:dir});
+ {const app=await launch({theme,port:PORT,userDataDir:dir,payload:busyPayload({avatar:TINY_AVATAR})});
   try{await app.load();await sleep(1500);
   }finally{await app.close()}}
- const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:3000});
+ const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:3000,payload:busyPayload({avatar:TINY_AVATAR})});
  try{
   await app.page.evaluateOnNewDocument(()=>{try{localStorage.removeItem('daylight-first-paint:00000000-0000-4000-8000-000000000001')}catch(e){}});
   app.page.goto(app.url).catch(()=>{});
@@ -99,7 +106,44 @@ for(const theme of GOOD){
    hold:document.body.classList.contains('dl-canvas-holding'),chips:document.querySelectorAll('.month-grid .day-cell .chip').length,fetching:!window.daylightCloud.ready}));
   await app.page.screenshot({path:path.join(out,'load-cache-only-'+theme+'.png')});
   assert.deepEqual([state.snapshot,state.spinner,state.hold,state.chips>20,state.fetching],[false,false,false,true,true],'cache render shows the calendar before the network answers: '+JSON.stringify(state));
+  const idEarly=await app.page.evaluate(who);
+  assert.deepEqual([idEarly.name,idEarly.email,idEarly.avatar],[FINAL.name,FINAL.email,FINAL.avatar],'cache render paints the final identity: '+JSON.stringify(idEarly));
   await app.ready();
+  assert.deepEqual(await app.page.evaluate(who),idEarly,'identity does not change when the fresh profile arrives');
+ }finally{await app.close()}
+}
+
+// ---- D. only the cached identity (no snapshot, no workspace cache): the shell's account block is still final in the first frame.
+for(const theme of GOOD){
+ const dir=fresh();
+ {const app=await launch({theme,port:PORT,userDataDir:dir,payload:busyPayload({avatar:TINY_AVATAR})});
+  try{await app.load();await sleep(1500)}finally{await app.close()}}
+ const app=await launch({theme,port:PORT,userDataDir:dir,delayMs:1500,cdnDelayMs:2000,payload:busyPayload({avatar:TINY_AVATAR})});
+ try{
+  await app.page.evaluateOnNewDocument(()=>{try{const id='00000000-0000-4000-8000-000000000001';localStorage.removeItem('daylight-first-paint:'+id);localStorage.removeItem('daylight-warm-workspace:'+id)}catch(e){}});
+  app.page.goto(app.url).catch(()=>{});
+  await app.page.waitForFunction(()=>!!document.getElementById('sidebar')&&document.getElementById('sidebar').children.length>0,{timeout:8000});
+  await sleep(500);
+  const first=await app.page.evaluate(()=>({scripts:!!window.daylightCloud,who:(window.__whoFn=null,null)}));
+  const idShell=await app.page.evaluate(who);
+  await app.page.screenshot({path:path.join(out,'load-identity-shell-'+theme+'.png')});
+  assert.equal(first.scripts,false);
+  assert.deepEqual([idShell.name,idShell.email,idShell.avatar],[FINAL.name,FINAL.email,FINAL.avatar],'shell account block is final before scripts: '+JSON.stringify(idShell));
+  await app.ready();
+  const idAfter=await app.page.evaluate(who);
+  assert.deepEqual([idAfter.name,idAfter.email,idAfter.avatar],[FINAL.name,FINAL.email,FINAL.avatar]);
+ }finally{await app.close()}
+}
+// ---- E. signing out clears the cached identity with the rest.
+{
+ const app=await launch({port:PORT,userDataDir:fresh(),payload:busyPayload({avatar:TINY_AVATAR})});
+ try{await app.load();await sleep(1500);
+  const before=await app.page.evaluate(()=>Object.keys(localStorage).filter(k=>/^daylight-(identity|first-paint|warm-workspace)/.test(k)).length);
+  assert.equal(before,3,'identity, snapshot and workspace caches exist');
+  await app.page.evaluate(()=>window.__authCb('SIGNED_OUT',null));
+  await sleep(300);
+  const left=await app.page.evaluate(()=>Object.keys(localStorage).filter(k=>/^daylight-(identity|first-paint|warm-workspace|subscription-cache)/.test(k)));
+  assert.deepEqual(left,[],'sign-out removes the identity with the rest of the snapshot');
  }finally{await app.close()}
 }
 console.log('load-path checks passed');

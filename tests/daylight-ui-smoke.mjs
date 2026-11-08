@@ -48,9 +48,9 @@ try{
      rpc:async(name,args)=>{
        if(name==='daylight_list_my_sessions')return {data:[
          {id:'session-current',user_agent:'Chrome/120 Windows',last_active:new Date().toISOString(),current:true},
-         {id:'session-other',user_agent:'Firefox/120 Mac OS',last_active:new Date().toISOString(),current:false}
+         ...(window.__revoked?[]:[{id:'session-other',user_agent:'Firefox/120 Mac OS',last_active:new Date().toISOString(),current:false}])
        ],error:null};
-       if(name==='daylight_revoke_my_session')return {data:{revoked:true},error:null};
+       if(name==='daylight_revoke_my_session'){window.__revoked=true;return {data:{revoked:true},error:null}}
        return {data:null,error:null};
      },
      from:()=>chain(),
@@ -320,14 +320,25 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
      sections:[...document.querySelectorAll('.settings-rail .sr-item')].map(button=>button.textContent.trim()),
      email:document.querySelector('.dl-profile-photo')?.closest('.set-group')?.querySelector('[data-email]')?.textContent,
      sessions:[...document.querySelectorAll('.dl-session-row')].map(row=>row.textContent),
+     sessionUi:[...document.querySelectorAll('.dl-session-row')].map(row=>{const badge=row.querySelector('.dl-session-badge'),out=row.querySelector('.dl-session-signout');
+       const box=out&&{width:out.offsetWidth,height:out.offsetHeight};return {badge:badge?parseFloat(getComputedStyle(badge).fontSize):null,badgeText:badge&&badge.textContent,
+        signout:out?{w:box.width,h:box.height,title:out.title,color:getComputedStyle(out).color,hasIcon:!!out.querySelector('svg'),text:out.textContent.trim()}:null,textButton:!!row.querySelector('button.btn-ghost')}}),
      closeSize:(()=>{const r=document.querySelector('.settings-close').getBoundingClientRect();return [r.width,r.height]})()
    }));
    assert.deepEqual(profile.sections,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
    assert.equal(profile.email,'demo@example.com','Profile must show the authenticated email');
    assert.ok(profile.sessions.some(text=>text.includes('Chrome on Windows')&&text.includes('This device')),'current session is labelled This device: '+JSON.stringify(profile.sessions));
-   assert.ok(profile.sessions.some(text=>text.includes('Firefox on macOS')&&text.includes('Sign out')),'other sessions get a sign-out action: '+JSON.stringify(profile.sessions));
+   const [current,other]=profile.sessionUi;
+   assert.ok(current.badge!==null&&current.badge<=12&&current.badgeText==='This device'&&!current.signout,'current session wears a tiny This device badge and has no sign-out: '+JSON.stringify(current));
+   assert.ok(other.badge===null&&other.signout&&other.signout.w>=36&&other.signout.h>=36&&other.signout.title==='Sign out'&&other.signout.hasIcon&&other.signout.text===''&&!other.textButton,'other sessions get a red icon sign-out (>=36px, tooltip), not a text button: '+JSON.stringify(other));
+   assert.notEqual(other.signout.color,'rgb(237, 237, 237)','sign-out icon uses the destructive color');
    assert.ok(profile.closeSize[0]>=36&&profile.closeSize[1]>=36,'settings close hit target must be at least 36 by 36 pixels');
    await page.screenshot({path:path.join(out,'settings-profile-'+theme+'.png')});
+   await page.click('.dl-session-signout');
+   await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]',{timeout:2000});
+   await page.click('#overlayRoot > .backdrop:last-child [data-ok]');
+   await page.waitForFunction(()=>document.querySelectorAll('.dl-session-row').length===1&&!document.querySelector('.dl-session-signout'),{timeout:3000});
+   await page.evaluate(()=>{window.__revoked=false});
    await page.evaluate(()=>document.querySelector('.settings-close')?.click());
    await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
    await page.evaluate(()=>document.dispatchEvent(new Event('daylight:workspace-ready')));
@@ -673,7 +684,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));
