@@ -46,7 +46,7 @@ for(const theme of ['dark','light']){
   const openSettings=async sec=>{await page.evaluate(s=>openSettings(s),sec);await page.waitForSelector('.settings-dialog');await sleep(600)};
   const closeSettings=async()=>{if(!(await page.evaluate(()=>!!document.querySelector('.settings-dialog')))){await page.evaluate(()=>document.querySelector('#sidebar .side-row[title="Calendar"]').click());await sleep(500);return}await page.evaluate(()=>document.querySelector('.settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
   const showTab=async t=>{await page.evaluate(t=>document.querySelector('.dl-tabs [data-tab="'+t+'"]').click(),t);await sleep(300)};
-  const openAdmin=async()=>{await page.waitForFunction(()=>document.querySelector('[data-support-row="admin"]'),{timeout:6000});await page.evaluate(()=>document.querySelector('[data-support-row="admin"]').click());await page.waitForSelector('.dl-tabs');await showTab('notifications');await page.waitForSelector('#adTitle');await sleep(500)};
+  const openAdmin=async()=>{await page.waitForFunction(()=>document.querySelector('[data-side-row="admin"]'),{timeout:6000});await page.evaluate(()=>document.querySelector('[data-side-row="admin"]').click());await page.waitForSelector('.dl-tabs');await showTab('notifications');await page.waitForSelector('#adTitle');await sleep(500)};
   const GR=t=>`[...document.querySelectorAll('.dl-page .set-group')].find(g=>g.querySelector('.set-group-title').textContent.trim()==='${t}')`;
   const status=i=>page.evaluate(i=>(document.querySelectorAll('.dl-page .set-group')[[0,2,1,3][i]].querySelector('[data-status]')||{}).innerText||'',i);
   const sendNote=async(title,body,emails)=>{
@@ -69,9 +69,9 @@ for(const theme of ['dark','light']){
 
   // ---- the owner: the entry is last; no composer in the bell
   await signIn(OWNER,'Owner calendar');
-  await page.waitForFunction(()=>document.querySelector('[data-support-row="admin"]'),{timeout:6000});
+  await page.waitForFunction(()=>document.querySelector('[data-side-row="admin"]'),{timeout:6000});
   rail=await page.evaluate(()=>[...document.querySelectorAll('#sidebar .side-row')].map(b=>b.getAttribute('title')));
-  check(T('the owner has an Admin row above Settings'),rail.slice(-4).join()==='Admin,Documentation,Support ticket,Settings',JSON.stringify(rail));
+  check(T('the owner has an Admin row above Settings'),rail.slice(-3).join()==='Admin,Documentation,Settings',JSON.stringify(rail));
   await page.screenshot({path:path.join(out,`2-owner-sidebar-with-admin-${theme}.png`)});
   await openBell();pi=await panelInfo();
   check(T('the owner has no composer in the bell either (sending lives in the dashboard)'),!pi.composer,JSON.stringify(pi));

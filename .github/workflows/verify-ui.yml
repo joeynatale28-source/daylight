@@ -7,7 +7,7 @@ on:
       - daylight-cloud.js
       - daylight-notifications.js
       - daylight-admin.js
-      - daylight-support.js
+      - daylight-adminpage.js
       - daylight-auth.js
       - daylight-security.js
       - daylight-sharing.js

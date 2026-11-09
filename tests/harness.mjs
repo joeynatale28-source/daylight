@@ -60,7 +60,7 @@ const STUB=`(function(){
    registerPasskey:function(){window.__authCalls=(window.__authCalls||[]).concat([{fn:'register'}]);if(window.__registerError)return Promise.resolve({data:null,error:window.__registerError});var pk={id:'pk'+((window.__pks||[]).length+1),friendly_name:'',created_at:new Date().toISOString(),last_used_at:null};window.__pks=(window.__pks||[]).concat([pk]);return Promise.resolve({data:pk,error:null})},
    passkey:{list:function(){return Promise.resolve({data:window.__pks||[],error:null})},update:function(a){window.__authCalls=(window.__authCalls||[]).concat([{fn:'pkUpdate',a:a}]);(window.__pks||[]).forEach(function(p){if(p.id===a.passkeyId)p.friendly_name=a.friendlyName});return Promise.resolve({data:{},error:null})},delete:function(a){window.__authCalls=(window.__authCalls||[]).concat([{fn:'pkDelete',a:a}]);window.__pks=(window.__pks||[]).filter(function(p){return p.id!==a.passkeyId});return Promise.resolve({data:{},error:null})}},
    signInWithPasskey:function(){window.__authCalls=(window.__authCalls||[]).concat([{fn:'passkey'}]);var e=window.__passkeyError;return Promise.resolve(e?{data:null,error:e}:{data:{},error:null})},
-   onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb(session?'INITIAL_SESSION':'SIGNED_OUT',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
+   onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb('INITIAL_SESSION',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
    oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
   rpc:function(name,args){
    var B=window.__bc;   /* stand-in for the notification, banner and clear functions: same rules as supabase/sql/2026112[45]_*.sql */
@@ -75,7 +75,7 @@ const STUB=`(function(){
     var emailsOf=function(ids){return (ids||[]).map(function(k){return accts[k]&&accts[k].user.email}).filter(Boolean)};
     var visible=function(i){return i.audience==='specific'?(i.recipients||[]).indexOf(uid)!==-1:true};
     if(name==='daylight_is_owner')return ok(isOwner);
-    if(name==='daylight_list_broadcasts'){var reads=B.reads[uid]||(B.reads[uid]={}),clr=B.clears[uid]||{};return ok(B.items.filter(function(i){return visible(i)&&!clr[i.id]}).sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,sender:i.sender||'daylight',created_at:new Date(i.t).toISOString(),read:!!reads[i.id]}}))}
+    if(name==='daylight_list_broadcasts'){var reads=B.reads[uid]||(B.reads[uid]={}),clr=B.clears[uid]||{};return ok(B.items.filter(function(i){return visible(i)&&!clr[i.id]}).sort(function(a,b){return b.t-a.t}).map(function(i){return {id:i.id,title:i.title,body:i.body,sender:'daylight',created_at:new Date(i.t).toISOString(),read:!!reads[i.id]}}))}
     if(name==='daylight_mark_broadcasts_read'){var r2=B.reads[uid]||(B.reads[uid]={});B.items.forEach(function(i){r2[i.id]=1});return ok({ok:true})}
     if(name==='daylight_clear_broadcast'){(B.clears[uid]||(B.clears[uid]={}))[args.p_id]=1;return ok({cleared:true})}
     if(name==='daylight_list_banners')return ok(B.banners.filter(visible).sort(function(a,b){return b.t-a.t}).map(function(b){return {id:b.id,body:b.body,color:b.color,link:b.link||null,created_at:new Date(b.t).toISOString()}}));
@@ -93,34 +93,6 @@ const STUB=`(function(){
      B.banners.push({id:bid,body:bt,color:String(args.p_color).toUpperCase(),link:args.p_link||null,t:Date.now(),audience:'specific',recipients:br.ids});return ok({sent:true,id:bid,audience:'specific',matched:br.matched,not_found:br.missing})}
     if(name==='daylight_admin_list_banners')return ok(B.banners.slice().sort(function(a,b){return b.t-a.t}).map(function(b){return {id:b.id,body:b.body,color:b.color,link:b.link,audience:b.audience,recipients:emailsOf(b.recipients),created_at:new Date(b.t).toISOString()}}));
     if(name==='daylight_delete_banner'){B.banners=B.banners.filter(function(b){return b.id!==args.p_id});return ok({deleted:true})}
-   }
-   var SP=window.__sp;   /* stand-in for the support ticket functions: same rules as supabase/sql/20261129_support_tickets.sql */
-   if(SP&&/^daylight_support_/.test(name)){
-    args=args||{};var sme=window.daylightCloud&&window.daylightCloud.user&&window.daylightCloud.user.id;var BB=window.__bc;
-    SP.calls=(SP.calls||[]).concat([name]);SP.tickets=SP.tickets||[];SP.msgs=SP.msgs||[];
-    var sok=function(d){return Promise.resolve({data:d,error:null})},sbad=function(m){return Promise.resolve({data:null,error:{message:m}})};
-    if(!sme)return sbad('Authenticated session required');
-    var sOwner=!!BB&&BB.owners.indexOf(sme)!==-1;var sacc=window.__accounts||{};
-    var sfind=function(id){return SP.tickets.filter(function(t){return t.id===id})[0]};
-    var slast=function(t){var m=SP.msgs.filter(function(x){return x.t===t.id});return m[m.length-1]};
-    var srow=function(t){var l=slast(t);return {id:t.id,subject:t.subject,status:t.status,created_at:new Date(t.created).toISOString(),updated_at:new Date(t.updated).toISOString(),last_body:l.body,last_sender:l.sender}};
-    var sadd=function(t,sender,body){SP.msgs.push({id:'m'+(SP.msgs.length+1),t:t.id,sender:sender,body:body,created:Date.now()});t.updated=Date.now();return t};
-    var snames=function(u){var a=sacc[u];return a?(a.user.user_metadata&&a.user.user_metadata.full_name)||a.user.email:''};
-    if(/^daylight_support_admin_/.test(name)&&!sOwner)return sbad('Only the owner can do this');
-    if(name==='daylight_support_create_ticket'){var nm=String(args.p_name||'').trim(),em=String(args.p_email||'').trim(),sj=String(args.p_subject||'').trim(),ms=String(args.p_message||'').trim();
-     if(!nm)return sbad('Enter your name');if(!/^[^@ ]+@[^@ ]+[.][^@ ]+$/.test(em))return sbad('Enter a valid email address');if(!sj)return sbad('Enter a subject');if(!ms)return sbad('Write a message');
-     if(SP.tickets.filter(function(t){return t.user===sme&&t.status==='open'}).length>=5)return sbad('You have several open requests already');
-     var nt={id:'tk-'+(SP.tickets.length+1),user:sme,name:nm,email:em,subject:sj,status:'open',created:Date.now(),updated:Date.now(),unread:true};SP.tickets.push(nt);sadd(nt,'user',ms);return sok({id:nt.id})}
-    if(name==='daylight_support_my_tickets')return sok(SP.tickets.filter(function(t){return t.user===sme}).sort(function(a,b){return b.updated-a.updated}).map(srow));
-    if(name==='daylight_support_thread'){var tt=sfind(args.p_ticket);if(!tt||(tt.user!==sme&&!sOwner))return sbad('Ticket not found');
-     return sok(SP.msgs.filter(function(m){return m.t===tt.id}).map(function(m){return {id:m.id,sender:m.sender,body:m.body,created_at:new Date(m.created).toISOString(),name:m.sender==='user'?tt.name:'Daylight Support',avatar_url:null}}))}
-    if(name==='daylight_support_send'){var ts=sfind(args.p_ticket);if(!ts||ts.user!==sme)return sbad('Ticket not found');if(!String(args.p_body||'').trim())return sbad('Write a message');sadd(ts,'user',String(args.p_body).trim());ts.status='open';ts.unread=true;return sok({ok:true})}
-    if(name==='daylight_support_admin_list')return sok(SP.tickets.slice().sort(function(a,b){return b.updated-a.updated}).map(function(t){var r=srow(t);r.name=t.name;r.email=t.email;r.user_id=t.user;r.unread=!!t.unread;return r}));
-    if(name==='daylight_support_admin_seen'){var tn=sfind(args.p_ticket);if(tn)tn.unread=false;return sok({ok:true})}
-    if(name==='daylight_support_admin_set_status'){var tc=sfind(args.p_ticket);if(!tc)return sbad('Ticket not found');tc.status=args.p_status;return sok({ok:true})}
-    if(name==='daylight_support_admin_reply'){var tr=sfind(args.p_ticket);if(!tr)return sbad('Ticket not found');sadd(tr,'support',String(args.p_body).trim());tr.status='open';tr.unread=false;
-     if(BB){BB.items.push({id:'bc-sp-'+Date.now()+'-'+SP.msgs.length,title:'Daylight Support',body:'Daylight Support replied to your ticket: '+tr.subject,t:Date.now(),audience:'specific',recipients:[tr.user],sender:'support'})}return sok({ok:true})}
-    return sbad('Unknown function');
    }
    var SH=window.__sh;   /* stand-in for the calendar sharing functions: same rules as supabase/sql/20261126_calendar_sharing.sql */
    if(SH&&/^daylight_(search_people|send_calendar_share|list_calendar_shares|set_calendar_share_permission|revoke_calendar_share|list_my_invites|respond_calendar_share|clear_calendar_invite|leave_calendar_share|list_my_shared_calendars|shared_calendar_events|apply_shared_event_ops)$/.test(name)){

@@ -1,6 +1,6 @@
 /**
  * The auth screen (signed out), both themes, at the client boundary (Supabase is stubbed; the real providers are owner setup):
- *  - sign in: email + password, then Google / Apple / "Use a passkey" pills, and a "New to Daylight? Create an account" footer;
+ *  - sign in: email + password, then Google / "Use a passkey" pills, and a "New to Daylight? Create an account" footer;
  *  - each pill makes the right Supabase call; a provider the project has not switched on gets a polite message and NO redirect;
  *  - passkey: a cancelled prompt and a missing setup both say so in plain words;
  *  - Create account is a real page (name, email, password rules) with its own footer; closed sign-ups, an existing email and the
@@ -31,19 +31,24 @@ for(const theme of ['dark','light']){
 
   // ---- sign in
   const login=await page.evaluate(()=>({h:document.querySelector('.auth-headline').textContent,pills:[...document.querySelectorAll('.auth-methods .auth-social')].map(b=>b.textContent.trim()),footer:(document.querySelector('.auth-footer-row')||{}).textContent,forgot:!!document.querySelector('#authForgotLink'),overflow:document.querySelector('.auth-form-wrap').scrollHeight>document.querySelector('.auth-form-wrap').clientHeight+2}));
-  check(T('sign in shows Google, Apple and passkey pills and the Create-account footer'),login.h==='Sign in'&&JSON.stringify(login.pills)==='["Continue with Google","Continue with Apple","Use a passkey"]'&&/New to Daylight\?\s*Create an account/.test(login.footer)&&login.forgot,JSON.stringify(login));
+  check(T('sign in shows Google and passkey pills and the Create-account footer'),login.h==='Sign in'&&JSON.stringify(login.pills)==='["Continue with Google","Use a passkey"]'&&/New to Daylight\?\s*Create an account/.test(login.footer)&&login.forgot,JSON.stringify(login));
   await shot('1-signin');
+  // the screen is identical on a reload in the same fresh context (the real client fires INITIAL_SESSION, never SIGNED_OUT, on load)
+  await page.reload({waitUntil:'load'});await page.waitForSelector('#authScreen .auth-primary',{timeout:15000});await sleep(1300);
+  const again=await page.evaluate(()=>[...document.querySelectorAll('.auth-methods .auth-social')].map(b=>b.textContent.trim()));
+  check(T('after a reload the same buttons are there immediately'),JSON.stringify(again)==='["Continue with Google","Use a passkey"]',JSON.stringify(again));
+  await shot('1b-signin-after-reload');
 
   // Google: a provider the project has switched on starts OAuth with the right redirect
-  await page.evaluate(()=>{window.__realFetch=window.fetch;window.fetch=function(u){if(/auth\/v1\/settings/.test(String(u)))return Promise.resolve(new Response(JSON.stringify({external:{google:true,apple:false}}),{status:200}));return window.__realFetch.apply(this,arguments)}});
+  await page.evaluate(()=>{window.__realFetch=window.fetch;window.fetch=function(u){if(/auth\/v1\/settings/.test(String(u)))return Promise.resolve(new Response(JSON.stringify({external:{google:true}}),{status:200}));return window.__realFetch.apply(this,arguments)}});
   await go('#authGoogle');
   let c=await calls();
   check(T('Google starts Supabase OAuth for google with a same-page redirect'),c.some(x=>x.fn==='oauth'&&x.a.provider==='google'&&x.a.options.redirectTo.indexOf(app.url)===0),JSON.stringify(c));
-  // Apple is "off" in the project settings: a polite message, no redirect call
-  await page.evaluate(()=>{window.__authCalls=[];window.dispatchEvent(new Event('pageshow'))});
-  await go('#authApple');
+  // Google switched OFF in the project settings: a polite message, no redirect call
+  await page.evaluate(()=>{window.__authCalls=[];window.dispatchEvent(new Event('pageshow'));window.fetch=function(u){if(/auth\/v1\/settings/.test(String(u)))return Promise.resolve(new Response(JSON.stringify({external:{google:false}}),{status:200}));return window.__realFetch.apply(this,arguments)}});
+  await go('#authGoogle');
   c=await calls();
-  check(T('a provider that is not switched on explains itself and does not redirect'),c.length===0&&/Apple sign-in isn’t available yet/.test(await text('.auth-msg.is-error')||''),JSON.stringify(c)+(await text('.auth-msg')));
+  check(T('a provider that is not switched on explains itself and does not redirect'),c.length===0&&/Google sign-in isn’t available yet/.test(await text('.auth-msg.is-error')||''),JSON.stringify(c)+(await text('.auth-msg')));
   await shot('2-provider-off');
 
   // Passkey
@@ -75,7 +80,7 @@ for(const theme of ['dark','light']){
   // ---- Create account
   await go('#authToSignup');
   const su=await page.evaluate(()=>({h:document.querySelector('.auth-headline').textContent,fields:[...document.querySelectorAll('.auth-pill-label')].map(n=>n.textContent),btn:document.querySelector('.auth-primary').textContent,footer:(document.querySelector('.auth-footer-row')||{}).textContent,pills:[...document.querySelectorAll('.auth-methods .auth-social')].length}));
-  check(T('Create account page: Name, Email, Password, its own footer, Google and Apple'),su.h==='Create account'&&su.fields.join()==='Name,Email,Password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===2,JSON.stringify(su));
+  check(T('Create account page: Name, Email, Password, its own footer and Google'),su.h==='Create account'&&su.fields.join()==='Name,Email,Password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===1,JSON.stringify(su));
   await shot('5-signup');
   await page.click('.auth-primary');await sleep(300);
   check(T('empty fields are flagged and nothing is sent'),(await calls()).filter(x=>x.fn==='signUp').length===0&&(await page.evaluate(()=>document.querySelectorAll('.auth-pill.err').length))>=2);

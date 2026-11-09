@@ -2,7 +2,7 @@
  * Settings -> Profile -> Security (Password, Passkeys) and Sign-in methods, both themes, Supabase Auth stubbed at the client boundary.
  *  - Password row; Passkeys row with a "New" badge; the passkey setup dialog (name, device prompt, success) calls registerPasskey
  *    and names the passkey; the list can rename and remove (remove asks twice);
- *  - Sign-in methods lists Email and password / Google / Apple / Passkeys with Connect and Disconnect;
+ *  - Sign-in methods lists Email and password / Google / Passkeys with Connect and Disconnect;
  *  - the last remaining method cannot be disconnected (no button, an explanation instead);
  *  - none of this touches the Save / Discard bar (these are instant account actions).
  */
@@ -32,7 +32,7 @@ for(const theme of ['dark','light']){
   check(T('Security has a Password row and a Passkeys row with a New badge'),sec.title==='Security'&&sec.rows.join('|')==='Password|PasskeysNew'&&sec.badge==='New',JSON.stringify(sec));
   check(T('Sign-in methods follows Security'),sec.groups.indexOf('Sign-in methods')===sec.groups.indexOf('Security')+1,JSON.stringify(sec.groups));
   let m=await methods();
-  check(T('methods: email, Google, Apple, passkeys'),m.map(x=>x.name).join('|')==='Email and password|Google|Apple|Passkeys'&&m[1].btn.join()==='Connect'&&m[2].btn.join()==='Connect'&&/demo@example.com/.test(m[0].sub),JSON.stringify(m));
+  check(T('methods: email, Google, passkeys'),m.map(x=>x.name).join('|')==='Email and password|Google|Passkeys'&&m[1].btn.join()==='Connect'&&/demo@example.com/.test(m[0].sub),JSON.stringify(m));
   await page.screenshot({path:path.join(out,`1-security-${theme}.png`)});
 
   // ---- add a passkey
@@ -49,7 +49,7 @@ for(const theme of ['dark','light']){
   const list=await page.evaluate(()=>[...document.querySelectorAll('[data-pk-list] [data-pk]')].map(r=>r.querySelector('[data-name]').textContent+' / '+r.querySelector('[data-meta]').textContent));
   check(T('the passkey is listed with when it was added and "Never used"'),list.length===1&&/^Work laptop \/ Added .+ · Never used$/.test(list[0]),JSON.stringify(list));
   m=await methods();
-  check(T('Sign-in methods counts the passkey'),/1 passkey added/.test(m[3].sub),JSON.stringify(m[3]));
+  check(T('Sign-in methods counts the passkey'),/1 passkey added/.test(m[2].sub),JSON.stringify(m[2]));
 
   // rename
   await page.click('[data-pk] [data-rename]');await sleep(200);

@@ -1,6 +1,6 @@
-/* Sign-in methods on the auth screen: Google, Apple, passkey, a real Create-account page and a real Forgot-password page.
+/* Sign-in methods on the auth screen: Google, passkey, a real Create-account page and a real Forgot-password page.
    Layered on top of the screen built in index.html and daylight-cloud.js (nothing is rebuilt; Supabase Auth does every real step).
-   - Google / Apple: supabase.auth.signInWithOAuth. The provider has to be switched on in the Supabase dashboard; we ask the
+   - Google: supabase.auth.signInWithOAuth. The provider has to be switched on in the Supabase dashboard; we ask the
      project's public /auth/v1/settings first so a provider that is not set up says so politely instead of landing on an error page.
    - Passkey: supabase.auth.signInWithPasskey (needs the experimental passkey flag on the client, set in daylight-cloud.js, and
      Authentication -> Passkeys switched on in the dashboard). Hidden when this browser has no WebAuthn.
@@ -55,7 +55,6 @@
   function methodsHtml(withPasskey) {
     return '<div class="auth-methods"><div class="auth-divider"><span>or</span></div>' +
       '<button type="button" class="auth-social" id="authGoogle"><span class="auth-social-ic">' + googleGlyph() + "</span><span>Continue with Google</span></button>" +
-      '<button type="button" class="auth-social" id="authApple"><span class="auth-social-ic">' + appleGlyph() + "</span><span>Continue with Apple</span></button>" +
       (withPasskey && passkeyAvailable() ? '<button type="button" class="auth-social" id="authPasskey"><span class="auth-social-ic">' + icon("key", 18) + "</span><span>Use a passkey</span></button>" : "") +
       "</div>";
   }
@@ -112,7 +111,6 @@
     on("authForgotLink", function (e) { e.preventDefault(); authState.justReset = false; captureAuthInputs(root); transitionAuthTo(root, "forgot-email"); });
     on("authResendReset", function () { requestReset(root, true); });
     on("authGoogle", function () { social(root, "google", "Google"); });
-    on("authApple", function () { social(root, "apple", "Apple"); });
     on("authPasskey", function () { passkey(root); });
   };
   /* "or create an account" (the old toggle) and any caller of switchAuthMode */
@@ -144,7 +142,7 @@
     if (p) { if (on) { p.dataset.was = p.textContent; p.textContent = label || "Working…"; } else if (p.dataset.was) { p.textContent = p.dataset.was; delete p.dataset.was; } }
   }
 
-  /* ---- Google / Apple ---- */
+  /* ---- Google ---- */
   async function providerOn(name) {
     try {
       var r = await fetch(SETTINGS_URL, { headers: { apikey: KEY } });
@@ -255,5 +253,14 @@
   window.addEventListener("pageshow", function () { var r = document.getElementById("authRoot"); if (busy && r) setBusy(r, false); });
   /* a sign-in that finished (any method) leaves nothing behind */
   document.addEventListener("daylight:workspace-signed-out", function () { flash = null; busy = false; });
+  /* ROOT CAUSE of "the social buttons only appear after signing out": daylight-cloud.js resolves the saved session while it loads and,
+     with no session, paints the sign-in screen right away (showSignedOut -> renderAuth), which can happen BEFORE this file has replaced
+     buildAuthFormInner. A sign-out later rebuilt the screen with the new builder, so the buttons showed up then and vanished on reload.
+     Fix: the moment these overrides are installed, rebuild any sign-in screen that was already painted with the old builder. The result
+     is the same on a cold load, a reload and after signing out. */
+  (function repaintIfPainted() {
+    var root = document.getElementById("authRoot");
+    if (root && root.querySelector("#authScreen") && typeof renderAuth === "function") renderAuth();
+  })();
   window.daylightAuthMethods = { passkeyAvailable: passkeyAvailable };
 })();

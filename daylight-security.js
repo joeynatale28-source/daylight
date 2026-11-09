@@ -18,14 +18,14 @@
     ".dl-sec-list{display:flex;flex-direction:column}",
     ".dl-sec-list .dl-sec-row{padding:12px 0;border-top:1px solid var(--line-soft)}",
     ".dl-sec-list .dl-sec-row:first-child{border-top:0}",
-    ".dl-sec-group .dl-sec-row.is-main{padding:4px 0 10px}",
+    
     ".dl-sec-actions{display:inline-flex;gap:8px;flex:none;align-items:center}",
     ".dl-sec-actions .btn-danger-outline{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px}",
     ".dl-sec-rename{display:flex;gap:8px;align-items:center;flex:1;min-width:0}",
     ".dl-sec-rename input{height:36px;flex:1;min-width:0;border-radius:10px}",
     ".dl-sec-hint{font-size:12.5px;color:var(--muted);line-height:1.5;margin:0 0 10px}",
     ".dl-sec-note{font-size:12.5px;color:var(--muted);flex:none;max-width:210px;text-align:right;line-height:1.4}",
-    ".dl-sec-sep{height:1px;background:var(--line-soft);margin:6px 0 10px}",
+    ".dl-sec-group .dl-sec-row.is-main{padding:12px 0}.dl-sec-group .dl-sec-row.is-main:first-of-type{padding-top:2px}.dl-sec-group .dl-sec-row.is-main+.dl-sec-row.is-main{border-top:1px solid var(--line-soft)}",
     ".dl-sec-sub-title{font-size:13px;font-weight:600;margin:12px 0 2px}",
     /* the setup dialog */
     ".dl-pk-steps{margin:0 0 18px;padding:0;list-style:none;display:flex;flex-direction:column;gap:12px}",
@@ -104,7 +104,6 @@
   function buildSecurity(email) {
     var group = make('<div class="set-group dl-sec-group"><div class="set-group-title">Security</div>' +
       '<div class="dl-sec-row is-main"><span class="dl-sec-tile">' + icon("lock", 18) + '</span><span class="dl-sec-text"><span class="sw-label">Password</span><span class="sw-sub" data-pw-sub>We’ll email you a secure link to set a new password.</span></span><button type="button" class="btn-ghost dl-btn-sm" data-reset-password aria-label="Change password">Change password</button></div>' +
-      '<div class="dl-sec-sep"></div>' +
       '<div class="dl-sec-row is-main"><span class="dl-sec-tile">' + icon("key", 18) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys<span class="dl-new-badge">New</span></span><span class="sw-sub" data-pk-sub>Sign in with your fingerprint, face or screen lock. No password to remember.</span></span><button type="button" class="btn-ghost dl-btn-sm" data-add-passkey>Add a passkey</button></div>' +
       '<div class="dl-sec-list" data-pk-list></div>' +
       '<div class="dl-profile-status" data-security-status role="status" aria-live="polite"></div></div>');
@@ -184,7 +183,7 @@
   }
 
   /* ---------------------------------------------------------------- Sign-in methods */
-  var PROVIDERS = [{ id: "google", label: "Google", glyph: function () { return typeof googleGlyph === "function" ? googleGlyph() : icon("user", 18); } }, { id: "apple", label: "Apple", glyph: function () { return typeof appleGlyph === "function" ? appleGlyph() : icon("user", 18); } }];
+  var PROVIDERS = [{ id: "google", label: "Google", glyph: function () { return typeof googleGlyph === "function" ? googleGlyph() : icon("user", 18); } }];
   function buildMethods(securityGroup, email) {
     var group = make('<div class="set-group dl-sec-group"><div class="set-group-title">Sign-in methods</div><p class="dl-sec-hint">The ways you can get into this account. You can’t disconnect your last one.</p><div class="dl-sec-list" data-methods></div><div class="dl-profile-status" data-method-status role="status" aria-live="polite"></div></div>');
     var host = group.querySelector("[data-methods]"), status = group.querySelector("[data-method-status]");

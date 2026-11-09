@@ -302,7 +302,7 @@
         var top = document.createElement("div"); top.className = "dl-notif-top";
         /* Same anatomy as the invite card: avatar, bold sender header (+ verified seal) with the time at the right, a message line
            (the title) and a subtitle line (the message). No footer text: the seal is the official marker. */
-        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = n.sender === "support" ? "Daylight Support" : "Daylight";
+        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = "Daylight";
         from.appendChild(verifiedBadge());
         var time = document.createElement("span"); time.className = "dl-notif-time"; time.textContent = when(n.created_at);
         top.appendChild(from); top.appendChild(time);
@@ -326,13 +326,6 @@
           } catch (err) { clear.disabled = false; }
         });
         row.appendChild(clear);
-        /* A support reply opens the person's Support window (daylight-support.js). */
-        if (n.sender === "support") {
-          row.classList.add("is-link"); row.style.cursor = "pointer"; row.setAttribute("tabindex", "0"); row.setAttribute("role", "button");
-          var openSupport = function () { if (typeof closeNotifPanel === "function") closeNotifPanel(); if (window.daylightSupport) window.daylightSupport.openWindow(); };
-          row.addEventListener("click", function (e) { if (e.target.closest(".dl-notif-clear")) return; openSupport(); });
-          row.addEventListener("keydown", function (e) { if (e.key === "Enter" && e.target === row) { e.preventDefault(); openSupport(); } });
-        }
         list.appendChild(row);
       });
       panel.appendChild(list);

@@ -1715,9 +1715,9 @@
 #sidebar:not(.rail) .side-label { padding: var(--sb-label-pt) 10px var(--sb-label-pb); }
 #sidebar:not(.rail) .cal-row { min-height: var(--sb-cal-h); padding: var(--sb-cal-py) 10px; }
 #sidebar:not(.rail) .side-row { min-height: var(--sb-row-h); padding: var(--sb-row-py) 10px; }
-/* Round 9 added Documentation / Support ticket (and Admin for owners) above Settings: the Support-section rows are a notch slimmer so the whole
+/* Round 9 added Documentation (and Admin for owners) above Settings: the bottom rows are a notch slimmer so the whole
    sidebar still fits at ordinary heights; Calendar / Tasks keep the full row height. */
-#sidebar:not(.rail) .side-row[data-support-row] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
+#sidebar:not(.rail) .side-row[data-side-row] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
 #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
 @media (min-height: 1040px) { #sidebar:not(.rail) { --sb-spacer: 22px; --sb-label-pt: 22px; } }
 @media (max-height: 859px) { #sidebar:not(.rail) { --sb-row-h: 36px; --sb-cal-h: 32px; --sb-label-pt: 8px; --sb-create-mb: 8px; --sb-mini-day: 21px; } #sidebar:not(.rail) .side-spacer { min-height: 4px; } }
@@ -1955,6 +1955,10 @@
 .task-results.is-out { opacity: 0; }
 .task-results.is-in { animation: viewFade 200ms var(--dl-ease-out); }
 body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { animation: none !important; transition: none !important; }
+/* Round 10 polish: no dead space under the last field of a standard dialog (its 16px field margin stacked on the body padding), and
+   primary buttons inside cards and pages start on the card's text edge instead of the 8px footer-gap margin. */
+.dialog.dl-std .dialog-body > .field:last-child { margin-bottom: 0; }
+.dl-page .btn-primary, .dl-page .dl-ad-actions .btn-primary, .set-group .dl-ad-actions .btn-primary { margin-left: 0; }
 /* The main calendar's lines and finish: hairlines at the same weight and color as Settings' dividers (the header rule used the heavier
    --line, and every cell edge was a full-strength line); events get the app's chip finish (8px radius, same padding). Lines and finish only. */
 .dow-row, .tg-head { border-bottom-color: var(--line-soft); }
@@ -2084,7 +2088,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         sync: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/>',
         cpu: '<rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M9 2v2"/><path d="M9 20v2"/><path d="M20 9h2"/><path d="M20 14h2"/><path d="M2 9h2"/><path d="M2 14h2"/>',
         info: '<circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/>',
-        key: '<circle cx="8" cy="16" r="4.5"/><path d="M11.3 12.7 20 4"/><path d="m15.5 6.5 3 3"/>',
+        key: '<path d="M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z"/><circle cx="16.5" cy="7.5" r=".6" fill="currentColor"/>',
         collapse: '<path d="m11 17-5-5 5-5"/><path d="m18 17-5-5 5-5"/>',
         expand: '<path d="m6 17 5-5-5-5"/><path d="m13 17 5-5-5-5"/>',
         download: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><path d="M12 15V3"/>',
@@ -5306,15 +5310,10 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 
       /* ================= Auth (login / sign up) =================
          Design surface only: submitting either form enters the calendar app.
-         No real account is created or checked. Google/Apple social sign-in
-         is removed for now (see the commented block in renderAuth); the
-         googleGlyph/appleGlyph helpers below are kept for its return. */
+         Sign-in methods (Google, passkey, sign-up, reset) are wired in daylight-auth.js. */
       var authState = { mode: "login", showPw: false, name: "", email: "", password: "", newPassword: "", confirmPassword: "", showNewPw: false, showConfirmPw: false, code: ["", "", "", "", "", ""], justReset: false };
       function googleGlyph() {
         return '<svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5l-3.9 3C3.3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-3.9-3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c.9-2.8 3.6-4.9 6.8-4.9z"/></svg>';
-      }
-      function appleGlyph() {
-        return '<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.05 12.54c0-2.4 1.96-3.55 2.05-3.6-1.12-1.64-2.86-1.86-3.48-1.89-1.48-.15-2.89.87-3.64.87-.75 0-1.9-.85-3.13-.83-1.61.02-3.1.94-3.93 2.38-1.68 2.9-.43 7.2 1.2 9.56.8 1.16 1.75 2.46 3 2.41 1.21-.05 1.67-.78 3.13-.78s1.87.78 3.14.75c1.3-.02 2.12-1.17 2.91-2.34.92-1.34 1.3-2.64 1.32-2.71-.03-.01-2.54-.97-2.57-3.82zM14.65 5.4c.66-.8 1.1-1.91.98-3.02-.95.04-2.1.63-2.78 1.43-.61.7-1.14 1.83-1 2.87 1.06.08 2.14-.54 2.8-1.28z"/></svg>';
       }
       function authArt() {
         var bars = { 3: "#e3a93d", 7: "#43b581", 11: "#e3a93d", 16: "#5b8def", 26: "#e3a93d" };
@@ -5550,15 +5549,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           '<div class="auth-fields">' + nameField + emailField + pwField + "</div>" +
           '<button type="submit" class="auth-primary">' + (isLogin ? "Log in" : "Create account") + "</button>" +
           (isLogin ? '<div class="auth-forgot-row"><a class="auth-forgot" href="#" id="authForgot">Forgot password?</a></div>' : "") +
-          /* Social sign-in removed for now: the "or" divider and the
-             Google/Apple buttons are hidden until OAuth is wired up.
-             To restore, uncomment the three lines below plus the two
-             addEventListener calls in bindAuthFormInner (glyph helpers and
-             the .auth-divider/.auth-social styles are untouched).
-          '<div class="auth-divider"><span>or</span></div>' +
-          '<button type="button" class="auth-social" id="authGoogle"><span class="auth-social-ic">' + googleGlyph() + "</span><span>Continue with Google</span></button>" +
-          '<button type="button" class="auth-social" id="authApple"><span class="auth-social-ic">' + appleGlyph() + "</span><span>Continue with Apple</span></button>" +
-          */
           (isLogin ? "" : '<p class="auth-terms">By continuing, you agree to the <a href="#" data-terms>Terms of Service</a> and <a href="#" data-terms>Privacy Policy</a>.</p>')
         );
       }
@@ -5814,10 +5804,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           confPwIn.addEventListener("blur", function () { if (confPwIn.value) authShowErrFor(root, confPwIn, false); });
         }
         root.querySelectorAll("[data-terms]").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
-        /* Social sign-in removed for now — restore with the block in buildAuthFormInner above.
-        var gBtn = root.querySelector("#authGoogle"); if (gBtn) gBtn.addEventListener("click", enterApp);
-        var aBtn = root.querySelector("#authApple"); if (aBtn) aBtn.addEventListener("click", enterApp);
-        */
         if (emailIn) {
           emailIn.addEventListener("input", function () { authState.email = emailIn.value; authRefreshErrLive(root, emailIn); });
           emailIn.addEventListener("blur", function () { if (emailIn.value.trim()) authShowErrFor(root, emailIn, false); });
@@ -6078,7 +6064,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
     <script src="./daylight-auth.js"></script>
     <script src="./daylight-notifications.js"></script>
     <script src="./daylight-admin.js"></script>
-    <script src="./daylight-support.js"></script>
+    <script src="./daylight-adminpage.js"></script>
     <script src="./daylight-security.js"></script>
     <script src="./daylight-sharing.js"></script>
     <script src="./daylight-manage.js"></script>
