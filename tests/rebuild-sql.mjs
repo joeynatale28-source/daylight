@@ -18,6 +18,7 @@ const ORDER=[
  'supabase/sql/20261124_broadcast_notifications.sql',
  'supabase/sql/20261125_admin_dashboard.sql',
  'supabase/sql/20261126_calendar_sharing.sql',
+ 'supabase/sql/20261127_fix_admin_email_types.sql',
  'supabase/sql/20261123_remove_caldav.sql'];
 let failed=false;
 const check=(n,ok,d)=>{if(!ok)failed=true;console.log((ok?'PASS ':'FAIL ')+n+(ok||!d?'':'  -> '+d))};
