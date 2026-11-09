@@ -44,38 +44,35 @@ for(const theme of ['dark','light']){
   const panelInfo=()=>page.evaluate(()=>({items:[...document.querySelectorAll('.dl-notif-item')].map(i=>i.querySelector('.dl-notif-msg').textContent),empty:getComputedStyle(document.querySelector('.dl-notif-empty')).display!=='none',composer:!!document.querySelector('.dl-notif-send,.dl-notif-foot')}));
   const railItems=()=>page.evaluate(()=>[...document.querySelectorAll('.settings-rail .sr-item')].map(b=>b.textContent.trim()));
   const openSettings=async sec=>{await page.evaluate(s=>openSettings(s),sec);await page.waitForSelector('.settings-dialog');await sleep(600)};
-  const closeSettings=async()=>{await page.evaluate(()=>document.querySelector('.settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
-  const openAdmin=async()=>{await openSettings('profile');await page.waitForFunction(()=>document.querySelector('.settings-rail [data-admin]'),{timeout:6000});await page.click('.settings-rail [data-admin]');await page.waitForSelector('#adTitle');await sleep(600)};
-  const group=i=>`.settings-pane .set-group:nth-of-type(${i})`;
-  const status=i=>page.evaluate(i=>(document.querySelectorAll('.settings-pane .set-group')[i].querySelector('[data-status]')||{}).innerText||'',i);
+  const closeSettings=async()=>{if(!(await page.evaluate(()=>!!document.querySelector('.settings-dialog')))){await page.evaluate(()=>document.querySelector('#sidebar .side-row[title="Calendar"]').click());await sleep(500);return}await page.evaluate(()=>document.querySelector('.settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
+  const showTab=async t=>{await page.evaluate(t=>document.querySelector('.dl-tabs [data-tab="'+t+'"]').click(),t);await sleep(300)};
+  const openAdmin=async()=>{await page.waitForFunction(()=>document.querySelector('[data-support-row="admin"]'),{timeout:6000});await page.evaluate(()=>document.querySelector('[data-support-row="admin"]').click());await page.waitForSelector('.dl-tabs');await showTab('notifications');await page.waitForSelector('#adTitle');await sleep(500)};
+  const GR=t=>`[...document.querySelectorAll('.dl-page .set-group')].find(g=>g.querySelector('.set-group-title').textContent.trim()==='${t}')`;
+  const status=i=>page.evaluate(i=>(document.querySelectorAll('.dl-page .set-group')[[0,2,1,3][i]].querySelector('[data-status]')||{}).innerText||'',i);
   const sendNote=async(title,body,emails)=>{
    await page.$eval('#adTitle',n=>{n.value='';});await page.$eval('#adBody',n=>{n.value='';});
    await page.type('#adTitle',title);await page.type('#adBody',body);
-   if(emails){await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[0].querySelector('[data-aud="specific"]').click());await page.$eval('.settings-pane .set-group [data-emails]',n=>{n.value=''});await page.type('.settings-pane .set-group [data-emails]',emails)}
-   else await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[0].querySelector('[data-aud="everyone"]').click());
-   await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[0].querySelector('[data-send]').click());await sleep(700)};
+   if(emails){await page.evaluate(()=>document.querySelectorAll('.dl-page .set-group')[0].querySelector('[data-aud="specific"]').click());await page.$eval('[data-panel="notifications"] .set-group [data-emails]',n=>{n.value=''});await page.type('[data-panel="notifications"] .set-group [data-emails]',emails)}
+   else await page.evaluate(()=>document.querySelectorAll('.dl-page .set-group')[0].querySelector('[data-aud="everyone"]').click());
+   await page.evaluate(()=>document.querySelectorAll('.dl-page .set-group')[0].querySelector('[data-send]').click());await sleep(700)};
 
   await page.evaluate(()=>{window.__authCb('SIGNED_OUT',null)});await sleep(300);
 
   // ---- the test account: no admin entry, no composer anywhere
   await signIn(TEST,'Test calendar');
-  await openSettings('profile');
-  let rail=await railItems();
-  check(T('the test account has no "Admin dashboard" entry'),!rail.some(x=>/admin/i.test(x))&&rail[rail.length-1]==='Shortcuts',JSON.stringify(rail));
-  await page.screenshot({path:path.join(out,`1-test-settings-no-admin-${theme}.png`)});
-  await closeSettings();
+  let rail=await page.evaluate(()=>[...document.querySelectorAll('#sidebar .side-row')].map(b=>b.getAttribute('title')));
+  check(T('the test account has no Admin row (and Admin is not in Settings)'),!rail.includes('Admin'),JSON.stringify(rail));
+  await page.screenshot({path:path.join(out,`1-test-sidebar-no-admin-${theme}.png`)});
   await openBell();let pi=await panelInfo();
   check(T('the test account has no composer in the bell'),!pi.composer&&pi.empty,JSON.stringify(pi));
   await closeBell();await signOut();
 
   // ---- the owner: the entry is last; no composer in the bell
   await signIn(OWNER,'Owner calendar');
-  await openSettings('profile');
-  await page.waitForFunction(()=>document.querySelector('.settings-rail [data-admin]'),{timeout:6000});
-  rail=await railItems();
-  check(T('the owner has "Admin dashboard" as the very last entry'),rail[rail.length-1]==='Admin dashboard'&&rail.length===7,JSON.stringify(rail));
-  await page.screenshot({path:path.join(out,`2-owner-settings-with-admin-${theme}.png`)});
-  await closeSettings();
+  await page.waitForFunction(()=>document.querySelector('[data-support-row="admin"]'),{timeout:6000});
+  rail=await page.evaluate(()=>[...document.querySelectorAll('#sidebar .side-row')].map(b=>b.getAttribute('title')));
+  check(T('the owner has an Admin row above Settings'),rail.slice(-4).join()==='Admin,Documentation,Support ticket,Settings',JSON.stringify(rail));
+  await page.screenshot({path:path.join(out,`2-owner-sidebar-with-admin-${theme}.png`)});
   await openBell();pi=await panelInfo();
   check(T('the owner has no composer in the bell either (sending lives in the dashboard)'),!pi.composer,JSON.stringify(pi));
   // a stale unread dot (as left by a cached header) never outlives the real list
@@ -85,8 +82,8 @@ for(const theme of ['dark','light']){
 
   await openAdmin();
   await page.screenshot({path:path.join(out,`3-dashboard-${theme}.png`)});
-  const dash=await page.evaluate(()=>({titles:[...document.querySelectorAll('.settings-pane .set-group-title')].map(n=>n.textContent.trim()),h2:document.querySelector('.settings-pane h2').textContent}));
-  check(T('the dashboard has Send notification, Banner and the Manage lists, styled like Settings'),dash.h2==='Admin dashboard'&&JSON.stringify(dash.titles)==='["Send notification","Banner","Notifications sent","Active banners"]',JSON.stringify(dash));
+  const dash=await page.evaluate(()=>({titles:[...document.querySelectorAll('.dl-page .set-group-title')].map(n=>n.textContent.trim()),h2:document.querySelector('.dl-page-title').textContent}));
+  check(T('the dashboard has Send notification, Banner and the Manage lists, styled like Settings'),dash.h2==='Admin'&&JSON.stringify(dash.titles)==='["Send notification","Notifications sent","Banner","Active banners"]',JSON.stringify(dash));
 
   // ---- targeted notification
   await sendNote('Just for you','Hello test account','user@daylightcal.com');
@@ -102,8 +99,8 @@ for(const theme of ['dark','light']){
   await sendNote('For everyone','Everybody gets this one',null);
   st=await status(0);
   check(T('an everyone send is reported'),/sent to everyone/i.test(st),st);
-  const manage=await page.evaluate(()=>[...document.querySelectorAll('.settings-pane .dl-ad-item-title')].map(n=>n.textContent));
-  check(T('Manage lists what was sent (newest first) with Force remove on each'),manage[0]==='For everyone'&&manage.includes('Just for you')&&(await page.$$('.settings-pane [data-force]')).length===3,JSON.stringify(manage));
+  const manage=await page.evaluate(()=>[...document.querySelectorAll('.dl-page .dl-ad-item-title')].map(n=>n.textContent));
+  check(T('Manage lists what was sent (newest first) with Force remove on each'),manage[0]==='For everyone'&&manage.includes('Just for you')&&(await page.$$('.dl-page [data-force]')).length===3,JSON.stringify(manage));
   await page.screenshot({path:path.join(out,`5-dashboard-manage-${theme}.png`)});
   await closeSettings();
   await page.evaluate(()=>daylightNotifications.refresh());await sleep(500);
@@ -154,7 +151,7 @@ for(const theme of ['dark','light']){
 
   // ---- force remove
   await openAdmin();
-  await page.evaluate(()=>{[...document.querySelectorAll('.settings-pane .dl-ad-item')].find(i=>/For everyone/.test(i.textContent)).querySelector('[data-force]').click()});
+  await page.evaluate(()=>{[...document.querySelectorAll('.dl-page .dl-ad-item')].find(i=>/For everyone/.test(i.textContent)).querySelector('[data-force]').click()});
   await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');await page.click('#overlayRoot > .backdrop:last-child [data-ok]');await sleep(800);
   check(T('force remove takes it out of the owner\'s Manage list and the data'),await page.evaluate(()=>!window.__bc.items.some(i=>i.title==='For everyone')&&![...document.querySelectorAll('.dl-ad-item-title')].some(n=>n.textContent==='For everyone')));
   await closeSettings();await persist();await signOut();
@@ -165,18 +162,18 @@ for(const theme of ['dark','light']){
   // ---- banners
   await signIn(OWNER,'Owner calendar');
   await openAdmin();
-  await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[1].scrollIntoView());
-  await page.type('#adBanner','Scheduled maintenance tonight at 10pm Eastern');
-  await page.click('.settings-pane .dl-ad-swatches .dl-sw:nth-child(4)');
-  const picked=await page.$eval('.settings-pane .dl-ad-swatches .dl-sw[aria-pressed="true"]',b=>b.getAttribute('title'));
+  await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').scrollIntoView());
+  await showTab('banners');await page.type('#adBanner','Scheduled maintenance tonight at 10pm Eastern');
+  await page.click('.dl-page .dl-ad-swatches .dl-sw:nth-child(4)');
+  const picked=await page.$eval('.dl-page .dl-ad-swatches .dl-sw[aria-pressed="true"]',b=>b.getAttribute('title'));
   await page.type('#adLink','https://example.com/status');
   await page.screenshot({path:path.join(out,`8-banner-form-${theme}.png`)});
-  await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[1].querySelector('[data-post]').click());await sleep(800);
+  await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').querySelector('[data-post]').click());await sleep(800);
   check(T('the owner posted an everyone banner in the chosen color'),await page.evaluate(h=>window.__bc.banners.some(b=>b.color===h&&b.audience==='everyone'&&b.link==='https://example.com/status'),picked),picked);
-  await page.type('#adBanner','Only for the test account');
-  await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[1].querySelector('[data-aud="specific"]').click());
-  await page.type('.settings-pane .set-group:nth-of-type(2) [data-emails]','user@daylightcal.com');
-  await page.evaluate(()=>document.querySelectorAll('.settings-pane .set-group')[1].querySelector('[data-post]').click());await sleep(800);
+  await showTab('banners');await page.type('#adBanner','Only for the test account');
+  await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').querySelector('[data-aud="specific"]').click());
+  await page.type('[data-panel="banners"] .set-group:first-of-type [data-emails]','user@daylightcal.com');
+  await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').querySelector('[data-post]').click());await sleep(800);
   await closeSettings();await page.evaluate(()=>daylightBanners.refresh());await sleep(600);
   const ob=await page.evaluate(()=>[...document.querySelectorAll('#dlBanners .dl-banner')].map(b=>b.textContent));
   check(T('the owner sees only the everyone banner (the other is addressed to the test account)'),JSON.stringify(ob)==='["Scheduled maintenance tonight at 10pm Eastern"]',JSON.stringify(ob));
@@ -207,12 +204,12 @@ for(const theme of ['dark','light']){
 
   // ---- remove banners
   await signIn(OWNER,'Owner calendar');await openAdmin();
-  await page.evaluate(()=>{[...document.querySelectorAll('.settings-pane .dl-ad-item')].filter(i=>i.querySelector('[data-remove]')).forEach(()=>{})});
+  await page.evaluate(()=>{[...document.querySelectorAll('.dl-page .dl-ad-item')].filter(i=>i.querySelector('[data-remove]')).forEach(()=>{})});
   for(let i=0;i<2;i++){
-   await page.evaluate(()=>{document.querySelector('.settings-pane [data-remove]').click()});
+   await page.evaluate(()=>{document.querySelector('.dl-page [data-remove]').click()});
    await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');await page.click('#overlayRoot > .backdrop:last-child [data-ok]');await sleep(800);
   }
-  check(T('both banners are removed from the dashboard and the data'),await page.evaluate(()=>window.__bc.banners.length===0&&!document.querySelector('.settings-pane [data-remove]')));
+  check(T('both banners are removed from the dashboard and the data'),await page.evaluate(()=>window.__bc.banners.length===0&&!document.querySelector('.dl-page [data-remove]')));
   await closeSettings();await persist();await signOut();
   await signIn(TEST,'Test calendar');await page.evaluate(()=>daylightBanners.refresh());await sleep(600);
   check(T('after removal nothing shows at the top for the test account'),await page.evaluate(()=>document.querySelectorAll('#dlBanners .dl-banner').length===0&&getComputedStyle(document.documentElement).getPropertyValue('--dl-banner-h').trim()==='0px'));

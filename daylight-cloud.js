@@ -10,7 +10,7 @@
   var PUBLISHABLE_KEY = 'sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM';
   var client = window.supabase && window.supabase.createClient
     ? window.supabase.createClient(URL, PUBLISHABLE_KEY, {
-        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
+        auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, experimental: { passkey: true } }
       })
     : null;
   var user = null, revision = 0, hasRow = false, saving = false;
@@ -157,9 +157,9 @@
   var originalRenderSidebar = renderSidebar;
   var originalPaneGeneral = paneGeneral;
 
-  /* Owner-created accounts only. There is no public sign-up or fixed reset code. */
+  /* Sign-up and reset are real Supabase calls (daylight-auth.js); there is no fixed demo code. */
   buildAuthFormInner = function () {
-    if (authState.mode === 'signup' || authState.mode === 'forgot-code') authState.mode = 'login';
+    if (authState.mode === 'forgot-code') authState.mode = 'login';   /* sign-up is a real page now (daylight-auth.js) */
     return originalBuildAuth().replace(/<p class="auth-altline">[\s\S]*?<\/p>/, '');
   };
   authCheckCode = function () { /* Reset codes are verified by Supabase, not this UI. */ };

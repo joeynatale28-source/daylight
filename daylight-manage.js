@@ -9,17 +9,29 @@
   "use strict";
   var css = document.createElement("style");
   css.textContent = [
-    ".settings-dialog.dl-manage:focus{outline:none}",
+    ".settings-dialog.dl-manage:focus,.dialog.dl-manage:focus{outline:none}",
     /* single-column shell: the standard Daylight dialog (same shell as Create Event) */
     ".dialog.dl-col{position:relative;display:flex;flex-direction:column;max-height:min(92dvh,840px)}",
     ".dl-col .dialog-head{flex:none}",
     ".dl-col .dialog-head .dl-mg-dot{width:12px;height:12px;margin-top:2px}",
-    ".dl-col .dialog-head .dialog-title{display:flex;align-items:center;gap:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+    ".dl-col .dialog-head .dialog-title{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
     ".dl-col .dialog-head{align-items:center;gap:12px}",
     ".dl-col .dialog-head .settings-close{position:static;flex:none;width:36px;height:36px;margin:0}",
-    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:12px 24px 20px}",
-    ".dl-col-body .set-group{padding:20px 22px 16px;margin-bottom:20px}",
+    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:6px 28px 24px}",
+    ".dl-col-body .set-group{padding:22px 26px 20px;margin-bottom:24px}",
     ".dl-col-body .set-group:last-child{margin-bottom:4px}",
+    /* a sibling of Settings: its 16px radius, its width, its header size; no hairlines under the header or above the footer */
+    ".dialog.dl-manage.dl-col{width:min(560px,calc(100vw - 32px))!important;max-width:none!important;border-radius:16px!important}",
+    ".dl-manage .dialog-head{border-bottom:0;padding:22px 28px 14px}",
+    ".dl-manage .dialog-head .dialog-title{font-size:22px;font-weight:650;letter-spacing:-.02em}",
+    ".dl-manage .dialog-foot{border-top:0;padding:6px 28px 22px}",
+    ".dl-manage .set-group.is-danger{border-color:var(--line-soft)!important}",
+    ".dl-manage .dl-ppl-row,.dl-manage .dl-ppl-row:first-child{border-top:0;padding:9px 0}",
+    ".dl-manage .dl-cp-custom{border-top:0;padding-top:0}",
+    ".dl-manage .dl-ga-host .set-row{border-bottom:0;padding:12px 0 4px}",
+    ".dl-manage .dl-mg-sub{margin:22px 0 8px}",
+    ".dl-manage .dl-mg-lead{font-size:13px;color:var(--muted);line-height:1.5;margin:-2px 0 16px}",
+    ".dl-manage .dl-mg-name-field{margin:0 0 4px}",
     ".dl-col-h{font-size:15px;font-weight:620;letter-spacing:-.012em;margin:22px 0 4px}",
     ".dl-col-h:first-child{margin-top:0}",
     ".dl-col-sub{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 14px}",
@@ -58,7 +70,8 @@
     ".dl-mg-sub{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px}",
     ".dl-mg-swatches{display:flex;flex-wrap:wrap;gap:12px;align-items:center}",
     ".dl-mg-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:12px 10px}",
-    ".dl-mg-saved{min-height:26px}",
+    ".dl-mg-saved{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:12px 10px;min-height:26px}",
+    ".dl-sw-add svg{display:block!important;color:var(--muted);filter:none}.dl-sw-add[aria-expanded=true]{color:var(--text);border-color:var(--text);border-style:solid}.dl-sw-add[aria-expanded=true] svg{color:var(--text)}",
     ".dl-mg-picker{margin-top:14px}",
     ".dl-mg-note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:12px 0 0}",
     ".dl-sw-wrap{position:relative;width:26px;height:26px}",
@@ -152,10 +165,9 @@
     host.textContent = ""; host.classList.add("dl-cp");
     host.innerHTML = '<div class="dl-mg-swatches" data-presets></div>' +
       '<div class="dl-cp-yours"><div class="dl-mg-sub dl-cp-yourslabel">Your colors</div><div class="dl-mg-swatches dl-mg-saved" data-saved></div></div>' +
-      '<button type="button" class="dl-cp-toggle" aria-expanded="false" data-custom-toggle><span class="dl-cp-plus">' + icon("plus", 14) + '</span><span>Custom color</span><span class="dl-cp-chev">' + icon("chevD", 14) + '</span></button>' +
       '<div class="dl-cp-custom" hidden><div data-inline-picker></div><button type="button" class="btn-ghost dl-btn-sm dl-cp-add" data-save-custom>Add to Your colors</button></div>';
     var presets = host.querySelector("[data-presets]"), saved = host.querySelector("[data-saved]"), label = host.querySelector(".dl-cp-yourslabel"),
-        yours = host.querySelector(".dl-cp-yours"), toggle = host.querySelector("[data-custom-toggle]"), custom = host.querySelector(".dl-cp-custom");
+        yours = host.querySelector(".dl-cp-yours"), custom = host.querySelector(".dl-cp-custom");
     var inline = null;
     function savedList() { return (state.customColors || []).filter(function (c) { return /^#[0-9A-F]{6}$/i.test(c); }); }
     function swatch(key, name) {
@@ -174,7 +186,7 @@
       var list = (window.daylightPresetColors || []).slice(), mine = savedList();
       /* A named palette color (or any color not in the list) shows as the selected swatch too. */
       if (value && list.indexOf(value) === -1 && mine.indexOf(value) === -1) list.unshift(value);
-      presets.style.setProperty("--cols", String(Math.max(6, Math.ceil(list.length / 3))));
+      host.style.setProperty("--cols", String(Math.max(6, Math.ceil(list.length / 3))));   /* saved colors flow in the very same grid */
       list.forEach(function (key) { presets.appendChild(swatch(key, key === value && !/^#/.test(key) && typeof colorName === "function" ? colorName(key) : null)); });
       mine.forEach(function (key) {
         var wrap = make('<span class="dl-sw-wrap"></span>');
@@ -188,7 +200,18 @@
         wrap.appendChild(remove);
         saved.appendChild(wrap);
       });
-      yours.hidden = !mine.length;
+      /* the one add tile: a dashed circle with a plus, at the end of "Your colors"; it opens / closes the custom editor */
+      var addWrap = make('<span class="dl-sw-wrap"></span>');
+      var tile = make('<button type="button" class="dl-sw dl-sw-add" data-custom-toggle aria-expanded="' + (!custom.hidden) + '" title="Add a custom color" aria-label="Add a custom color">' + icon("plus", 14) + "</button>");
+      tile.style.setProperty("--c", "transparent");
+      tile.addEventListener("click", toggleCustom);
+      addWrap.appendChild(tile); saved.appendChild(addWrap);
+      yours.hidden = false;
+    }
+    function toggleCustom() {
+      var open = custom.hidden;
+      custom.hidden = !open;
+      var t = host.querySelector("[data-custom-toggle]"); if (t) { t.setAttribute("aria-expanded", String(open)); t.classList.toggle("is-open", open); }
     }
     function pick(key) {
       if (!key) return;
@@ -196,10 +219,6 @@
       if (inline && key !== inline.value) inline.set(swatchHex(key));
       if (opts.onChange) opts.onChange(key);
     }
-    toggle.addEventListener("click", function () {
-      var open = custom.hidden;
-      custom.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); toggle.classList.toggle("is-open", open);
-    });
     host.querySelector("[data-save-custom]").addEventListener("click", function () {
       var hex = inline ? inline.value : swatchHex(value);
       state.customColors = [hex].concat(savedList().filter(function (c) { return c !== hex; })).slice(0, 30);
@@ -250,8 +269,11 @@
     }
 
     /* ------------------------------------------------------------ Calendar section (name + color) */
-    function colorGroup(host, note) {
-      var group = make('<div class="set-group"><div class="set-group-title">Color</div><div data-cp></div>' + (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
+    function colorGroup(host, note, inCard) {
+      /* name + color share ONE card (a card inside a card is what made this feel boxed in) */
+      var group = inCard
+        ? make('<div class="dl-mg-colorpart"><div class="dl-mg-sub">Color</div><div data-cp></div></div>')
+        : make('<div class="set-group"><div class="set-group-title">Calendar</div><div class="dl-mg-sub" style="margin-top:0">Color</div><div data-cp></div>' + (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
       host.appendChild(group);
       var cp = window.daylightCalendarColorPicker(group.querySelector("[data-cp]"), { value: cal.color, deferSaved: true, onSavedChange: function () { markDirty(); }, onChange: function (key) { previewColor(key); } });
       inline = cp.inline;
@@ -266,15 +288,16 @@
       markDirty();
     }
     function drawCalendar() {
-      var sub = kind === "holidays" ? "Choose the color for US Holidays." : kind === "shared" ? "A calendar someone shared with you." : kind === "subscribed" ? "The name and color of this subscription." : "Name and color.";
-      paneHead(pane, "Calendar", sub);
       nameInput = null;
+      var calCard = null;
       if (kind === "owned" || kind === "subscribed") {
+        calCard = make('<div class="set-group"><div class="set-group-title">Calendar</div></div>');
         var g = make('<div class="field dl-mg-name-field"><label for="calSettingsName">Name</label><input id="calSettingsName" class="text-input dl-mg-name-input dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name"></div>');
         nameInput = g.querySelector("input");
         nameInput.value = pendingName !== null ? pendingName : cal.name;
         nameInput.addEventListener("input", function () { pendingName = nameInput.value; paintHeader(); markDirty(); });
-        pane.appendChild(g);
+        calCard.appendChild(g);
+        pane.appendChild(calCard);
       }
       if (kind === "shared") {
         var info = cal.sharedFrom || {};
@@ -292,7 +315,7 @@
         g2.querySelector("[data-perm-sub]").textContent = info.permission === "edit" ? "You can add and change events." : "You can only see events.";
         pane.appendChild(g2);
       }
-      colorGroup(pane, kind === "shared" ? "This only changes how the calendar looks in your sidebar." : (kind === "subscribed" ? "" : ""));
+      colorGroup(calCard || pane, kind === "shared" ? "This only changes how the calendar looks in your sidebar." : "", !!calCard);
       paintHeader();
     }
     var pendingName = null;
@@ -335,9 +358,8 @@
 
     /* ------------------------------------------------------------ Source (subscribed) */
     function drawSource() {
-      paneHead(pane, "Source", "Where this calendar comes from and when it last updated.");
       var subs = window.daylightSubscriptions, row = subs && subs.row(cal.remoteSubscriptionId) || {};
-      var g = make('<div class="set-group"><div class="set-group-title">Feed</div>' +
+      var g = make('<div class="set-group"><div class="set-group-title">Source</div>' +
         '<div class="set-row switch-row"><span><span class="sw-label">Source</span><div class="dl-mg-url" data-url></div></span><button type="button" class="btn-ghost dl-btn-sm" data-copy>Copy</button></div>' +
         '<div class="set-row switch-row"><span><span class="sw-label">Last updated</span></span><span class="dl-mg-kv" data-updated></span></div>' +
         '<div class="set-row switch-row"><span><span class="sw-label">Status</span></span><span class="dl-mg-kv" data-status></span></div>' +
@@ -367,13 +389,14 @@
 
     /* ------------------------------------------------------------ Sharing (owned) */
     function drawSharing() {
-      paneHead(pane, "Sharing", "Invite other Daylight accounts. They choose whether to add the calendar.");
+      var shareCard = make('<div class="set-group"><div class="set-group-title">Sharing</div><p class="dl-mg-lead">Invite other Daylight accounts. They choose whether to add the calendar.</p></div>');
+      pane.appendChild(shareCard);
       var s = sharing();
       var people = [], listLoaded = false, listFailed = false;
       var picked = null, perm = "view", resultsSeq = 0, searchTimer = null;
 
       /* invite row */
-      var inviteGroup = make('<div class="set-group dl-invite"><div class="set-group-title">Invite people</div>' +
+      var inviteGroup = make('<div class="dl-invite">' +
         '<div class="dl-inv-field"><input class="dl-inv-input" type="text" placeholder="Search people to share with…" aria-label="Search people to share with" autocomplete="off" spellcheck="false">' +
         '<div class="dl-inv-chip" hidden></div></div>' +
         '<div class="dl-inv-row2"><button type="button" class="dl-inv-perm" aria-haspopup="menu" data-perm><span class="dl-inv-perm-label">View only</span>' + icon("chevD", 14) + "</button>" +
@@ -468,10 +491,10 @@
         }
         sendBtn.textContent = "Invite"; syncSend();
       });
-      pane.appendChild(inviteGroup);
+      shareCard.appendChild(inviteGroup);
 
       /* people with access */
-      var peopleGroup = make('<div class="set-group"><div class="set-group-title">People with access</div><div data-people></div></div>');
+      var peopleGroup = make('<div class="dl-mg-peoplepart"><div class="dl-mg-sub">People with access</div><div data-people></div></div>');
       var peopleHost = peopleGroup.querySelector("[data-people]");
       function ownerRow() {
         var me = (window.daylightCloud && window.daylightCloud.user) || {};
@@ -516,7 +539,7 @@
         listLoaded = true;
         if (peopleHost.isConnected) { drawPeople(); syncSend(); if (listFailed) say("Sharing isn’t available right now.", "error"); }
       }
-      pane.appendChild(peopleGroup);
+      shareCard.appendChild(peopleGroup);
       drawPeople();
 
       /* general access (the public link) */
@@ -573,7 +596,7 @@
       var f = document.activeElement;
       if (f && dlg.contains(f) && f.tagName === "INPUT") f.blur();
       markDirty();
-      if (isDirty()) return;
+      if (isDirty()) { bar.classList.remove("is-nudge"); void bar.offsetWidth; bar.classList.add("is-nudge"); clearTimeout(bar._nudge); bar._nudge = setTimeout(function () { bar.classList.remove("is-nudge"); }, 1200); return; }
       finish();
     }
     function onKey(e) {

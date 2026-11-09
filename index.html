@@ -1715,6 +1715,14 @@
 #sidebar:not(.rail) .side-label { padding: var(--sb-label-pt) 10px var(--sb-label-pb); }
 #sidebar:not(.rail) .cal-row { min-height: var(--sb-cal-h); padding: var(--sb-cal-py) 10px; }
 #sidebar:not(.rail) .side-row { min-height: var(--sb-row-h); padding: var(--sb-row-py) 10px; }
+/* Round 9 added Documentation / Support ticket (and Admin for owners) above Settings: the Support-section rows are a notch slimmer so the whole
+   sidebar still fits at ordinary heights; Calendar / Tasks keep the full row height. */
+#sidebar:not(.rail) .side-row[data-support-row] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
+#sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
+@media (min-height: 1040px) { #sidebar:not(.rail) { --sb-spacer: 22px; --sb-label-pt: 22px; } }
+@media (max-height: 859px) { #sidebar:not(.rail) { --sb-row-h: 36px; --sb-cal-h: 32px; --sb-label-pt: 8px; --sb-create-mb: 8px; --sb-mini-day: 21px; } #sidebar:not(.rail) .side-spacer { min-height: 4px; } }
+@media (max-height: 799px) { #sidebar:not(.rail) { --sb-row-h: 34px; --sb-cal-h: 30px; --sb-cal-py: 2px; --sb-mini-day: 19px; --sb-mini-num: 18px; --sb-brand-pb: 2px; --sb-pad-bot: 4px; --sb-prof-mt: 4px; --sb-prof-pt: 6px; --sb-label-pt: 6px; --sb-create-mb: 6px; } }
+@media (min-height: 860px) and (max-height: 939px) { #sidebar:not(.rail) { --sb-label-pt: 10px; --sb-cal-h: 34px; } }
 #sidebar:not(.rail) .side-spacer { min-height: var(--sb-spacer); }
 #sidebar:not(.rail) .profile-wrap { margin-top: var(--sb-prof-mt); padding-top: var(--sb-prof-pt); position: sticky; bottom: calc(-1 * var(--sb-pad-bot)); margin-bottom: calc(-1 * var(--sb-pad-bot)); padding-bottom: var(--sb-pad-bot); background: var(--bg-sidebar); z-index: 2; }
 #sidebar:not(.rail) .profile-row { padding: 6px 8px; }
@@ -1930,8 +1938,11 @@
   transition: background-color 160ms var(--dl-ease-out), color 160ms var(--dl-ease-out), border-color 160ms var(--dl-ease-out), filter 160ms var(--dl-ease-out), transform 160ms var(--dl-ease-out);
 }
 .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-danger-outline:active, .icon-btn:active, .pop-banner-btn:active, .create-main:active, .dl-opt:active, .dl-cp-toggle:active { transform: scale(0.98); }
-.btn-primary:not(:disabled):hover { filter: brightness(1.14); }
-[data-theme="dark"] .btn-primary:not(:disabled):hover { filter: brightness(0.9); }
+/* Primary buttons: a clearly visible hover tint and a real press. (The old brightness() filter cancelled the background change in dark, so nothing showed.) */
+[data-theme="dark"] { --dl-primary-hover: #ffffff; --dl-primary-active: #b4b4b4; }
+[data-theme="light"] { --dl-primary-hover: #4d4d4d; --dl-primary-active: #000000; }
+.btn-primary:not(:disabled):hover { filter: none; background: var(--dl-primary-hover); box-shadow: 0 3px 10px color-mix(in srgb, var(--text) 16%, transparent); }
+.btn-primary:not(:disabled):active { filter: none; background: var(--dl-primary-active); box-shadow: none; transform: scale(0.97); }
 .btn-danger-outline:hover { background: color-mix(in srgb, var(--danger) 8%, transparent); }
 .btn-primary:disabled:active, .btn-ghost:disabled:active { transform: none; }
 /* Calendar: day cells and events respond gently to the pointer. */
@@ -1940,10 +1951,31 @@
 .chip:hover, .dl-continuous-bar:hover { transform: translateY(-1px); }
 .chip:active, .dl-continuous-bar:active { transform: scale(0.99); }
 .cal-row, .profile-row { transition: background-color 160ms var(--dl-ease-out); }
+.task-results { transition: opacity 110ms var(--dl-ease-in); }
+.task-results.is-out { opacity: 0; }
+.task-results.is-in { animation: viewFade 200ms var(--dl-ease-out); }
+body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { animation: none !important; transition: none !important; }
+/* The main calendar's lines and finish: hairlines at the same weight and color as Settings' dividers (the header rule used the heavier
+   --line, and every cell edge was a full-strength line); events get the app's chip finish (8px radius, same padding). Lines and finish only. */
+.dow-row, .tg-head { border-bottom-color: var(--line-soft); }
+.month-week { border-bottom-color: color-mix(in srgb, var(--line-soft) 78%, transparent); }
+.day-cell, .wn-cell { border-right-color: color-mix(in srgb, var(--line-soft) 62%, transparent); }
+.chip { border-radius: 8px; }
+.chip.seg-start { border-radius: 8px 0 0 8px; }
+.chip.seg-end { border-radius: 0 8px 8px 0; }
+.chip.seg-mid { border-radius: 0; }
 /* Tasks cross-fade between All / Active / Completed; the mini calendar's month change fades with the direction it moves. */
 .tasks-inner.anim-fade { animation: viewFade 200ms var(--dl-ease-out); }
 .mini-anim-next { animation: slideNext 180ms var(--dl-ease-out); }
 .mini-anim-prev { animation: slidePrev 180ms var(--dl-ease-out); }
+/* Reduce motion, OPEN direction: a 0.01ms animation still paints its first frame at the "from" keyframe (opacity 0, scale .96), so opens were
+   not instant. A negative delay starts every entrance already at its end state; the animation still exists, so switching Reduce motion off
+   never replays one. */
+html body.reduce-motion #overlayRoot .dialog, html body.reduce-motion #overlayRoot .backdrop, html body.reduce-motion #overlayRoot .settings-dialog, html body.reduce-motion #overlayRoot .menu, html body.reduce-motion #overlayRoot .popover,
+html body.reduce-motion #overlayRoot .date-pop, html body.reduce-motion #overlayRoot .palette, html body.reduce-motion #overlayRoot .palette-backdrop, html body.reduce-motion #overlayRoot .dl-notif-panel,
+html body.dl-reduce-motion #overlayRoot .dialog, html body.dl-reduce-motion #overlayRoot .backdrop, html body.dl-reduce-motion #overlayRoot .settings-dialog, html body.dl-reduce-motion #overlayRoot .menu, html body.dl-reduce-motion #overlayRoot .popover,
+html body.dl-reduce-motion #overlayRoot .date-pop, html body.dl-reduce-motion #overlayRoot .palette, html body.dl-reduce-motion #overlayRoot .palette-backdrop, html body.dl-reduce-motion #overlayRoot .dl-notif-panel { animation-delay: -1s !important; animation-duration: 0.01ms !important; }
+html body.reduce-motion > .menu, html body.reduce-motion > .popover, html body.reduce-motion > .date-pop, html body.dl-reduce-motion > .menu, html body.dl-reduce-motion > .popover, html body.dl-reduce-motion > .date-pop { animation-delay: -1s !important; animation-duration: 0.01ms !important; }
 /* Reduce motion: every motion above is switched off (the app-wide reduce-motion rules already cover the rest). */
 body.reduce-motion .tasks-inner.anim-fade, body.reduce-motion .mini-anim-next, body.reduce-motion .mini-anim-prev,
 body.reduce-motion .dl-notif-panel, body.reduce-motion .dl-place-options { animation: none !important; }
@@ -3575,7 +3607,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"></div>');
               cell.dataset.date=date.getFullYear()+"-"+pad2(date.getMonth()+1)+"-"+pad2(date.getDate());
               var num = el('<button class="day-num' + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + '" title="' + esc(fmtDateLong(date)) + '">' + calendarDayLabel(date, m) + "</button>");
-              num.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null,date); });
+              num.addEventListener("click", function (e) { e.stopPropagation(); drillToDay(date); });   /* the date number opens that day; the empty cell area still opens New event */
               cell.appendChild(num);
               var add = el('<button class="cell-add" title="Add event" aria-label="Add event on ' + esc(fmtDateLong(date)) + '">' + icon("plus", 14) + "</button>");
               add.addEventListener("click", function (e) { e.stopPropagation(); openEventForm(null, date); });
@@ -4020,50 +4052,69 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         [["all", "All"], ["active", "Active"], ["completed", "Completed"]].forEach(function (f) {
           var b = el('<button role="tab" aria-selected="' + (state.taskFilter === f[0]) + '" class="' + (state.taskFilter === f[0] ? "on" : "") + '">' + f[1] + "</button>");
           b.addEventListener("click", function () {
-            state.taskFilter = f[0]; refreshTasks(false);
-            var list = viewWrap.querySelector(".tasks-inner");
-            if (list && !state.reduceMotion && !reduceMotionMQ.matches) { list.classList.add("anim-fade"); setTimeout(function () { list.classList.remove("anim-fade"); }, 240); }
+            if (state.taskFilter === f[0]) return;
+            state.taskFilter = f[0];
+            seg.querySelectorAll("button").forEach(function (x) { var on = x === b; x.classList.toggle("on", on); x.setAttribute("aria-selected", String(on)); });
+            var host = inner.querySelector(".task-results");
+            if (!host) { refreshTasks(false); return; }
+            var token = (host._swap = (host._swap || 0) + 1);
+            function swap() {
+              if (host._swap !== token || !host.isConnected) return;
+              host.innerHTML = ""; fillResults(host);
+              host.classList.remove("is-out");
+              if (!state.reduceMotion && !reduceMotionMQ.matches) { host.classList.add("is-in"); setTimeout(function () { host.classList.remove("is-in"); }, 230); }
+            }
+            /* cross-fade: the old list fades out (110ms), the new one fades in (200ms); reduced motion swaps instantly */
+            if (state.reduceMotion || reduceMotionMQ.matches) { swap(); return; }
+            host.classList.remove("is-in"); host.classList.add("is-out");
+            setTimeout(swap, 110);
           });
           seg.appendChild(b);
         });
         inner.appendChild(seg);
         /* Groups — Overdue / Today / Upcoming / Completed, empty
-           groups hidden, each sorted by due date. */
-        var today0 = sod(TODAY);
-        var act = state.tasks.filter(function (t) { return !t.done; });
-        var byDue = function (a, b) { return a.due - b.due; };
-        var groups = [];
-        if (state.taskFilter !== "completed") {
-          groups.push({ name: "Overdue", cls: "overdue", list: act.filter(function (t) { return sod(t.due) < today0; }).sort(byDue) });
-          groups.push({ name: "Today", cls: "", list: act.filter(function (t) { return sameDay(t.due, today0); }).sort(byDue) });
-          groups.push({ name: "Upcoming", cls: "", list: act.filter(function (t) { return sod(t.due) > today0; }).sort(byDue) });
-        }
-        if (state.taskFilter !== "active") {
-          groups.push({ name: "Completed", cls: "", list: state.tasks.filter(function (t) { return t.done; }).sort(function (a, b) { return b.due - a.due; }) });
-        }
-        var shown = 0;
-        groups.forEach(function (g) {
-          if (!g.list.length) return;
-          shown += g.list.length;
-          inner.appendChild(el('<div class="task-group-title ' + g.cls + '">' + g.name + '<span class="tg-count">' + g.list.length + "</span></div>"));
-          g.list.forEach(function (t) { inner.appendChild(taskRow(t)); });
-        });
-        if (!shown) {
-          if (!state.tasks.length) {
-            inner.appendChild(buildEmptyState({
-              icon: "checkSq", title: "No tasks yet",
-              sub: "Add your first task above — homework, swim gear, anything you need to remember.",
-              btnLabel: "Add a task", hint: false,
-              onBtn: function () { var i = document.getElementById("taskTitleInput"); if (i) i.focus(); }
-            }));
-          } else if (state.taskFilter === "active") {
-            inner.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing active", sub: "Everything is done. Nice work.", hint: false }));
-          } else if (state.taskFilter === "completed") {
-            inner.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing completed yet", sub: "Tick a task's checkbox and it will land here.", hint: false }));
-          } else {
-            inner.appendChild(buildEmptyState({ icon: "checkSq", title: "No tasks", sub: "Add one above to get started.", hint: false }));
+           groups hidden, each sorted by due date. They live in their own container so a tab switch cross-fades ONLY the list
+           (and the empty state), never the add card or the tabs. */
+        var resultsHost = el('<div class="task-results"></div>');
+        inner.appendChild(resultsHost);
+        function fillResults(host) {
+          var today0 = sod(TODAY);
+          var act = state.tasks.filter(function (t) { return !t.done; });
+          var byDue = function (a, b) { return a.due - b.due; };
+          var groups = [];
+          if (state.taskFilter !== "completed") {
+            groups.push({ name: "Overdue", cls: "overdue", list: act.filter(function (t) { return sod(t.due) < today0; }).sort(byDue) });
+            groups.push({ name: "Today", cls: "", list: act.filter(function (t) { return sameDay(t.due, today0); }).sort(byDue) });
+            groups.push({ name: "Upcoming", cls: "", list: act.filter(function (t) { return sod(t.due) > today0; }).sort(byDue) });
+          }
+          if (state.taskFilter !== "active") {
+            groups.push({ name: "Completed", cls: "", list: state.tasks.filter(function (t) { return t.done; }).sort(function (a, b) { return b.due - a.due; }) });
+          }
+          var shown = 0;
+          groups.forEach(function (g) {
+            if (!g.list.length) return;
+            shown += g.list.length;
+            host.appendChild(el('<div class="task-group-title ' + g.cls + '">' + g.name + '<span class="tg-count">' + g.list.length + "</span></div>"));
+            g.list.forEach(function (t) { host.appendChild(taskRow(t)); });
+          });
+          if (!shown) {
+            if (!state.tasks.length) {
+              host.appendChild(buildEmptyState({
+                icon: "checkSq", title: "No tasks yet",
+                sub: "Add your first task above — homework, swim gear, anything you need to remember.",
+                btnLabel: "Add a task", hint: false,
+                onBtn: function () { var i = document.getElementById("taskTitleInput"); if (i) i.focus(); }
+              }));
+            } else if (state.taskFilter === "active") {
+              host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing active", sub: "Everything is done. Nice work.", hint: false }));
+            } else if (state.taskFilter === "completed") {
+              host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing completed yet", sub: "Tick a task's checkbox and it will land here.", hint: false }));
+            } else {
+              host.appendChild(buildEmptyState({ icon: "checkSq", title: "No tasks", sub: "Add one above to get started.", hint: false }));
+            }
           }
         }
+        fillResults(resultsHost);
         return wrap;
       }
       function taskRow(t) {
@@ -6024,8 +6075,11 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
     <script src="./daylight-settings.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
     <script src="./daylight-cloud.js"></script>
+    <script src="./daylight-auth.js"></script>
     <script src="./daylight-notifications.js"></script>
     <script src="./daylight-admin.js"></script>
+    <script src="./daylight-support.js"></script>
+    <script src="./daylight-security.js"></script>
     <script src="./daylight-sharing.js"></script>
     <script src="./daylight-manage.js"></script>
     <script src="./daylight-onboarding.js"></script>

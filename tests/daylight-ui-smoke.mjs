@@ -571,8 +571,8 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
    return {box:[d.offsetWidth,d.offsetHeight,getComputedStyle(d).borderRadius],x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,isDialogShell:d.classList.contains('dialog')&&!d.classList.contains('settings-dialog'),
     rail:[...d.querySelectorAll('.dl-col-h,.dl-col-body .set-group-title')].map(n=>n.textContent.trim()),nameInput:!!d.querySelector('input#calSettingsName'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
- assert.ok(popup.box[0]<=480&&popup.box[0]>=440,'the Manage dialog is ONE column about 480px wide: '+JSON.stringify(popup.box));
- assert.equal(popup.box[2],'12px','the same corner radius as the Create Event dialog (12px): '+JSON.stringify(popup.box));
+ assert.ok(popup.box[0]===560,'the Manage dialog is ONE column, 560px wide (Settings sibling): '+JSON.stringify(popup.box));
+ assert.equal(popup.box[2],'16px','the same corner radius as Settings (16px): '+JSON.stringify(popup.box));
  assert.equal(await page.$('.dl-manage .settings-rail'),null,'no left rail in the single-column dialog');
  assert.ok(popup.isDialogShell,'it is built on the standard dialog shell (like Create Event)');
  assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');

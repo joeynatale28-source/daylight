@@ -122,7 +122,7 @@
       ".dl-birthday-ctl{display:inline-flex;align-items:center;gap:8px;flex:none}.dl-birthday-input{width:auto;min-width:150px;height:38px}.dl-birthday-ctl .btn-ghost[hidden]{display:none}",
     ".dl-identity-grid{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:end;padding:4px 0 12px}.dl-idf{display:flex;flex-direction:column;gap:6px;min-width:0}.dl-idf-key{font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.dl-idf-input{height:40px;border:1px solid transparent;border-radius:10px;background:var(--input-bg);padding:0 12px;font:inherit;font-size:13.5px;color:var(--text);outline:none;min-width:0;width:100%;transition:background 120ms,border-color 120ms,box-shadow 120ms}.dl-idf-input:hover{background:var(--hover)}.dl-idf-input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}.dl-idf-lock{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--input-bg);color:var(--muted);font-size:13px;min-width:0}.dl-idf-lock .ic{flex:none}.dl-idf-lock span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}.dl-profile-photo{flex:none}.dl-profile-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--text);color:var(--bg);font-size:14px;font-weight:650;letter-spacing:.01em}.dl-sec-row{display:flex;align-items:center;gap:12px;padding:4px 0 8px}.dl-sec-tile{width:36px;height:36px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.dl-sec-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dl-sec-text .sw-label{font-size:14px;font-weight:550}.dl-sec-text .sw-sub{font-size:12.5px;color:var(--muted)}.dl-signout-others{padding:2px 4px 14px}.dl-link-danger{color:var(--danger);font-size:13px;font-weight:600;padding:6px 0;cursor:pointer}.dl-link-danger:hover{text-decoration:underline}.dl-link-danger[hidden]{display:none}@media(max-width:560px){.dl-identity-grid{grid-template-columns:auto 1fr}.dl-identity-grid .dl-idf:last-child{grid-column:1/-1}}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
-      ".settings-savebar.is-nudge{animation:dlPillNudge 820ms cubic-bezier(0.23,1,0.32,1)}@keyframes dlPillNudge{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent)}30%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 38%,transparent);border-color:var(--accent)!important}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent)}}",
+      ".settings-savebar.is-nudge{animation:dlPillNudge 1100ms cubic-bezier(0.23,1,0.32,1) both;border-color:var(--accent)!important}.settings-savebar.is-nudge [data-save]:not(:disabled){animation:dlPillSave 1100ms cubic-bezier(0.23,1,0.32,1) both}@keyframes dlPillNudge{0%{box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 48%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 30%,transparent)}65%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 22%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent),0 10px 28px transparent}}@keyframes dlPillSave{0%,55%{filter:brightness(1.22);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 50%,transparent)}100%{filter:none;box-shadow:0 0 0 0 transparent}}body.reduce-motion .settings-savebar.is-nudge,body.reduce-motion .settings-savebar.is-nudge [data-save]{animation:none!important;box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent)}",,
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
     ].join("\n");
@@ -197,7 +197,7 @@
     function nudgePill() {
       if (!bar || bar.hidden) return;
       bar.classList.remove("is-nudge"); void bar.offsetWidth; bar.classList.add("is-nudge");
-      clearTimeout(bar._nudge); bar._nudge = setTimeout(function () { bar.classList.remove("is-nudge"); }, 900);
+      clearTimeout(bar._nudge); bar._nudge = setTimeout(function () { bar.classList.remove("is-nudge"); }, 1200);
     }
     function close() {
       var focused = document.activeElement;
@@ -230,23 +230,7 @@
       });
       rail.appendChild(btn);
     });
-    /* Owners get one more entry at the very bottom. Only shown to owner accounts (the database refuses admin actions to anyone else). */
-    function addAdminEntry() {
-      if (rail.querySelector("[data-admin]")) return;
-      var btn = el('<button class="sr-item' + (settingsState.section === "admin" ? " active" : "") + '" data-admin>' + icon("shield", 17) + "<span>Admin dashboard</span></button>");
-      btn.addEventListener("click", function () {
-        markDirty();
-        if (isDirty()) return;
-        settingsState.section = "admin";
-        rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.remove("active"); });
-        btn.classList.add("active");
-        drawPane();
-        markDirty();
-      });
-      rail.appendChild(btn);
-    }
-    if (window.daylightAdmin && window.daylightAdmin.isOwner && window.daylightAdmin.isOwner()) addAdminEntry();
-    else if (window.daylightAdmin && window.daylightAdmin.whenKnown) window.daylightAdmin.whenKnown().then(function (isOwner) { if (isOwner && bd.isConnected) addAdminEntry(); });
+    /* Admin is its own page now (sidebar, owners only; daylight-support.js), not a Settings section. */
     dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
     /* Item 11: the close button lives on the dialog itself (not inside the
        scrolling, animating pane) with a 40×40 hit area above everything. */

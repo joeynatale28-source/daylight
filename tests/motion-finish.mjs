@@ -118,8 +118,8 @@ for(const theme of ['dark','light']){
   await sleep(300);
   await page.evaluate(()=>showTasks());await sleep(500);
   await page.evaluate(()=>{[...document.querySelectorAll('.tasks-head [role=tab], [role=tab]')].find(b=>/Active/.test(b.textContent)).click()});await sleep(40);
-  const tf=await page.evaluate(()=>{const i=document.querySelector('.tasks-inner');return {cls:i.className,anim:getComputedStyle(i).animationName,dur:getComputedStyle(i).animationDuration}});
-  check(T('switching All / Active / Completed cross-fades: viewFade, 200ms, ease-out'),/anim-fade/.test(tf.cls)&&tf.anim==='viewFade'&&tf.dur==='0.2s',JSON.stringify(tf));
+  const tf=await page.evaluate(()=>{const i=document.querySelector('.task-results');return {cls:i.className,anim:getComputedStyle(i).transitionProperty,dur:getComputedStyle(i).transitionDuration,op:+getComputedStyle(i).opacity}});
+  check(T('switching All / Active / Completed cross-fades the list: fades out over 110ms then in over 200ms'),/is-out|is-in/.test(tf.cls)&&tf.anim==='opacity'&&tf.dur==='0.11s',JSON.stringify(tf));
   await page.evaluate(()=>showCalendar());await sleep(400);
 
   // ---- Reduce motion

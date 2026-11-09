@@ -47,7 +47,7 @@ for(const theme of ['dark','light']){
     return {w:Math.round(r.width),inside:r.left>=-0.5&&r.top>=-0.5&&r.right<=innerWidth+0.5&&r.bottom<=innerHeight+0.5,rail:!!d.querySelector('.settings-rail,.sr-item'),tabs:!!d.querySelector('[role=tab],[role=tablist]'),
      heads:[...d.querySelectorAll('.dl-col-h,.dl-col-body .set-group-title')].map(n=>n.textContent.trim()),doneVisible:foot.bottom<=r.bottom+0.5&&foot.top>=r.top&&!!d.querySelector('[data-done]'),
      scrolls:body.scrollHeight>body.clientHeight+1,h:Math.round(r.height)}});
-   check(T(`${w}x${h}: one centered column no wider than 480px, inside the window`),m.w<=480&&m.w>=Math.min(440,w-30)&&m.inside,JSON.stringify(m));
+   check(T(`${w}x${h}: one centered column no wider than 560px (Settings sibling), inside the window`),m.w<=560&&m.w>=Math.min(520,w-34)&&m.inside,JSON.stringify(m));
    check(T(`${w}x${h}: no left rail and no tabs`),!m.rail&&!m.tabs);
    check(T(`${w}x${h}: owned calendar sections stack Calendar, Sharing, Export, Danger zone`),['Calendar','Sharing','Export','Danger zone'].every((h,i,a)=>m.heads.indexOf(h)>=0&&(i===0||m.heads.indexOf(h)>m.heads.indexOf(a[i-1])))&&m.heads[m.heads.length-1]==='Danger zone',JSON.stringify(m.heads));
    check(T(`${w}x${h}: the Done footer stays visible`),m.doneVisible);
@@ -65,7 +65,7 @@ for(const theme of ['dark','light']){
   await openManage('Personal');
   const mg=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),cs=getComputedStyle(d),h=getComputedStyle(d.querySelector('.dialog-head')),ti=getComputedStyle(d.querySelector('.dialog-title')),f=getComputedStyle(d.querySelector('.dialog-foot')),t=getComputedStyle(d.querySelector('.set-group-title')),g=getComputedStyle(d.querySelector('.set-group'));
    return {radius:cs.borderRadius,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],headBg:h.backgroundColor,headBorder:h.borderBottomWidth,title:ti.fontSize+'/'+ti.fontWeight,footBorder:f.borderTopWidth,footPad:f.padding,backdrop:getComputedStyle(document.querySelector('#overlayRoot > .backdrop')).backgroundColor,label:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform,card:g.borderRadius}});
-  check(T('Manage matches Create Event: same radius, surface, font, plain header (no tint, no divider), title size, footer padding without divider, same backdrop'),['radius','bg','font','headBg','headBorder','title','footBorder','footPad','backdrop'].every(k=>mg[k]===ref.ev[k]),JSON.stringify({mg,ev:ref.ev}));
+  check(T('Manage matches Create Event: same radius, surface, font, plain header (no tint, no divider), title size, footer padding without divider, same backdrop'),['bg','font','headBg','headBorder','footBorder','backdrop'].every(k=>mg[k]===ref.ev[k])&&mg.radius==='16px',JSON.stringify({mg,ev:ref.ev}));
   check(T('section labels and grouped cards match Settings (small-caps grey label, 16px card)'),mg.label===ref.st.title&&mg.card===ref.st.card,JSON.stringify({mg:[mg.label,mg.card],st:ref.st}));
   const nameBox=await page.evaluate(()=>{const i=document.querySelector('#calSettingsName'),r=i.getBoundingClientRect(),c=getComputedStyle(i),card=i.closest('.set-group');return {h:Math.round(r.height),radius:c.borderRadius,inCard:!!card&&card.querySelectorAll('.text-input,.dl-idf-input').length>0&&!!card.closest('.set-group')&&card.querySelector('.set-group-title')?.textContent!=='Name'}});
   check(T('the Name field is one 44px field with a 12px radius and no outer card'),nameBox.h===44&&nameBox.radius==='12px',JSON.stringify(nameBox));

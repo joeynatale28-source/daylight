@@ -627,17 +627,15 @@
     if(!cal.remoteSubscriptionId)return row;
     const sub=subscriptionRows.find(s=>s.id===cal.remoteSubscriptionId);
     if(!sub)return row;
-    const visibility=html('<button class="icon-btn cal-visibility-btn" type="button" title="'+(cal.hidden?'Show':'Hide')+' subscription" aria-label="'+(cal.hidden?'Show':'Hide')+' '+esc(cal.name)+'">'+icon(cal.hidden?'eyeOff':'eye',15)+'</button>');
     const persist=()=>{
       let prefs={};try{prefs=JSON.parse(localStorage.getItem('daylight-feed-visibility:'+cloud.user.id)||'{}')}catch{}
       prefs[cal.id]=!!cal.hidden;
       try{localStorage.setItem('daylight-feed-visibility:'+cloud.user.id,JSON.stringify(prefs))}catch{}
     };
     row.querySelector('.cal-check')?.addEventListener('click',persist);
-    visibility.onclick=()=>{animateCalendarToggle(cal);persist()};
     const menu=html('<button class="icon-btn cal-menu-btn" title="Subscription options" aria-label="Options for '+esc(cal.name)+'">'+icon('dotsV',16)+'</button>');
     menu.onclick=()=>{if(window.daylightCalendarSettings)window.daylightCalendarSettings(cal);else manageSubscription(cal,menu)};
-    row.append(visibility,menu);return row;
+    row.append(menu);return row;   /* no eye toggle on subscribed rows: the row's checkbox already shows and hides it */
   };
   window.daylightOpenSubscriptions=function(){openSettings('data');};
   /* What the Manage dialog needs to show and change a subscribed calendar. */

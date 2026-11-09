@@ -14,6 +14,8 @@
   var evShares = [], evKnown = {}, evRows = [], evSig = "";
   var css = document.createElement("style");
   css.textContent = [
+    ".dl-share-view{animation:dlSvIn 190ms var(--ease-out) both}.popover.dl-returning>*{animation:dlSvIn 190ms var(--ease-out) both}@keyframes dlSvIn{from{opacity:0}to{opacity:1}}",
+    "body.reduce-motion .dl-share-view,body.reduce-motion .popover.dl-returning>*{animation:none!important}@media (prefers-reduced-motion:reduce){.dl-share-view,.popover.dl-returning>*{animation:none!important}}",
     ".dl-evshare .dialog-body{padding-top:4px}",
     ".dl-ev-sum{display:flex;flex-direction:column;gap:2px;margin:0 0 16px;padding:12px 14px;border:1px solid var(--line-soft);border-radius:12px;background:var(--gray-2)}",
     ".dl-ev-sum-t{font-size:14px;font-weight:620;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
@@ -332,17 +334,36 @@
     row.querySelector(".dl-ppl-name").textContent = state.profileName || me.email || "You";
     return row;
   }
+  /* Moving the popover to fit new content. The content swaps instantly, so the box used to JUMP (e.g. the people list arriving
+     a moment later grew it by 86px and pulled it up). It now glides from where it was to where it belongs: height and top
+     animate (transform-free, 200ms ease-out), the new content fades in, and reduced motion skips it. */
+  function motionOff() { return !!((window.state && state.reduceMotion) || (window.matchMedia && matchMedia("(prefers-reduced-motion: reduce)").matches)); }
   function placePopover(p) {
-    var a = p._anchor, r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null, pw = p.offsetWidth, ph = p.offsetHeight;
+    var a = p._anchor, r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null;
     if (!r) return;
+    var live = p._settle ? p.getBoundingClientRect() : null;   /* a glide is in progress: continue from where the box is right now */
+    clearTimeout(p._settle); p.style.transition = "none"; p.style.height = ""; p.style.overflow = "";   /* measure the natural size */
+    var pw = p.offsetWidth, ph = p.offsetHeight;
     var left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
     var top = r.bottom + 8;
     if (top + ph > window.innerHeight - 8) top = Math.max(8, Math.min(r.top - ph - 8, window.innerHeight - ph - 8));
     if (top + ph > window.innerHeight - 8) top = Math.max(8, window.innerHeight - ph - 8);
+    var from = live ? { height: live.height, top: live.top } : p._r;
     p.style.left = left + "px"; p.style.top = top + "px";
+    if (from && !motionOff() && (Math.abs(from.height - ph) > 1 || Math.abs(from.top - top) > 1)) {
+      p.style.height = from.height + "px"; p.style.top = from.top + "px"; p.style.overflow = "hidden";
+      void p.offsetHeight;
+      p.style.transition = "height 200ms var(--ease-out), top 200ms var(--ease-out)";
+      p.style.height = ph + "px"; p.style.top = top + "px";
+      clearTimeout(p._settle);
+      p._settle = setTimeout(function () { p.style.transition = ""; p.style.height = ""; p.style.overflow = ""; p._r = p.getBoundingClientRect(); }, 230);
+    } else { p.style.transition = ""; }
+    p._r = { height: ph, top: top };
   }
+  function markFrom(p) { var r = p.getBoundingClientRect(); p._r = { height: r.height, top: r.top }; }
   function showShareView(p, ev) {
     if (!p || p.classList.contains("is-sharing")) return;
+    markFrom(p);
     var saved = [].slice.call(p.children);
     saved.forEach(function (c) { p.removeChild(c); });
     p.classList.add("is-sharing");
@@ -371,8 +392,10 @@
     function relation(userId) { var q = (people || []).filter(function (x) { return x.recipient_id === userId; })[0]; return q ? (q.status === "pending" ? "Invited" : "Has access") : ""; }
     function back() {
       if (!p.isConnected) return;
+      markFrom(p);
       view.remove(); p.classList.remove("is-sharing");
       saved.forEach(function (c) { p.appendChild(c); });
+      p.classList.add("dl-returning"); setTimeout(function () { p.classList.remove("dl-returning"); }, 230);
       placePopover(p);
     }
     view.querySelector("[data-sv-back]").addEventListener("click", back);
