@@ -1966,7 +1966,8 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 .day-cell { padding: 6px 5px 5px 6px; }
 .day-cell:last-child { padding-right: 6px; }
 .day-cell.today { background: transparent; }
-.day-cell.today.sel, .day-cell.sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+.day-cell.today, .day-cell.today.sel { background: transparent !important; }
+.day-cell.sel:not(.today) { background: color-mix(in srgb, var(--accent) 6%, transparent); }
 /* Time grid: the 12 AM label sits inside the grid; the GMT label shares the hour labels' right edge; the now-pill sits in the grid on the
    line (never over the hour labels). */
 .hour-label.is-first { transform: none; top: 4px !important; }
@@ -2000,7 +2001,15 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 .auth-headline.is-one-line { white-space: nowrap; }
 /* The Create menu is as wide as the sidebar column, so it covers the mini calendar's next-month arrow instead of leaving a stray ">" at the Event row's edge. */
 .menu.dl-create-menu { width: min(260px, calc(100vw - 24px)); }
+/* The sidebar logo is a real button ("Daylight home"): pointer cursor, a quiet hover, keyboard focus ring. */
+.brand-home { display: flex; align-items: center; gap: 12px; padding: 2px 6px 2px 2px; margin: -2px 0 -2px -2px; border-radius: 12px; text-align: left; color: inherit; cursor: pointer; min-width: 0; transition: background-color 160ms var(--dl-ease-out); }
+.brand-home:hover { background: var(--hover); }
+.brand-home:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.brand-home:active { background: var(--selected); }
+.brand-text { display: flex; flex-direction: column; min-width: 0; text-align: left; }
+#sidebar.rail .brand-home { padding: 2px; margin: 0; }
 /* ONE disabled rule for the whole app: the control keeps its own look and drops to the standard disabled opacity. */
+.dialog-foot button[hidden], .dl-delcal [data-ok][hidden] { display: none !important; }
 :root { --dl-disabled-opacity: 0.55; }
 .btn-primary:disabled, .btn-ghost:disabled, .btn-danger:disabled, .btn-danger-outline:disabled, .dd.disabled, .dd[aria-disabled="true"], .switch input:disabled + .slider, select:disabled, button.picker-btn:disabled { opacity: var(--dl-disabled-opacity); cursor: default; }
 /* ONE field treatment in every dialog: grey at rest; the elevated surface with the blue ring on focus (text, text area, pickers, dropdowns). */
@@ -3054,11 +3063,19 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         sidebarEl.innerHTML = "";
         var brand = el(
           '<div class="brand-row">' +
-            '<div class="logo-tile"><img class="daylight-mark daylight-mark-light" src="./assets/daylight-sunarc-light-NOBG.png" alt="" width="38" height="38"><img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt="" width="38" height="38"></div>' +
-            '<div class="rail-hide"><div class="brand-name">Daylight</div><div class="brand-sub">Personal calendar</div></div>' +
+            '<button type="button" class="brand-home" aria-label="Daylight home" title="Daylight home">' +
+              '<span class="logo-tile"><img class="daylight-mark daylight-mark-light" src="./assets/daylight-sunarc-light-NOBG.png" alt="" width="38" height="38"><img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt="" width="38" height="38"></span>' +
+              '<span class="rail-hide brand-text"><span class="brand-name">Daylight</span><span class="brand-sub">Personal calendar</span></span>' +
+            '</button>' +
             (state.sidebarRail ? "" : '<button class="icon-btn" id="collapseBtn" title="Collapse sidebar">' + icon("collapse", 16) + "</button>") +
           "</div>"
         );
+        /* the logo is "home": it returns the main area to the calendar from Tasks, Admin or any swapped-in view. It is navigation, not a
+           reload: the date, view and calendar state stay as they are and nothing is re-fetched. On the calendar already, it does nothing. */
+        brand.querySelector(".brand-home").addEventListener("click", function () {
+          closeDrawer();
+          if (state.section !== "calendar") { state.section = "calendar"; renderAll(true, 1); }
+        });
         var collapseButton=brand.querySelector("#collapseBtn");
         if(collapseButton)collapseButton.addEventListener("click", function () {
           state.sidebarRail = true; renderSidebar();
@@ -3152,6 +3169,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             sidebarEl.appendChild(subList);
           }
         }
+        /* the bottom cluster (Support section + account block) moves as one: leftover space sits ABOVE it, the profile stays pinned */
+        sidebarEl.appendChild(el('<div class="side-spacer"></div>'));
         if (!state.sidebarRail) sidebarEl.appendChild(el('<div class="side-label rail-hide"><span>Support</span></div>'));
         var help = el('<button class="side-row" title="Help center">' + icon("lifebuoy", 18) + '<span class="rail-hide">Help center</span></button>');
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
@@ -3164,8 +3183,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("profile"); });
         sidebarEl.appendChild(set);
-        /* sections stack with one gap; whatever space is left sits here, above the pinned account block */
-        sidebarEl.appendChild(el('<div class="side-spacer"></div>'));
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "?";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -3282,11 +3299,20 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         }
         return row;
       }
+      /* A calendar that is YOURS: not a subscription, not shared with you, not an event share, not the built-in US Holidays. */
+      function isOwnedCalendar(cal) { return !!cal && !isSubscribed(cal) && !cal.remoteShareId && !cal.eventShare && !cal.remoteSubscriptionId && cal.id !== "holidays" && !cal.builtin; }
       function openCalMenu(anchor, cal, row) {
-        /* Item 13: the ⋯ button opens the calendar settings popup
-           (daylight-settings.js). Subscriptions keep their own manager. */
+        /* The ⋯ button: for your own calendars a menu (Manage, Delete calendar); everything else keeps its existing behavior
+           (shared and US Holidays open the calendar settings popup; subscriptions keep their own manager). */
         if (isSubscribed(cal) && cal.id !== "holidays" && !cal.remoteShareId) return;
         closeMenu(); closePopover();
+        if (isOwnedCalendar(cal)) {
+          openMenu(anchor, [
+            { icon: "settings", label: "Manage", fn: function () { if (window.daylightCalendarSettings) window.daylightCalendarSettings(cal); } },
+            { icon: "trash", label: "Delete calendar", danger: true, fn: function () { confirmDeleteCalendar(cal); } }
+          ], { align: "left" });
+          return;
+        }
         if (window.daylightCalendarSettings) window.daylightCalendarSettings(cal);
       }
       function startRename(row, cal) {
@@ -3312,19 +3338,50 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           if (e.key === "Escape") { input.value = cal.name; done(false); }
         });
       }
-      function confirmDeleteCalendar(cal) {
-        var theirs = state.events.filter(function (e) { return e.cal === cal.id; }).length;
-        openConfirm({
-          title: "Delete “" + cal.name + "”?",
-          body: "This removes the calendar" + (theirs ? " and its " + theirs + " event" + (theirs === 1 ? "" : "s") : "") + ". This cannot be undone.",
-          confirmLabel: "Delete", danger: true,
-          fn: function () {
-            state.calendars = state.calendars.filter(function (c) { return c.id !== cal.id; });
-            state.events = state.events.filter(function (e) { return e.cal !== cal.id; });
-            renderSidebar(); renderView(false); toast("Calendar deleted");
-          }
-        });
+      /* The number of event records on THIS calendar that the deletion will remove, counted fresh from the calendar's own data
+         (a repeating series counts once; its edited occurrences belong to it and are not counted again). */
+      function calendarEventCount(cal) {
+        return state.events.filter(function (e) { return e.cal === cal.id && !e.recurrenceId; }).length;
       }
+      /* The ONE delete-calendar popup (sidebar menu and Manage -> Danger zone both land here). The Delete button does not exist until the
+         typed text matches the calendar's name exactly (spaces at the ends are ignored); one field, nothing else to type. */
+      function confirmDeleteCalendar(cal) {
+        var count = calendarEventCount(cal);
+        var bd = el('<div class="backdrop"><div class="dialog dl-std dl-confirm dl-delcal" role="dialog" aria-modal="true" aria-label="Delete calendar">' +
+          '<div class="dialog-head"><span class="dialog-title">Delete calendar?</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
+          '<div class="dialog-body"><p class="dl-delcal-body" style="margin:0 0 16px;font-size:14px;color:var(--muted);line-height:1.55"></p>' +
+          '<div class="field dl-std-field" style="margin:0"><label for="delCalName" class="dl-delcal-label" style="font-weight:400;color:var(--muted)"></label><input class="text-input" id="delCalName" autocomplete="off" spellcheck="false"></div></div>' +
+          '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-danger" style="margin-left:0" data-ok hidden>Delete calendar</button></div></div></div>');
+        var name = cal.name;
+        var body = bd.querySelector(".dl-delcal-body");
+        var strong = document.createElement("b"); strong.style.color = "var(--text)"; strong.textContent = name;
+        body.appendChild(strong);
+        body.appendChild(document.createTextNode(" has " + count + " " + (count === 1 ? "event" : "events") + ", and " + (count === 1 ? "it is" : "they are") + " deleted with it. This is permanent and cannot be undone."));
+        var label = bd.querySelector(".dl-delcal-label");
+        label.appendChild(document.createTextNode("To confirm, type the calendar name "));
+        var strong2 = document.createElement("b"); strong2.style.color = "var(--text)"; strong2.textContent = name; label.appendChild(strong2);
+        label.appendChild(document.createTextNode(" below:"));
+        overlayRoot.appendChild(bd);
+        var input = bd.querySelector("#delCalName"), ok = bd.querySelector("[data-ok]");
+        function matches() { return input.value.trim() === name; }
+        function sync() { ok.hidden = !matches(); }
+        input.addEventListener("input", sync);
+        input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); if (matches()) ok.click(); } });
+        function close() { input.value = ""; daylightExit(bd); }
+        bd.querySelector("[data-x]").addEventListener("click", close);
+        bd.querySelector("[data-cancel]").addEventListener("click", close);
+        bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
+        ok.addEventListener("click", function () {
+          if (!matches()) return;
+          close();
+          state.calendars = state.calendars.filter(function (c) { return c.id !== cal.id; });
+          state.events = state.events.filter(function (e) { return e.cal !== cal.id; });
+          renderSidebar(); renderView(false); toast("Calendar deleted");
+        });
+        input.focus();
+      }
+      /* a calendar id that no other calendar (or task) already uses, so a new calendar can never inherit another one's events */
+      function newCalendarId() { var id; do { id = "cal" + (++uid); } while (state.calendars.some(function (c) { return c.id === id; })); return id; }
       function calendarDayLabel(date, displayedMonth) {
         return date.getDate() === 1 && date.getMonth() !== displayedMonth
           ? MONTHS_S[date.getMonth()] + " 1" : String(date.getDate());
@@ -4548,7 +4605,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         bd.querySelector("[data-ok]").addEventListener("click", function () {
           var name = input.value.trim();
           if (!name) { input.classList.add("err"); bd.querySelector("#ncErr").classList.add("show"); return; }
-          state.calendars.push({ id: "cal" + (++uid), name: name, color: chosen, hidden: false, subscribed: false, shared: false });
+          state.calendars.push({ id: newCalendarId(), name: name, color: chosen, hidden: false, subscribed: false, shared: false });
           close(); renderSidebar(); toast("Calendar created");
         });
       }
@@ -6135,6 +6192,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         <script src="./daylight-places.js"></script>
     <script src="./daylight-enhancements.js"></script>
     <script src="./daylight-oauth.js"></script>
+    <script src="./daylight-ai-access.js"></script>
     <script src="./daylight-banners.js"></script>
   </body>
 </html>

@@ -42,7 +42,7 @@ for(const theme of ['dark','light']){
    ['notifications panel',async()=>{await page.evaluate(()=>document.querySelector('.dl-notif-btn').click());await page.waitForSelector('.dl-notif-panel')},'.dl-notif-panel','esc'],
    ['search dialog',async()=>{await page.evaluate(()=>openSearch());await page.waitForSelector('.palette')},'.palette','esc'],
    ['account menu',async()=>{await page.evaluate(()=>{document.querySelector('.profile-row,.profile-wrap button').click()});await page.waitForSelector('.menu')},'.menu','away'],
-   ['Manage dialog',async()=>{await page.evaluate(()=>{[...document.querySelectorAll('.cal-row')][0].querySelector('.cal-menu-btn').click()});await page.waitForSelector('.dl-manage')},'.dl-manage','x2']
+   ['Manage dialog',async()=>{await page.evaluate(()=>{[...document.querySelectorAll('.cal-row')][0].querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80)});await page.waitForSelector('.dl-manage')},'.dl-manage','x2']
   ];
   const sizes={};
   for(const [name,open,sel,how] of surfaces){
@@ -84,7 +84,7 @@ for(const theme of ['dark','light']){
   const grab=async(name,open,sel,close)=>{await open();await sleep(450);foots[name]=await page.evaluate(s=>[...document.querySelectorAll(s+' .dialog-foot button')].map(b=>{const c=getComputedStyle(b);return Math.round(b.getBoundingClientRect().height)+'|'+c.padding+'|'+c.borderRadius}),sel);await close();await sleep(300)};
   await grab('confirm',()=>page.evaluate(()=>openConfirm({title:'t',body:'b',confirmLabel:'Delete',danger:true,fn(){}})),'.dl-confirm',()=>page.evaluate(()=>document.querySelector('.dl-confirm [data-cancel]').click()));
   await grab('new calendar',()=>page.evaluate(()=>openNewCalendar()),'.dl-std',()=>page.evaluate(()=>document.querySelector('.dl-std [data-x]').click()));
-  await grab('manage',()=>page.evaluate(()=>{[...document.querySelectorAll('.cal-row')][0].querySelector('.cal-menu-btn').click()}),'.dl-manage',()=>page.evaluate(()=>document.querySelector('.dl-manage [data-x]').click()));
+  await grab('manage',()=>page.evaluate(()=>{[...document.querySelectorAll('.cal-row')][0].querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80)}),'.dl-manage',()=>page.evaluate(()=>document.querySelector('.dl-manage [data-x]').click()));
   await grab('subscribe form',()=>page.evaluate(()=>window.daylightSubscribeDialog({})),'.dl-form',()=>page.evaluate(()=>document.querySelector('.dl-form [data-x]').click()));
   const all=Object.values(foots).flat();
   check(T('footer buttons are the same height, padding and radius in every popup (36px, 0 16px)'),all.length>=6&&new Set(all).size===1&&all[0].startsWith(String(foot.h)+'|'),JSON.stringify({foots,foot}));

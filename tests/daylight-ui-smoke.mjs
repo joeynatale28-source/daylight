@@ -563,7 +563,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.waitForSelector('.cal-row .cal-menu-btn',{timeout:3000});
  await page.evaluate(()=>{
    const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='Personal');
-   row.querySelector('.cal-menu-btn').click();
+   row.querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80);
  });
  await page.waitForSelector('.dl-manage',{timeout:3000});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
@@ -649,7 +649,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:2000});
  // US Holidays: Calendar (color) + Export only.
- await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()});
+ await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80)});
  await page.waitForSelector('.dl-manage',{timeout:3000});
  assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(n=>n.textContent.trim()).filter(h=>['Color','Sharing','Export','Danger zone'].includes(h))),['Color','Export'],'US Holidays: colors + Export only (no Sharing, no Delete)');
  assert.equal(await page.$('.dl-manage input#calSettingsName'),null,'US Holidays cannot be renamed');

@@ -79,7 +79,7 @@
       }
       /* Everything lands in one go: name, birthday (+ its events), first calendar, default calendar. */
       state.profileName = full; state.firstName = firstName;
-      var calId = "cal" + (++uid);
+      var calId = typeof newCalendarId === "function" ? newCalendarId() : "cal" + (++uid);
       state.calendars.push({ id: calId, name: calName.value.trim(), color: chosen, hidden: false, subscribed: false, shared: false });
       state.defaultCalendarId = calId;
       state.birthday = birthday.value || "";

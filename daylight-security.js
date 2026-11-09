@@ -176,7 +176,7 @@
       });
       return r;
     }
-    var passkeyCount = 0;
+    var passkeyCount = 0, passkeyIds = [];
     async function refresh() {
       if (!supported) return;
       try {
@@ -184,7 +184,7 @@
         if (res && res.error) throw res.error;
         var items = (res && res.data) || [];
         if (items && !Array.isArray(items)) items = items.passkeys || [];
-        passkeyCount = items.length;
+        passkeyCount = items.length; passkeyIds = items.map(function (p) { return p.id; });
         list.innerHTML = "";
         items.forEach(function (pk) { list.appendChild(row(pk)); });
         sub.textContent = items.length ? items.length + (items.length === 1 ? " passkey" : " passkeys") + " on this account." : "Sign in with your fingerprint, face or screen lock. No password to remember.";
@@ -195,6 +195,8 @@
       }
     }
     group._count = function () { return passkeyCount; };
+    group._ids = function () { return passkeyIds.slice(); };
+    group._refresh = refresh;
     refresh();
     return group;
   }
@@ -258,8 +260,27 @@
         var id = identities.filter(function (i) { return i.provider === p.id; })[0];
         host.appendChild(providerRow(p, id, identities.length));
       });
-      var pk = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys</span><span class="sw-sub">Fingerprint, face or screen lock</span></span><span class="dl-sec-status"></span></div>');
-      pk.querySelector(".dl-sec-status").textContent = passkeys ? "Connected" : "Not set up";
+      var pk = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys</span><span class="sw-sub">Fingerprint, face or screen lock</span></span><span class="dl-sec-actions"></span></div>');
+      var pkActions = pk.querySelector(".dl-sec-actions");
+      if (passkeys) {
+        /* Disconnect = remove passkey sign-in for the account (every registered passkey), after the standard confirmation. The last sign-in method is never removed. */
+        var pb = make('<button type="button" class="btn-danger-outline">Disconnect</button>');
+        pb.addEventListener("click", function () {
+          if (!identities.length) { say("Passkeys are your only sign-in method. Add another one first, then you can disconnect them.", true); return; }
+          if (!pb.dataset.sure) { pb.dataset.sure = "1"; pb.textContent = "Confirm disconnect"; setTimeout(function () { if (pb.isConnected) { delete pb.dataset.sure; pb.textContent = "Disconnect"; } }, 4000); return; }
+          pb.disabled = true;
+          (async function () {
+            try {
+              var ids = securityGroup._ids ? securityGroup._ids() : [];
+              for (var i = 0; i < ids.length; i++) { var res = await client().auth.passkey.delete({ passkeyId: ids[i] }); if (res && res.error) throw res.error; }
+              say("Passkey sign-in was disconnected."); if (securityGroup._refresh) await securityGroup._refresh();
+            } catch (e) { pb.disabled = false; delete pb.dataset.sure; pb.textContent = "Disconnect"; say(errText(e, "Passkeys"), true); }
+          })();
+        });
+        pkActions.appendChild(pb);
+      } else {
+        var none = make('<span class="dl-sec-status"></span>'); none.textContent = "Not connected"; pkActions.appendChild(none);
+      }
       host.appendChild(pk);
     }
     async function load() {

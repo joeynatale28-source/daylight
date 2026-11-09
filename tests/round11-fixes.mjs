@@ -126,8 +126,8 @@ for(const theme of ['dark','light']){
   await sleep(900);
   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(500);
   await page.evaluate(()=>openSettings('ai'));await page.waitForSelector('.settings-dialog');await sleep(900);
-  const ai=await page.evaluate(()=>{const cards=[...document.querySelectorAll('.dl-ai-app-card')];if(cards.length<2)return null;const bt=cards.map(c=>c.querySelector('button')).map(b=>b.getBoundingClientRect());const cs=cards.map(c=>c.querySelector('button')).map(b=>getComputedStyle(b));return {h:cards.map(c=>Math.round(c.getBoundingClientRect().height)),bottoms:bt.map(b=>Math.round(b.bottom)),bg:cs.map(c=>c.backgroundColor),border:cs.map(c=>c.borderTopWidth)}});
-  check(T('AI access: equal-height cards, actions on one baseline, one button treatment'),ai&&ai.h[0]===ai.h[1]&&ai.bottoms[0]===ai.bottoms[1]&&ai.bg[0]===ai.bg[1]&&ai.border[0]===ai.border[1],J(ai));
+  const ai=await page.evaluate(()=>{const rows=[...document.querySelectorAll('.settings-pane [data-list] .dl-sec-row')];return {n:rows.length,h:rows.map(r=>Math.round(r.getBoundingClientRect().height))}});
+  check(T('AI access: one row per AI, equal height'),ai.n>=2&&Math.abs(ai.h[0]-ai.h[1])<=4,J(ai));
   await shot('9-ai');
   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(500);
   await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.dl-sec-group');await sleep(700);

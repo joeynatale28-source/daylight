@@ -37,8 +37,8 @@ const STUB=`(function(){
  var cfg=window.__HARNESS||{};
  var user={id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}};
  var session=cfg.signedIn===false?null:{user:user,access_token:'t'};
- function chain(table){var q={select(){return q},eq(c,v){if(c==='user_id')q._uid=v;if(c==='revision')q._rev=v;return q},order(){return q},limit(){return q},is(){return q},
-  update(v){if(table==='workspace_snapshots'){window.__lastUpdate=v;q._upd=v}return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
+ function chain(table){var q={_f:[],select(){return q},eq(c,v){if(c==='user_id')q._uid=v;if(c==='revision')q._rev=v;q._f.push(['eq',c,v]);return q},order(){return q},limit(){return q},is(c,v){q._f.push(['is',c,v]);return q},
+  update(v){q._u2=v;if(table==='workspace_snapshots'){window.__lastUpdate=v;q._upd=v}return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
   single(){return q.maybeSingle()},
   maybeSingle(){
    if(table==='workspace_snapshots'){
@@ -46,7 +46,7 @@ const STUB=`(function(){
    }
    return Promise.resolve({data:null,error:null});
   },
-  then(done){return Promise.resolve({data:[],error:null}).then(done)}};return q}
+  then(done){var rows=((window.__tbl&&window.__tbl[table])||[]).filter(function(r){return q._f.every(function(f){return f[0]==='eq'?r[f[1]]===f[2]:(r[f[1]]==null)===(f[2]==null)})});if(q._u2&&table==='mcp_grants')rows.forEach(function(r){Object.assign(r,q._u2)});return Promise.resolve({data:rows,error:null}).then(done)}};return q}
  var client={auth:{getSession:function(){return Promise.resolve({data:{session:session},error:null})},
    getUser:function(){return Promise.resolve({data:{user:session&&session.user},error:null})},
    updateUser:function(a){window.__metaUpdates=(window.__metaUpdates||[]).concat([a&&a.data]);return Promise.resolve({data:{user:user},error:null})},
@@ -61,7 +61,7 @@ const STUB=`(function(){
    passkey:{list:function(){return Promise.resolve({data:window.__pks||[],error:null})},update:function(a){window.__authCalls=(window.__authCalls||[]).concat([{fn:'pkUpdate',a:a}]);(window.__pks||[]).forEach(function(p){if(p.id===a.passkeyId)p.friendly_name=a.friendlyName});return Promise.resolve({data:{},error:null})},delete:function(a){window.__authCalls=(window.__authCalls||[]).concat([{fn:'pkDelete',a:a}]);window.__pks=(window.__pks||[]).filter(function(p){return p.id!==a.passkeyId});return Promise.resolve({data:{},error:null})}},
    signInWithPasskey:function(){window.__authCalls=(window.__authCalls||[]).concat([{fn:'passkey'}]);var e=window.__passkeyError;return Promise.resolve(e?{data:null,error:e}:{data:{},error:null})},
    onAuthStateChange:function(cb){window.__authCb=cb;setTimeout(function(){cb('INITIAL_SESSION',session)},0);return {data:{subscription:{unsubscribe:function(){}}}}},
-   oauth:{listGrants:function(){return Promise.resolve({data:{grants:[]},error:null})}}},
+   oauth:{getAuthorizationDetails:function(){var c=window.__consent;return Promise.resolve(c?{data:{authorization_id:'az1',client:{id:'cl1',name:c.name},redirect_uri:c.redirect},error:null}:{data:null,error:{message:'Authorization request not found'}})},approveAuthorization:function(){window.__consentCalls=(window.__consentCalls||[]).concat(['approve']);return Promise.resolve({data:{redirect_url:'#approved'},error:null})},denyAuthorization:function(){window.__consentCalls=(window.__consentCalls||[]).concat(['deny']);return Promise.resolve({data:{redirect_url:'#denied'},error:null})},listGrants:function(){return Promise.resolve({data:{grants:(window.__oauthGrants||[])},error:null})},revokeGrant:function(a){window.__revoked=(window.__revoked||[]).concat([a.clientId]);window.__oauthGrants=(window.__oauthGrants||[]).filter(function(g){return g.client_id!==a.clientId});return Promise.resolve({data:{},error:null})}}},
   rpc:function(name,args){
    var B=window.__bc;   /* stand-in for the notification, banner and clear functions: same rules as supabase/sql/2026112[45]_*.sql */
    if(B&&/^daylight_(is_owner|list_broadcasts|mark_broadcasts_read|send_broadcast|delete_broadcast|send_notification|clear_broadcast|admin_list_notifications|send_banner|list_banners|admin_list_banners|delete_banner)$/.test(name)){
@@ -185,6 +185,7 @@ const STUB=`(function(){
     if(name==='ical-subscribe'&&body.action==='preview')return Promise.resolve({data:{name:'Test Feed',source_host:'example.com'},error:null});
     if(name==='ical-subscribe'&&body.action==='add')return Promise.resolve({data:{ok:true},error:null});
     if(name==='ical-import')return Promise.resolve({data:{added:3,updated:1,skipped:0},error:null});
+    if(name==='ical-feed'&&window.__feed){window.__fnCalls=(window.__fnCalls||[]).concat([{fn:name,body:body}]);var ff=window.__feed;if(body&&body.action==='public-off'){window.__feed=ff={public_enabled:false}}return Promise.resolve({data:ff,error:null})}
     return Promise.resolve({data:{subscriptions:[]},error:null});
   }}};
  window.supabase={createClient:function(){return client}};

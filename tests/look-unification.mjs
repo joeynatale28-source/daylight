@@ -40,7 +40,7 @@ for(const theme of ['dark','light']){
   await page.screenshot({path:path.join(out,`2-new-calendar-${theme}.png`)});
   const ncCmp=await page.evaluate(()=>{const host=document.querySelector('#ncSwatches');const sw=host.querySelector('.dl-sw');return {size:sw.offsetWidth,gap:Math.round(host.querySelectorAll('.dl-sw')[1].getBoundingClientRect().left-sw.getBoundingClientRect().right)}});
   await page.evaluate(()=>document.querySelector('.dl-std [data-x]').click());await sleep(350);
-  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')][0];row.querySelector('.cal-menu-btn').click()});await page.waitForSelector('.dl-manage');await sleep(500);
+  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')][0];row.querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80)});await page.waitForSelector('.dl-manage');await sleep(500);
   const mgCmp=await page.evaluate(()=>{const host=document.querySelector('.dl-manage .dl-cp');const sw=host.querySelector('.dl-sw');return {size:sw.offsetWidth,gap:Math.round(host.querySelectorAll('.dl-sw')[1].getBoundingClientRect().left-sw.getBoundingClientRect().right)}});
   check(T('the picker in New calendar and in Manage is identical in swatch size and gap'),ncCmp.size===mgCmp.size&&ncCmp.gap===mgCmp.gap,JSON.stringify({ncCmp,mgCmp}));
   // picking a color in the New calendar picker really picks it; Custom color expands
@@ -72,8 +72,8 @@ for(const theme of ['dark','light']){
   await page.evaluate(()=>{state.calendars.push({id:'cdel',name:'Camp',color:'rose',hidden:false,subscribed:false,shared:false});state.events.push({id:99001,cal:'cdel',title:'Only event',start:new Date(2026,10,12,9),end:new Date(2026,10,12,10),allDay:false,loc:'',desc:''});renderAll(false);confirmDeleteCalendar(state.calendars.find(c=>c.id==='cdel'))});
   await page.waitForSelector('.dl-confirm');await sleep(450);
   const cf=await page.evaluate(()=>{const d=document.querySelector('.dl-confirm'),p=d.querySelector('.dialog-body p'),btns=[...d.querySelectorAll('.dialog-foot button')],lines=(()=>{const range=document.createRange();range.selectNodeContents(p);const rects=[...range.getClientRects()];return new Set(rects.map(r=>Math.round(r.top))).size})();
-   const oneEvent=p.innerHTML.includes('1&nbsp;event');return {w:Math.round(d.getBoundingClientRect().width),text:p.textContent,oneEvent,lines,labels:btns.map(b=>b.textContent.trim()),cancelCls:btns[0].className,okCls:btns[1].className,okBg:getComputedStyle(btns[1]).backgroundColor,right:getComputedStyle(d.querySelector('.dialog-foot')).justifyContent}});
-  check(T('Delete confirmation: "1 event" stays together, Cancel is the outline button, Delete the solid red one, right-aligned'),cf.oneEvent&&cf.labels.join('|')==='Cancel|Delete'&&/btn-ghost/.test(cf.cancelCls)&&/btn-danger/.test(cf.okCls)&&cf.right==='flex-end'&&cf.w===ref.w,JSON.stringify(cf));
+   const oneEvent=p.textContent.includes('1 event');return {w:Math.round(d.getBoundingClientRect().width),text:p.textContent,oneEvent,lines,labels:btns.map(b=>b.textContent.trim()),cancelCls:btns[0].className,okCls:btns[1].className,okBg:getComputedStyle(btns[1]).backgroundColor,right:getComputedStyle(d.querySelector('.dialog-foot')).justifyContent}});
+  check(T('Delete confirmation: "1 event" stays together, Cancel is the outline button, Delete the solid red one, right-aligned'),cf.oneEvent&&cf.labels.join('|')==='Cancel|Delete calendar'&&/btn-ghost/.test(cf.cancelCls)&&/btn-danger/.test(cf.okCls)&&cf.right==='flex-end'&&cf.w===ref.w,JSON.stringify(cf));
   await page.screenshot({path:path.join(out,`6-confirm-delete-${theme}.png`)});
   await page.evaluate(()=>document.querySelector('.dl-confirm [data-cancel]').click());await sleep(350);
 

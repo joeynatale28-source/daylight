@@ -10,6 +10,7 @@ on:
       - daylight-adminpage.js
       - daylight-auth.js
       - daylight-security.js
+      - daylight-ai-access.js
       - daylight-sharing.js
       - daylight-manage.js
       - daylight-onboarding.js

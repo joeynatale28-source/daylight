@@ -150,11 +150,22 @@
     ".dl-ppl-ctl .ic{color:var(--muted)}",
     ".dl-ppl-empty{font-size:13px;color:var(--faint);padding:8px 0 4px}",
     ".dl-perm-menu{width:272px}",
-    ".dl-ga-head{display:flex;align-items:center;gap:12px;margin-bottom:6px}",
+    ".dl-ga-head{display:flex;align-items:center;gap:12px;margin-bottom:0}.dl-ga-head>div:not(.switch){flex:1;min-width:0}.dl-ga-head .switch{margin-left:auto;flex:none}",
     ".dl-ga-ic{width:36px;height:36px;border-radius:50%;display:grid;place-items:center;flex:none;background:var(--surface2,var(--hover));border:1px solid var(--line-soft);color:var(--muted)}",
     ".dl-ga-title{font-size:14px;font-weight:600;line-height:1.3}",
     ".dl-ga-sub{font-size:12.5px;color:var(--muted);line-height:1.4}",
     ".dl-ga-host .set-group-title{display:none}.dl-ga-host .switch-row .sw-sub{display:none}",
+    /* General access: ONE grid. The lock tile sits in the left column; the text column (title, helper, Public link row, URL field and its
+       buttons) shares one left edge and the card's right edge, with a single vertical rhythm in both the OFF and the ON state. */
+    ".dl-manage .dl-ga-host{margin-left:48px}",
+    ".dl-manage .dl-ga-host .set-row{display:none}",
+    ".dl-manage .dl-ga-host .set-row .sw-label{font-size:14px;font-weight:600}",
+    ".dl-manage .dl-cs-public{margin-top:14px}.dl-manage .dl-cs-public[hidden]{display:none}",
+    ".dl-manage .dl-cs-link{display:flex;align-items:center;gap:8px}",
+    ".dl-manage .dl-cs-link .text-input{flex:1;min-width:0;height:40px!important;font-size:13px;padding:0 12px!important;border-radius:10px!important}",
+    ".dl-manage .dl-cs-link .btn-primary{flex:none;height:40px;margin:0;padding:0 16px;display:inline-flex;align-items:center;gap:7px;white-space:nowrap}",
+    ".dl-manage .dl-cs-share-actions{display:flex;justify-content:flex-start;margin-top:10px}",
+    ".dl-manage .dl-cs-note{margin:8px 0 0;font-size:12.5px;line-height:1.5;color:var(--muted)}.dl-manage .dl-cs-note:empty{display:none}.dl-manage .dl-cs-note.is-error{color:var(--danger)}",
     "@media (max-width:639px){.dl-inv-row{flex-wrap:wrap}.dl-inv-field{flex-basis:100%}.dl-inv-perm{flex:1;justify-content:space-between}.dl-inv-send{flex:none}.dl-perm-menu{width:min(272px,calc(100vw - 24px))}}"
   ].join("\n");
   document.head.appendChild(css);
@@ -570,10 +581,14 @@
       host.addEventListener("dl-share-state", function (e) {
         var on = !!(e.detail && e.detail.enabled);
         ga.querySelector("[data-ga-title]").textContent = on ? "Anyone with the link" : "Restricted";
-        ga.querySelector("[data-ga-sub]").textContent = on ? "Anyone with the link can view this calendar" : "Only people you share with can access this calendar";
+        ga.querySelector("[data-ga-sub]").textContent = on ? "Anyone with the link can view this calendar, read-only" : "Only people you share with can access this calendar";
       });
       pane.appendChild(ga);
       if (window.daylightShareCalendar) window.daylightShareCalendar(cal, host);
+      /* ONE row: the lock tile, the status (Restricted / Anyone with the link) and the switch share the head row; the link field,
+         Copy and Reset live under it on the same text column. (The builder's own separate "Public link" row is not shown.) */
+      var gaSwitch = host.querySelector(".switch");
+      if (gaSwitch) ga.querySelector(".dl-ga-head").appendChild(gaSwitch);
       loadPeople();
     }
 
