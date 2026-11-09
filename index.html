@@ -3960,6 +3960,8 @@
               t.done = true;
               refreshTasks(false);
               renderSidebar();
+              /* The change lands after the animation, so queue the cloud save here (the click-time check saw no change yet). */
+              if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
             }, 350);
           } else {
             /* Un-complete runs it in reverse: the check undraws and
@@ -3972,6 +3974,7 @@
               t.done = false;
               refreshTasks(false);
               renderSidebar();
+              if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
             }, 200);
           }
         });
