@@ -35,7 +35,7 @@ export function serve(port=0){
 
 const STUB=`(function(){
  var cfg=window.__HARNESS||{};
- var user={id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}};
+ var user={id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}};
  var session=cfg.signedIn===false?null:{user:user,access_token:'t'};
  function chain(table){var q={select(){return q},eq(c,v){if(c==='user_id')q._uid=v;if(c==='revision')q._rev=v;return q},order(){return q},limit(){return q},is(){return q},
   update(v){if(table==='workspace_snapshots'){window.__lastUpdate=v;q._upd=v}return q},upsert(){return Promise.resolve({data:null,error:null})},insert(){return Promise.resolve({data:null,error:null})},
@@ -125,6 +125,36 @@ const STUB=`(function(){
       else return bad2('Unknown change')}
      w7.payload.events=evs;w7.revision=w7.revision+1;return ok2({created:created,events:evs.filter(function(e){return e.cal===s7.cal})})}
    }
+   /* stand-in for the event sharing functions: same rules as supabase/sql/20261128_event_sharing.sql */
+   if(SH&&/^daylight_(send_event_share|list_event_shares|set_event_share_permission|revoke_event_share|list_my_event_invites|respond_event_share|clear_event_invite|leave_event_share|list_my_shared_events|apply_shared_event_changes)$/.test(name)){
+    args=args||{};var meE=window.daylightCloud&&window.daylightCloud.user&&window.daylightCloud.user.id;
+    SH.calls=(SH.calls||[]).concat([{name:name,args:args}]);SH.eshares=SH.eshares||[];
+    var okE=function(d){return Promise.resolve({data:d,error:null})},badE=function(m){return Promise.resolve({data:null,error:{message:m}})};
+    if(!meE)return badE('Authenticated session required');
+    var accE=window.__accounts||{};window.__ws=window.__ws||{};
+    var wsE=function(uid){var row=window.__ws[uid];if(!row){var a1=accE[uid];if(!a1||a1.payload===null)return null;row=window.__ws[uid]={payload:JSON.parse(JSON.stringify(a1.payload)),revision:1}}return row};
+    var personE=function(uid){var a2=accE[uid];if(!a2)return null;var m2=a2.user.user_metadata||{};var nm=m2.full_name||m2.name||String(a2.user.email).split('@')[0];var av=m2.avatar_url&&String(m2.avatar_url).indexOf('/'+uid+'/')!==-1?m2.avatar_url:null;return {id:uid,name:nm,email:a2.user.email,avatar:av}};
+    var evOf=function(owner,id){var w=wsE(owner);if(!w)return null;var evs=(w.payload.events||[]).filter(function(e){return e.id===id});if(!evs[0])return null;var cs=(w.payload.calendars||[]).filter(function(c){return c.id===evs[0].cal})[0]||{};return {ev:evs[0],cal:cs,ok:!(cs.subscribed||cs.builtin||cs.id==='holidays')}};
+    var findE=function(id){return SH.eshares.filter(function(x){return x.id===id})[0]};
+    if(name==='daylight_send_event_share'){var o1=evOf(meE,args.p_event_id);if(!o1)return badE('Event not found');if(!o1.ok)return badE('Only events on your own calendars can be shared');
+     if(args.p_recipient===meE)return badE('You already own this event');if(['view','edit'].indexOf(args.p_permission)===-1)return badE('Choose View only or Can edit');if(!accE[args.p_recipient])return badE('Person not found');
+     var ex1=SH.eshares.filter(function(x){return x.owner===meE&&x.event===args.p_event_id&&x.recipient===args.p_recipient&&(x.status==='pending'||x.status==='accepted')})[0];
+     if(ex1){if(ex1.status==='accepted')return badE('This person already has access');ex1.permission=args.p_permission;ex1.cleared=false;ex1.created=Date.now();return okE({id:ex1.id,status:'pending',permission:ex1.permission})}
+     var ns1={id:'es-'+(SH.eshares.length+1)+'-'+Date.now(),owner:meE,event:args.p_event_id,recipient:args.p_recipient,permission:args.p_permission,status:'pending',cleared:false,created:Date.now()};SH.eshares.push(ns1);return okE({id:ns1.id,status:'pending',permission:ns1.permission})}
+    if(name==='daylight_list_event_shares')return okE(SH.eshares.filter(function(x){return x.owner===meE&&x.event===args.p_event_id&&(x.status==='pending'||x.status==='accepted')}).sort(function(a,b){return (b.status==='accepted')-(a.status==='accepted')||a.created-b.created}).map(function(x){var p=personE(x.recipient);return {id:x.id,recipient_id:x.recipient,name:p.name,email:p.email,avatar_url:p.avatar,permission:x.permission,status:x.status,created_at:new Date(x.created).toISOString()}}));
+    if(name==='daylight_set_event_share_permission'){var s1=findE(args.p_id);if(!s1||s1.owner!==meE||(s1.status!=='pending'&&s1.status!=='accepted'))return badE('Share not found');if(['view','edit'].indexOf(args.p_permission)===-1)return badE('Choose View only or Can edit');s1.permission=args.p_permission;return okE({permission:s1.permission})}
+    if(name==='daylight_revoke_event_share'){var s2=findE(args.p_id);if(!s2||s2.owner!==meE||(s2.status!=='pending'&&s2.status!=='accepted'))return badE('Share not found');if(s2.status==='pending')SH.eshares=SH.eshares.filter(function(x){return x!==s2});else{s2.status='revoked';s2.endedBy='owner'}return okE({revoked:true})}
+    if(name==='daylight_list_my_event_invites')return okE(SH.eshares.filter(function(x){return x.recipient===meE&&['pending','accepted','declined'].indexOf(x.status)!==-1&&!x.cleared&&evOf(x.owner,x.event)}).sort(function(a,b){return b.created-a.created}).map(function(x){var o=evOf(x.owner,x.event),p=personE(x.owner);return {id:x.id,status:x.status,permission:x.permission,event_id:x.event,event_title:o.ev.title,event_start:new Date(o.ev.start).toISOString(),event_end:new Date(o.ev.end).toISOString(),event_all_day:!!o.ev.allDay,calendar_color:o.cal.color,owner_name:p.name,owner_email:p.email,owner_avatar:p.avatar,created_at:new Date(x.created).toISOString(),responded_at:null}}));
+    if(name==='daylight_respond_event_share'){var s3=findE(args.p_id);if(!s3||s3.recipient!==meE||s3.status!=='pending')return badE('This invite is no longer available');s3.status=args.p_accept?'accepted':'declined';return okE({status:s3.status})}
+    if(name==='daylight_clear_event_invite'){var s4=findE(args.p_id);if(!s4||s4.recipient!==meE||s4.status==='pending')return badE('Accept or decline this invite first');s4.cleared=true;return okE({cleared:true})}
+    if(name==='daylight_leave_event_share'){var s5=findE(args.p_id);if(!s5||s5.recipient!==meE||s5.status!=='accepted')return badE('Share not found');s5.status='revoked';s5.endedBy='recipient';return okE({left:true})}
+    if(name==='daylight_list_my_shared_events'){var rowsE=[];SH.eshares.filter(function(x){return x.recipient===meE&&x.status==='accepted'}).forEach(function(x){var o=evOf(x.owner,x.event);if(!o)return;var p=personE(x.owner);rowsE.push({share_id:x.id,permission:x.permission,is_main:true,owner_id:x.owner,owner_name:p.name,owner_email:p.email,owner_avatar:p.avatar,calendar_name:o.cal.name,calendar_color:o.cal.color,event:o.ev})});return okE(rowsE)}
+    if(name==='daylight_apply_shared_event_changes'){var s6=findE(args.p_share_id);if(!s6||s6.recipient!==meE||s6.status!=='accepted')return badE('Share not found');if(s6.permission!=='edit')return badE('You can view this event but not change it');
+     var w6=wsE(s6.owner),allowedE=['title','start','end','allDay','loc','desc','repeat','repeatEnd','weekdaysOnly','reminder','rrule','exdates','timezone','placeId','locationLat','locationLng'];var chg=args.p_event||{};
+     if(chg.title!==undefined&&!String(chg.title).trim())return badE('An event needs a title');
+     var idx6=-1;(w6.payload.events||[]).forEach(function(e,k){if(e.id===s6.event)idx6=k});if(idx6<0)return badE('This event is no longer available');
+     var cur=w6.payload.events[idx6];Object.keys(chg).forEach(function(k){if(allowedE.indexOf(k)!==-1)cur[k]=chg[k]});w6.revision=w6.revision+1;var o6=evOf(s6.owner,s6.event);return okE(o6.ev)}
+   }
    var S=window.__srv;   /* a tiny stand-in for the sessions functions, switched on by tests that need it */
    if(S){
     args=args||{};
@@ -183,7 +213,7 @@ export async function launch(opts={}){
  await page.setViewport({width,height,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme}]);
  await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;
-  if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}}}))}catch(e){}}
+  if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}}}))}catch(e){}}
  },{payload,delayMs,signedIn,seedSession:opts.seedSession});
  await page.setRequestInterception(true);
  page.on('request',r=>{

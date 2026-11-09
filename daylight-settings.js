@@ -28,25 +28,52 @@
     var m = /^\S+/.exec(t);
     return m ? m[0] : "";
   }
-  /* One yearly, all-day "<FirstName>'s Birthday" event on the account's own default calendar: created when a birthday is set,
-     moved (same event) when the date changes, renamed when the first name changes, removed when the birthday is cleared. */
+  /* Birthday events: one all-day event PER YEAR, titled "<FirstName>'s <Ordinal> Birthday" (age = that year - birth year), on the
+     account's own default calendar. Each year keeps its own age (2026 stays "12th" once 2027's "13th" exists). The set is created
+     when a birthday is set, moved when the date changes, renamed when the first name changes, removed when the birthday is
+     cleared, and topped up on load so the window always reaches ten years ahead. Past years from the year after birth are kept. */
+  function ordinal(n) {
+    var m100 = n % 100, m10 = n % 10;
+    var suffix = (m100 >= 11 && m100 <= 13) ? "th" : m10 === 1 ? "st" : m10 === 2 ? "nd" : m10 === 3 ? "rd" : "th";
+    return n + suffix;
+  }
+  window.daylightOrdinal = ordinal;
   window.daylightSyncBirthday = function () {
     var existing = state.events.filter(function (e) { return e.birthday; });
-    var keep = existing[0];
-    if (!state.birthday) { if (existing.length) state.events = state.events.filter(function (e) { return !e.birthday; }); return; }
+    if (!state.birthday) {
+      if (existing.length) { state.events = state.events.filter(function (e) { return !e.birthday; }); return true; }
+      return false;
+    }
     var p = state.birthday.split("-").map(Number);
-    var year = new Date().getFullYear();
-    var day = p[2];
-    if (p[1] === 2 && day === 29 && new Date(year, 1, 29).getMonth() !== 1) day = 28;   // a leap-day birthday shows on Feb 28 in other years
-    var start = new Date(year, p[1] - 1, day), end = new Date(year, p[1] - 1, day, 23, 59);
+    var birthYear = p[0], thisYear = new Date().getFullYear();
     var first = firstNameOf(state.profileName) || "My";
-    var title = first === "My" ? "My Birthday" : first + "'s Birthday";
-    if (existing.length > 1) state.events = state.events.filter(function (e) { return !e.birthday || e === keep; });
-    if (keep) { keep.title = title; keep.start = start; keep.end = end; keep.allDay = true; keep.repeat = "yearly"; keep.repeatEnd = null; return; }
-    var owned = function (c) { return c && !c.subscribed && !c.builtin; };
-    var cal = (state.calendars.filter(function (c) { return c.id === state.defaultCalendarId && owned(c); })[0]) || state.calendars.filter(owned)[0];
-    if (!cal) return;
-    state.events.push({ id: ++uid, title: title, cal: cal.id, start: start, end: end, allDay: true, loc: "", desc: "", repeat: "yearly", repeatEnd: null, reminder: null, uid: "daylight-birthday", birthday: true });
+    var firstYear = Math.max(birthYear + 1, thisYear + 10 - 99);   // never more than 100 yearly events
+    var owned = function (c) { return c && !c.subscribed && !c.builtin && !c.remoteShareId; };
+    var anchor = existing[0] && state.calendars.filter(function (c) { return c.id === existing[0].cal && owned(c); })[0];
+    var cal = anchor || (state.calendars.filter(function (c) { return c.id === state.defaultCalendarId && owned(c); })[0]) || state.calendars.filter(owned)[0];
+    if (!cal) return false;
+    var byYear = {}, changed = false, keepSet = [];
+    existing.forEach(function (e) {
+      var y = e.start instanceof Date ? e.start.getFullYear() : NaN;
+      if (e.repeat || !(y >= firstYear) || byYear[y]) { changed = true; return; }   // legacy repeating event, duplicate, or out of range: rebuilt below
+      byYear[y] = e; keepSet.push(e);
+    });
+    for (var year = firstYear; year <= thisYear + 10; year++) {
+      var day = p[2];
+      if (p[1] === 2 && day === 29 && new Date(year, 1, 29).getMonth() !== 1) day = 28;   // a leap-day birthday shows on Feb 28 in other years
+      var start = new Date(year, p[1] - 1, day), end = new Date(year, p[1] - 1, day, 23, 59);
+      var title = (first === "My" ? "My " : first + "'s ") + ordinal(year - birthYear) + " Birthday";
+      var ev = byYear[year];
+      if (ev) {
+        if (ev.title !== title || +ev.start !== +start || +ev.end !== +end || ev.cal !== cal.id) { ev.title = title; ev.start = start; ev.end = end; ev.cal = cal.id; changed = true; }
+        ev.allDay = true; ev.repeat = null; ev.repeatEnd = null;
+      } else {
+        keepSet.push({ id: ++uid, title: title, cal: cal.id, start: start, end: end, allDay: true, loc: "", desc: "", repeat: null, repeatEnd: null, reminder: null, uid: "daylight-birthday-" + year, birthday: true });
+        changed = true;
+      }
+    }
+    if (changed) state.events = state.events.filter(function (e) { return !e.birthday; }).concat(keepSet);
+    return changed;
   };
 
   function snapshot() {
@@ -612,7 +639,7 @@
     var viewField = pick(scratch, "#csView");
     if (viewField) {
       var viewSelect = viewField.querySelector(".dd") || viewField.querySelector("#csView");
-      var viewRow = el('<div class="set-row switch-row"><span><span class="sw-label">Default Calendar View</span><div class="sw-sub">The view daylight opens in.</div></span></div>');
+      var viewRow = el('<div class="set-row switch-row"><span><span class="sw-label">Default Calendar View</span><div class="sw-sub">The view Daylight opens in.</div></span></div>');
       viewRow.appendChild(viewSelect);
       viewField = viewRow;
     }

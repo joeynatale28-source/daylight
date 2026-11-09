@@ -26,7 +26,7 @@
   const row = (label, description, control) => '<div class="set-row switch-row"><span><span class="sw-label">'+esc(label)+'</span><span class="sw-sub">'+esc(description)+'</span></span>'+control+'</div>';
   const own = () => cloud && cloud.ready && cloud.user;
   async function call(fn, body) {
-    if (!own()) throw Error('Sign in to daylight first');
+    if (!own()) throw Error('Sign in to Daylight first');
     const session = await cloud.ensureSession();
     /* Send this account's own access token explicitly, so the function never sees a stale or missing one. */
     const headers = session && session.access_token ? {Authorization:'Bearer '+session.access_token} : undefined;
@@ -212,7 +212,7 @@
   window.daylightShareCalendar=function(cal,host){
     if(!host||!cal||cal.builtin||cal.subscribed||cal.id==='holidays')return;
     host.innerHTML='<div class="set-group-title">Share</div>'+
-      '<div class="set-row switch-row"><span><span class="sw-label">Public link</span><div class="sw-sub">Anyone with the link can view this calendar — read-only — in daylight or any calendar app.</div></span>'+
+      '<div class="set-row switch-row"><span><span class="sw-label">Public link</span><div class="sw-sub">Anyone with the link can view this calendar — read-only — in Daylight or any calendar app.</div></span>'+
       '<label class="switch"><input type="checkbox" aria-label="Public link"><span class="track"></span><span class="knob"></span></label></div>'+
       '<div class="dl-cs-public" hidden><div class="dl-cs-link"><input class="text-input" readonly aria-label="Public calendar link"><button type="button" class="btn-primary dl-btn-sm" data-copy>'+icon('copy',14)+' Copy link</button></div>'+
       '<div class="dl-cs-share-actions"><button type="button" class="btn-ghost dl-btn-sm" data-reset>'+icon('refresh',14)+' Reset link</button></div></div>'+
@@ -335,7 +335,7 @@
           }catch(e){showError(status,e);}
         };
         card.querySelector('#removeOne').onclick=()=>openConfirm({
-          title:'Remove subscription?',body:'Read-only events from this feed will disappear from daylight. The original calendar is not affected.',
+          title:'Remove subscription?',body:'Read-only events from this feed will disappear from Daylight. The original calendar is not affected.',
           confirmLabel:'Remove',danger:true,fn:async()=>{
             try{await call('ical-subscribe',{action:'remove',id:s.id});await loadSubscriptions();draw();toast('Subscription removed');}
             catch(e){showError(status,e);}
@@ -722,7 +722,7 @@
     function openIcsForm(){
       let imported=false;
       const dlg=stdDialog('Import an ICS file',{onBack:window.daylightAddToSubscriptions,variant:'dl-form',onClose:()=>{if(imported)location.reload()}});
-      const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin);
+      const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin&&!c.remoteShareId&&!c.eventShare);
       dlg.body.innerHTML=
         '<div class="dl-drop" data-drop tabindex="0" role="button" aria-label="Choose an .ics file"><span class="dl-drop-ic">'+icon('upload',24)+'</span><span class="dl-drop-text">Drop an .ics file here, or <u>browse</u></span><span class="dl-drop-file" data-file></span></div>'+
         '<input type="file" accept=".ics,text/calendar" data-picker hidden>'+

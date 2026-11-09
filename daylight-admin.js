@@ -145,7 +145,7 @@
   function audienceControl(label) {
     var wrap = make('<div class="dl-ad-field"><span class="dl-ad-label">' + label + '</span>' +
       '<div class="dl-ad-aud" role="radiogroup" aria-label="' + label + '"><button type="button" role="radio" aria-checked="true" data-aud="everyone">Everyone</button><button type="button" role="radio" aria-checked="false" data-aud="specific">Specific people</button></div>' +
-      '<div class="dl-ad-emails" hidden><input class="text-input" data-emails type="text" autocomplete="off" spellcheck="false" placeholder="name@example.com, other@example.com" aria-label="Email addresses"><div class="dl-ad-note">Separate addresses with commas. Only people with a daylight account can receive it.</div></div></div>');
+      '<div class="dl-ad-emails" hidden><input class="text-input" data-emails type="text" autocomplete="off" spellcheck="false" placeholder="name@example.com, other@example.com" aria-label="Email addresses"><div class="dl-ad-note">Separate addresses with commas. Only people with a Daylight account can receive it.</div></div></div>');
     var mode = "everyone", input = wrap.querySelector("[data-emails]"), box = wrap.querySelector(".dl-ad-emails");
     wrap.querySelectorAll("[data-aud]").forEach(function (b) {
       b.addEventListener("click", function () {
@@ -183,12 +183,12 @@
   }
 
   window.daylightAdminPane = function (pane) {
-    paneHead(pane, "Admin dashboard", "Send notifications and banners to the people using daylight. Only owner accounts see this page.");
+    paneHead(pane, "Admin dashboard", "Send notifications and banners to the people using Daylight. Only owner accounts see this page.");
     var call = function (name, args) { return window.daylightAdmin.rpc(name, args); };
 
     /* a) send a notification */
     var send = make('<div class="set-group"><div class="set-group-title">Send notification</div>' +
-      '<p class="dl-ad-lead">Appears in the bell for the people you choose, marked as an official daylight notification.</p>' +
+      '<p class="dl-ad-lead">Appears in the bell for the people you choose, marked as an official Daylight notification.</p>' +
       '<div class="dl-ad-field"><label for="adTitle">Title</label><input class="text-input" id="adTitle" maxlength="120" autocomplete="off" placeholder="What is this about?"></div>' +
       '<div class="dl-ad-field"><label for="adBody">Message</label><textarea class="text-input" id="adBody" maxlength="1000" placeholder="Write the message"></textarea><span class="dl-ad-count">0 / 1000</span></div>' +
       '<div data-aud-host></div>' +

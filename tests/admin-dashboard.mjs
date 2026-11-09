@@ -3,7 +3,7 @@
  *  - Admin dashboard: only the owner has the entry (last in Settings); nobody has a composer in the bell;
  *  - targeted notification: reaches only the named account; unmatched emails are named back and nothing is sent to them;
  *  - everyone notification: reaches both (the sender's own bell included, and badge and panel agree);
- *  - polished row: logo avatar for the theme, "daylight", title, message, time, "Official daylight notification";
+ *  - official row = the invite-card anatomy: logo avatar for the theme, bold "Daylight" + verified badge ("Official Account" tooltip), title line, message line, time; no footer text;
  *  - per-user clear: stays cleared after a reload for that account only; force remove empties it for everybody;
  *  - banners: color, no dismiss control, link opens in a new tab, targeted ones only for the named account, newest first,
  *    removing takes them off everyone, and the app keeps fitting under them.
@@ -41,7 +41,7 @@ for(const theme of ['dark','light']){
   const bell=()=>page.evaluate(()=>{const b=document.querySelector('.dl-notif-btn');const g=b&&b.querySelector('.dl-notif-badge');return {badge:g&&!g.hidden?g.textContent:'',label:b&&b.getAttribute('aria-label')}});
   const openBell=async()=>{await page.click('.dl-notif-btn');await page.waitForSelector('.dl-notif-panel');await sleep(550)};
   const closeBell=async()=>{await page.keyboard.press('Escape');await sleep(350)};
-  const panelInfo=()=>page.evaluate(()=>({items:[...document.querySelectorAll('.dl-notif-item')].map(i=>i.querySelector('.dl-notif-title').textContent),empty:getComputedStyle(document.querySelector('.dl-notif-empty')).display!=='none',composer:!!document.querySelector('.dl-notif-send,.dl-notif-foot')}));
+  const panelInfo=()=>page.evaluate(()=>({items:[...document.querySelectorAll('.dl-notif-item')].map(i=>i.querySelector('.dl-notif-msg').textContent),empty:getComputedStyle(document.querySelector('.dl-notif-empty')).display!=='none',composer:!!document.querySelector('.dl-notif-send,.dl-notif-foot')}));
   const railItems=()=>page.evaluate(()=>[...document.querySelectorAll('.settings-rail .sr-item')].map(b=>b.textContent.trim()));
   const openSettings=async sec=>{await page.evaluate(s=>openSettings(s),sec);await page.waitForSelector('.settings-dialog');await sleep(600)};
   const closeSettings=async()=>{await page.evaluate(()=>document.querySelector('.settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
@@ -119,18 +119,25 @@ for(const theme of ['dark','light']){
   await openBell();pi=await panelInfo();
   check(T('the test account sees the targeted ones and the everyone one'),pi.items.length===3&&['Just for you','Mixed audience','For everyone'].every(t=>pi.items.includes(t)),JSON.stringify(pi));
   check(T('the ghost message reached nobody'),!pi.items.includes('Ghost message'));
-  const row=await page.evaluate(()=>{const r=[...document.querySelectorAll('.dl-notif-item')].find(i=>i.querySelector('.dl-notif-title').textContent==='Just for you');
+  const row=await page.evaluate(()=>{const r=[...document.querySelectorAll('.dl-notif-item')].find(i=>i.querySelector('.dl-notif-msg').textContent==='Just for you');
    const imgs=[...r.querySelectorAll('.dl-notif-avatar img')].filter(i=>getComputedStyle(i).display!=='none');
-   return {logo:imgs.map(i=>i.getAttribute('src')),from:r.querySelector('.dl-notif-from').textContent,title:r.querySelector('.dl-notif-title').textContent,msg:r.querySelector('.dl-notif-msg').textContent,time:r.querySelector('.dl-notif-time').textContent,foot:r.querySelector('.dl-notif-official').textContent,
-    order:[...r.querySelector('.dl-notif-main').children].map(c=>c.className),footSize:parseFloat(getComputedStyle(r.querySelector('.dl-notif-official')).fontSize),timeSize:parseFloat(getComputedStyle(r.querySelector('.dl-notif-time')).fontSize),unread:r.classList.contains('is-unread')}});
+   const badge=r.querySelector('.dl-verified'),from=r.querySelector('.dl-notif-from');
+   return {logo:imgs.map(i=>i.getAttribute('src')),from:from.firstChild.textContent,fromWeight:getComputedStyle(from).fontWeight,hasBadge:!!badge,tip:badge&&badge.getAttribute('data-tip'),badgeAfterName:!!badge&&badge.parentElement===from,title:r.querySelector('.dl-notif-msg').textContent,msg:r.querySelector('.dl-notif-sub').textContent,time:r.querySelector('.dl-notif-time').textContent,
+    footer:!!r.querySelector('.dl-notif-official')&&getComputedStyle(r.querySelector('.dl-notif-official')).display!=='none'||/Official Daylight notification/i.test(r.innerText),avatarBox:(()=>{const a=r.querySelector('.dl-notif-avatar').getBoundingClientRect();return [Math.round(a.width),Math.round(a.height)]})(),
+    order:[...r.querySelector('.dl-notif-main').children].map(c=>c.className),unread:r.classList.contains('is-unread')}});
   const wantLogo=theme==='dark'?'./assets/daylight-sunarc-dark-NOBG.png':'./assets/daylight-sunarc-light-NOBG.png';
   check(T('the avatar is the daylight sun-arc for this theme (white in dark, black in light), nothing else'),row.logo.length===1&&row.logo[0]===wantLogo,JSON.stringify(row.logo));
-  check(T('sender "daylight", then title, message, time and the official footer'),row.from==='daylight'&&row.title==='Just for you'&&row.msg==='Hello test account'&&!!row.time&&row.foot==='Official daylight notification',JSON.stringify(row));
-  check(T('the footer is the smallest muted line in the panel'),row.footSize<=row.timeSize&&row.footSize<=11,JSON.stringify({f:row.footSize,t:row.timeSize}));
+  check(T('sender "Daylight" in bold with the verified badge right after the name, then the title line, the message line and the time'),row.from==='Daylight'&&Number(row.fromWeight)>=600&&row.hasBadge&&row.badgeAfterName&&row.title==='Just for you'&&row.msg==='Hello test account'&&!!row.time,JSON.stringify(row));
+  check(T('the tiny footer text is gone: the badge is the only official marker'),!row.footer&&row.tip==='Official Account',JSON.stringify(row));
+  check(T('the avatar sits in the same 36px circle a person photo does'),row.avatarBox[0]===36&&row.avatarBox[1]===36,JSON.stringify(row.avatarBox));
+  await page.hover('.dl-notif-item .dl-verified');await sleep(300);
+  check(T('hovering the badge shows the tooltip "Official Account"'),await page.evaluate(()=>{const b=document.querySelector('.dl-notif-item .dl-verified');return getComputedStyle(b,'::after').content.replace(/\"/g,'')==='Official Account'&&parseFloat(getComputedStyle(b,'::after').opacity)>0.9}));
+  await page.screenshot({path:path.join(out,`6c-badge-tooltip-${theme}.png`),clip:{x:1000,y:40,width:430,height:460},captureBeyondViewport:false});
+  await page.mouse.move(10,10);await sleep(200);
   await page.screenshot({path:path.join(out,`6-test-polished-${theme}.png`)});
   await page.screenshot({path:path.join(out,`6b-test-polished-crop-${theme}.png`),clip:{x:1000,y:40,width:430,height:460},captureBeyondViewport:false});
   // per-user clear
-  await page.evaluate(()=>{[...document.querySelectorAll('.dl-notif-item')].find(i=>i.querySelector('.dl-notif-title').textContent==='For everyone').querySelector('.dl-notif-clear').click()});await sleep(700);
+  await page.evaluate(()=>{[...document.querySelectorAll('.dl-notif-item')].find(i=>i.querySelector('.dl-notif-msg').textContent==='For everyone').querySelector('.dl-notif-clear').click()});await sleep(700);
   pi=await panelInfo();
   check(T('clearing removes it from this account\'s list'),!pi.items.includes('For everyone')&&pi.items.length===2,JSON.stringify(pi));
   check(T('and it no longer counts as unread'),(await bell()).badge==='');

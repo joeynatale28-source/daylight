@@ -1,15 +1,32 @@
-/* Manage calendar: the dialog behind a calendar's ⋯ button. It is built in the same window language as Settings: the same
-   dialog, a left rail of sections and a scrolling content pane, the same rows, groups, buttons and the same Save / Discard
-   pill. Name and color are saved with the pill; sharing and the public link act immediately.
-     owned calendar   : Calendar, Sharing, Export, Danger zone
-     subscribed       : Calendar, Source, Danger zone
-     shared with me   : Calendar, Danger zone
-     US Holidays      : Calendar (color), Export                                                                              */
+/* Manage calendar: the dialog behind a calendar's ⋯ button. ONE centered Daylight dialog with a single scrolling column (no rail,
+   no tabs): sections stack in one scroll and a slim footer (Done) stays visible. Name and color are saved with the pill; sharing
+   and the public link act immediately.
+     owned calendar   : Calendar (name + color) -> Sharing -> Export -> Danger zone (Delete calendar, last)
+     subscribed       : Calendar -> Source -> Danger zone (Unsubscribe, last)
+     shared with me   : Calendar -> Danger zone (Leave calendar, last)
+     US Holidays      : Calendar (color) -> Export                                                                        */
 (function () {
   "use strict";
   var css = document.createElement("style");
   css.textContent = [
     ".settings-dialog.dl-manage:focus{outline:none}",
+    /* single-column shell */
+    ".settings-dialog.dl-col{width:min(480px,calc(100vw - 24px));height:auto;max-height:min(86dvh,780px);flex-direction:column;position:relative}",
+    ".dl-col-head{flex:none;display:flex;align-items:center;gap:12px;padding:18px 18px 14px 26px;border-bottom:1px solid var(--line-soft)}",
+    ".dl-col-head .dl-mg-dot{width:12px;height:12px}",
+    ".dl-col-title{flex:1;min-width:0;font-size:17px;font-weight:620;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+    ".dl-col-head .settings-close{position:static;flex:none}",
+    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:22px 26px 26px;position:relative}",
+    ".dl-col-body .set-group{padding:18px 20px 12px;margin-bottom:18px}",
+    ".dl-col-body .set-group:last-child{margin-bottom:0}",
+    ".dl-col-h{font-size:15px;font-weight:620;letter-spacing:-.012em;margin:26px 0 4px}",
+    ".dl-col-h:first-child{margin-top:0}",
+    ".dl-col-sub{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 14px}",
+    ".dl-col-foot{flex:none;display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line-soft)}",
+    ".dl-col-foot .btn-primary{height:36px;padding:0 22px;margin:0}",
+    ".settings-dialog.dl-col .settings-savebar{left:50%;bottom:66px}",
+    ".settings-dialog.dl-col:has(.settings-savebar:not([hidden])) .dl-col-body{padding-bottom:70px}",
+    ".dl-col .dl-inv-row{flex-wrap:wrap}.dl-col .dl-inv-field{flex-basis:100%}.dl-col .dl-inv-perm{flex:1;justify-content:space-between}.dl-col .dl-inv-send{flex:none}",
     ".dl-ppl-text{display:flex;flex-direction:column}",
     ".dl-manage .sr-title{display:flex;align-items:center;gap:9px;min-width:0}",
     ".dl-manage .sr-title .dl-mg-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}",
@@ -91,6 +108,11 @@
   ].join("\n");
   document.head.appendChild(css);
 
+  /* Section heading inside the single column (replaces the Settings pane heading). */
+  function paneHead(host, title, sub) {
+    host.appendChild(make('<h3 class="dl-col-h"></h3>')).textContent = title;
+    if (sub) host.appendChild(make('<p class="dl-col-sub"></p>')).textContent = sub;
+  }
   function make(html) { var d = document.createElement("div"); d.innerHTML = html; return d.firstElementChild; }
   function hexOf(key) { return /^#/.test(key) ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#FF7A00"); }
   function sameList(a, b) { return JSON.stringify(a || []) === JSON.stringify(b || []); }
@@ -108,14 +130,14 @@
     window.daylightCalendarOriginal = function (c) { return c === cal ? original : null; };
 
     var bd = el('<div class="backdrop"></div>');
-    var dlg = el('<div class="settings-dialog dl-manage" role="dialog" aria-modal="true" aria-label="Manage calendar"></div>');
-    var rail = el('<div class="settings-rail"><div class="sr-title"><span class="dl-mg-dot"></span><span class="dl-mg-name"></span></div></div>');
-    var pane = el('<div class="settings-pane"></div>');
+    var dlg = el('<div class="settings-dialog dl-manage dl-col" role="dialog" aria-modal="true" aria-label="Manage calendar"></div>');
+    var head = el('<div class="dl-col-head"><span class="dl-mg-dot"></span><div class="dl-col-title dl-mg-name"></div></div>');
+    var pane = el('<div class="dl-col-body"></div>');
+    var foot = el('<div class="dl-col-foot"><button type="button" class="btn-primary" data-done>Done</button></div>');
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">You have unsaved changes</span>' +
       '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save changes</span>' +
       '<svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
     var closeButton = el('<button type="button" class="icon-btn settings-close" title="Close" aria-label="Close calendar settings">' + icon("x", 18) + "</button>");
-    var section = "calendar";
     var nameInput = null, inline = null;
 
     function currentName() { return nameInput ? nameInput.value.trim() : cal.name; }
@@ -123,8 +145,8 @@
       return (nameInput && currentName() !== original.name) || cal.color !== original.color || !sameList(state.customColors, original.customColors);
     }
     function paintHeader() {
-      rail.querySelector(".dl-mg-name").textContent = currentName() || original.name;
-      rail.querySelector(".dl-mg-dot").style.background = dotOf(cal);
+      head.querySelector(".dl-mg-name").textContent = currentName() || original.name;
+      head.querySelector(".dl-mg-dot").style.background = dotOf(cal);
       dlg.style.setProperty("--cs-thumb", dotOf(cal));
     }
     function markDirty() {
@@ -227,14 +249,12 @@
 
     /* ------------------------------------------------------------ Export / Danger */
     function drawExport() {
-      paneHead(pane, "Export", "Download this calendar to use it in another app.");
       var g = make('<div class="set-group"><div class="set-group-title">Export</div><div class="set-row switch-row"><span><span class="sw-label">Export calendar</span><div class="sw-sub">Download every event as an .ics file.</div></span>' +
         '<button type="button" class="btn-ghost dl-btn-sm" data-export>Export .ics</button></div></div>');
       g.querySelector("[data-export]").addEventListener("click", function () { window.daylightExportCalendar(cal); });
       pane.appendChild(g);
     }
     function drawDanger() {
-      paneHead(pane, "Danger zone", kind === "subscribed" ? "Remove this subscription from Daylight." : kind === "shared" ? "Stop seeing this shared calendar." : "Permanent actions for this calendar.");
       var title, sub, label;
       if (kind === "subscribed") { title = "Unsubscribe"; sub = "Removes the subscribed calendar and its cached events. The source calendar is not affected."; label = "Unsubscribe"; }
       else if (kind === "shared") { title = "Leave calendar"; sub = "You will no longer see this calendar. " + ((cal.sharedFrom && cal.sharedFrom.ownerName) || "The owner") + " can invite you again."; label = "Leave calendar"; }
@@ -462,34 +482,23 @@
       loadPeople();
     }
 
-    /* ------------------------------------------------------------ sections + shell */
+    /* ------------------------------------------------------------ sections stack in ONE column */
     var sections = {
-      owned: [["calendar", "Calendar", "calendar", drawCalendar], ["sharing", "Sharing", "users", drawSharing], ["export", "Export", "download", drawExport], ["danger", "Danger zone", "alert", drawDanger]],
-      holidays: [["calendar", "Calendar", "calendar", drawCalendar], ["export", "Export", "download", drawExport]],
-      subscribed: [["calendar", "Calendar", "calendar", drawCalendar], ["source", "Source", "link", drawSource], ["danger", "Danger zone", "alert", drawDanger]],
-      shared: [["calendar", "Calendar", "calendar", drawCalendar], ["danger", "Danger zone", "alert", drawDanger]]
+      owned: [drawCalendar, drawSharing, drawExport, drawDanger],
+      holidays: [drawCalendar, drawExport],
+      subscribed: [drawCalendar, drawSource, drawDanger],
+      shared: [drawCalendar, drawDanger]
     }[kind];
     function drawPane() {
+      var top = pane.scrollTop;
       pane.innerHTML = "";
       nameInput = null; inline = null; colorRedraw = null;
-      var def = sections.filter(function (x) { return x[0] === section; })[0] || sections[0];
-      def[3]();
-      pane.classList.remove("pane-in"); void pane.offsetWidth; pane.classList.add("pane-in");
+      sections.forEach(function (draw) { draw(); });
+      pane.scrollTop = top;
       markDirty();
     }
-    sections.forEach(function (def) {
-      var b = make('<button type="button" class="sr-item' + (def[0] === section ? " active" : "") + (def[0] === "danger" ? " is-danger" : "") + '" data-section="' + def[0] + '">' + icon(def[2], 17) + "<span>" + def[1] + "</span></button>");
-      b.addEventListener("click", function () {
-        markDirty();
-        if (isDirty()) return;                     /* the pill is the only way out of unsaved changes */
-        section = def[0];
-        rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.toggle("active", x === b); });
-        pendingName = null;
-        drawPane();
-      });
-      rail.appendChild(b);
-    });
-    dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar); dlg.appendChild(closeButton);
+    head.appendChild(closeButton);
+    dlg.appendChild(head); dlg.appendChild(pane); dlg.appendChild(foot); dlg.appendChild(bar);
     bd.appendChild(dlg);
     overlayRoot.appendChild(bd);
     dlg.setAttribute("tabindex", "-1");
@@ -524,6 +533,7 @@
     }
     document.addEventListener("keydown", onKey, true);
     closeButton.addEventListener("click", function (e) { e.stopPropagation(); requestClose(); });
+    foot.querySelector("[data-done]").addEventListener("click", function () { requestClose(); });
     bd.addEventListener("mousedown", function (e) { if (e.target === bd) requestClose(); });
     bar.querySelector("[data-discard]").addEventListener("click", function () { if (isDirty()) revert(); });
     bar.querySelector("[data-save]").addEventListener("click", async function () {

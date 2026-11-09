@@ -134,7 +134,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    const cloud=window.daylightCloud;
    if(!cloud)throw Error('Daylight cloud missing');
    Object.defineProperty(cloud,'ready',{get:()=>true,configurable:true});
-   Object.defineProperty(cloud,'user',{get:()=>({id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}}),configurable:true});
+   Object.defineProperty(cloud,'user',{get:()=>({id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}}),configurable:true});
    Object.defineProperty(cloud,'client',{get:()=>window.__fakeClient,configurable:true});
    window.__fakeClient.auth.getSession=async()=>({data:{session:{access_token:'t',refresh_token:'r',user:{id:'00000000-0000-4000-8000-000000000001'}}}});
    state.calendars=[
@@ -496,7 +496,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.evaluate(()=>document.querySelector('[data-discard]').click());
  await new Promise(resolve=>setTimeout(resolve,150));
  assert.equal(await page.$('#dlSettingsDiscardConfirm'),null,'Discard on the pill is the only gate: no second confirmation popup');
- assert.equal(await page.evaluate(()=>document.querySelectorAll('#overlayRoot > .backdrop').length),1,'nothing is stacked on top of Settings');
+ assert.equal(await page.evaluate(()=>document.querySelectorAll('#overlayRoot > .backdrop').length),1,'nothing is stacked on top of Settings: '+await page.evaluate(()=>[...document.querySelectorAll('#overlayRoot > .backdrop')].map(b=>(b.firstElementChild&&b.firstElementChild.className)+':'+b.innerText.slice(0,60)).join(' || ')));
  assert.equal(await page.evaluate(()=>state.showWeekends),oldWeekends,'Discard failed to restore the setting');
  const afterDiscard=await page.evaluate(keys=>Object.fromEntries(keys.map(key=>[key,Array.isArray(state[key])?state[key].slice():state[key]])),savedSettingKeys);
  assert.deepEqual(afterDiscard,oldSettings,'Discard failed to restore every saved setting');
@@ -570,12 +570,14 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
  const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
    return {box:[d.offsetWidth,d.offsetHeight,getComputedStyle(d).borderRadius],x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,isSettingsShell:d.classList.contains('settings-dialog'),
-    rail:[...d.querySelectorAll('.settings-rail .sr-item')].map(n=>n.textContent.trim()),nameInput:!!d.querySelector('input#calSettingsName'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
- assert.deepEqual(popup.box,settingsBox,'the Manage dialog is the same size and radius as Settings: '+JSON.stringify([popup.box,settingsBox]));
+    rail:[...d.querySelectorAll('.dl-col-h,.dl-col-body .set-group-title')].map(n=>n.textContent.trim()),nameInput:!!d.querySelector('input#calSettingsName'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
+ assert.ok(popup.box[0]<=480&&popup.box[0]>=440,'the Manage dialog is ONE column about 480px wide: '+JSON.stringify(popup.box));
+ assert.equal(popup.box[2],settingsBox[2],'the same corner radius as Settings: '+JSON.stringify([popup.box,settingsBox]));
+ assert.equal(await page.$('.dl-manage .settings-rail'),null,'no left rail in the single-column dialog');
  assert.ok(popup.isSettingsShell,'it is built on the Settings dialog shell');
  assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');
  assert.equal(popup.swatch,26,'26px swatches');
- assert.deepEqual(popup.rail,['Calendar','Sharing','Export','Danger zone'],'rail sections of an owned calendar');
+ assert.ok(['Calendar','Sharing','Export','Danger zone'].every((h,i,a)=>popup.rail.indexOf(h)>=0&&(i===0||popup.rail.indexOf(h)>popup.rail.indexOf(a[i-1])))&&popup.rail[popup.rail.length-1]==='Danger zone','stacked sections of an owned calendar, Danger zone last: '+JSON.stringify(popup.rail));
  assert.deepEqual(popup.fields,['HEX','R','G','B'],'one row of HEX + R + G + B');
  assert.ok(popup.nameInput,'the name is editable in the Calendar section');
  assert.ok(await page.evaluate(()=>{const d=document.querySelector('.dl-manage').getBoundingClientRect();return d.right<=innerWidth&&d.bottom<=innerHeight&&d.left>=0&&d.top>=0}),'the dialog stays inside the window');
@@ -603,10 +605,10 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  });
  assert.ok(await page.evaluate(()=>state.customColors.includes('#FF7A00')),'Add to Your colors stores the colour on this account');
  await page.screenshot({path:path.join(out,'calendar-settings-unsaved.png')});
- // Unsaved changes: the pill is the only gate; the other sections cannot be opened until Save or Discard.
- await page.evaluate(()=>document.querySelector('.dl-manage [data-section="sharing"]').click());
+ // Unsaved changes: the pill is the only gate; Done and the close button do nothing until Save or Discard.
+ await page.evaluate(()=>document.querySelector('.dl-manage [data-done]').click());
  await new Promise(resolve=>setTimeout(resolve,250));
- assert.ok(await page.evaluate(()=>document.querySelector('.dl-manage [data-section="calendar"]').classList.contains('active')),'switching sections is blocked while the pill is showing');
+ assert.ok(await page.evaluate(()=>!!document.querySelector('.dl-manage')),'Done is blocked while the pill is showing');
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-savebar [data-save]').click());
  await page.waitForFunction(()=>document.querySelector('.dl-manage .settings-savebar')?.classList.contains('is-saved'),{timeout:1000});
  await page.waitForFunction(()=>document.querySelector('.dl-manage .settings-savebar')?.hidden,{timeout:2000});
@@ -619,7 +621,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  assert.equal(saved.color,'#FF7A00');
  assert.ok(saved.sidebar,'rename shows in the sidebar');
  // Sharing section: the public link lives under General access; On / Reset mint a new link, Off clears it.
- await page.evaluate(()=>document.querySelector('.dl-manage [data-section="sharing"]').click());
+ await page.evaluate(()=>document.querySelector('.dl-manage [aria-label="Public link"]').scrollIntoView({block:'center'}));
  await page.waitForFunction(()=>!document.querySelector('.dl-manage [aria-label="Public link"]')?.disabled,{timeout:3000});
  await page.evaluate(()=>{
    const toggle=document.querySelector('.dl-manage [aria-label="Public link"]');
@@ -635,7 +637,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.evaluate(()=>{const t=document.querySelector('.dl-manage [aria-label="Public link"]');t.checked=false;t.dispatchEvent(new Event('change',{bubbles:true}))});
  await page.waitForFunction(()=>document.querySelector('.dl-cs-public')?.hidden&&!state.calendars.find(c=>c.id==='c3').publicLink,{timeout:3000});
  // Removing a saved colour leaves the calendar that uses it unchanged.
- await page.evaluate(()=>document.querySelector('.dl-manage [data-section="calendar"]').click());
+ await page.evaluate(()=>document.querySelector('.dl-manage #calSettingsName').scrollIntoView({block:'center'}));
  await page.waitForSelector('.dl-manage .dl-color-remove',{timeout:2000});
  await page.evaluate(()=>{const remove=[...document.querySelectorAll('.dl-manage .dl-color-remove')].find(b=>/#FF7A00/i.test(b.getAttribute('aria-label')));remove.click()});
  const removal=await page.evaluate(()=>({saved:state.customColors.includes('#FF7A00'),color:state.calendars.find(c=>c.id==='c3').color}));
@@ -643,16 +645,14 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-savebar [data-save]').click());
  await page.waitForFunction(()=>document.querySelector('.dl-manage .settings-savebar')?.hidden,{timeout:2500});
  // Export and Delete (with its confirmation) sit in their own sections as proper buttons.
- await page.evaluate(()=>document.querySelector('.dl-manage [data-section="export"]').click());
  assert.ok(await page.evaluate(()=>{const b=document.querySelector('.dl-manage [data-export]');return !!b&&b.tagName==='BUTTON'&&/btn-ghost/.test(b.className)}),'Export .ics is a proper button row');
- await page.evaluate(()=>document.querySelector('.dl-manage [data-section="danger"]').click());
  assert.ok(await page.evaluate(()=>{const b=document.querySelector('.dl-manage [data-delete]');return !!b&&b.tagName==='BUTTON'&&/btn-danger-outline/.test(b.className)}),'Delete calendar is a proper danger button');
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:2000});
  // US Holidays: Calendar (color) + Export only.
  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()});
  await page.waitForSelector('.dl-manage',{timeout:3000});
- assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-manage .settings-rail .sr-item')].map(n=>n.textContent.trim())),['Calendar','Export'],'US Holidays: colors + Export only (no Sharing, no Delete)');
+ assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(n=>n.textContent.trim()).filter(h=>['Calendar','Sharing','Export','Danger zone'].includes(h))),['Calendar','Export'],'US Holidays: colors + Export only (no Sharing, no Delete)');
  assert.equal(await page.$('.dl-manage input#calSettingsName'),null,'US Holidays cannot be renamed');
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:2000});
@@ -714,7 +714,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

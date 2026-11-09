@@ -1,7 +1,7 @@
 /**
  * Item 5 on the real page, both themes, signed in as the test account (stand-in):
  *  - change the display name (saved to the account's own record, and it is what the sidebar reads);
- *  - birthday: set -> one yearly all-day "<First name>'s Birthday" event on the account's own default calendar;
+ *  - birthday: set -> one all-day "<First name>'s <Ordinal> Birthday" event PER YEAR (age = that year - birth year) on the account's own default calendar;
  *    change the date -> the SAME event moves (never a duplicate); change the name -> the title follows (a dash does not
  *    split a first name: "Mary-Kate"); clear it -> the event is removed;
  *  - Discard leaves the calendar alone;
@@ -36,7 +36,8 @@ for(const theme of ['dark','light']){
   const setName=async n=>{await page.click('#profileFullName',{clickCount:3});await page.keyboard.press('Backspace');await page.type('#profileFullName',n);await page.keyboard.press('Tab');await sleep(250)};
   const setDate=async d=>{await page.$eval('#profileBirthday',(el,v)=>{el.value=v;el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}))},d);await sleep(250)};
   const save=async()=>{await page.waitForFunction(()=>{const b=document.querySelector('.settings-savebar');return b&&!b.hidden},{timeout:3000});await page.click('.settings-savebar [data-save]');await page.waitForFunction(()=>document.querySelector('.settings-savebar')?.hidden,{timeout:4000});await sleep(500)};
-  const bevents=()=>page.evaluate(()=>state.events.filter(e=>e.birthday).map(e=>({id:e.id,title:e.title,cal:e.cal,allDay:e.allDay,repeat:e.repeat,m:e.start.getMonth()+1,d:e.start.getDate(),y:e.start.getFullYear()})));
+  const bevents=()=>page.evaluate(()=>state.events.filter(e=>e.birthday).map(e=>({id:e.id,title:e.title,cal:e.cal,allDay:e.allDay,repeat:e.repeat,m:e.start.getMonth()+1,d:e.start.getDate(),y:e.start.getFullYear()})).sort((a,b)=>a.y-b.y));
+  const thisYear=l=>l.find(e=>e.y===YEAR);
   const occ=(y)=>page.evaluate(y=>occsInRange(new Date(y,0,1),new Date(y+1,0,1)).filter(o=>o.ev.birthday).map(o=>[o.start.getMonth()+1,o.start.getDate()]),y);
   const close=async()=>{await page.evaluate(()=>document.querySelector('.settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
   const monthShot=async(m,name)=>{await page.evaluate((y,m)=>{state.section='calendar';state.view='month';state.cursor=new Date(y,m-1,15);renderAll(false)},YEAR,m);await sleep(500);await page.screenshot({path:path.join(out,`${name}-${theme}.png`)})};
@@ -48,28 +49,28 @@ for(const theme of ['dark','light']){
   await page.screenshot({path:path.join(out,`1-profile-unsaved-${theme}.png`)});
   await save();
   let b=await bevents();
-  check(T('set: exactly one birthday event exists, "Dana\'s Birthday", all-day and yearly'),b.length===1&&b[0].title==="Dana's Birthday"&&b[0].allDay&&b[0].repeat==='yearly',JSON.stringify(b));
-  check(T('set: it is on the right date (Mar 9) on the account\'s own first calendar'),b[0].m===3&&b[0].d===9&&b[0].cal==='c9',JSON.stringify(b));
+  check(T('set: one all-day birthday event per year, each with its own age ("Dana\'s 26th Birthday" this year, 27th next year)'),b.length>=10&&b.every(e=>e.allDay&&!e.repeat)&&thisYear(b).title==="Dana's 26th Birthday"&&b.find(e=>e.y===YEAR+1).title==="Dana's 27th Birthday"&&new Set(b.map(e=>e.id)).size===b.length,JSON.stringify(b.slice(0,3)));
+  check(T('set: it is on the right date (Mar 9) on the account\'s own first calendar'),b.every(e=>e.m===3&&e.d===9&&e.cal==='c9'),JSON.stringify(b.slice(0,3)));
   check(T('set: it recurs every year'),JSON.stringify(await occ(YEAR))==='[[3,9]]'&&JSON.stringify(await occ(YEAR+1))==='[[3,9]]',JSON.stringify([await occ(YEAR),await occ(YEAR+1)]));
   check(T('the new name is on the sidebar and in the account record'),await page.evaluate(()=>document.querySelector('.profile-name').textContent==='Dana Whitfield'&&(window.__metaUpdates||[]).some(m=>m&&m.full_name==='Dana Whitfield')));
-  const id1=b[0].id;
+  const id1=thisYear(b).id,count1=b.length;
   await close();await monthShot(3,'2-event-march');
 
   // 2. change the date: the same event moves
   await open();await setDate(`${YEAR-26}-07-21`);await save();
   b=await bevents();
-  check(T('moved: still ONE event (same id), now on Jul 21'),b.length===1&&b[0].id===id1&&b[0].m===7&&b[0].d===21&&b[0].title==="Dana's Birthday",JSON.stringify(b));
+  check(T('moved: the same events (same ids, no duplicates), now on Jul 21'),b.length===count1&&thisYear(b).id===id1&&b.every(e=>e.m===7&&e.d===21)&&thisYear(b).title==="Dana's 26th Birthday",JSON.stringify(b.slice(0,3)));
   check(T('moved: it no longer appears in March'),JSON.stringify(await occ(YEAR))==='[[7,21]]');
   await close();await monthShot(7,'3-event-moved-july');
 
   // 3. change the name: the title follows; a dash does not split the first name
   await open();await setName('Mary-Kate Olsen');await save();
   b=await bevents();
-  check(T('renamed: same event, title "Mary-Kate\'s Birthday"'),b.length===1&&b[0].id===id1&&b[0].title==="Mary-Kate's Birthday",JSON.stringify(b));
+  check(T('renamed: same events, titles "Mary-Kate\'s 26th Birthday" (a dash does not split the name)'),b.length===count1&&thisYear(b).id===id1&&thisYear(b).title==="Mary-Kate's 26th Birthday",JSON.stringify(b.slice(0,3)));
   await close();await monthShot(7,'4-event-renamed');
   await open();await setName('joey natale');await save();
   b=await bevents();
-  check(T('a name is capitalized the way it was typed ("joey natale" gives "joey\'s Birthday")'),b[0].title==="joey's Birthday",JSON.stringify(b));
+  check(T('a name is capitalized the way it was typed ("joey natale" gives "joey\'s 26th Birthday")'),thisYear(b).title==="joey's 26th Birthday",JSON.stringify(b.slice(0,3)));
   await setName('Dana Whitfield');await save();
 
   // 4. discard leaves the calendar alone
@@ -77,7 +78,7 @@ for(const theme of ['dark','light']){
   await page.waitForFunction(()=>{const x=document.querySelector('.settings-savebar');return x&&!x.hidden},{timeout:3000});
   await page.click('.settings-savebar [data-discard]');await sleep(500);
   b=await bevents();
-  check(T('discard: nothing changed (still Jul 21, one event, no popup)'),b.length===1&&b[0].m===7&&b[0].d===21&&!await page.$('#dlSettingsDiscardConfirm'),JSON.stringify(b));
+  check(T('discard: nothing changed (still Jul 21, same events, no popup)'),b.length===count1&&b.every(e=>e.m===7&&e.d===21)&&!await page.$('#dlSettingsDiscardConfirm'),JSON.stringify(b.slice(0,3)));
 
   // 5. clear: the event is removed
   await page.click('[data-birthday-clear]');await save();

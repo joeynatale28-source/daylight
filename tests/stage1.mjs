@@ -80,7 +80,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   assert.deepEqual([rowStyle.pad,rowStyle.radius,rowStyle.border,rowStyle.tile.join('x'),rowStyle.svgs,rowStyle.title,rowStyle.dialogPad],['14px','14px','1px','40x40',1,'15px','24px'],'chooser rows: '+JSON.stringify(rowStyle));
   assert.ok(rowStyle.gap>=10&&rowStyle.gap<=12,'rows are separated by a 10-12px gap, not hairlines: '+rowStyle.gap);
   assert.equal(chooser.radius,'16px');
-  assert.equal(chooser.width,440,'chooser is 440px wide');
+  assert.equal(chooser.width,480,'chooser shares the calendar popup shell: 480px wide');
   await page.click('.dl-std .dl-x');
   await page.waitForFunction(()=>!document.querySelector('.dl-std'),{timeout:2000});
   // My calendars + is unchanged: it opens the new-calendar form directly

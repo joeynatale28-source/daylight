@@ -41,7 +41,7 @@ for(const theme of ['dark','light']){
    await page.evaluate(()=>{state.section='calendar';state.view='month';state.cursor=new Date(2026,10,15);renderAll(false)});await sleep(300)};
   const signOut=async()=>{await page.evaluate(()=>{window.__authCb('SIGNED_OUT',null)});await sleep(400)};
   const openManage=async(name)=>{await page.evaluate(n=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent===n);row.querySelector('.cal-menu-btn').click()},name);await page.waitForSelector('.dl-manage');await sleep(500)};
-  const goSection=async s=>{await page.evaluate(s=>document.querySelector('.dl-manage [data-section="'+s+'"]').click(),s);await sleep(500)};
+  const goSection=async s=>{await page.evaluate(s=>{const map={sharing:'.dl-inv-input',export:'[data-export]',danger:'[data-danger]',calendar:'#calSettingsName'};const body=document.querySelector('.dl-manage .dl-col-body');body.style.scrollBehavior='auto';const t=document.querySelector('.dl-manage '+map[s]);if(t)t.scrollIntoView({block:'center'})},s);await sleep(400)};
   const closeManage=async()=>{await page.evaluate(()=>document.querySelector('.dl-manage .settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:4000});await sleep(300)};
   const bell=()=>page.evaluate(()=>{const g=document.querySelector('.dl-notif-btn .dl-notif-badge');return g&&!g.hidden?g.textContent:''});
   const openBell=async()=>{await page.click('.dl-notif-btn');await page.waitForSelector('.dl-notif-panel');await sleep(600)};
@@ -59,10 +59,10 @@ for(const theme of ['dark','light']){
   await openManage('Family');await goSection('sharing');
   const empty=await page.evaluate(()=>({ph:document.querySelector('.dl-inv-input').placeholder,perm:document.querySelector('[data-perm]').textContent.trim(),send:document.querySelector('[data-send]').disabled,
     rows:[...document.querySelectorAll('.dl-ppl-row')].map(r=>({name:r.querySelector('.dl-ppl-name').textContent,sub:r.querySelector('.dl-ppl-sub').textContent,ctl:!!r.querySelector('.dl-ppl-ctl')})),
-    ga:document.querySelector('[data-ga-sub]').textContent,groups:[...document.querySelectorAll('.settings-pane .set-group-title')].filter(n=>n.offsetParent!==null).map(n=>n.textContent.trim())}));
+    ga:document.querySelector('[data-ga-sub]').textContent,groups:[...document.querySelectorAll('.dl-col-body .set-group-title')].filter(n=>n.offsetParent!==null).map(n=>n.textContent.trim())}));
   check(T('invite row: a search field, the permission picker inside the row (View only), and Send disabled until someone is chosen'),empty.ph==='Search people to share with…'&&/View only/.test(empty.perm)&&empty.send,JSON.stringify(empty));
   check(T('the owner\'s own row says "(You)" in grey and has no control'),empty.rows.length===1&&/\(You\)/.test(empty.rows[0].name)&&!empty.rows[0].ctl&&empty.rows[0].sub==='owner@example.com',JSON.stringify(empty.rows));
-  check(T('General access is its own area: lock row, "Only people you share with can access this calendar" while off'),empty.ga==='Only people you share with can access this calendar'&&empty.groups.join('|')==='Invite people|People with access|General access',JSON.stringify(empty));
+  check(T('General access is its own area: lock row, "Only people you share with can access this calendar" while off'),empty.ga==='Only people you share with can access this calendar'&&empty.groups.filter(g=>['Invite people','People with access','General access'].includes(g)).join('|')==='Invite people|People with access|General access',JSON.stringify(empty));
   await page.screenshot({path:path.join(out,`1-invite-empty-${theme}.png`)});
   await page.type('.dl-inv-input','sam');await page.waitForSelector('.dl-person');await sleep(400);
   const cards=await page.evaluate(()=>[...document.querySelectorAll('.dl-person')].map(c=>({name:c.querySelector('b').textContent,bold:getComputedStyle(c.querySelector('b')).fontWeight,email:c.querySelector('.sub').textContent,emailColor:getComputedStyle(c.querySelector('.sub')).color,avatar:!!c.querySelector('.dl-person-avatar'),img:!!c.querySelector('.dl-person-avatar img')})));
@@ -151,8 +151,8 @@ for(const theme of ['dark','light']){
 
   // the recipient's Manage dialog for a shared calendar
   await openManage('Family');
-  const mg=await page.evaluate(()=>({rail:[...document.querySelectorAll('.dl-manage .sr-item')].map(b=>b.textContent.trim()),text:document.querySelector('.settings-pane').innerText.replace(/\s+/g,' '),name:!!document.querySelector('#calSettingsName')}));
-  check(T('the shared calendar\'s Manage dialog is an information view: Calendar and Danger zone only'),mg.rail.join('|')==='Calendar|Danger zone'&&/Shared by Olivia Owner/.test(mg.text)&&/owner@example\.com/.test(mg.text)&&/View only/.test(mg.text)&&!mg.name,JSON.stringify(mg));
+  const mg=await page.evaluate(()=>({rail:[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(b=>b.textContent.trim()),text:document.querySelector('.dl-col-body').innerText.replace(/\s+/g,' '),name:!!document.querySelector('#calSettingsName')}));
+  check(T('the shared calendar\'s Manage dialog is an information view: Calendar and Danger zone only'),mg.rail.includes('Calendar')&&mg.rail.includes('Danger zone')&&!mg.rail.includes('Sharing')&&/Shared by Olivia Owner/.test(mg.text)&&/owner@example\.com/.test(mg.text)&&/View only/.test(mg.text)&&!mg.name,JSON.stringify(mg));
   await page.screenshot({path:path.join(out,`12-shared-manage-${theme}.png`)});
   await page.evaluate(()=>document.querySelectorAll('[data-presets] .dl-sw')[5].click());await sleep(300);
   check(T('a local color override raises the Save pill'),await page.evaluate(()=>!document.querySelector('.dl-manage .settings-savebar').hidden));
@@ -222,7 +222,7 @@ for(const theme of ['dark','light']){
   await page.evaluate(()=>[...document.querySelectorAll('.dl-notif-invite')].find(x=>/Work/.test(x.textContent)&&x.querySelector('[data-invite-add]')).querySelector('[data-invite-add]').click());await sleep(900);await closeBell();
   await page.evaluate(()=>daylightSharing.load());await sleep(700);
   await openManage('Work');await goSection('danger');
-  check(T('the shared calendar\'s Danger zone offers Leave calendar'),await page.evaluate(()=>/Leave calendar/.test(document.querySelector('.settings-pane').innerText)));
+  check(T('the shared calendar\'s Danger zone offers Leave calendar'),await page.evaluate(()=>/Leave calendar/.test(document.querySelector('.dl-col-body').innerText)));
   await page.click('[data-danger]');await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');await page.click('#overlayRoot > .backdrop:last-child [data-ok]');await sleep(1000);
   check(T('LEAVE: the calendar leaves the recipient\'s sidebar and the owner\'s people list updates'),!(await sidebar()).shared.some(x=>x.name==='Work')&&(await shares()).filter(s=>s.cal==='c2'&&s.status==='accepted').length===0);
   check(T('no page errors'),errors.length===0,errors.join(' | '));

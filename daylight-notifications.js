@@ -5,7 +5,7 @@
    Sending, banners and removing for everyone live in the Admin dashboard (daylight-admin.js), not here. */
 (function () {
   "use strict";
-  var items = [], invites = [], unread = 0, owner = false, loaded = false, buttons = new Set(), pollTimer = null, panelRefresh = null, seq = 0;
+  var items = [], invites = [], evInvites = [], unread = 0, owner = false, loaded = false, buttons = new Set(), pollTimer = null, panelRefresh = null, seq = 0;
   var ownerWaiters = [], ownerKnown = false;
 
   var css = document.createElement("style");
@@ -31,7 +31,16 @@
     ".dl-notif-time{margin-left:auto;flex:none;font-size:11.5px;color:var(--faint)}",
     ".dl-notif-title{margin-top:3px;font-size:13.5px;font-weight:650;line-height:1.35;overflow-wrap:anywhere}",
     ".dl-notif-msg{margin-top:3px;font-size:13px;line-height:1.5;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}",
-    ".dl-notif-official{margin-top:8px;font-size:10.5px;line-height:1.3;color:var(--faint);letter-spacing:.02em}",
+    ".dl-notif-official{display:none}",
+    /* Verified seal: marks rows the server identifies as official Daylight broadcasts; never shown next to a person. */
+    ".dl-verified{position:relative;display:inline-flex;align-items:center;vertical-align:-2px;margin-left:5px;width:15px;height:15px;border-radius:50%;color:var(--accent);cursor:default;outline:none}",
+    ".dl-verified svg{width:15px;height:15px;display:block}",
+    ".dl-verified:focus-visible{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 45%,transparent)}",
+    ".dl-verified::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 7px);transform:translate(-50%,-3px);z-index:30;white-space:nowrap;padding:6px 10px;border-radius:9px;background:var(--surface);color:var(--text);border:1px solid var(--line);box-shadow:var(--shadow-pop);font-size:12px;font-weight:550;letter-spacing:0;line-height:1.2;opacity:0;pointer-events:none;transition:opacity 140ms var(--ease-out),transform 140ms var(--ease-out)}",
+    ".dl-verified:hover::after,.dl-verified:focus::after,.dl-verified.is-tip::after{opacity:1;transform:translate(-50%,0)}",
+    ".dl-notif-from.dl-official-from{font-size:13px;font-weight:650;color:var(--text);letter-spacing:.005em}",
+    ".dl-notif-from.dl-inv-from{font-size:13px;font-weight:650;color:var(--text)}",
+    ".dl-notif-sub{margin-top:2px;font-size:12px;line-height:1.5;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}",
     ".dl-notif-clear{flex:none;width:26px;height:26px;margin:-2px -2px 0 0;border-radius:8px;display:grid;place-items:center;color:var(--faint);opacity:0;transition:opacity 140ms var(--ease-out),background 140ms var(--ease-out),color 140ms var(--ease-out)}",
     ".dl-notif-item:hover .dl-notif-clear,.dl-notif-clear:focus-visible{opacity:1}",
     "@media (hover:none){.dl-notif-clear{opacity:1}}",
@@ -84,7 +93,7 @@
     });
   }
   /* A calendar invite counts toward the badge until it has been added or declined. */
-  function pendingInvites() { return invites.filter(function (i) { return i.status === "pending"; }).length; }
+  function pendingInvites() { return invites.concat(evInvites).filter(function (i) { return i.status === "pending"; }).length; }
   function settleOwner() {
     ownerKnown = true;
     ownerWaiters.splice(0).forEach(function (fn) { fn(owner); });
@@ -94,10 +103,12 @@
     var list = [], isOwner = false;
     try { list = (await rpc("daylight_list_broadcasts")) || []; } catch (e) { list = []; }
     try { isOwner = (await rpc("daylight_is_owner")) === true; } catch (e) { isOwner = false; }   /* only an exact true shows owner-only UI */
-    var inv = [];
+    var inv = [], evInv = [];
     try { inv = (await rpc("daylight_list_my_invites")) || []; } catch (e) { inv = []; }
+    try { evInv = (await rpc("daylight_list_my_event_invites")) || []; } catch (e) { evInv = []; }
     if (mine !== seq) return;
     invites = Array.isArray(inv) ? inv : [];
+    evInvites = Array.isArray(evInv) ? evInv : [];
     items = Array.isArray(list) ? list : [];
     owner = isOwner;
     loaded = true;
@@ -108,7 +119,7 @@
     if (panelRefresh) panelRefresh();
   }
   function reset() {
-    seq++; items = []; invites = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
+    seq++; items = []; invites = []; evInvites = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
     clearInterval(pollTimer); pollTimer = null; panelRefresh = null;
     paint();
   }
@@ -150,14 +161,34 @@
     }
     var d = document.createElement("span"); d.className = "dl-notif-avatar"; d.textContent = (inv.owner_name || "?").charAt(0).toUpperCase(); return d;
   }
+  /* The verified seal (a scalloped badge with a check, drawn in Daylight's own accent). Hover, keyboard focus or a tap shows "Official Account". */
+  function verifiedBadge() {
+    var b = document.createElement("span");
+    b.className = "dl-verified"; b.tabIndex = 0; b.setAttribute("role", "img");
+    b.setAttribute("aria-label", "Official Account"); b.setAttribute("data-tip", "Official Account");
+    b.innerHTML = '<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 1.6l2.4 1.7 2.9-.2 1.2 2.7 2.5 1.4-.2 2.9L22.4 12l-1.6 2.4.2 2.9-2.5 1.4-1.2 2.7-2.9-.2L12 22.4l-2.4-1.7-2.9.2-1.2-2.7-2.5-1.4.2-2.9L1.6 12l1.6-2.4-.2-2.9 2.5-1.4 1.2-2.7 2.9.2z"/><path fill="none" stroke="var(--on-accent,#fff)" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" d="M7.8 12.3l2.8 2.8 5.6-5.8"/></svg>';
+    b.addEventListener("click", function (e) { e.stopPropagation(); b.classList.toggle("is-tip"); clearTimeout(b._t); b._t = setTimeout(function () { b.classList.remove("is-tip"); }, 2600); });
+    b.addEventListener("blur", function () { b.classList.remove("is-tip"); });
+    return b;
+  }
+  window.daylightVerifiedBadge = verifiedBadge;
   function colorHex(key) { return /^#[0-9a-f]{6}$/i.test(key || "") ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#5B8DEF"); }
   function permissionText(p) { return p === "edit" ? "Can edit" : "View only"; }
 
   /* One calendar invite: the sender's picture, their name, "<Name> shared <dot> <Calendar> with you", the permission, the
      time, and Add / Decline. Answering updates this same card in place; while pending it cannot be cleared. */
-  function inviteRow(inv, highlight, afterChange) {
+  function eventWhenText(inv) {
+    try {
+      var d = new Date(inv.event_start);
+      if (isNaN(d.getTime())) return "";
+      var day = d.toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric", year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric" });
+      return inv.event_all_day ? day + " \u00b7 All day" : day + " \u00b7 " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
+    } catch (e) { return ""; }
+  }
+  function inviteRow(inv, highlight, afterChange, kind) {
+    var isEvent = kind === "event";
     var row = document.createElement("div");
-    row.className = "dl-notif-item dl-notif-invite" + (highlight ? " is-unread" : "");
+    row.className = "dl-notif-item dl-notif-invite" + (isEvent ? " dl-notif-event-invite" : "") + (highlight ? " is-unread" : "");
     row.setAttribute("data-invite-id", inv.id);
     row.appendChild(personAvatar(inv));
     var main = document.createElement("div"); main.className = "dl-notif-main";
@@ -168,9 +199,9 @@
     var body = document.createElement("div"); body.className = "dl-notif-msg dl-inv-body";
     body.appendChild(document.createTextNode((inv.owner_name || "Someone") + " shared "));
     var dot = document.createElement("span"); dot.className = "dl-inv-dot"; dot.style.background = colorHex(inv.calendar_color);
-    var cal = document.createElement("b"); cal.className = "dl-inv-cal"; cal.textContent = inv.calendar_name || "a calendar";
+    var cal = document.createElement("b"); cal.className = "dl-inv-cal"; cal.textContent = isEvent ? (inv.event_title || "an event") : (inv.calendar_name || "a calendar");
     body.appendChild(dot); body.appendChild(cal); body.appendChild(document.createTextNode(" with you"));
-    var perm = document.createElement("div"); perm.className = "dl-inv-permline"; perm.textContent = permissionText(inv.permission);
+    var perm = document.createElement("div"); perm.className = "dl-inv-permline"; perm.textContent = permissionText(inv.permission) + (isEvent ? " \u00b7 " + eventWhenText(inv) : "");
     var slot = document.createElement("div"); slot.className = "dl-inv-slot";
     main.appendChild(top); main.appendChild(body); main.appendChild(perm); main.appendChild(slot);
     row.appendChild(main);
@@ -179,13 +210,13 @@
       if (clearBtn) return;
       clearBtn = document.createElement("button");
       clearBtn.type = "button"; clearBtn.className = "dl-notif-clear"; clearBtn.title = "Clear";
-      clearBtn.setAttribute("aria-label", "Clear notification: " + (inv.calendar_name || "calendar invite"));
+      clearBtn.setAttribute("aria-label", "Clear notification: " + ((isEvent ? inv.event_title : inv.calendar_name) || "invite"));
       clearBtn.innerHTML = typeof icon === "function" ? icon("x", 14) : "×";
       clearBtn.addEventListener("click", async function (e) {
         e.stopPropagation(); clearBtn.disabled = true;
         try {
-          await rpc("daylight_clear_calendar_invite", { p_id: inv.id });
-          invites = invites.filter(function (x) { return x.id !== inv.id; });
+          await rpc(isEvent ? "daylight_clear_event_invite" : "daylight_clear_calendar_invite", { p_id: inv.id });
+          if (isEvent) evInvites = evInvites.filter(function (x) { return x.id !== inv.id; }); else invites = invites.filter(function (x) { return x.id !== inv.id; });
           await collapse(row);
           afterChange(true);
         } catch (err) { clearBtn.disabled = false; }
@@ -201,11 +232,12 @@
       row.classList.remove("is-unread");
       addClear();
     }
-    if (inv.status === "accepted") showState("Added", "check");
+    var yes = isEvent ? "Accepted" : "Added";
+    if (inv.status === "accepted") showState(yes, "check");
     else if (inv.status === "declined") showState("Declined", null);
     else {
       var actions = document.createElement("div"); actions.className = "dl-inv-actions";
-      var add = document.createElement("button"); add.type = "button"; add.className = "btn-primary dl-btn-sm"; add.textContent = "Add"; add.setAttribute("data-invite-add", "");
+      var add = document.createElement("button"); add.type = "button"; add.className = "btn-primary dl-btn-sm"; add.textContent = isEvent ? "Accept" : "Add"; add.setAttribute("data-invite-add", "");
       var dec = document.createElement("button"); dec.type = "button"; dec.className = "btn-ghost dl-btn-sm"; dec.textContent = "Decline"; dec.setAttribute("data-invite-decline", "");
       actions.appendChild(add); actions.appendChild(dec); slot.appendChild(actions);
       var busy = false;
@@ -213,12 +245,12 @@
         if (busy) return;
         busy = true; add.disabled = true; dec.disabled = true;
         try {
-          await rpc("daylight_respond_calendar_share", { p_id: inv.id, p_accept: accept });
+          await rpc(isEvent ? "daylight_respond_event_share" : "daylight_respond_calendar_share", { p_id: inv.id, p_accept: accept });
           inv.status = accept ? "accepted" : "declined";
           unread = items.filter(function (x) { return !x.read; }).length + pendingInvites();
           paint();
           slot.style.minHeight = slot.offsetHeight + "px";
-          showState(accept ? "Added" : "Declined", accept ? "check" : null);
+          showState(accept ? yes : "Declined", accept ? "check" : null);
           if (accept && window.daylightSharing) window.daylightSharing.load();
         } catch (err) {
           busy = false; add.disabled = false; dec.disabled = false;
@@ -237,7 +269,7 @@
     var empty = panel.querySelector(".dl-notif-empty");
     function markSeen() {
       items.forEach(function (n) { if (!n.read) wasUnread[n.id] = true; });
-      invites.forEach(function (i) { if (i.status === "pending") wasUnread["inv:" + i.id] = true; });
+      invites.concat(evInvites).forEach(function (i) { if (i.status === "pending") wasUnread["inv:" + i.id] = true; });
     }
     function render() {
       var old = panel.querySelector(".dl-notif-list"), spin = panel.querySelector(".dl-notif-loading");
@@ -249,15 +281,16 @@
         return;
       }
       var entries = items.map(function (n) { return { kind: "broadcast", at: n.created_at, n: n }; })
-        .concat(invites.map(function (i) { return { kind: "invite", at: i.created_at, n: i }; }));
+        .concat(invites.map(function (i) { return { kind: "invite", at: i.created_at, n: i }; }))
+        .concat(evInvites.map(function (i) { return { kind: "eventInvite", at: i.created_at, n: i }; }));
       entries.sort(function (a, b) { return new Date(b.at) - new Date(a.at); });
       if (empty) empty.hidden = entries.length > 0;
       if (!entries.length) return;
       var list = document.createElement("div");
       list.className = "dl-notif-list";
       entries.forEach(function (entry) {
-        if (entry.kind === "invite") {
-          list.appendChild(inviteRow(entry.n, !!wasUnread["inv:" + entry.n.id], function (removed) { if (removed && !panel.querySelector(".dl-notif-item")) render(); }));
+        if (entry.kind === "invite" || entry.kind === "eventInvite") {
+          list.appendChild(inviteRow(entry.n, !!wasUnread["inv:" + entry.n.id], function (removed) { if (removed && !panel.querySelector(".dl-notif-item")) render(); }, entry.kind === "eventInvite" ? "event" : "calendar"));
           return;
         }
         var n = entry.n;
@@ -267,13 +300,15 @@
         row.appendChild(logoPair());
         var main = document.createElement("div"); main.className = "dl-notif-main";
         var top = document.createElement("div"); top.className = "dl-notif-top";
-        var from = document.createElement("span"); from.className = "dl-notif-from"; from.textContent = n.sender || "daylight";
+        /* Same anatomy as the invite card: avatar, bold sender header (+ verified seal) with the time at the right, a message line
+           (the title) and a subtitle line (the message). No footer text: the seal is the official marker. */
+        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = "Daylight";
+        from.appendChild(verifiedBadge());
         var time = document.createElement("span"); time.className = "dl-notif-time"; time.textContent = when(n.created_at);
         top.appendChild(from); top.appendChild(time);
-        var title = document.createElement("div"); title.className = "dl-notif-title"; title.textContent = n.title;
-        var msg = document.createElement("div"); msg.className = "dl-notif-msg"; msg.textContent = n.body;
-        var official = document.createElement("div"); official.className = "dl-notif-official"; official.textContent = "Official daylight notification";
-        main.appendChild(top); main.appendChild(title); main.appendChild(msg); main.appendChild(official);
+        var title = document.createElement("div"); title.className = "dl-notif-msg dl-notif-title-line"; title.style.color = "var(--text)"; title.style.fontWeight = "600"; title.textContent = n.title;
+        var msg = document.createElement("div"); msg.className = "dl-notif-sub"; msg.textContent = n.body;
+        main.appendChild(top); main.appendChild(title); main.appendChild(msg);
         row.appendChild(main);
         var clear = document.createElement("button");
         clear.type = "button"; clear.className = "dl-notif-clear"; clear.title = "Clear"; clear.setAttribute("aria-label", "Clear notification: " + n.title);

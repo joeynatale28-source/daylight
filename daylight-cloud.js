@@ -80,12 +80,14 @@
     get user() { return user; },
     get ready() { return !!user && !loading && !conflict; },
     save: function () { changesQueued(); },
+    /* True when this sign-in found no saved workspace: a brand-new account (drives first-run onboarding). */
+    isNewAccount: function () { return !loadedWithRow; },
     /* Edge functions authenticate with the access token supabase-js attaches. If the session is dead (refresh token
        revoked/used, or the session was signed out elsewhere) every call comes back 401/403 from the function's own
        auth check. So: resolve/refresh the session first, and after a 401/403 stop making background calls for a minute
        instead of hammering the functions with a token that cannot work. */
     ensureSession: async function () {
-      if (!client) throw new Error('Sign in to daylight first');
+      if (!client) throw new Error('Sign in to Daylight first');
       if (Date.now() < authBlockedUntil) throw new Error('Your session expired. Sign in again.');
       var result;
       try { result = await client.auth.getSession(); } catch (e) { result = { error: e }; }
@@ -107,8 +109,8 @@
         var full = await client.from('workspace_snapshots').select('payload,revision').eq('user_id', who).maybeSingle();
         if (full.error || !full.data || seq0 !== sessionSequence || !user || user.id !== who) return false;
         if (saving || JSON.stringify(workspace()) !== lastSaved) return false;
-        var remoteCals = state.calendars.filter(function (c) { return c.remoteSubscriptionId || c.remoteShareId; });
-        var remoteEvents = state.events.filter(function (e) { return e.feedSubscriptionId || e.feedShareId; });
+        var remoteCals = state.calendars.filter(function (c) { return c.remoteSubscriptionId || c.remoteShareId || c.eventShare; });
+        var remoteEvents = state.events.filter(function (e) { return e.feedSubscriptionId || e.feedShareId || e.feedEventShareId; });
         readWorkspace(full.data.payload);
         state.calendars = state.calendars.concat(remoteCals);
         state.events = state.events.concat(remoteEvents);
@@ -173,6 +175,9 @@
     document.getElementById('cloudStatus')?.remove();
   }
 
+  /* New accounts get ONLY the built-in US Holidays calendar; their first calendar is created in onboarding. */
+  var loadedWithRow = false;
+  function holidaysOnly() { return seedCalendars().filter(function (c) { return c.id === 'holidays'; }); }
   function clearPreviewData() {
     state.events = [];
     state.tasks = [];
@@ -233,7 +238,7 @@
   function normalizeCalendarList(raw, holidayIds) {
     /* New/legacy accounts without a saved calendar list need all defaults,
        not just the built-in holiday calendar. */
-    if (!Array.isArray(raw) || !raw.length) return seedCalendars();
+    if (!Array.isArray(raw) || !raw.length) return holidaysOnly();
     var output = [], seen = Object.create(null);
     (Array.isArray(raw) ? raw : []).forEach(function (item) {
       if (!item || typeof item !== 'object' || item.id == null) return;
@@ -258,7 +263,7 @@
       var builtIn = seedCalendars().filter(function (c) { return c.id === 'holidays'; })[0];
       if (builtIn) output.push(builtIn);
     }
-    return output.length ? output : seedCalendars();
+    return output.length ? output : holidaysOnly();
   }
 
   function readWorkspace(payload) {
@@ -339,6 +344,7 @@
     state.avatarUrl = [metadata.avatar_url, settings.avatarUrl].filter(function (u) { return ownsAvatar(u); })[0] || '';
     state.shareColors = settings.shareColors && typeof settings.shareColors === 'object' && !Array.isArray(settings.shareColors) ? settings.shareColors : {};
     state.birthday = typeof settings.birthday === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(settings.birthday) ? settings.birthday : '';
+    if (window.daylightSyncBirthday) { try { window.daylightSyncBirthday(); } catch (e) { /* a birthday top-up must never block loading */ } }
     state.customColors = Array.isArray(settings.customColors)
       ? settings.customColors.filter(function (color) { return typeof color === 'string' && /^#[0-9a-f]{6}$/i.test(color); }).slice(0,30)
       : [];
@@ -356,13 +362,13 @@
     return {
       version: 2,
       /* Subscribed and shared-with-me calendars (and their events) are never part of this account's own workspace. */
-      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId && !c.remoteShareId; }).map(function (c) {
+      calendars: state.calendars.filter(function (c) { return !c.remoteSubscriptionId && !c.remoteShareId && !c.eventShare; }).map(function (c) {
         var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
         if (c.publicLink) out.publicLink = String(c.publicLink);
         return out;
       }),
-      events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedShareId && String(e.cal).indexOf('share:') !== 0; }).map(function (e) {
+      events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedShareId && !e.feedEventShareId && String(e.cal).indexOf('share:') !== 0 && String(e.cal).indexOf('evs:') !== 0; }).map(function (e) {
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
@@ -498,7 +504,9 @@
       state.firstName = state.profileName.split(/\s+/)[0];
       hasRow = !!response.data;
       revision = response.data ? Number(response.data.revision) || 0 : 0;
+      loadedWithRow = hasRow;
       if (hasRow) readWorkspace(response.data.payload);
+      else { state.calendars = holidaysOnly(); state.defaultCalendarId = null; state.events = []; state.tasks = []; }
       lastSaved = JSON.stringify(workspace());
       if(hasRow)cacheWorkspace(account.id,response.data.payload,revision);
       loading = false;

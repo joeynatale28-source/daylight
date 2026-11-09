@@ -9,6 +9,7 @@ on:
       - daylight-admin.js
       - daylight-sharing.js
       - daylight-manage.js
+      - daylight-onboarding.js
       - daylight-integrations.js
       - daylight-oauth.js
       - daylight-settings.js
