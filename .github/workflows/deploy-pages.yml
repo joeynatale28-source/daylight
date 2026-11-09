@@ -70,7 +70,7 @@ jobs:
       - name: Verify deployed Supabase edge functions
         run: |
           set -euo pipefail
-          base="https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1"
+          base="https://usihrcucnreecynewgbd.supabase.co/functions/v1"
           origin="https://joeynatale28-source.github.io"
           for fn in ical-feed places; do
             preflight="$(curl -sS -o /dev/null -w '%{http_code}' -X OPTIONS "$base/$fn" \

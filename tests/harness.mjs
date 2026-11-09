@@ -183,7 +183,7 @@ export async function launch(opts={}){
  await page.setViewport({width,height,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme}]);
  await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;
-  if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-qrqemjgpzoqhtmsowmqv-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}}}))}catch(e){}}
+  if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo'}}}))}catch(e){}}
  },{payload,delayMs,signedIn,seedSession:opts.seedSession});
  await page.setRequestInterception(true);
  page.on('request',r=>{

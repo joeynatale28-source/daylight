@@ -4,7 +4,7 @@
 (function () {
   'use strict';
   const cloud = window.daylightCloud;
-  const API = 'https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/';
+  const API = 'https://usihrcucnreecynewgbd.supabase.co/functions/v1/';
   const readOnlyCals = new Set();
   let remoteIds = new Set();
   let subscriptionRows = [];
@@ -388,7 +388,7 @@
       '<div class="set-group"><div class="set-group-title">Recent AI activity</div><div id="mcpAudit"></div></div></div>');
     pane.appendChild(g);
     const status=g.querySelector('#mcpStatus');
-    const url=window.DAYLIGHT_MCP_URL || API+'daylight-mcp';
+    const url=window.DAYLIGHT_MCP_URL || API+'mcp';
     g.querySelector('#mcpUrl').value=url;
     const config=JSON.stringify({mcpServers:{daylight:{type:'http',url,headers:{Authorization:'Bearer YOUR_TOKEN'}}}},null,2);
     g.querySelector('#mcpConfig').textContent=config;

@@ -40,7 +40,7 @@ jobs:
       - name: Verify unauthenticated places proxy returns 401
         run: |
           status=$(curl --silent --show-error --max-time 15 -o /tmp/places_response.txt -w '%{http_code}' \
-            -X POST https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/places \
+            -X POST https://usihrcucnreecynewgbd.supabase.co/functions/v1/places \
             -H 'Content-Type: application/json' \
             -d '{"action":"autocomplete","input":"10833 W Broad"}')
           test "$status" = 401 || { echo "Expected 401, received $status"; cat /tmp/places_response.txt; exit 1; }

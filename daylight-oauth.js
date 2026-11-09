@@ -1,8 +1,8 @@
 /* Daylight OAuth consent and connected apps. Supabase Auth handles code exchange. */
 (function(){
 "use strict";
-const OAUTH_SERVER_URL="https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/mcp";
-const LEGACY_SERVER_URL="https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/daylight-mcp";
+const OAUTH_SERVER_URL="https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp";
+const LEGACY_SERVER_URL="https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp";
 window.DAYLIGHT_MCP_URL=OAUTH_SERVER_URL;
 const oauthRoute=/\/oauth\/consent\/?$/.test(location.pathname)||new URLSearchParams(location.search).has("oauth_consent");
 const params=new URLSearchParams(location.search);

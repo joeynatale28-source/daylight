@@ -12,7 +12,7 @@ Serve `index.html` over HTTPS (or localhost). Do **not** use `file://`, which ca
 
 ## Supabase configuration
 
-Existing Supabase project: **Daylight** (`qrqemjgpzoqhtmsowmqv`).
+Supabase project: **Daylight** (`usihrcucnreecynewgbd`).
 
 The new application uses Supabase email/password authentication through `auth.signInWithPassword()`. Sessions refresh and persist in the browser. No sign-up page is exposed; create/enable accounts via **Supabase Dashboard → Authentication → Users**. Supabase's `workspace_snapshots` table stores each signed-in user's complete UI data as JSONB, keyed to the account's `auth.uid()`. Existing snapshots are read and carried forward without deleting the legacy rows or any other app tables.
 
@@ -188,11 +188,11 @@ Supabase Auth OAuth server.** Open the Daylight Supabase Dashboard:
    `/daylight/oauth/consent?authorization_id=...` back into the app, retaining
    the authorization ID in the URL query. Confirm the final consent URL in
    the browser before connecting clients.
-4. Use `https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/mcp` as
+4. Use `https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp` as
    the ChatGPT/Claude OAuth MCP server URL. The OAuth resource endpoint is
    on the Supabase project origin (no custom-domain proxy).
 5. For developer tokens, keep using the legacy endpoint
-   `https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/daylight-mcp`.
+   `https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp`.
 
 The new OAuth endpoint uses `withOAuthProtectedResource()` and
 `withSupabase({auth:'user'})`. The user-scoped client calls a constrained

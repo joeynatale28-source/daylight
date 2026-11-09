@@ -28,7 +28,7 @@ jobs:
       - name: Check OAuth resource metadata and missing-token response
         run: |
           set -euo pipefail
-          base=https://qrqemjgpzoqhtmsowmqv.supabase.co/functions/v1/mcp
+          base=https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp
           code=$(curl -sS --max-time 20 -o /tmp/resource.json -w '%{http_code}' "$base/oauth-protected-resource")
           echo "Protected resource metadata HTTP $code"
           cat /tmp/resource.json
@@ -46,7 +46,7 @@ jobs:
         run: |
           set -euo pipefail
           code=$(curl -sS --max-time 20 -o /tmp/issuer.json -w '%{http_code}' \
-            https://qrqemjgpzoqhtmsowmqv.supabase.co/.well-known/oauth-authorization-server/auth/v1)
+            https://usihrcucnreecynewgbd.supabase.co/.well-known/oauth-authorization-server/auth/v1)
           echo "OAuth authorization-server discovery HTTP $code"
           test "$code" = 200
           grep -q 'authorization_endpoint' /tmp/issuer.json

@@ -6,8 +6,8 @@
 (function () {
   'use strict';
 
-  var URL = 'https://qrqemjgpzoqhtmsowmqv.supabase.co';
-  var PUBLISHABLE_KEY = 'sb_publishable_MuX0ICyo0pYrhrj3wu5G0g_v6_gy8Pj';
+  var URL = 'https://usihrcucnreecynewgbd.supabase.co';
+  var PUBLISHABLE_KEY = 'sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM';
   var client = window.supabase && window.supabase.createClient
     ? window.supabase.createClient(URL, PUBLISHABLE_KEY, {
         auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
@@ -805,7 +805,7 @@
   (function earlyCacheRender() {
     if (recovery) return;
     try {
-      var stored = JSON.parse(localStorage.getItem('sb-qrqemjgpzoqhtmsowmqv-auth-token') || 'null');
+      var stored = JSON.parse(localStorage.getItem('sb-usihrcucnreecynewgbd-auth-token') || 'null');
       var hinted = stored && stored.user && stored.user.id ? stored.user : null;
       if (hinted) warmWorkspace(hinted, 0);
     } catch (e) { console.warn('Early cache render skipped', e); }
