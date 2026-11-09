@@ -10,23 +10,41 @@
   var css = document.createElement("style");
   css.textContent = [
     ".settings-dialog.dl-manage:focus{outline:none}",
-    /* single-column shell */
-    ".settings-dialog.dl-col{width:min(480px,calc(100vw - 24px));height:auto;max-height:min(86dvh,780px);flex-direction:column;position:relative}",
-    ".dl-col-head{flex:none;display:flex;align-items:center;gap:12px;padding:18px 18px 14px 26px;border-bottom:1px solid var(--line-soft)}",
-    ".dl-col-head .dl-mg-dot{width:12px;height:12px}",
-    ".dl-col-title{flex:1;min-width:0;font-size:17px;font-weight:620;letter-spacing:-.015em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
-    ".dl-col-head .settings-close{position:static;flex:none}",
-    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:22px 26px 26px;position:relative}",
-    ".dl-col-body .set-group{padding:18px 20px 12px;margin-bottom:18px}",
-    ".dl-col-body .set-group:last-child{margin-bottom:0}",
-    ".dl-col-h{font-size:15px;font-weight:620;letter-spacing:-.012em;margin:26px 0 4px}",
+    /* single-column shell: the standard Daylight dialog (same shell as Create Event) */
+    ".dialog.dl-col{position:relative;display:flex;flex-direction:column;max-height:min(92dvh,840px)}",
+    ".dl-col .dialog-head{flex:none}",
+    ".dl-col .dialog-head .dl-mg-dot{width:12px;height:12px;margin-top:2px}",
+    ".dl-col .dialog-head .dialog-title{display:flex;align-items:center;gap:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
+    ".dl-col .dialog-head{align-items:center;gap:12px}",
+    ".dl-col .dialog-head .settings-close{position:static;flex:none;width:36px;height:36px;margin:0}",
+    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:12px 24px 20px}",
+    ".dl-col-body .set-group{padding:20px 22px 16px;margin-bottom:20px}",
+    ".dl-col-body .set-group:last-child{margin-bottom:4px}",
+    ".dl-col-h{font-size:15px;font-weight:620;letter-spacing:-.012em;margin:22px 0 4px}",
     ".dl-col-h:first-child{margin-top:0}",
     ".dl-col-sub{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 14px}",
-    ".dl-col-foot{flex:none;display:flex;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line-soft)}",
-    ".dl-col-foot .btn-primary{height:36px;padding:0 22px;margin:0}",
-    ".settings-dialog.dl-col .settings-savebar{left:50%;bottom:66px}",
-    ".settings-dialog.dl-col:has(.settings-savebar:not([hidden])) .dl-col-body{padding-bottom:70px}",
-    ".dl-col .dl-inv-row{flex-wrap:wrap}.dl-col .dl-inv-field{flex-basis:100%}.dl-col .dl-inv-perm{flex:1;justify-content:space-between}.dl-col .dl-inv-send{flex:none}",
+    ".dl-col .dialog-foot{flex:none}",
+    ".dialog.dl-col .settings-savebar{position:absolute;left:50%;right:auto;bottom:70px;transform:translateX(-50%)}",
+    ".dialog.dl-col:has(.settings-savebar:not([hidden])) .dl-col-body{padding-bottom:76px}",
+    /* the one color picker */
+    ".dl-cp-yours[hidden]{display:none}",
+    ".dl-cp-yours .dl-mg-sub{margin:16px 0 10px}",
+    ".dl-cp-toggle{display:inline-flex;align-items:center;gap:8px;margin-top:16px;height:36px;padding:0 14px 0 10px;border:1px solid var(--line);border-radius:999px;font-size:13.5px;font-weight:550;color:var(--text);background:transparent;transition:background 120ms var(--ease-out)}",
+    ".dl-cp-toggle:hover{background:var(--hover)}",
+    ".dl-cp-toggle .dl-cp-chev{color:var(--muted);display:inline-grid;transition:transform 160ms var(--ease-out)}",
+    ".dl-cp-toggle.is-open .dl-cp-chev{transform:rotate(180deg)}",
+    ".dl-cp-plus{display:inline-grid;place-items:center;color:var(--muted)}",
+    ".dl-cp-custom{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft)}",
+    ".dl-cp-custom[hidden]{display:none}",
+    ".dl-cp-add{margin-top:12px}",
+    ".dl-cp .dl-mg-swatches{gap:12px 10px}",
+    /* the invite: the search field on its own full-width row, then the permission picker (left) and the Invite pill (right) */
+    ".dl-invite .dl-inv-field{height:44px;border-radius:12px;width:100%;flex:none}",
+    ".dl-invite .dl-inv-row2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}",
+    ".dl-invite .dl-inv-perm{height:40px;border-radius:12px;flex:0 1 auto}",
+    ".dl-invite .dl-inv-send{height:36px;border-radius:8px;padding:0 20px;margin:0}",
+    ".dl-invite .dl-inv-send:disabled{background:var(--surface2);color:var(--faint);opacity:1}",
+    ".dl-invite .dl-inv-results{margin-top:8px}",
     ".dl-ppl-text{display:flex;flex-direction:column}",
     ".dl-manage .sr-title{display:flex;align-items:center;gap:9px;min-width:0}",
     ".dl-manage .sr-title .dl-mg-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}",
@@ -35,10 +53,11 @@
     ".dl-manage .set-group.is-danger{border-color:color-mix(in srgb,var(--danger) 32%,var(--line-soft))}",
     ".dl-manage .set-group.is-danger .set-group-title{color:var(--danger)}",
     ".dl-manage .set-row .btn-ghost,.dl-manage .set-row .btn-danger-outline{flex:none}",
-    ".dl-mg-name-input{width:100%;height:42px}",
+    ".dl-mg-name-input{width:100%;height:44px}",
+    ".dl-mg-name-field{margin:0 0 20px}",
     ".dl-mg-sub{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px}",
     ".dl-mg-swatches{display:flex;flex-wrap:wrap;gap:12px;align-items:center}",
-    ".dl-mg-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),1fr);justify-items:center;gap:12px 0}",
+    ".dl-mg-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:12px 10px}",
     ".dl-mg-saved{min-height:26px}",
     ".dl-mg-picker{margin-top:14px}",
     ".dl-mg-note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:12px 0 0}",
@@ -120,6 +139,77 @@
   function permText(p) { return p === "edit" ? "Can edit" : "View only"; }
   var PERMS = [["edit", "Can edit", "Can add and change events"], ["view", "View only", "Can only see events"]];
 
+
+  /* ===== The ONE calendar color picker =====
+     Circular 26px swatches in one grid (the selected one shows a white check), "Your colors" (saved colors) right under it, and the
+     custom editor (hue + HEX / RGB) as an expandable "Custom color" section that is closed by default. Used everywhere a calendar
+     color is chosen: Manage, New calendar, onboarding. opts: value (palette key or #hex), onChange(key), deferSaved (saving the
+     list waits for a Save pill) and onSavedChange() (called when "Your colors" changed). Returns {setValue, inline}. */
+  function swatchHex(key) { return /^#/.test(key) ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#FF7A00"); }
+  window.daylightCalendarColorPicker = function (host, opts) {
+    opts = opts || {};
+    var value = opts.value;
+    host.textContent = ""; host.classList.add("dl-cp");
+    host.innerHTML = '<div class="dl-mg-swatches" data-presets></div>' +
+      '<div class="dl-cp-yours"><div class="dl-mg-sub dl-cp-yourslabel">Your colors</div><div class="dl-mg-swatches dl-mg-saved" data-saved></div></div>' +
+      '<button type="button" class="dl-cp-toggle" aria-expanded="false" data-custom-toggle><span class="dl-cp-plus">' + icon("plus", 14) + '</span><span>Custom color</span><span class="dl-cp-chev">' + icon("chevD", 14) + '</span></button>' +
+      '<div class="dl-cp-custom" hidden><div data-inline-picker></div><button type="button" class="btn-ghost dl-btn-sm dl-cp-add" data-save-custom>Add to Your colors</button></div>';
+    var presets = host.querySelector("[data-presets]"), saved = host.querySelector("[data-saved]"), label = host.querySelector(".dl-cp-yourslabel"),
+        yours = host.querySelector(".dl-cp-yours"), toggle = host.querySelector("[data-custom-toggle]"), custom = host.querySelector(".dl-cp-custom");
+    var inline = null;
+    function savedList() { return (state.customColors || []).filter(function (c) { return /^#[0-9A-F]{6}$/i.test(c); }); }
+    function swatch(key, name) {
+      var b = make('<button type="button" class="dl-sw" aria-pressed="' + (value === key) + '" title="' + esc(name || key) + '" aria-label="Color ' + esc(name || key) + '" data-color="' + esc(key) + '">' + icon("check", 14) + "</button>");
+      b.style.setProperty("--c", swatchHex(key));
+      b.addEventListener("click", function () { pick(key); });
+      return b;
+    }
+    function savedChanged() {
+      if (opts.onSavedChange) opts.onSavedChange();
+      else if (window.settingsState && settingsState.transactionActive) { if (settingsState.markDirty) settingsState.markDirty(); }
+      else if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
+    }
+    function draw() {
+      presets.innerHTML = ""; saved.innerHTML = "";
+      var list = (window.daylightPresetColors || []).slice(), mine = savedList();
+      /* A named palette color (or any color not in the list) shows as the selected swatch too. */
+      if (value && list.indexOf(value) === -1 && mine.indexOf(value) === -1) list.unshift(value);
+      presets.style.setProperty("--cols", String(Math.max(6, Math.ceil(list.length / 3))));
+      list.forEach(function (key) { presets.appendChild(swatch(key, key === value && !/^#/.test(key) && typeof colorName === "function" ? colorName(key) : null)); });
+      mine.forEach(function (key) {
+        var wrap = make('<span class="dl-sw-wrap"></span>');
+        wrap.appendChild(swatch(key));
+        var remove = make('<button type="button" class="dl-color-remove" title="Remove saved color" aria-label="Remove saved color ' + esc(key) + '">\u00d7</button>');
+        remove.addEventListener("click", function (event) {
+          event.preventDefault(); event.stopPropagation();
+          state.customColors = savedList().filter(function (c) { return c !== key; });
+          draw(); savedChanged();
+        });
+        wrap.appendChild(remove);
+        saved.appendChild(wrap);
+      });
+      yours.hidden = !mine.length;
+    }
+    function pick(key) {
+      if (!key) return;
+      value = key; draw();
+      if (inline && key !== inline.value) inline.set(swatchHex(key));
+      if (opts.onChange) opts.onChange(key);
+    }
+    toggle.addEventListener("click", function () {
+      var open = custom.hidden;
+      custom.hidden = !open; toggle.setAttribute("aria-expanded", String(open)); toggle.classList.toggle("is-open", open);
+    });
+    host.querySelector("[data-save-custom]").addEventListener("click", function () {
+      var hex = inline ? inline.value : swatchHex(value);
+      state.customColors = [hex].concat(savedList().filter(function (c) { return c !== hex; })).slice(0, 30);
+      pick(hex); savedChanged();
+    });
+    if (window.daylightInlineColorPicker) inline = window.daylightInlineColorPicker(host.querySelector("[data-inline-picker]"), swatchHex(value), function (hex) { pick(hex); }, { compact: true });
+    draw();
+    return { setValue: function (key) { value = key; draw(); if (inline && inline.value !== swatchHex(key)) inline.set(swatchHex(key)); }, get inline() { return inline; } };
+  };
+
   window.daylightCalendarSettings = function (calArg) {
     if (!calArg || settingsState.transactionActive) return;
     var cal = calArg;
@@ -130,14 +220,14 @@
     window.daylightCalendarOriginal = function (c) { return c === cal ? original : null; };
 
     var bd = el('<div class="backdrop"></div>');
-    var dlg = el('<div class="settings-dialog dl-manage dl-col" role="dialog" aria-modal="true" aria-label="Manage calendar"></div>');
-    var head = el('<div class="dl-col-head"><span class="dl-mg-dot"></span><div class="dl-col-title dl-mg-name"></div></div>');
-    var pane = el('<div class="dl-col-body"></div>');
-    var foot = el('<div class="dl-col-foot"><button type="button" class="btn-primary" data-done>Done</button></div>');
+    var dlg = el('<div class="dialog dl-look dl-manage dl-col" role="dialog" aria-modal="true" aria-label="Manage calendar"></div>');
+    var head = el('<div class="dialog-head"><span class="dl-mg-dot"></span><span class="dialog-title dl-mg-name"></span></div>');
+    var pane = el('<div class="dialog-body dl-col-body"></div>');
+    var foot = el('<div class="dialog-foot"><button type="button" class="btn-primary" style="margin-left:0" data-done>Done</button></div>');
     var bar = el('<div class="settings-savebar" role="status" aria-live="polite" hidden><span class="savebar-message">You have unsaved changes</span>' +
       '<span class="savebar-actions"><button type="button" data-discard>Discard</button><button type="button" data-save><span class="savebar-save-label">Save changes</span>' +
       '<svg class="save-check" viewBox="0 0 16 16" aria-hidden="true"><path d="m3 8 3.2 3.2L13 4.5"></path></svg></button></span></div>');
-    var closeButton = el('<button type="button" class="icon-btn settings-close" title="Close" aria-label="Close calendar settings">' + icon("x", 18) + "</button>");
+    var closeButton = el('<button type="button" class="icon-btn settings-close" data-x title="Close" aria-label="Close calendar settings">' + icon("x", 17) + "</button>");
     var nameInput = null, inline = null;
 
     function currentName() { return nameInput ? nameInput.value.trim() : cal.name; }
@@ -161,57 +251,17 @@
 
     /* ------------------------------------------------------------ Calendar section (name + color) */
     function colorGroup(host, note) {
-      var group = make('<div class="set-group"><div class="set-group-title">Color</div><div class="dl-mg-swatches" data-presets></div>' +
-        '<div class="dl-mg-sub">Your colors</div><div class="dl-mg-swatches dl-mg-saved" data-saved></div><div class="dl-mg-picker" data-inline-picker></div>' +
-        (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
+      var group = make('<div class="set-group"><div class="set-group-title">Color</div><div data-cp></div>' + (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
       host.appendChild(group);
-      function swatchButton(key, label) {
-        var b = make('<button type="button" class="dl-sw" aria-pressed="' + (cal.color === key) + '" title="' + esc(label || key) + '" aria-label="Color ' + esc(label || key) + '" data-color="' + esc(key) + '">' + icon("check", 14) + "</button>");
-        b.style.setProperty("--c", hexOf(key));
-        b.addEventListener("click", function () { previewColor(key); });
-        return b;
-      }
-      function drawSwatches() {
-        var presets = group.querySelector("[data-presets]"), saved = group.querySelector("[data-saved]");
-        presets.innerHTML = ""; saved.innerHTML = "";
-        var list = (window.daylightPresetColors || []).slice();
-        /* A named palette color (or any color not in the list) shows as the selected swatch too. */
-        if (list.indexOf(cal.color) === -1 && (state.customColors || []).indexOf(cal.color) === -1) list.unshift(cal.color);
-        presets.style.setProperty("--cols", String(Math.max(6, Math.ceil(list.length / 3))));
-        list.forEach(function (key) { presets.appendChild(swatchButton(key, key === cal.color && !/^#/.test(key) ? colorName(key) : null)); });
-        (state.customColors || []).filter(function (c) { return /^#[0-9A-F]{6}$/i.test(c); }).forEach(function (key) {
-          var wrap = make('<span class="dl-sw-wrap"></span>');
-          wrap.appendChild(swatchButton(key));
-          var remove = make('<button type="button" class="dl-color-remove" title="Remove saved color" aria-label="Remove saved color ' + esc(key) + '">×</button>');
-          remove.addEventListener("click", function (event) {
-            event.preventDefault(); event.stopPropagation();
-            state.customColors = (state.customColors || []).filter(function (c) { return c !== key; });
-            drawSwatches(); markDirty();
-          });
-          wrap.appendChild(remove);
-          saved.appendChild(wrap);
-        });
-        var add = make('<button type="button" class="dl-sw dl-sw-add" data-save-custom title="Save this color to Your colors" aria-label="Add the current color to Your colors">' + icon("plus", 14) + "</button>");
-        add.querySelector("svg").style.cssText = "display:block;color:inherit;filter:none";
-        add.addEventListener("click", function () {
-          var hex = inline.value;
-          state.customColors = [hex].concat((state.customColors || []).filter(function (c) { return c !== hex; })).slice(0, 30);
-          previewColor(hex);
-        });
-        saved.appendChild(add);
-      }
-      group._draw = drawSwatches;
-      inline = window.daylightInlineColorPicker(group.querySelector("[data-inline-picker]"), hexOf(cal.color), function (hex) { previewColor(hex); }, { compact: true });
-      drawSwatches();
-      colorRedraw = drawSwatches;
+      var cp = window.daylightCalendarColorPicker(group.querySelector("[data-cp]"), { value: cal.color, deferSaved: true, onSavedChange: function () { markDirty(); }, onChange: function (key) { previewColor(key); } });
+      inline = cp.inline;
+      colorRedraw = function () { cp.setValue(cal.color); };
     }
     var colorRedraw = null;
     function previewColor(key) {
       if (!key) return;
       cal.color = key;
       paintHeader();
-      if (colorRedraw) colorRedraw();
-      if (inline && key !== inline.value) inline.set(hexOf(key));
       renderSidebar(); renderView(false);
       markDirty();
     }
@@ -220,7 +270,7 @@
       paneHead(pane, "Calendar", sub);
       nameInput = null;
       if (kind === "owned" || kind === "subscribed") {
-        var g = make('<div class="set-group"><div class="set-group-title">Name</div><input id="calSettingsName" class="text-input dl-mg-name-input dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name"></div>');
+        var g = make('<div class="field dl-mg-name-field"><label for="calSettingsName">Name</label><input id="calSettingsName" class="text-input dl-mg-name-input dl-cs2-name" maxlength="80" autocomplete="off" aria-label="Calendar name"></div>');
         nameInput = g.querySelector("input");
         nameInput.value = pendingName !== null ? pendingName : cal.name;
         nameInput.addEventListener("input", function () { pendingName = nameInput.value; paintHeader(); markDirty(); });
@@ -323,11 +373,11 @@
       var picked = null, perm = "view", resultsSeq = 0, searchTimer = null;
 
       /* invite row */
-      var inviteGroup = make('<div class="set-group"><div class="set-group-title">Invite people</div>' +
-        '<div class="dl-inv-row"><div class="dl-inv-field"><input class="dl-inv-input" type="text" placeholder="Search people to share with…" aria-label="Search people to share with" autocomplete="off" spellcheck="false">' +
+      var inviteGroup = make('<div class="set-group dl-invite"><div class="set-group-title">Invite people</div>' +
+        '<div class="dl-inv-field"><input class="dl-inv-input" type="text" placeholder="Search people to share with…" aria-label="Search people to share with" autocomplete="off" spellcheck="false">' +
         '<div class="dl-inv-chip" hidden></div></div>' +
-        '<button type="button" class="dl-inv-perm" aria-haspopup="menu" data-perm><span class="dl-inv-perm-label">View only</span>' + icon("chevD", 14) + "</button>" +
-        '<button type="button" class="btn-primary dl-inv-send" data-send disabled>Send</button></div>' +
+        '<div class="dl-inv-row2"><button type="button" class="dl-inv-perm" aria-haspopup="menu" data-perm><span class="dl-inv-perm-label">View only</span>' + icon("chevD", 14) + "</button>" +
+        '<button type="button" class="btn-primary dl-inv-send" data-send disabled>Invite</button></div>' +
         '<div class="dl-inv-results" role="listbox" aria-label="People" hidden></div><div class="dl-inv-status" role="status" data-status></div></div>');
       var input = inviteGroup.querySelector(".dl-inv-input"), chip = inviteGroup.querySelector(".dl-inv-chip"), results = inviteGroup.querySelector(".dl-inv-results"),
           permBtn = inviteGroup.querySelector("[data-perm]"), sendBtn = inviteGroup.querySelector("[data-send]"), status = inviteGroup.querySelector("[data-status]");
@@ -399,7 +449,7 @@
       function permMenu(anchor, current, onPick, extra) {
         var items = PERMS.map(function (p) { return { label: p[1], sub: p[2], checkRight: true, selected: current === p[0], fn: function () { onPick(p[0]); } }; });
         if (extra && extra.length) { items.push({ sep: true }); extra.forEach(function (x) { items.push(x); }); }
-        openMenu(anchor, items, { align: "right", className: "dl-perm-menu" });
+        openMenu(anchor, items, { align: "right", className: "dl-perm-menu", above: true });
       }
       permBtn.addEventListener("click", function () {
         permMenu(permBtn, perm, function (v) { perm = v; permBtn.querySelector(".dl-inv-perm-label").textContent = permText(v); });
@@ -416,7 +466,7 @@
           var m = String((e && e.message) || "");
           say(/already has access/i.test(m) ? "That person already has access." : /Only calendars you own|Calendar not found/i.test(m) ? "This calendar can’t be shared." : "Couldn’t send that invite. Try again.", "error");
         }
-        sendBtn.textContent = "Send"; syncSend();
+        sendBtn.textContent = "Invite"; syncSend();
       });
       pane.appendChild(inviteGroup);
 

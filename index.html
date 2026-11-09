@@ -1716,7 +1716,7 @@
 #sidebar:not(.rail) .profile-wrap { margin-top: var(--sb-prof-mt); padding-top: var(--sb-prof-pt); position: sticky; bottom: calc(-1 * var(--sb-pad-bot)); margin-bottom: calc(-1 * var(--sb-pad-bot)); padding-bottom: var(--sb-pad-bot); background: var(--bg-sidebar); z-index: 2; }
 #sidebar:not(.rail) .profile-row { padding: 6px 8px; }
 /* Every calendar popup shares the Manage dialog's shell: ~480px column, 20px radius, head / body / footer. */
-.dialog.dl-std, .dialog.dl-chooser { width: min(480px, 94vw) !important; border-radius: var(--r-xl) !important; }
+.dialog.dl-std, .dialog.dl-chooser, .dialog.dl-form, .dialog.dl-look { width: min(480px, 94vw) !important; border-radius: 12px !important; }
 .dl-std .text-input { height: 52px; padding: 0 16px; }
 .dl-std .dl-std-field { margin-bottom: 16px; }
 .dl-std .dl-helper { font-size: 12.5px; line-height: 1.4; color: var(--muted); margin-top: 8px; }
@@ -1865,6 +1865,53 @@
 @media(prefers-reduced-motion:reduce){.dl-continuous-bar{transition:none}}
 
 .agenda-details{display:flex;flex-direction:column;min-width:0;gap:3px}.agenda-location{display:flex;align-items:center;gap:5px;color:var(--muted);font-size:11px;line-height:1.3;white-space:normal;overflow-wrap:anywhere}.agenda-location svg{flex:none}
+
+/* ===== The Look: every popup follows Create Event (shell, header, fields, buttons) and Settings (grouped cards, section labels) =====
+   Header: plain surface, no tint, no divider, 18px semibold title, 36px X top-right. Body: 24px sides. Fields: one rule (44px, 12px radius,
+   the Create Event fill, blue focus ring); never nested in a card. Buttons: right-aligned footer, no divider, Cancel/Back = outline,
+   primary = solid black (white in Dark), destructive = solid red, a disabled primary is grey. */
+.dialog.dl-std .dialog-head, .dialog.dl-chooser .dialog-head, .dialog.dl-form .dialog-head, .dialog.dl-look .dialog-head { padding: 20px 14px 0 24px; gap: 8px; border: 0; background: transparent; }
+.dialog.dl-std .dialog-body, .dialog.dl-form .dialog-body, .dialog.dl-look .dialog-body { padding: 18px 24px 8px; }
+.dialog.dl-chooser .dialog-body { padding: 18px 24px 24px; }
+.dialog.dl-std .dialog-foot, .dialog.dl-form .dialog-foot, .dialog.dl-look .dialog-foot { padding: 14px 24px 22px; gap: 10px; border: 0; justify-content: flex-end; }
+.dialog.dl-std .text-input, .dialog.dl-form .text-input, .dialog.dl-look .text-input { height: 44px; border-radius: 12px; padding: 0 16px; font-size: 14px; }
+.dialog.dl-std .field label, .dialog.dl-form .field label, .dialog.dl-look .field label { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-bottom: 8px; }
+.dialog.dl-std .dl-std-field, .dialog.dl-form .dl-std-field { margin-bottom: 18px; }
+.dialog.dl-std .btn-primary:disabled, .dialog.dl-form .btn-primary:disabled, .dialog.dl-look .btn-primary:disabled { background: var(--surface2); color: var(--faint); opacity: 1; box-shadow: none; }
+.dialog.dl-std .set-group-title, .dialog.dl-look .set-group-title { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
+/* Confirmations: a readable body width and count phrases ("1 event") that never split across lines. */
+.dl-confirm .dialog-body p { max-width: 38ch; text-wrap: pretty; overflow-wrap: break-word; }
+/* ICS drop zone: a Settings-style card with a solid hairline border (the app's only dashed element is gone). */
+.dl-drop { border: 1px solid var(--line-soft); background: var(--gray-2); border-radius: 16px; min-height: 140px; }
+.dl-drop:hover, .dl-drop.is-over, .dl-drop:focus-visible { background: var(--hover); border-color: var(--line); }
+.swatches.dl-cp { display: block; }
+.dl-chooser .dl-opt { border-radius: 16px; padding: 16px; }
+.dialog .dl-drop .dl-browse { height: 32px; padding: 0 14px; border-radius: 999px; margin: 0 0 0 4px; font-size: 13px; }
+.dialog.dl-form .dl-drop { border-radius: 16px; }
+
+/* Event popover: the calendar chip lines up with the colour square (the title row's left edge), not with the title text. */
+.popover .pop-head .pop-cal-line { margin-left: -30px; margin-top: 10px; }
+.popover .pop-top .icon-btn[data-act="share"] { width: 34px; height: 34px; }
+/* The Share view lives INSIDE the popover (same popover, width and position). */
+.popover.is-sharing { width: min(384px, calc(100vw - 16px)); max-height: min(620px, calc(100dvh - 16px)); display: flex; flex-direction: column; overflow: hidden; }
+.dl-share-view { display: flex; flex-direction: column; min-height: 0; flex: 1; }
+.dl-sv-head { display: flex; align-items: center; gap: 4px; margin: 0 -6px 0 -8px; flex: none; }
+.dl-sv-head .icon-btn { width: 34px; height: 34px; border-radius: 50%; flex: none; }
+.dl-sv-head .icon-btn:hover { background: var(--hover); }
+.dl-sv-title { flex: 1; font-size: 18px; font-weight: 600; letter-spacing: -0.012em; padding-left: 4px; }
+.dl-sv-event { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 8px 0 16px; padding-left: 2px; font-size: 13.5px; line-height: 1.4; }
+.dl-sv-event .dl-sv-dot { width: 12px; height: 12px; border-radius: 4px; flex: none; align-self: center; }
+.dl-sv-event b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
+.dl-sv-event span.when { color: var(--muted); flex-basis: 100%; padding-left: 22px; margin-top: -6px; }
+.dl-sv-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px; padding: 0 6px 4px; }
+.dl-sv-label { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin: 20px 0 6px; }
+.dl-sv-row2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.dl-sv-row2 .dl-inv-perm { height: 40px; border-radius: 12px; }
+.dl-sv-row2 .dl-inv-send { height: 36px; border-radius: 8px; padding: 0 20px; margin: 0; }
+.dl-sv-row2 .dl-inv-send:disabled { background: var(--surface2); color: var(--faint); opacity: 1; }
+.dl-share-view .dl-inv-field { height: 44px; border-radius: 12px; width: 100%; flex: none; }
+.dl-sv-quiet { font-size: 13px; color: var(--faint); padding: 10px 0 4px; }
+.dl-sv-owner .dl-ppl-sub { display: block; }
 </style>
   </head>
   <body class="booting">
@@ -2650,7 +2697,7 @@
       function openMenu(anchor, items, opts) {
         opts = opts || {};
         closeDropdown();
-        closeMenu(); closePopover();
+        closeMenu(); if (!opts.keepPopover) closePopover();
         var m = el('<div class="menu' + (opts.className ? " " + opts.className : "") + '" role="menu"></div>');
         items.forEach(function (it) {
           if (it.sep) { m.appendChild(el('<div class="menu-sep"></div>')); return; }
@@ -4100,6 +4147,7 @@
       function closePopover() { closePopMenu(); clearSelected(); if (popEl) { daylightExit(popEl); popEl = null; document.removeEventListener("mousedown", popOutside, true); } }
       function popOutside(e) {
         if (popMenuEl && popMenuEl.contains(e.target)) return;
+        if (openMenuEl && openMenuEl.contains(e.target)) return;   /* a menu opened from inside the popover (the Share view's permission menu) */
         if (popEl && popEl.contains(e.target)) { closePopMenu(); return; }
         /* A press on the event that owns the open popover is left to its
            click handler, which toggles the popover closed (Item 7). Closing
@@ -4155,9 +4203,12 @@
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
         var mw = 204, mh = m.offsetHeight;
-        var left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
-        var top = r.bottom + 6;
-        if (top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
+        /* Anchored to the popover's right edge: the menu sits beside the popover (right side, else left), top-aligned with the button, so it never covers the date or time. */
+        var pr = (popEl || anchor.closest(".popover") || anchor).getBoundingClientRect();
+        var left = pr.right + 8;
+        if (left + mw > window.innerWidth - 8) left = pr.left - mw - 8;
+        if (left < 8) left = Math.max(8, Math.min(r.right - mw, window.innerWidth - mw - 8));
+        var top = Math.max(8, Math.min(r.top - 4, window.innerHeight - mh - 8));
         m.style.left = left + "px"; m.style.top = top + "px";
         popMenuEl = m;
       }
@@ -4276,7 +4327,7 @@
       function openConfirm(opts) {
         var bd = el('<div class="backdrop"><div class="dialog dl-std dl-confirm">' +
           '<div class="dialog-head"><span class="dialog-title">' + esc(opts.title) + '</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
-          '<div class="dialog-body"><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">' + esc(opts.body) + "</p></div>" +
+          '<div class="dialog-body"><p style="margin:0;font-size:14px;color:var(--muted);line-height:1.55">' + esc(opts.body).replace(/(\d[\d,]*) (events?|tasks?|calendars?|people|subscriptions?)\b/g, "$1&nbsp;$2") + "</p></div>" +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="' + (opts.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok>' + esc(opts.confirmLabel) + "</button></div></div></div>");
         overlayRoot.appendChild(bd);
         function close() { daylightExit(bd); }

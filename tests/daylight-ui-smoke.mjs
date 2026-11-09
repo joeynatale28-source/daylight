@@ -569,12 +569,12 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  await page.waitForSelector('.dl-manage',{timeout:3000});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
  const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
-   return {box:[d.offsetWidth,d.offsetHeight,getComputedStyle(d).borderRadius],x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,isSettingsShell:d.classList.contains('settings-dialog'),
+   return {box:[d.offsetWidth,d.offsetHeight,getComputedStyle(d).borderRadius],x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,isDialogShell:d.classList.contains('dialog')&&!d.classList.contains('settings-dialog'),
     rail:[...d.querySelectorAll('.dl-col-h,.dl-col-body .set-group-title')].map(n=>n.textContent.trim()),nameInput:!!d.querySelector('input#calSettingsName'),fields:[...d.querySelectorAll('.dl-inline-field>span')].map(n=>n.textContent)}});
  assert.ok(popup.box[0]<=480&&popup.box[0]>=440,'the Manage dialog is ONE column about 480px wide: '+JSON.stringify(popup.box));
- assert.equal(popup.box[2],settingsBox[2],'the same corner radius as Settings: '+JSON.stringify([popup.box,settingsBox]));
+ assert.equal(popup.box[2],'12px','the same corner radius as the Create Event dialog (12px): '+JSON.stringify(popup.box));
  assert.equal(await page.$('.dl-manage .settings-rail'),null,'no left rail in the single-column dialog');
- assert.ok(popup.isSettingsShell,'it is built on the Settings dialog shell');
+ assert.ok(popup.isDialogShell,'it is built on the standard dialog shell (like Create Event)');
  assert.ok(popup.x[0]>=32&&popup.x[1]>=32,'close target >=32px');
  assert.equal(popup.swatch,26,'26px swatches');
  assert.ok(['Calendar','Sharing','Export','Danger zone'].every((h,i,a)=>popup.rail.indexOf(h)>=0&&(i===0||popup.rail.indexOf(h)>popup.rail.indexOf(a[i-1])))&&popup.rail[popup.rail.length-1]==='Danger zone','stacked sections of an owned calendar, Danger zone last: '+JSON.stringify(popup.rail));
@@ -664,10 +664,10 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
      const cal=state.calendars.find(c=>c.id==='c2');cal.color=key;
      renderAll(false);
    });
-   host.querySelector('.dl-color-plus').click();
-   const hex=document.querySelector('#dl-color-hex');
+   host.querySelector('[data-custom-toggle]').click();
+   const hex=host.querySelector('[data-hex]');
    hex.value='#FF7A00';hex.dispatchEvent(new Event('input',{bubbles:true}));
-   document.querySelector('[data-apply]').click();
+   host.querySelector('[data-save-custom]').click();
    host.remove();
  });
  assert.equal(await page.evaluate(()=>state.calendars.find(c=>c.id==='c2').color),'#FF7A00');
@@ -714,7 +714,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

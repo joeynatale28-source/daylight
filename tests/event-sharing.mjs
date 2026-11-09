@@ -57,45 +57,72 @@ for(const theme of ['dark','light']){
 
   await page.evaluate(()=>{window.__authCb('SIGNED_OUT',null)});await sleep(300);
 
-  // =================================================================== the owner shares an event
+  // =================================================================== the owner shares an event (the Share view lives INSIDE the popover)
+  const openShare=async title=>{await clickChip(title);await page.evaluate(()=>document.querySelector('.popover [data-act="share"]').click());await page.waitForSelector('.popover.is-sharing .dl-share-view');await sleep(450)};
+  const backToEvent=async()=>{await page.evaluate(()=>document.querySelector('.dl-share-view [data-sv-back]').click());await sleep(350)};
+  const overlays=()=>page.evaluate(()=>document.querySelectorAll('#overlayRoot > .backdrop').length);
   await signIn(OWNER,'Family');
   await clickChip('Family dinner');
-  check(T('an owned event\'s popover has a Share event button'),await page.evaluate(()=>!!document.querySelector('.popover [data-share-event]')));
-  await page.screenshot({path:path.join(out,`1-popover-share-${theme}.png`)});
-  await page.evaluate(()=>document.querySelector('.popover [data-share-event]').click());await page.waitForSelector('.dl-evshare');await sleep(450);
-  const empty=await page.evaluate(()=>({title:document.querySelector('.dl-evshare .dialog-title').textContent,sum:document.querySelector('.dl-ev-sum-t').textContent,ph:document.querySelector('.dl-evshare .dl-inv-input').placeholder,perm:document.querySelector('.dl-evshare [data-perm]').textContent.trim(),send:document.querySelector('.dl-evshare [data-send]').disabled,w:Math.round(document.querySelector('.dl-evshare').getBoundingClientRect().width)}));
-  check(T('the share surface: a search field, the permission picker inside the row (View only), Send disabled until someone is chosen'),empty.title==='Share event'&&empty.sum==='Family dinner'&&empty.ph==='Search people to share with…'&&/View only/.test(empty.perm)&&empty.send&&empty.w===480,JSON.stringify(empty));
-  await page.screenshot({path:path.join(out,`2-share-empty-${theme}.png`)});
+  const order=await page.evaluate(()=>[...document.querySelectorAll('.popover .pop-top .icon-btn')].map(b=>b.getAttribute('data-act')));
+  check(T('the popover top row is Edit, Share (person icon), more, Close'),order.join('|')==='edit|share|more|close',JSON.stringify(order));
+  const chip=await page.evaluate(()=>{const sq=document.querySelector('.popover .pop-color-sq').getBoundingClientRect(),c=document.querySelector('.popover .pop-cal-chip').getBoundingClientRect(),t=document.querySelector('.popover .pop-title').getBoundingClientRect();return {sq:Math.round(sq.left),chip:Math.round(c.left),title:Math.round(t.left)}});
+  check(T('the calendar chip lines up with the colour square (the title row\'s left edge), not the title text'),Math.abs(chip.chip-chip.sq)<=3&&chip.title-chip.chip>=10,JSON.stringify(chip));
+  check(T('the bottom row is gone: no lone people icon and no separate "Share event" pill'),await page.evaluate(()=>!document.querySelector('.popover [data-share-event],.popover .dl-pop-share-row,.popover .dl-pop-people')));
+  await page.screenshot({path:path.join(out,`1-popover-share-button-${theme}.png`)});
+  // the ... menu sits beside the popover and never over its date/time
+  await page.evaluate(()=>document.querySelector('.popover [data-act="more"]').click());await sleep(350);
+  const mm=await page.evaluate(()=>{const m=document.querySelector('.menu').getBoundingClientRect(),p=document.querySelector('.popover').getBoundingClientRect(),when=[...document.querySelectorAll('.popover .pop-row .pr-strong,.popover .pop-date-line')][0];const w=when?when.getBoundingClientRect():null;
+   const overlap=w&&!(m.right<=w.left||m.left>=w.right||m.bottom<=w.top||m.top>=w.bottom);return {menuLeft:Math.round(m.left),popRight:Math.round(p.right),overlap:!!overlap}});
+  check(T('the \u22ef menu anchors to the popover\'s right edge and does not cover the date or time'),mm.menuLeft>=mm.popRight-1&&!mm.overlap,JSON.stringify(mm));
+  await page.screenshot({path:path.join(out,`1b-more-menu-${theme}.png`)});
+  await page.keyboard.press('Escape');await sleep(250);if(await page.$('.menu'))await page.mouse.click(5,5);await sleep(200);
+  const popBefore=await page.evaluate(()=>{const p=document.querySelector(".popover"),r=p.getBoundingClientRect();window.__popNode=p;return {w:Math.round(r.width),left:Math.round(r.left)}});
+  const nOverlays=await overlays();
+  await page.evaluate(()=>document.querySelector('.popover [data-act="share"]').click());await page.waitForSelector('.popover.is-sharing .dl-share-view');await sleep(450);
+  const sv=await page.evaluate(()=>{const p=document.querySelector('.popover'),r=p.getBoundingClientRect(),v=document.querySelector('.dl-share-view');return {same:p===window.__popNode,w:Math.round(r.width),left:Math.round(r.left),title:v.querySelector('.dl-sv-title').textContent,back:!!v.querySelector('[data-sv-back]'),close:!!v.querySelector('[data-sv-close]'),ev:v.querySelector('.dl-sv-event b').textContent,when:v.querySelector('.dl-sv-event .when').textContent,ph:v.querySelector('.dl-inv-input').placeholder,
+   fieldH:Math.round(v.querySelector('.dl-inv-field').getBoundingClientRect().height),fieldW:Math.round(v.querySelector('.dl-inv-field').getBoundingClientRect().width),permText:v.querySelector('[data-perm]').textContent.trim(),sendDisabled:v.querySelector('[data-send]').disabled,
+   rows:[...v.querySelectorAll('.dl-ppl-row')].map(x=>x.querySelector('.dl-ppl-name').textContent+':'+x.querySelector('.dl-ppl-sub').textContent),quiet:(v.querySelector('.dl-sv-quiet')||{}).textContent,inView:r.bottom<=innerHeight&&r.top>=0}});
+  check(T('tapping Share swaps the SAME popover to the Share view in place: same node, same width and position, no second modal, no second backdrop'),sv.same&&sv.w===popBefore.w&&sv.left===popBefore.left&&(await overlays())===nOverlays,JSON.stringify({sv,popBefore,nOverlays}));
+  check(T('the Share view: back chevron + "Share event" + Close; the event line; a full-width search field; the permission picker (View only) with a grey Send'),sv.title==='Share event'&&sv.back&&sv.close&&sv.ev==='Family dinner'&&/7:00/.test(sv.when)&&sv.ph==='Search people to share with…'&&sv.fieldW>=300&&sv.fieldH===44&&/View only/.test(sv.permText)&&sv.sendDisabled,JSON.stringify(sv));
+  check(T('People with access: the owner row first ("Owner"), then the quiet "Not shared with anyone yet"'),sv.rows.length===1&&/Owner$/.test(sv.rows[0])&&sv.quiet==='Not shared with anyone yet'&&sv.inView,JSON.stringify(sv));
+  await page.screenshot({path:path.join(out,`2-share-view-empty-${theme}.png`)});
   await page.type('.dl-inv-input','sam');await page.waitForSelector('.dl-person');await sleep(450);
-  const cards=await page.evaluate(()=>[...document.querySelectorAll('.dl-person')].map(c=>({name:c.querySelector('b').textContent,email:c.querySelector('.sub').textContent,avatar:!!c.querySelector('.dl-person-avatar')})));
+  const cards=await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-person')].map(c=>({name:c.querySelector('b').textContent,email:c.querySelector('.sub').textContent,avatar:!!c.querySelector('.dl-person-avatar')})));
   check(T('person cards: picture, name in bold, email in grey; same names told apart by email'),cards.length===2&&cards.every(c=>c.avatar&&c.email.includes('@'))&&new Set(cards.map(c=>c.email)).size===2,JSON.stringify(cards));
   await page.screenshot({path:path.join(out,`3-share-cards-${theme}.png`)});
-  await page.type('.dl-inv-input','zzzzzz');await sleep(500);
-  check(T('not found: "No results found — check the spelling" and nothing can be sent'),await page.evaluate(()=>/No results found — check the spelling/.test(document.querySelector('.dl-evshare .dl-inv-results').textContent)&&document.querySelector('.dl-evshare [data-send]').disabled));
-  await page.evaluate(()=>{const i=document.querySelector('.dl-evshare .dl-inv-input');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))});await page.type('.dl-inv-input','sam');await page.waitForSelector('.dl-person');await sleep(450);
-  await page.evaluate(()=>[...document.querySelectorAll('.dl-person')].find(c=>c.textContent.includes('Sam Lee')).click());await sleep(250);
-  check(T('picking a person fills the row and enables Send'),await page.evaluate(()=>!document.querySelector('.dl-evshare [data-send]').disabled&&/Sam Lee/.test(document.querySelector('.dl-evshare .dl-inv-chip').textContent)));
-  await page.click('.dl-evshare [data-perm]');await page.waitForSelector('.menu');await sleep(250);
+  await page.evaluate(()=>{const i=document.querySelector('.dl-share-view .dl-inv-input');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))});await page.type('.dl-inv-input','zzzzzz');await sleep(500);
+  check(T('not found: "No results found — check the spelling" and nothing can be sent'),await page.evaluate(()=>/No results found — check the spelling/.test(document.querySelector('.dl-share-view .dl-inv-results').textContent)&&document.querySelector('.dl-share-view [data-send]').disabled));
+  await page.evaluate(()=>{const i=document.querySelector('.dl-share-view .dl-inv-input');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))});await page.type('.dl-inv-input','sam');await page.waitForSelector('.dl-person');await sleep(450);
+  await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-person')].find(c=>c.textContent.includes('Sam Lee')).click());await sleep(250);
+  check(T('picking a person fills the row and Send becomes active'),await page.evaluate(()=>!document.querySelector('.dl-share-view [data-send]').disabled&&/Sam Lee/.test(document.querySelector('.dl-share-view .dl-inv-chip').textContent)));
+  await page.evaluate(()=>document.querySelector('.dl-share-view [data-perm]').click());await page.waitForSelector('.menu');await sleep(300);
   const items=await menuItems();
+  const geo=await page.evaluate(()=>{const m=document.querySelector('.menu').getBoundingClientRect(),perm=document.querySelector('.dl-share-view [data-perm]').getBoundingClientRect(),send=document.querySelector('.dl-share-view [data-send]').getBoundingClientRect(),people=document.querySelector('.dl-share-view [data-people]').getBoundingClientRect();
+   const hit=(a,b)=>!(a.right<=b.left||a.left>=b.right||a.bottom<=b.top||a.top>=b.bottom);return {above:m.bottom<=perm.top+2,coversSend:hit(m,send),coversList:hit(m,people),stillOpen:!!document.querySelector('.popover.is-sharing')}});
   check(T('the permission menu: Can edit "Can change this event", View only "Can only see this event"'),items.length===2&&items[0].label==='Can edit'&&items[0].sub==='Can change this event'&&items[1].label==='View only'&&items[1].sub==='Can only see this event',JSON.stringify(items));
+  check(T('the permission menu opens upward: it never covers Send or the people list, and the popover stays open'),geo.above&&!geo.coversSend&&!geo.coversList&&geo.stillOpen,JSON.stringify(geo));
   await page.screenshot({path:path.join(out,`4-share-selected-menu-${theme}.png`)});
   await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>/View only/.test(b.textContent)).click());await sleep(250);
-  await page.click('.dl-evshare [data-send]');await sleep(900);
-  let rows=await page.evaluate(()=>[...document.querySelectorAll('.dl-evshare .dl-ppl-row')].map(r=>({name:r.querySelector('.dl-ppl-name').textContent,ctl:r.querySelector('.dl-ppl-ctl')?.textContent.trim()})));
-  check(T('the person appears as "Invited" in People with access'),rows.length===1&&rows[0].name==='Sam Lee'&&rows[0].ctl==='Invited',JSON.stringify(rows));
+  await page.click('.dl-share-view [data-send]');await sleep(900);
+  let rows=await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-ppl-row')].map(r=>({name:r.querySelector('.dl-ppl-name').textContent,ctl:r.querySelector('.dl-ppl-ctl')?.textContent.trim()||''})));
+  check(T('the person appears as "Invited" under People with access (after the owner row)'),rows.length===2&&/Owner|Olivia|Calendar/.test(rows[0].name+rows[0].ctl)&&rows[1].name==='Sam Lee'&&rows[1].ctl==='Invited',JSON.stringify(rows));
   // the TEST account also gets this event, with Can edit
-  await sendTo('daylightcal','Test Account','edit');
+  await page.type('.dl-inv-input','daylightcal');await page.waitForSelector('.dl-person');await sleep(350);
+  await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-person')].find(c=>c.textContent.includes('Test Account')).click());await sleep(200);
+  await page.evaluate(()=>document.querySelector('.dl-share-view [data-perm]').click());await page.waitForSelector('.menu');await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>/Can edit/.test(b.textContent)).click());await sleep(250);
+  await page.click('.dl-share-view [data-send]');await sleep(900);
   await page.screenshot({path:path.join(out,`5-share-pending-${theme}.png`)});
   const sh=await eshares();
   check(T('two invites exist: Sam (view) and the test account (edit), both pending'),sh.length===2&&sh.every(s=>s.status==='pending')&&sh.some(s=>s.permission==='edit')&&sh.some(s=>s.permission==='view'),JSON.stringify(sh));
-  await page.evaluate(()=>document.querySelector('.dl-evshare [data-done]').click());await sleep(500);
+  await backToEvent();
+  check(T('the back chevron returns to the event view (same popover)'),await page.evaluate(()=>document.querySelector('.popover')===window.__popNode&&!document.querySelector('.popover.is-sharing')&&!!document.querySelector('.popover [data-act="share"]')));
+  await page.keyboard.press('Escape');await sleep(250);await page.evaluate(()=>closePopover&&closePopover());
   // a second event for the decline path
-  await page.keyboard.press('Escape');await sleep(250);
-  await clickChip('Beach day');await page.evaluate(()=>document.querySelector('.popover [data-share-event]').click());await page.waitForSelector('.dl-evshare');await sleep(400);
-  await sendTo('daylightcal','Test Account','view');
-  await page.evaluate(()=>document.querySelector('.dl-evshare [data-done]').click());await sleep(500);
-  await page.keyboard.press('Escape');await sleep(250);
-  check(T('the event\'s popover lists who it is shared with (avatar, name, "Invited")'),await (async()=>{await clickChip('Family dinner');const r=await page.evaluate(()=>[...document.querySelectorAll('.popover .dl-ppl-row')].map(x=>x.querySelector('.dl-ppl-name').textContent+':'+x.querySelector('.dl-ppl-ctl').textContent.trim()));await page.screenshot({path:path.join(out,`6-popover-people-${theme}.png`)});await page.keyboard.press('Escape');await sleep(250);return r.length===2&&r.every(x=>/:Invited$/.test(x))})());
+  await openShare('Beach day');
+  await page.type('.dl-inv-input','daylightcal');await page.waitForSelector('.dl-person');await sleep(350);
+  await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-person')].find(c=>c.textContent.includes('Test Account')).click());await sleep(200);
+  await page.click('.dl-share-view [data-send]');await sleep(900);
+  await page.evaluate(()=>closePopover&&closePopover());await sleep(250);
   await signOut();
 
   // =================================================================== the recipient: the invite cards
@@ -150,14 +177,14 @@ for(const theme of ['dark','light']){
   // =================================================================== the owner sees the recipient's change, then downgrades to View only
   await signIn(OWNER,'Family');
   check(T('the owner\'s app shows the change made by the recipient'),await chipFor('Family dinner at Ria'));
-  await clickChip('Family dinner at Ria');
-  await page.evaluate(()=>[...document.querySelectorAll('.popover .dl-ppl-row')].find(r=>/Test Account/.test(r.textContent)).querySelector('.dl-ppl-ctl').click());await page.waitForSelector('.menu');await sleep(250);
+  await openShare('Family dinner at Ria');
+  await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-ppl-row')].find(r=>/Test Account/.test(r.textContent)).querySelector('.dl-ppl-ctl').click());await page.waitForSelector('.menu');await sleep(250);
   const om=await menuItems();
   check(T('an accepted person\'s dropdown: permission choices, then Remove access at the bottom in danger styling'),om.length===3&&om[0].label==='Can edit'&&om[1].label==='View only'&&om[2].label==='Remove access'&&om[2].danger,JSON.stringify(om));
   await page.screenshot({path:path.join(out,`12-accepted-dropdown-${theme}.png`)});
   await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>/View only/.test(b.textContent)).click());await sleep(900);
   check(T('the owner switched the test account to View only'),(await eshares()).some(s=>s.recipient===TEST.id&&s.permission==='view'&&s.status==='accepted'));
-  await page.keyboard.press('Escape');await sleep(250);
+  await page.keyboard.press('Escape');await sleep(250);await page.evaluate(()=>closePopover&&closePopover());
   await signOut();
 
   // =================================================================== VIEW ONLY on the recipient
@@ -184,12 +211,10 @@ for(const theme of ['dark','light']){
 
   // =================================================================== the owner's side after a leave, then delete
   await signIn(OWNER,'Family');
-  await clickChip('Family dinner at Ria');
-  check(T('the owner\'s people list no longer shows the person who left'),await page.evaluate(()=>![...document.querySelectorAll('.popover .dl-ppl-row')].some(r=>/Test Account/.test(r.textContent))));
-  await page.keyboard.press('Escape');await sleep(250);await page.evaluate(()=>closePopover&&closePopover());
-  // Sam accepted? (never signed in) - cancel Sam's pending invite from the popover
-  await clickChip('Family dinner at Ria');
-  await page.evaluate(()=>[...document.querySelectorAll('.popover .dl-ppl-row')].find(r=>/Sam Lee/.test(r.textContent)).querySelector('.dl-ppl-ctl').click());await page.waitForSelector('.menu');await sleep(250);
+  await openShare('Family dinner at Ria');
+  check(T('the owner\'s people list no longer shows the person who left'),await page.evaluate(()=>![...document.querySelectorAll('.dl-share-view .dl-ppl-row')].some(r=>/Test Account/.test(r.textContent))));
+  // Sam never signed in: cancel Sam's pending invite from the Share view
+  await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-ppl-row')].find(r=>/Sam Lee/.test(r.textContent)).querySelector('.dl-ppl-ctl').click());await page.waitForSelector('.menu');await sleep(250);
   const pm=await menuItems();
   check(T('a pending person\'s dropdown: change permission, Resend invite, Cancel invite'),pm.map(x=>x.label).join('|')==='Can edit|View only|Resend invite|Cancel invite',JSON.stringify(pm));
   await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>/Cancel invite/.test(b.textContent)).click());await sleep(900);

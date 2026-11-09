@@ -77,9 +77,9 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   const rowStyle=await page.evaluate(()=>{const r=document.querySelector('.dl-opt'),rows=[...document.querySelectorAll('.dl-opt')],cs=getComputedStyle(r),tile=r.querySelector('.dl-opt-ic');
    return {pad:cs.paddingLeft,radius:cs.borderRadius,border:cs.borderTopWidth,tile:[tile.offsetWidth,tile.offsetHeight],svgs:r.querySelectorAll('svg').length,
     gap:Math.round(rows[1].getBoundingClientRect().top-rows[0].getBoundingClientRect().bottom),title:getComputedStyle(r.querySelector('.dl-opt-title')).fontSize,dialogPad:getComputedStyle(document.querySelector('.dl-std .dialog-body')).paddingLeft}});
-  assert.deepEqual([rowStyle.pad,rowStyle.radius,rowStyle.border,rowStyle.tile.join('x'),rowStyle.svgs,rowStyle.title,rowStyle.dialogPad],['14px','14px','1px','40x40',1,'15px','24px'],'chooser rows: '+JSON.stringify(rowStyle));
+  assert.deepEqual([rowStyle.pad,rowStyle.radius,rowStyle.border,rowStyle.tile.join('x'),rowStyle.svgs,rowStyle.title,rowStyle.dialogPad],['16px','16px','1px','40x40',1,'15px','24px'],'chooser rows: '+JSON.stringify(rowStyle));
   assert.ok(rowStyle.gap>=10&&rowStyle.gap<=12,'rows are separated by a 10-12px gap, not hairlines: '+rowStyle.gap);
-  assert.equal(chooser.radius,'16px');
+  assert.equal(chooser.radius,'12px','the chooser uses the Create Event corner radius');
   assert.equal(chooser.width,480,'chooser shares the calendar popup shell: 480px wide');
   await page.click('.dl-std .dl-x');
   await page.waitForFunction(()=>!document.querySelector('.dl-std'),{timeout:2000});
@@ -98,7 +98,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.waitForSelector('#dlSubUrl');
   await sleep(350);
   await page.screenshot({path:path.join(out,'stage1-ical-'+theme+'.png')});
-  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,getComputedStyle(document.querySelector('#dlSubUrl')).borderRadius,document.querySelector('[data-sub]').offsetHeight]}),[480,'16px','10px',36],'iCal form uses the same shell');
+  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,getComputedStyle(document.querySelector('#dlSubUrl')).borderRadius,document.querySelector('[data-sub]').offsetHeight]}),[480,'12px','12px',36],'iCal form uses the same shell');
   assert.equal(await page.$eval('[data-sub]',b=>b.disabled),true);
   await page.type('#dlSubUrl','webcal://example.com/TEST-feed.ics');await page.type('#dlSubName','TEST feed');
   await page.evaluate(()=>{window.__calls=[]});
@@ -115,9 +115,9 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   await page.waitForSelector('[data-drop]');
   await sleep(350);
   await page.screenshot({path:path.join(out,'stage1-ics-'+theme+'.png')});
-  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,document.querySelector('[data-import]').offsetHeight]}),[480,'16px',36],'ICS form uses the same shell');
+  assert.deepEqual(await page.evaluate(()=>{const d=document.querySelector('.dl-std');return [d.offsetWidth,getComputedStyle(d).borderRadius,document.querySelector('[data-import]').offsetHeight]}),[480,'12px',36],'ICS form uses the same shell');
   assert.equal(await page.$eval('[data-import]',b=>b.disabled),true);
-  assert.match(await page.$eval('[data-drop]',n=>n.textContent),/Drop an \.ics file here, or browse/);
+  assert.match(await page.$eval('[data-drop]',n=>n.textContent),/Drop an \.ics file here, or Browse/);
   await (await page.$('[data-picker]')).uploadFile(ics);
   await page.waitForFunction(()=>!document.querySelector('[data-import]').disabled,{timeout:2000});
   await page.evaluate(()=>{window.__calls=[]});

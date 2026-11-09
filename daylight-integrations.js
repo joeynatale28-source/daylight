@@ -724,7 +724,7 @@
       const dlg=stdDialog('Import an ICS file',{onBack:window.daylightAddToSubscriptions,variant:'dl-form',onClose:()=>{if(imported)location.reload()}});
       const owned=state.calendars.filter(c=>!c.subscribed&&!c.builtin&&!c.remoteShareId&&!c.eventShare);
       dlg.body.innerHTML=
-        '<div class="dl-drop" data-drop tabindex="0" role="button" aria-label="Choose an .ics file"><span class="dl-drop-ic">'+icon('upload',24)+'</span><span class="dl-drop-text">Drop an .ics file here, or <u>browse</u></span><span class="dl-drop-file" data-file></span></div>'+
+        '<div class="dl-drop" data-drop tabindex="0" role="button" aria-label="Choose an .ics file"><span class="dl-drop-ic">'+icon('upload',24)+'</span><span class="dl-drop-text">Drop an .ics file here, or <button type="button" class="btn-ghost dl-btn-sm dl-browse" tabindex="-1">Browse</button></span><span class="dl-drop-file" data-file></span></div>'+
         '<input type="file" accept=".ics,text/calendar" data-picker hidden>'+
         field('dlIcsCal','Add events to','<select class="text-input dl-select" id="dlIcsCal">'+owned.map(c=>'<option value="'+esc(c.id)+'">'+esc(c.name)+'</option>').join('')+'</select>'+helper('Importing the same file again updates events instead of duplicating them.'))+banner;
       dlg.foot.innerHTML='<button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-primary" data-import disabled>Import</button>';

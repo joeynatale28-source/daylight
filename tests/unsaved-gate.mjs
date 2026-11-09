@@ -35,7 +35,7 @@ for(const theme of ['dark','light']){
    const i=await info();
    check(T(`${label}: Settings stays open, the pill stays, nothing stacked on top`),i.open&&i.pill&&i.popups===1&&!i.confirm,JSON.stringify(i));
    check(T(`${label}: the pill is fully on screen and not covered`),i.onScreen&&i.uncovered,JSON.stringify(i));
-   check(T(`${label}: no shake or other animation on the dialog or pill`),!/shake|wiggle|nudge|bounce/i.test(i.anim),i.anim);
+   check(T(`${label}: no shake, wiggle or bounce on the dialog or pill (the only motion allowed is the quiet pill highlight)`),!/shake|wiggle|bounce/i.test(i.anim),i.anim);
    return i;
   };
 

@@ -250,6 +250,7 @@ window.daylightInlineColorPicker=function(host,seed,onChange,options){
 };
 window.daylightColorPicker=function(host,initial,onChange,options){
  options=options||{};
+ if(window.daylightCalendarColorPicker&&!options.legacy)return window.daylightCalendarColorPicker(host,{value:initial,onChange:onChange,deferSaved:options.deferSavedColors,onSavedChange:options.onSavedColorsChange});
  host.textContent="";host.classList.add("dl-color-grid");
  let selected=initial;
  const saved=savedColors();

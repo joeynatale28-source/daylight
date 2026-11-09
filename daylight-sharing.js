@@ -288,13 +288,14 @@
   async function listEventPeople(ev) {
     try { return (await rpc("daylight_list_event_shares", { p_event_id: ev.id })) || []; } catch (e) { return null; }
   }
-  function permMenu(anchor, current, onPick, extra) {
+  function permMenu(anchor, current, onPick, extra, mo) {
     var items = PERMS.map(function (p) { return { label: p[1], sub: p[2], checkRight: true, selected: current === p[0], fn: function () { onPick(p[0]); } }; });
     if (extra && extra.length) { items.push({ sep: true }); extra.forEach(function (x) { items.push(x); }); }
-    openMenu(anchor, items, { align: "right", className: "dl-perm-menu" });
+    openMenu(anchor, items, { align: "right", className: "dl-perm-menu", keepPopover: !!(mo && mo.keepPopover) });
   }
   /* The people list: avatar, name, the identifier in grey, and the permission dropdown ("Invited" while pending). */
-  function drawPeople(host, ev, people, reload) {
+  function drawPeople(host, ev, people, reload, mo) {
+    mo = mo || {};
     host.innerHTML = "";
     if (people === null) { host.appendChild(mk('<div class="dl-ppl-empty">Sharing isn\u2019t available right now.</div>')); return; }
     people.forEach(function (p) {
@@ -317,63 +318,97 @@
           if (v === p.permission) return;
           try { await rpc("daylight_set_event_share_permission", { p_id: p.id, p_permission: v }); toast(p.name + ": " + permText(v)); reload(); }
           catch (err) { toast("Couldn\u2019t change that permission."); }
-        }, extra);
+        }, extra, mo);
       });
       host.appendChild(row);
     });
   }
 
-  /* The share dialog: the same pattern as sharing a calendar (search, person cards, permission chosen BEFORE sending). */
-  function openEventShare(ev, afterClose) {
-    if (!ev || !isOwnedEvent(ev)) return;
-    var picked = null, perm = "view", seqSearch = 0, searchTimer = null, people = null;
-    var bd = el('<div class="backdrop"><div class="dialog dl-std dl-evshare" role="dialog" aria-modal="true" aria-label="Share event">' +
-      '<div class="dialog-head"><span class="dialog-title">Share event</span><button type="button" class="icon-btn dl-x" data-x title="Close" aria-label="Close">' + ico("x", 18) + "</button></div>" +
-      '<div class="dialog-body" style="overflow-y:auto"><div class="dl-ev-sum"><b class="dl-ev-sum-t"></b><span class="dl-ev-sum-w"></span></div>' +
-      '<div class="dl-ev-group"><div class="set-group-title">Invite people</div>' +
-      '<div class="dl-inv-row"><div class="dl-inv-field"><input class="dl-inv-input" type="text" placeholder="Search people to share with\u2026" aria-label="Search people to share with" autocomplete="off" spellcheck="false"><div class="dl-inv-chip" hidden></div></div>' +
-      '<button type="button" class="dl-inv-perm" aria-haspopup="menu" data-perm><span class="dl-inv-perm-label">View only</span>' + ico("chevD", 14) + "</button>" +
+  /* The Share view: it replaces the event popover's content in place (same popover, same width and position, no second surface). */
+  function ownerRow() {
+    var me = (window.daylightCloud && window.daylightCloud.user) || {};
+    var row = mk('<div class="dl-ppl-row dl-sv-owner"><span class="dl-ppl-text"><span class="dl-ppl-name"></span><span class="dl-ppl-sub">Owner</span></span></div>');
+    row.insertBefore(avatarOf({ name: state.profileName, avatar: state.avatarUrl }, 32), row.firstChild);
+    row.querySelector(".dl-ppl-name").textContent = state.profileName || me.email || "You";
+    return row;
+  }
+  function placePopover(p) {
+    var a = p._anchor, r = a && a.getBoundingClientRect ? a.getBoundingClientRect() : null, pw = p.offsetWidth, ph = p.offsetHeight;
+    if (!r) return;
+    var left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
+    var top = r.bottom + 8;
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, Math.min(r.top - ph - 8, window.innerHeight - ph - 8));
+    if (top + ph > window.innerHeight - 8) top = Math.max(8, window.innerHeight - ph - 8);
+    p.style.left = left + "px"; p.style.top = top + "px";
+  }
+  function showShareView(p, ev) {
+    if (!p || p.classList.contains("is-sharing")) return;
+    var saved = [].slice.call(p.children);
+    saved.forEach(function (c) { p.removeChild(c); });
+    p.classList.add("is-sharing");
+    var cal = calOf(ev.cal);
+    var view = mk('<div class="dl-share-view dl-invite">' +
+      '<div class="dl-sv-head"><button type="button" class="icon-btn" data-sv-back title="Back" aria-label="Back to the event">' + ico("chevL", 18) + '</button><span class="dl-sv-title">Share event</span>' +
+      '<button type="button" class="icon-btn" data-sv-close title="Close" aria-label="Close">' + ico("x", 17) + "</button></div>" +
+      '<div class="dl-sv-event"><span class="dl-sv-dot"></span><b></b><span class="when"></span></div>' +
+      '<div class="dl-sv-scroll">' +
+      '<div class="dl-inv-field"><input class="dl-inv-input" type="text" placeholder="Search people to share with\u2026" aria-label="Search people to share with" autocomplete="off" spellcheck="false"><div class="dl-inv-chip" hidden></div></div>' +
+      '<div class="dl-inv-results" role="listbox" aria-label="People" hidden></div>' +
+      '<div class="dl-sv-row2"><button type="button" class="dl-inv-perm" aria-haspopup="menu" data-perm><span class="dl-inv-perm-label">View only</span>' + ico("chevD", 14) + "</button>" +
       '<button type="button" class="btn-primary dl-inv-send" data-send disabled>Send</button></div>' +
-      '<div class="dl-inv-results" role="listbox" aria-label="People" hidden></div><div class="dl-inv-status" role="status" data-status></div></div>' +
-      '<div class="dl-ev-group"><div class="set-group-title">People with access</div><div data-people></div></div></div>' +
-      '<div class="dialog-foot"><button type="button" class="btn-primary" style="margin-left:0" data-done>Done</button></div></div></div>');
-    overlayRoot.appendChild(bd);
-    bd.querySelector(".dl-ev-sum-t").textContent = ev.title || "Untitled";
-    bd.querySelector(".dl-ev-sum-w").textContent = evWhen(ev) + (ev.repeat ? " \u00b7 shared as a series" : "");
-    var input = bd.querySelector(".dl-inv-input"), chip = bd.querySelector(".dl-inv-chip"), results = bd.querySelector(".dl-inv-results"),
-        permBtn = bd.querySelector("[data-perm]"), sendBtn = bd.querySelector("[data-send]"), status = bd.querySelector("[data-status]"), host = bd.querySelector("[data-people]");
+      '<div class="dl-inv-status" role="status" data-status></div>' +
+      '<div class="dl-sv-label">People with access</div><div data-people></div></div></div>');
+    p.appendChild(view);
+    view.querySelector(".dl-sv-dot").style.background = dotOf(cal);
+    view.querySelector(".dl-sv-event b").textContent = ev.title || "Untitled";
+    view.querySelector(".dl-sv-event .when").textContent = evWhen(ev) + (ev.repeat ? " \u00b7 shared as a series" : "");
+    placePopover(p);
+    var picked = null, perm = "view", seqSearch = 0, searchTimer = null, people = null;
+    var input = view.querySelector(".dl-inv-input"), chip = view.querySelector(".dl-inv-chip"), results = view.querySelector(".dl-inv-results"),
+        permBtn = view.querySelector("[data-perm]"), sendBtn = view.querySelector("[data-send]"), status = view.querySelector("[data-status]"), host = view.querySelector("[data-people]");
     function say(msg, kind) { status.textContent = msg || ""; status.className = "dl-inv-status" + (kind ? " is-" + kind : ""); }
     function syncSend() { sendBtn.disabled = !picked || people === null; }
-    function relation(userId) { var p = (people || []).filter(function (x) { return x.recipient_id === userId; })[0]; return p ? (p.status === "pending" ? "Invited" : "Has access") : ""; }
-    function close() { document.removeEventListener("keydown", onKey, true); if (window.daylightExit) window.daylightExit(bd); else bd.remove(); if (afterClose) afterClose(); }
-    function onKey(e) { if (e.key === "Escape" && overlayRoot.lastElementChild === bd && !document.querySelector(".menu")) { e.preventDefault(); e.stopPropagation(); close(); } }
-    document.addEventListener("keydown", onKey, true);
-    bd.querySelector("[data-x]").addEventListener("click", close);
-    bd.querySelector("[data-done]").addEventListener("click", close);
-    bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
-    async function reload() { people = await listEventPeople(ev); drawPeople(host, ev, people || [], reload); if (people === null) { drawPeople(host, ev, null, reload); say("Sharing isn\u2019t available right now.", "error"); } syncSend(); }
+    function relation(userId) { var q = (people || []).filter(function (x) { return x.recipient_id === userId; })[0]; return q ? (q.status === "pending" ? "Invited" : "Has access") : ""; }
+    function back() {
+      if (!p.isConnected) return;
+      view.remove(); p.classList.remove("is-sharing");
+      saved.forEach(function (c) { p.appendChild(c); });
+      placePopover(p);
+    }
+    view.querySelector("[data-sv-back]").addEventListener("click", back);
+    view.querySelector("[data-sv-close]").addEventListener("click", function () { closePopover(); });
+    function drawList() {
+      host.innerHTML = "";
+      host.appendChild(ownerRow());
+      if (people === null) { host.appendChild(mk('<div class="dl-sv-quiet">Sharing isn\u2019t available right now.</div>')); return; }
+      var rowsHost = mk("<div></div>");
+      drawPeople(rowsHost, ev, people, reload, { keepPopover: true });
+      [].slice.call(rowsHost.children).forEach(function (r) { host.appendChild(r); });
+      if (!people.length) host.appendChild(mk('<div class="dl-sv-quiet">Not shared with anyone yet</div>'));
+    }
+    async function reload() { people = await listEventPeople(ev); if (!view.isConnected) return; drawList(); if (people === null) say("Sharing isn\u2019t available right now.", "error"); syncSend(); placePopover(p); }
     function showResults(list) {
       results.innerHTML = ""; results.hidden = false;
       if (!list.length) { results.appendChild(mk('<div class="dl-inv-none" role="status">No results found \u2014 check the spelling</div>')); return; }
-      list.forEach(function (p) {
-        var rel = relation(p.user_id);
+      list.forEach(function (q) {
+        var rel = relation(q.user_id);
         var card = mk('<button type="button" class="dl-person" role="option"' + (rel ? " disabled" : "") + '><span class="dl-person-text"><b></b><span class="sub"></span></span>' + (rel ? '<span class="dl-person-tag"></span>' : "") + "</button>");
-        card.insertBefore(avatarOf(p, 36), card.firstChild);
-        card.querySelector("b").textContent = p.name; card.querySelector(".sub").textContent = p.email;
+        card.insertBefore(avatarOf(q, 36), card.firstChild);
+        card.querySelector("b").textContent = q.name; card.querySelector(".sub").textContent = q.email;
         if (rel) card.querySelector(".dl-person-tag").textContent = rel;
-        card.addEventListener("click", function () { pick(p); });
+        card.addEventListener("click", function () { pick(q); });
         results.appendChild(card);
       });
     }
-    function pick(p) {
-      picked = p; results.hidden = true; results.innerHTML = ""; input.hidden = true; input.value = "";
+    function pick(q) {
+      picked = q; results.hidden = true; results.innerHTML = ""; input.hidden = true; input.value = "";
       chip.hidden = false; chip.innerHTML = "";
-      chip.appendChild(avatarOf(p, 30));
+      chip.appendChild(avatarOf(q, 30));
       chip.appendChild(mk('<span class="dl-person-text"><b></b><span class="sub"></span></span>'));
-      chip.querySelector("b").textContent = p.name; chip.querySelector(".sub").textContent = p.email;
+      chip.querySelector("b").textContent = q.name; chip.querySelector(".sub").textContent = q.email;
       var x = mk('<button type="button" class="dl-inv-x" aria-label="Choose someone else">' + ico("x", 14) + "</button>");
       x.addEventListener("click", function () { picked = null; chip.hidden = true; input.hidden = false; input.focus(); syncSend(); say(""); });
-      chip.appendChild(x); say(""); syncSend();
+      chip.appendChild(x); say(""); syncSend(); placePopover(p);
     }
     input.addEventListener("input", function () {
       clearTimeout(searchTimer);
@@ -381,11 +416,15 @@
       if (q.length < 2) { results.hidden = true; results.innerHTML = ""; return; }
       searchTimer = setTimeout(async function () {
         var mine = ++seqSearch;
-        try { var res = await rpc("daylight_search_people", { p_query: q }); if (mine !== seqSearch || input.value.trim() !== q) return; showResults(Array.isArray(res) ? res : []); }
+        try { var res = await rpc("daylight_search_people", { p_query: q }); if (mine !== seqSearch || input.value.trim() !== q) return; showResults(Array.isArray(res) ? res : []); placePopover(p); }
         catch (e) { if (mine === seqSearch) { results.hidden = true; say("Search isn\u2019t available right now.", "error"); } }
       }, 250);
     });
-    permBtn.addEventListener("click", function () { permMenu(permBtn, perm, function (v) { perm = v; permBtn.querySelector(".dl-inv-perm-label").textContent = permText(v); }); });
+    permBtn.addEventListener("click", function (e) {
+      e.stopPropagation();
+      var items = PERMS.map(function (q) { return { label: q[1], sub: q[2], checkRight: true, selected: perm === q[0], fn: function () { perm = q[0]; permBtn.querySelector(".dl-inv-perm-label").textContent = permText(q[0]); } }; });
+      openMenu(permBtn, items, { align: "left", className: "dl-perm-menu", above: true, keepPopover: true });
+    });
     sendBtn.addEventListener("click", async function () {
       if (sendBtn.disabled || !picked) return;
       sendBtn.disabled = true; sendBtn.textContent = "Sending\u2026"; say("");
@@ -403,6 +442,7 @@
     reload();
     input.focus();
   }
+  function openEventShare(ev) { var p = typeof popEl !== "undefined" ? popEl : null; if (p && p._occId === ev.id) showShareView(p, ev); }
 
   /* ================= the event's own popover ================= */
   function hookPopover() {
@@ -451,16 +491,13 @@
       return;
     }
     if (!isOwnedEvent(ev)) return;
-    var box = mk('<div class="pop-row dl-pop-share-row"><span class="pop-ic">' + ico("users", 18) + '</span><span class="pop-main"><span class="dl-pop-people"></span><button type="button" class="btn-ghost dl-btn-sm dl-pop-share" data-share-event>Share event</button></span></div>');
-    rows.appendChild(box);
-    var host = box.querySelector(".dl-pop-people");
-    async function paint() {
-      var people = await listEventPeople(ev);
-      if (!box.isConnected) return;
-      if (people && people.length) { host.style.display = "block"; drawPeople(host, ev, people, paint); } else host.style.display = "none";
+    /* Edit, Share (person), more, Close: the share button sits between Edit and the more menu. */
+    var edit = p.querySelector('[data-act="edit"]');
+    if (edit) {
+      var shareBtn = mk('<button type="button" class="icon-btn" data-act="share" title="Share event" aria-label="Share event">' + ico("user", 16) + "</button>");
+      edit.parentNode.insertBefore(shareBtn, edit.nextSibling);
+      shareBtn.addEventListener("click", function (e) { e.stopPropagation(); showShareView(p, ev); });
     }
-    box.querySelector("[data-share-event]").addEventListener("click", function (e) { e.stopPropagation(); openEventShare(ev, paint); });
-    paint();
   }
 
   window.daylightSharing = {

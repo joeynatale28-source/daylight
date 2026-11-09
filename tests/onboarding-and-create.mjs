@@ -48,7 +48,7 @@ for(const theme of ['dark','light']){
   // ---- a brand-new account
   await signIn(NEW);
   await page.waitForSelector('.dl-onb',{timeout:6000});await sleep(500);
-  const w=await page.evaluate(()=>({title:document.querySelector('.dl-onb .dialog-title').textContent,intro:document.querySelector('.dl-onb-intro').textContent,labels:[...document.querySelectorAll('.dl-onb label')].map(l=>l.textContent.replace('Optional','').trim()),
+  const w=await page.evaluate(()=>({title:document.querySelector('.dl-onb .dialog-title').textContent,intro:document.querySelector('.dl-onb-intro').textContent,labels:[...document.querySelectorAll('.dl-onb .field > label')].map(l=>l.textContent.replace('Optional','').trim()),
    birthdayType:document.querySelector('#onbBirthday').type,go:document.querySelector('[data-go]').disabled,cals:state.calendars.map(c=>c.name),width:Math.round(document.querySelector('.dl-onb').getBoundingClientRect().width)}));
   check(T('"Welcome to Daylight!" with a short intro and the fields in order: First name, Last name, Birthday, Calendar name, Color'),w.title==='Welcome to Daylight!'&&w.intro.length>40&&w.labels.join('|')==='First name|Last name|Birthday|Calendar name|Color'&&w.birthdayType==='date',JSON.stringify(w));
   check(T('the new account starts with ONLY the built-in US Holidays calendar (no default calendars)'),w.cals.join('|')==='US Holidays',JSON.stringify(w.cals));

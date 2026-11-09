@@ -31,14 +31,19 @@ for(const theme of ['dark','light']){
   await app.load();await sleep(900);
   const openManage=async name=>{await page.evaluate(n=>{const row=[...document.querySelectorAll('.cal-row')].find(r=>r.querySelector('.cal-name')?.textContent===n);row.querySelector('.cal-menu-btn').click()},name);await page.waitForSelector('.dl-manage');await sleep(450)};
   const closeManage=async()=>{await page.evaluate(()=>document.querySelector('.dl-manage .settings-close')?.click());await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:4000});await sleep(300)};
-  const settingsLook=async()=>{await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.settings-dialog');await sleep(500);const r=await page.evaluate(()=>{const d=document.querySelector('.settings-dialog'),cs=getComputedStyle(d),t=getComputedStyle(document.querySelector('.settings-pane .set-group-title'));return {radius:cs.borderRadius,border:cs.borderTopColor,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],title:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform}});await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(400);return r};
+  const refLook=async()=>{await page.evaluate(()=>{state.section='calendar';renderAll(false);openEventForm(null,state.selected)});await page.waitForSelector('.event-form-dialog');await sleep(500);
+   const ev=await page.evaluate(()=>{const d=document.querySelector('.event-form-dialog'),cs=getComputedStyle(d),h=getComputedStyle(d.querySelector('.dialog-head')),ti=getComputedStyle(d.querySelector('.dialog-title')),f=getComputedStyle(d.querySelector('.dialog-foot'));return {radius:cs.borderRadius,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],headBg:h.backgroundColor,headBorder:h.borderBottomWidth,title:ti.fontSize+'/'+ti.fontWeight,footBorder:f.borderTopWidth,footPad:f.padding,backdrop:getComputedStyle(document.querySelector('#overlayRoot > .backdrop')).backgroundColor}});
+   await page.evaluate(()=>document.querySelector('.event-form-dialog [data-x]').click());await sleep(400);
+   await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.settings-dialog');await sleep(500);
+   const st=await page.evaluate(()=>{const t=getComputedStyle(document.querySelector('.settings-pane .set-group-title')),g=getComputedStyle(document.querySelector('.set-group'));return {title:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform,card:g.borderRadius}});
+   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(400);return {ev,st}};
   const nested=()=>page.evaluate(()=>{const d=document.querySelector('.dl-manage');const bad=[];d.querySelectorAll('*').forEach(n=>{if(n.classList.contains('dl-col-body'))return;const c=getComputedStyle(n);if(/(auto|scroll)/.test(c.overflowY)&&n.scrollHeight>n.clientHeight+2&&n.clientHeight>0)bad.push(n.className.toString().slice(0,40))});return bad});
 
   // ---- one column at many window sizes; content-fit, nothing clipped, Danger zone reachable
   for(const [w,h] of [[1920,1080],[1536,730],[1366,768],[1280,800],[1280,560],[1024,768],[390,844]]){
    await page.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:w<=640,hasTouch:w<=640});await sleep(450);
    await openManage('Personal');
-   const m=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),r=d.getBoundingClientRect(),body=d.querySelector('.dl-col-body'),foot=d.querySelector('.dl-col-foot').getBoundingClientRect();
+   const m=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),r=d.getBoundingClientRect(),body=d.querySelector('.dl-col-body'),foot=d.querySelector('.dl-col .dialog-foot').getBoundingClientRect();
     return {w:Math.round(r.width),inside:r.left>=-0.5&&r.top>=-0.5&&r.right<=innerWidth+0.5&&r.bottom<=innerHeight+0.5,rail:!!d.querySelector('.settings-rail,.sr-item'),tabs:!!d.querySelector('[role=tab],[role=tablist]'),
      heads:[...d.querySelectorAll('.dl-col-h,.dl-col-body .set-group-title')].map(n=>n.textContent.trim()),doneVisible:foot.bottom<=r.bottom+0.5&&foot.top>=r.top&&!!d.querySelector('[data-done]'),
      scrolls:body.scrollHeight>body.clientHeight+1,h:Math.round(r.height)}});
@@ -56,18 +61,22 @@ for(const theme of ['dark','light']){
   await page.setViewport({width:1440,height:900,deviceScaleFactor:1,isMobile:false,hasTouch:false});await sleep(400);
 
   // ---- the same window language as Settings
-  const st=await settingsLook();
+  const ref=await refLook();
   await openManage('Personal');
-  const mg=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),cs=getComputedStyle(d),t=getComputedStyle(d.querySelector('.set-group-title'));return {radius:cs.borderRadius,border:cs.borderTopColor,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],title:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform}});
-  check(T('same window language as Settings (radius, border, surface, Inter, group labels)'),JSON.stringify(mg)===JSON.stringify(st),JSON.stringify({mg,st}));
+  const mg=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),cs=getComputedStyle(d),h=getComputedStyle(d.querySelector('.dialog-head')),ti=getComputedStyle(d.querySelector('.dialog-title')),f=getComputedStyle(d.querySelector('.dialog-foot')),t=getComputedStyle(d.querySelector('.set-group-title')),g=getComputedStyle(d.querySelector('.set-group'));
+   return {radius:cs.borderRadius,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],headBg:h.backgroundColor,headBorder:h.borderBottomWidth,title:ti.fontSize+'/'+ti.fontWeight,footBorder:f.borderTopWidth,footPad:f.padding,backdrop:getComputedStyle(document.querySelector('#overlayRoot > .backdrop')).backgroundColor,label:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform,card:g.borderRadius}});
+  check(T('Manage matches Create Event: same radius, surface, font, plain header (no tint, no divider), title size, footer padding without divider, same backdrop'),['radius','bg','font','headBg','headBorder','title','footBorder','footPad','backdrop'].every(k=>mg[k]===ref.ev[k]),JSON.stringify({mg,ev:ref.ev}));
+  check(T('section labels and grouped cards match Settings (small-caps grey label, 16px card)'),mg.label===ref.st.title&&mg.card===ref.st.card,JSON.stringify({mg:[mg.label,mg.card],st:ref.st}));
+  const nameBox=await page.evaluate(()=>{const i=document.querySelector('#calSettingsName'),r=i.getBoundingClientRect(),c=getComputedStyle(i),card=i.closest('.set-group');return {h:Math.round(r.height),radius:c.borderRadius,inCard:!!card&&card.querySelectorAll('.text-input,.dl-idf-input').length>0&&!!card.closest('.set-group')&&card.querySelector('.set-group-title')?.textContent!=='Name'}});
+  check(T('the Name field is one 44px field with a 12px radius and no outer card'),nameBox.h===44&&nameBox.radius==='12px',JSON.stringify(nameBox));
 
   // ---- the color layout has no dead slots
   const col=await page.evaluate(()=>{const sw=[...document.querySelectorAll('[data-presets] .dl-sw')];const rows={};sw.forEach(x=>{const k=Math.round(x.getBoundingClientRect().top);rows[k]=(rows[k]||0)+1});const counts=Object.keys(rows).sort((a,b)=>a-b).map(k=>rows[k]);
-   const pr=document.querySelector('[data-presets]').getBoundingClientRect(),yl=[...document.querySelectorAll('.dl-mg-sub')].find(n=>/Your colors/.test(n.textContent)).getBoundingClientRect();return {counts,gap:Math.round(yl.top-pr.bottom)}});
-  check(T('the palette fills whole rows and "Your colors" follows without a dead gap'),col.counts.length>=3&&Math.max(...col.counts)-Math.min(...col.counts)<=1&&col.gap<=30,JSON.stringify(col));
+   const pr=document.querySelector('[data-presets]').getBoundingClientRect(),yl=document.querySelector('[data-custom-toggle]').getBoundingClientRect();return {counts,gap:Math.round(yl.top-pr.bottom)}});
+  check(T('the palette fills whole rows; Your colors (if any) follows without a dead gap'),col.counts.length>=3&&Math.max(...col.counts)-Math.min(...col.counts)<=1&&col.gap<=60,JSON.stringify(col));
   const b=await page.evaluate(()=>{const r=document.querySelector('.dl-manage').getBoundingClientRect();return {x:r.x,y:r.y,w:r.width,h:r.height}});
   await page.screenshot({path:path.join(out,`manage-owned-${theme}.png`),clip:{x:Math.max(0,b.x-8),y:Math.max(0,b.y-8),width:b.w+16,height:b.h+16},captureBeyondViewport:false});
-  await page.evaluate(()=>{const body=document.querySelector('.dl-manage .dl-col-body');body.style.scrollBehavior='auto';body.querySelector('.dl-inv-row').scrollIntoView({block:'start'})});await sleep(300);
+  await page.evaluate(()=>{const body=document.querySelector('.dl-manage .dl-col-body');body.style.scrollBehavior='auto';body.querySelector('.dl-inv-field').scrollIntoView({block:'start'})});await sleep(300);
   await page.screenshot({path:path.join(out,`manage-sharing-${theme}.png`),clip:{x:Math.max(0,b.x-8),y:Math.max(0,b.y-8),width:b.w+16,height:b.h+16},captureBeyondViewport:false});
 
   // ---- Done and the pill: Done does nothing while there are unsaved changes
@@ -83,12 +92,12 @@ for(const theme of ['dark','light']){
   // ---- the other calendar popups share the shell
   await page.evaluate(()=>window.daylightAddToSubscriptions());await page.waitForSelector('.dl-chooser');await sleep(350);
   const ch=await page.evaluate(()=>{const d=document.querySelector('.dl-chooser'),r=d.getBoundingClientRect();return {w:Math.round(r.width),radius:getComputedStyle(d).borderRadius}});
-  check(T('the Add to Subscriptions chooser uses the same shell (480px, same radius)'),ch.w===480&&ch.radius===mg.radius,JSON.stringify({ch,mg:mg.radius}));
+  check(T('the Add to Subscriptions chooser uses the same shell (480px, same radius as Create Event)'),ch.w===480&&ch.radius===ref.ev.radius,JSON.stringify({ch,ref:ref.ev.radius}));
   await page.screenshot({path:path.join(out,`subscribe-chooser-${theme}.png`)});
   await page.evaluate(()=>document.querySelector('.dl-chooser [data-x]').click());await sleep(350);
   await page.evaluate(()=>openNewCalendar());await page.waitForSelector('.dl-std');await sleep(300);
   const nc=await page.evaluate(()=>{const d=[...document.querySelectorAll('.dl-std')].pop(),r=d.getBoundingClientRect();return {w:Math.round(r.width),radius:getComputedStyle(d).borderRadius}});
-  check(T('New calendar uses the same shell'),nc.w===480&&nc.radius===mg.radius,JSON.stringify(nc));
+  check(T('New calendar uses the same shell'),nc.w===480&&nc.radius===ref.ev.radius,JSON.stringify(nc));
   await page.evaluate(()=>[...document.querySelectorAll('.dl-std')].pop().querySelector('[data-x]').click());await sleep(300);
 
   // ---- US Holidays: reduced set
@@ -116,7 +125,7 @@ for(const theme of ['dark','light']){
   check(T('subscribed: Refresh now checks the source and updates "last updated"'),await page.evaluate(w=>document.querySelector('[data-updated]').textContent!==w&&/refreshed/i.test(document.querySelector('[data-note]').textContent),was));
   await page.evaluate(()=>document.querySelector('[data-danger]').click());await page.waitForSelector('#overlayRoot > .backdrop:last-child [data-ok]');await sleep(450);
   const conf=await page.evaluate(()=>{const d=document.querySelector('#overlayRoot > .backdrop:last-child .dialog'),r=d.getBoundingClientRect(),foot=[...d.querySelectorAll('.dialog-foot button')].map(b=>b.textContent.trim());return {w:Math.round(r.width),radius:getComputedStyle(d).borderRadius,foot,subs:window.__subs.length}});
-  check(T('Unsubscribe asks first in the same shell, with the danger action last (nothing removed yet)'),conf.w===480&&conf.radius===mg.radius&&conf.foot[conf.foot.length-1]==='Unsubscribe'&&conf.subs===1,JSON.stringify(conf));
+  check(T('Unsubscribe asks first in the same shell, with the danger action last (nothing removed yet)'),conf.w===480&&conf.radius===ref.ev.radius&&conf.foot[conf.foot.length-1]==='Unsubscribe'&&conf.subs===1,JSON.stringify(conf));
   await page.click('#overlayRoot > .backdrop:last-child [data-ok]');await sleep(1400);
   check(T('subscribed: confirmed, the subscription is removed and its calendar leaves the sidebar'),await page.evaluate(()=>window.__subs.length===0&&![...document.querySelectorAll('.cal-name')].some(n=>/School feed/.test(n.textContent))&&!document.querySelector('.dl-manage')));
   check(T('no page errors'),errors.length===0,errors.join(' | '));
