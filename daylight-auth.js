@@ -68,7 +68,7 @@
   buildAuthFormInner = function () {
     var mode = authState.mode;
     if (mode === "forgot-email") {
-      return mark() + '<h1 class="auth-headline">Forgot your password?</h1>' +
+      return mark() + '<h1 class="auth-headline is-one-line">Forgot password?</h1>' +
         '<p class="auth-subline">Enter the email for your account and we’ll send you a link to reset it.</p>' +
         '<div class="auth-fields">' + authPillHtml("authEmail", "Email",
           '<input class="auth-pill-input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" value="' + esc(authState.email) + '" aria-invalid="false" aria-describedby="authEmailErr">',
@@ -97,7 +97,7 @@
     } else if (mode === "signup") {
       var pre = msgHtml();
       if (pre) html = html.replace(/(<button type="submit" class="auth-primary">)/, pre + "$1");
-      html = html.replace(/(<p class="auth-terms">[\s\S]*?<\/p>)/, function (m) { return m + methodsHtml(false) + footerHtml(false); });
+      html = html.replace(/(<p class="auth-terms">[\s\S]*?<\/p>)/, function (m) { return m + methodsHtml(true) + footerHtml(false); });   /* sign-up offers the passkey too: an existing passkey simply signs you in */
     }
     return html;
   };

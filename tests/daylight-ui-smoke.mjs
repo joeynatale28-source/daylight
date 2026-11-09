@@ -331,8 +331,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    assert.ok(profile.sessions.some(text=>text.includes('Chrome on Windows')&&text.includes('This device')),'current session is labelled This device: '+JSON.stringify(profile.sessions));
    const [current,other]=profile.sessionUi;
    assert.ok(current.badge!==null&&current.badge<=12&&current.badgeText==='This device'&&!current.signout,'current session wears a tiny This device badge and has no sign-out: '+JSON.stringify(current));
-   assert.ok(other.badge===null&&other.signout&&other.signout.w>=36&&other.signout.h>=36&&other.signout.title==='Sign out'&&other.signout.hasIcon&&other.signout.text===''&&!other.textButton,'other sessions get a red icon sign-out (>=36px, tooltip), not a text button: '+JSON.stringify(other));
-   assert.notEqual(other.signout.color,'rgb(237, 237, 237)','sign-out icon uses the destructive color');
+   assert.ok(other.badge===null&&other.signout&&other.signout.h>=30&&other.signout.text==='Sign out'&&!other.signout.hasIcon&&other.textButton,'other sessions get a small "Sign out" text button in the ghost family (Round 11): '+JSON.stringify(other));
    assert.ok(profile.closeSize[0]>=36&&profile.closeSize[1]>=36,'settings close hit target must be at least 36 by 36 pixels');
    await page.screenshot({path:path.join(out,'settings-profile-'+theme+'.png')});
    await page.click('.dl-session-signout');
@@ -652,7 +651,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // US Holidays: Calendar (color) + Export only.
  await page.evaluate(()=>{const row=[...document.querySelectorAll('.cal-row')].find(item=>item.querySelector('.cal-name')?.textContent==='US Holidays');row.querySelector('.cal-menu-btn').click()});
  await page.waitForSelector('.dl-manage',{timeout:3000});
- assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(n=>n.textContent.trim()).filter(h=>['Calendar','Sharing','Export','Danger zone'].includes(h))),['Calendar','Export'],'US Holidays: colors + Export only (no Sharing, no Delete)');
+ assert.deepEqual(await page.evaluate(()=>[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(n=>n.textContent.trim()).filter(h=>['Color','Sharing','Export','Danger zone'].includes(h))),['Color','Export'],'US Holidays: colors + Export only (no Sharing, no Delete)');
  assert.equal(await page.$('.dl-manage input#calSettingsName'),null,'US Holidays cannot be renamed');
  await page.evaluate(()=>document.querySelector('.dl-manage .settings-close').click());
  await page.waitForFunction(()=>!document.querySelector('.dl-manage'),{timeout:2000});

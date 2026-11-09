@@ -122,11 +122,26 @@
       /* ONE rhythm for the Profile cards: 36px icon tiles, 14px row padding, the same gap under every card title as the other panes,
          and the "Sign out all other sessions" link on the card text edge. */
       ".settings-pane .dl-sec-row,.settings-pane .dl-session-row{padding:14px 0;gap:14px}",
+      /* ONE label column rule: subtitles use the whole label column (no 430px cap, a slimmer gap before the control), so one-line subtitles
+         stay on one line at dialog width */
+      ".settings-pane .switch-row .sw-sub{max-width:none}",
+      ".settings-pane .set-row>span:first-child{padding-right:12px}",
+      ".settings-pane .set-row .dd{width:auto!important;min-width:118px;max-width:230px}",
+      ".settings-pane .dl-row-stack{flex-direction:column;align-items:flex-start!important;gap:10px}.settings-pane .dl-row-stack>span:first-child{padding-right:0}",
+      /* the floating Save pill never covers a control: the pane keeps room under its content while the pill shows; Saved shows no Discard */
+      ".settings-dialog:has(.settings-savebar:not([hidden])) .settings-pane{padding-bottom:104px}",
+      ".settings-savebar.is-saved [data-discard]{display:none}",
+      /* Shortcuts rows use the same divider as every other pane */
+      ".settings-pane .shortcut-row{border-bottom:1px solid var(--line-soft)!important}.settings-pane .shortcut-row:last-child{border-bottom:0!important}",
       ".settings-pane .dl-sec-row.is-main:first-of-type,.settings-pane .dl-sec-list .dl-sec-row:first-child{padding-top:14px}",
       ".settings-pane .dl-sec-group .dl-sec-row:last-child,.settings-pane .dl-session-row:last-child{padding-bottom:10px}",
       ".settings-pane .dl-sec-tile,.settings-pane .dl-session-device-icon{width:36px;height:36px;border-radius:10px}",
       ".settings-pane .dl-sec-group>.dl-sec-hint{margin:-2px 0 4px}",
-      ".settings-pane .dl-signout-others{padding:0 26px 18px}",
+      ".settings-pane .dl-session-signout{width:auto;height:32px;padding:0 13px;border-radius:999px;color:var(--text);display:inline-flex;align-items:center}.settings-pane .dl-session-signout:hover{background:var(--hover)}",
+      ".settings-pane .dl-session-all{display:flex;gap:14px;align-items:center;padding:14px 0 10px;border-top:1px solid var(--line-soft)}.settings-pane .dl-session-all:has([data-signout-others][hidden]){display:none}",
+      /* locked (read-only) fields: quiet, no hover or focus affordance, anywhere */
+      ".dl-idf-lock{background:transparent!important;border:1px solid var(--line-soft);color:var(--faint)!important;cursor:default}.dl-idf-lock span{color:var(--muted)!important}.dl-idf-lock:hover{background:transparent!important}",
+      "input:disabled:not([type=checkbox]):not([type=radio]),input[readonly],textarea:disabled{background:transparent!important;border:1px solid var(--line-soft)!important;color:var(--muted)!important;cursor:default;box-shadow:none!important;opacity:1}input:disabled:not([type=checkbox]):hover,input[readonly]:hover{background:transparent!important}",
       ".dl-birthday-ctl{display:inline-flex;align-items:center;gap:8px;flex:none}.dl-birthday-input{width:auto;min-width:150px;height:38px}.dl-birthday-ctl .btn-ghost[hidden]{display:none}",
     ".dl-identity-grid{display:grid;grid-template-columns:auto minmax(0,1fr) minmax(0,1.15fr);gap:14px;align-items:end;padding:4px 0 12px}.dl-idf{display:flex;flex-direction:column;gap:6px;min-width:0}.dl-idf-key{font-size:10.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}.dl-idf-input{height:40px;border:1px solid transparent;border-radius:10px;background:var(--input-bg);padding:0 12px;font:inherit;font-size:13.5px;color:var(--text);outline:none;min-width:0;width:100%;transition:background 120ms,border-color 120ms,box-shadow 120ms}.dl-idf-input:hover{background:var(--hover)}.dl-idf-input:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}.dl-idf-lock{height:40px;display:flex;align-items:center;gap:8px;padding:0 12px;border-radius:10px;background:var(--input-bg);color:var(--muted);font-size:13px;min-width:0}.dl-idf-lock .ic{flex:none}.dl-idf-lock span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}.dl-profile-photo{flex:none}.dl-profile-avatar{width:44px;height:44px;border-radius:50%;display:grid;place-items:center;overflow:hidden;background:var(--text);color:var(--bg);font-size:14px;font-weight:650;letter-spacing:.01em}.dl-sec-row{display:flex;align-items:center;gap:12px;padding:4px 0 8px}.dl-sec-tile{width:36px;height:36px;border-radius:10px;background:var(--hover);display:grid;place-items:center;color:var(--muted);flex:none}.dl-sec-text{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}.dl-sec-text .sw-label{font-size:14px;font-weight:550}.dl-sec-text .sw-sub{font-size:12.5px;color:var(--muted)}.dl-signout-others{padding:2px 4px 14px}.dl-link-danger{color:var(--danger);font-size:13px;font-weight:600;padding:6px 0;cursor:pointer}.dl-link-danger:hover{text-decoration:underline}.dl-link-danger[hidden]{display:none}@media(max-width:560px){.dl-identity-grid{grid-template-columns:auto 1fr}.dl-identity-grid .dl-idf:last-child{grid-column:1/-1}}.dl-profile-avatar img{width:100%;height:100%;object-fit:cover;display:block}.dl-identity-text{min-width:0;flex:1}.dl-identity-name{font-size:17px;font-weight:650;letter-spacing:-.015em;line-height:1.25;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-identity-email{font-size:13px;color:var(--muted);margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-profile-photo-actions [hidden]{display:none!important}.dl-profile-photo-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}.dl-btn-sm{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px;flex:none}.dl-row-input{width:240px;max-width:48%;flex:none}.dl-readonly-value{font-size:13.5px;color:var(--text);font-weight:500;flex:none;max-width:52%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-top:2px}.dl-profile-status{min-height:0;font-size:12px;color:var(--muted);margin:0}.dl-profile-status:not(:empty){margin:4px 0 8px}.dl-profile-status.is-error{color:var(--danger)}.dl-session-list{display:flex;flex-direction:column}.dl-session-row{display:flex;gap:12px;align-items:center;padding:12px 0;border-bottom:1px solid var(--line-soft)}.dl-session-row:last-child{border-bottom:0}.dl-session-device-icon{width:34px;height:34px;display:grid;place-items:center;border-radius:10px;background:var(--hover);color:var(--muted);flex:none}.dl-session-text{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}.dl-session-name{font-size:14px;font-weight:550}.dl-session-badge{display:inline-block;vertical-align:1px;margin-left:8px;padding:2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.01em;line-height:16px}.dl-session-signout{width:36px;height:36px;border-radius:8px;display:inline-grid;place-items:center;color:var(--danger);cursor:pointer;transition:background 140ms}.dl-session-signout:hover{background:color-mix(in srgb,var(--danger) 12%,transparent)}.dl-session-signout:focus-visible{outline:2px solid var(--danger);outline-offset:1px}.dl-session-signout:disabled{opacity:.5;cursor:default}.dl-session-meta{font-size:12.5px;color:var(--muted)}.dl-session-actions{flex:none}.dl-session-loading i{display:block;height:9px;width:46%;border-radius:5px;background:var(--hover)}.dl-session-loading i+i{width:28%;margin-top:6px}",
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
@@ -479,7 +494,7 @@
     /* Birthday: saved with Save; it keeps one yearly all-day "<First name>'s Birthday" event on the account's own default
        calendar in step (created, moved, renamed or removed when the birthday or the first name changes). */
     var birthday = el('<div class="set-group"><div class="set-group-title">Birthday</div>' +
-      '<div class="set-row switch-row"><span><span class="sw-label">Your birthday</span><div class="sw-sub">Adds a yearly all-day event to your calendar. Clear it to remove the event.</div></span>' +
+      '<div class="set-row switch-row dl-row-stack"><span><span class="sw-label">Your birthday</span><div class="sw-sub">Adds a yearly all-day event to your calendar. Clear it to remove the event.</div></span>' +
       '<span class="dl-birthday-ctl"><input type="date" class="text-input dl-birthday-input" id="profileBirthday" aria-label="Birthday"><button type="button" class="btn-ghost dl-btn-sm" data-birthday-clear>Clear</button></span></div></div>');
     var birthdayInput = birthday.querySelector("#profileBirthday"), birthdayClear = birthday.querySelector("[data-birthday-clear]");
     birthdayInput.value = state.birthday || "";
@@ -512,8 +527,9 @@
 
     var sessions = el('<div class="set-group"><div class="set-group-title">Active sessions</div><div class="dl-session-list" role="list"></div><div class="dl-profile-status" data-session-status role="status" aria-live="polite"></div></div>');
     pane.appendChild(sessions);
-    var othersRow = el('<div class="dl-signout-others"><button type="button" class="dl-link-danger" data-signout-others hidden>Sign out all other sessions</button></div>');
-    pane.appendChild(othersRow);
+    /* "Sign out all other sessions" is a proper row at the bottom of the same card (it shows only when there is another session). */
+    var othersRow = el('<div class="dl-session-all"><span class="dl-session-text"><span class="dl-session-name">All other sessions</span><span class="dl-session-meta">Sign out every device except this one.</span></span><span class="dl-session-actions"><button type="button" class="btn-ghost dl-btn-sm" data-signout-others hidden>Sign out all</button></span></div>');
+    sessions.querySelector(".dl-session-list").after(othersRow);
     var othersButton = othersRow.querySelector("button");
     var otherSessions = [];
     var listRows = [];
@@ -576,7 +592,7 @@
         if (session.current) row.querySelector(".dl-session-name").insertAdjacentHTML("beforeend", '<span class="dl-session-badge">This device</span>');
         row.querySelector(".dl-session-meta").textContent = session.current ? "Active now" : relativeTime(session.last_active ? new Date(session.last_active) : null);
         if (!session.current) {
-          var revoke = el('<button type="button" class="dl-session-signout" title="Sign out" aria-label="Sign out ' + esc(parsed.label) + '">' + icon("logout", 18) + "</button>");
+          var revoke = el('<button type="button" class="btn-ghost dl-btn-sm dl-session-signout" aria-label="Sign out ' + esc(parsed.label) + '">Sign out</button>');
           revoke.addEventListener("click", function () {
             openConfirm({ title: "Sign out " + parsed.label + "?", body: "That device will need to sign in again.", confirmLabel: "Sign out", danger: true, fn: async function () {
               revoke.disabled = true;
@@ -684,6 +700,11 @@ style.textContent=`
 .day-num:hover{background:var(--gray-2);border-radius:6px}
 /* AI access: the same finish as the other Settings panes (presentation only) */
 .dl-ai-wrap .set-group{margin-bottom:24px}
+.dl-ai-app-cards{align-items:stretch}.dl-ai-app-card{display:flex;flex-direction:column}
+.dl-ai-app-card .dl-chatgpt-featured{flex:1;display:flex;flex-direction:column;justify-content:flex-start;align-items:flex-start}.dl-ai-app-card .dl-chatgpt-identity{margin:0;flex:none}.dl-ai-app-card .dl-chatgpt-status{margin-top:auto;padding-top:16px;align-self:flex-start}
+.dl-ai-app-card [data-copy-claude-url]{margin-top:auto;align-self:flex-start}
+.dl-ai-app-card .btn-primary,.dl-ai-app-card .btn-ghost{background:transparent;color:var(--text);border:1px solid var(--line);height:36px;padding:0 16px;border-radius:999px;margin:0;font-size:13.5px;font-weight:550}
+.dl-ai-app-card .btn-primary:hover,.dl-ai-app-card .btn-ghost:hover{background:var(--hover);filter:none;box-shadow:none}
 .dl-ai-app-cards{gap:16px;margin-bottom:24px}
 .dl-ai-app-card{padding:22px 26px 24px;border:1px solid var(--line-soft);border-radius:16px;background:var(--gray-2)}
 [data-theme="light"] .dl-ai-app-card{background:var(--surface)}

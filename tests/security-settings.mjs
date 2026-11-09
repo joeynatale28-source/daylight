@@ -25,13 +25,14 @@ for(const theme of ['dark','light']){
   const calls=()=>page.evaluate(()=>window.__authCalls||[]);
   const openProfile=async()=>{await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.dl-sec-group');await sleep(700)};
   const closeSettings=async()=>{await page.evaluate(()=>document.querySelector('.settings-close').click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
-  const methods=()=>page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')].map(r=>({name:r.querySelector('.sw-label').textContent,sub:r.querySelector('.sw-sub').textContent,btn:[...r.querySelectorAll('button')].map(b=>b.textContent.trim()),note:(r.querySelector('.dl-sec-note')||{}).textContent||''})));
+  const methods=()=>page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')].map(r=>({name:r.querySelector('.sw-label').textContent,sub:r.querySelector('.sw-sub').textContent,btn:[...r.querySelectorAll('button')].map(b=>b.textContent.trim()),note:(r.querySelector('.dl-sec-note')||{}).textContent||'',status:(r.querySelector('.dl-sec-status')||{}).textContent||''})));
   const barHidden=()=>page.evaluate(()=>document.querySelector('.settings-savebar').hidden);
   await openProfile();
   const sec=await page.evaluate(()=>{const g=document.querySelector('.dl-sec-group');return {title:g.querySelector('.set-group-title').textContent,rows:[...g.querySelectorAll('.dl-sec-row.is-main .sw-label')].map(n=>n.textContent.replace(/\s+/g,' ').trim()),badge:(g.querySelector('.dl-new-badge')||{}).textContent,groups:[...document.querySelectorAll('.settings-pane .set-group-title')].map(n=>n.textContent.trim())}});
   check(T('Security has a Password row and a Passkeys row with a New badge'),sec.title==='Security'&&sec.rows.join('|')==='Password|PasskeysNew'&&sec.badge==='New',JSON.stringify(sec));
   check(T('Sign-in methods follows Security'),sec.groups.indexOf('Sign-in methods')===sec.groups.indexOf('Security')+1,JSON.stringify(sec.groups));
   let m=await methods();
+  check(T('every method row has a right-side status or action (Email On, Passkeys Not set up)'),m[0].status==='On'&&m[2].status==='Not set up'&&m[1].btn.length===1,JSON.stringify(m));
   check(T('methods: email, Google, passkeys'),m.map(x=>x.name).join('|')==='Email and password|Google|Passkeys'&&m[1].btn.join()==='Connect'&&/demo@example.com/.test(m[0].sub),JSON.stringify(m));
   await page.screenshot({path:path.join(out,`1-security-${theme}.png`)});
 
@@ -49,11 +50,17 @@ for(const theme of ['dark','light']){
   const list=await page.evaluate(()=>[...document.querySelectorAll('[data-pk-list] [data-pk]')].map(r=>r.querySelector('[data-name]').textContent+' / '+r.querySelector('[data-meta]').textContent));
   check(T('the passkey is listed with when it was added and "Never used"'),list.length===1&&/^Work laptop \/ Added .+ · Never used$/.test(list[0]),JSON.stringify(list));
   m=await methods();
-  check(T('Sign-in methods counts the passkey'),/1 passkey added/.test(m[2].sub),JSON.stringify(m[2]));
+  check(T('Sign-in methods shows Passkeys as Connected (the count lives only in the Passkeys section)'),/Connected/.test(m[2].status)&&!/passkey added|on this account/.test(m[2].sub),JSON.stringify(m[2]));
 
-  // rename
+  // rename: in place, full-width, only Save and Cancel while editing
   await page.click('[data-pk] [data-rename]');await sleep(200);
-  await page.$eval('.dl-sec-rename input',n=>{n.value=''});await page.type('.dl-sec-rename input','Phone');await page.click('.dl-sec-rename .btn-primary');await sleep(500);
+  const ed=await page.evaluate(()=>{const r=document.querySelector('[data-pk]');const i=r.querySelector('.dl-pk-input');const ib=i.getBoundingClientRect(),tb=r.querySelector('.dl-sec-text').getBoundingClientRect(),sb=r.querySelector('[data-meta]').getBoundingClientRect();
+   return {w:Math.round(ib.width),textW:Math.round(tb.width),value:i.value,fullyVisible:i.scrollWidth<=i.clientWidth,view:getComputedStyle(r.querySelector('[data-view]')).display==='none',edit:!r.querySelector('[data-edit]').hidden,metaBelow:sb.top>=ib.bottom-1,gap:Math.round(tb.left-ib.left),tile:!!r.querySelector('.dl-sec-tile'),indent:Math.round(r.querySelector('.dl-pk-glyph').getBoundingClientRect().left-document.querySelector('.dl-sec-group .dl-sec-tile').getBoundingClientRect().left)}});
+  check(T('rename editor: the name becomes a field the full width of the name area, pre-filled and fully visible, subtitle stays on its own line under it'),ed.w>=ed.textW-4&&ed.w>=200&&ed.value==='Work laptop'&&ed.fullyVisible&&ed.metaBelow&&Math.abs(ed.gap)<=1,JSON.stringify(ed));
+  check(T('while editing Rename and Remove are hidden; only Save and Cancel show'),ed.view&&ed.edit);
+  check(T('passkey entries have no icon tile and are indented under the Passkeys row'),!ed.tile&&ed.indent>=40,JSON.stringify(ed));
+  await page.screenshot({path:path.join(out,`2b-rename-editing-${theme}.png`)});
+  await page.$eval('.dl-pk-input',n=>{n.value=''});await page.type('.dl-pk-input','Phone');await page.click('[data-pk] [data-save]');await sleep(500);
   check(T('renaming saves the new name'),(await page.evaluate(()=>document.querySelector('[data-pk] [data-name]').textContent))==='Phone'&&(await calls()).some(x=>x.fn==='pkUpdate'&&x.a.friendlyName==='Phone'));
   // remove asks twice
   await page.click('[data-pk] [data-remove]');await sleep(150);

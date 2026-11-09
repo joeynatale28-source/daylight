@@ -978,7 +978,7 @@
       }
       .picker-btn:hover { background: var(--hover); }
       .picker-btn .ic { color: var(--muted); }
-      .picker-btn:disabled { opacity: 0.45; cursor: default; }
+      .picker-btn:disabled { opacity: var(--dl-disabled-opacity, 0.55); cursor: default; }
       .date-pop {
         position: fixed; z-index: 500; background: var(--surface); border: 1px solid var(--line);
         border-radius: 10px; padding: 12px; box-shadow: var(--shadow-pop); width: 252px;
@@ -1126,7 +1126,7 @@
       }
       .dd:hover { background: var(--hover); }
       .dd.open { background: var(--hover); border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); }
-      .dd:disabled { opacity: 0.45; cursor: default; }
+      .dd:disabled { opacity: var(--dl-disabled-opacity, 0.55); cursor: default; }
       .dd:disabled:hover { background: var(--input-bg); }
       .dd .dd-val { flex: 1 1 auto; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
       .dd .dd-chev { flex: none; display: inline-flex; color: var(--muted); }
@@ -1556,7 +1556,7 @@
       .auth-rule.ok .rule-ic { background: #22a06b; border-color: #22a06b; animation: rulePop 340ms cubic-bezier(0.34, 1.56, 0.64, 1); }
       .auth-rule.ok .rule-ic svg path { stroke-dashoffset: 0; opacity: 1; }
       @keyframes rulePop { 0% { transform: scale(0.55); } 55% { transform: scale(1.22); } 100% { transform: scale(1); } }
-      .auth-primary { width: 100%; height: 58px; margin-top: 8px; border-radius: 999px; background: var(--auth-primary-bg); color: var(--auth-primary-text); font-size: 15.5px; font-weight: 600; letter-spacing: 0.005em; display: inline-flex; align-items: center; justify-content: center; transition: background 120ms, transform 120ms, opacity 120ms; }
+      .auth-primary { width: 100%; height: 50px; margin-top: 8px; border-radius: 999px; background: var(--auth-primary-bg); color: var(--auth-primary-text); font-size: 15.5px; font-weight: 600; letter-spacing: 0.005em; display: inline-flex; align-items: center; justify-content: center; transition: background 120ms, transform 120ms, opacity 120ms; }
       .auth-primary:hover { background: var(--auth-primary-hover); }
       .auth-primary:active { transform: scale(0.99); }
       .auth-forgot-row { display: flex; justify-content: center; margin-top: 17px; }
@@ -1597,7 +1597,7 @@
       /* Visual side (right) — one art moment, lots of air */
       .auth-visual-panel { flex: 1 1 55%; min-width: 0; position: relative; overflow: hidden; background: var(--auth-visual); color: var(--auth-text); display: flex; align-items: center; justify-content: center; }
       .auth-visual-word { position: absolute; top: 32px; left: 30px; font-size: 15px; font-weight: 700; letter-spacing: -0.015em; color: var(--auth-text); }
-      .auth-art { position: relative; width: 322px; max-width: 72%; }
+      .auth-art { position: relative; width: 440px; max-width: 80%; }
       /* Entrance rise for the art — first load only (see .is-enter above).
          The panel itself is never re-created after the shell is built, so
          this cannot replay on a mode switch or theme toggle. */
@@ -1605,8 +1605,11 @@
       .auth-art::before { content: ""; position: absolute; inset: -70px -50px; background: radial-gradient(closest-side, var(--auth-glow), transparent 72%); pointer-events: none; }
       .auth-art-float { position: relative; animation: authFloat 7s ease-in-out 1.2s infinite; }
       .auth-art-month { font-family: var(--font); font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--auth-muted); margin: 0 0 14px 2px; }
-      .auth-art-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 9px; position: relative; }
-      .auth-art-day { height: 40px; border-radius: 12px; background: var(--auth-tile); display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px 8px; font-size: 11.5px; font-weight: 500; color: var(--auth-tile-num); position: relative; }
+      .auth-art-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; position: relative; }
+      .auth-art-dow { text-align: center; font-size: 10.5px; font-weight: 650; letter-spacing: 0.08em; color: var(--auth-faint); padding-bottom: 2px; }
+      .auth-art-day.out { opacity: 0.38; }
+      .auth-art-chip { position: absolute; left: 4px; right: 4px; bottom: 5px; height: 17px; line-height: 17px; padding: 0 6px 0 8px; border-radius: 6px; font-size: 10px; font-weight: 600; color: var(--auth-text); overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .auth-art-day { height: 58px; border-radius: 12px; background: var(--auth-tile); display: flex; align-items: flex-start; justify-content: flex-start; padding: 6px 8px; font-size: 11.5px; font-weight: 500; color: var(--auth-tile-num); position: relative; }
       .auth-art-day .bar { position: absolute; left: 8px; bottom: 7px; width: 15px; height: 3.5px; border-radius: 3px; }
       .auth-art-day.today { background: var(--accent); color: var(--on-accent); font-weight: 700; box-shadow: 0 10px 26px color-mix(in srgb, var(--accent) 42%, transparent); }
       .auth-art-card { position: absolute; right: -26px; bottom: -30px; display: inline-flex; align-items: center; gap: 8px; background: var(--auth-card); border: 1px solid var(--auth-card-line); border-radius: 999px; padding: 9px 15px 9px 11px; font-size: 12.5px; font-weight: 500; color: var(--auth-text); box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22); }
@@ -1757,7 +1760,7 @@
 .dl-std .dl-banner { margin: 4px 0 8px; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; color: var(--danger); background: color-mix(in srgb, var(--danger) 10%, transparent); border: 1px solid color-mix(in srgb, var(--danger) 24%, transparent); }
 .dl-std .dl-banner.is-ok { color: var(--text); background: var(--hover); border-color: var(--line); }
 .dl-std .dl-banner[hidden] { display: none; }
-.dl-std .btn-primary:disabled { opacity: 0.45; cursor: default; }
+.dl-std .btn-primary:disabled { opacity: var(--dl-disabled-opacity, 0.55); cursor: default; }
 .dl-btn-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: dlLoadingSpin 700ms linear infinite; display: inline-block; }
 .dl-wd-check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; margin: 2px 0 12px; cursor: pointer; }
 .dl-wd-check[hidden] { display: none; }
@@ -1888,7 +1891,7 @@
 .dialog.dl-std .text-input, .dialog.dl-form .text-input, .dialog.dl-look .text-input { height: 44px; border-radius: 12px; padding: 0 16px; font-size: 14px; }
 .dialog.dl-std .field label, .dialog.dl-form .field label, .dialog.dl-look .field label { font-size: 12.5px; font-weight: 600; letter-spacing: 0; color: var(--muted); margin-bottom: 8px; }
 .dialog.dl-std .dl-std-field, .dialog.dl-form .dl-std-field { margin-bottom: 18px; }
-.dialog.dl-std .btn-primary:disabled, .dialog.dl-form .btn-primary:disabled, .dialog.dl-look .btn-primary:disabled { background: var(--surface2); color: var(--faint); opacity: 1; box-shadow: none; }
+.dialog.dl-std .btn-primary:disabled, .dialog.dl-form .btn-primary:disabled, .dialog.dl-look .btn-primary:disabled { background: var(--auth-primary-bg); color: var(--auth-primary-text); opacity: var(--dl-disabled-opacity); box-shadow: none; filter: none; }
 .dialog.dl-std .set-group-title, .dialog.dl-look .set-group-title { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin-bottom: 12px; }
 /* Confirmations: a readable body width and count phrases ("1 event") that never split across lines. */
 .dl-confirm .dialog-body p { max-width: 38ch; text-wrap: pretty; overflow-wrap: break-word; }
@@ -1916,10 +1919,10 @@
 .dl-sv-event span.when { color: var(--muted); flex-basis: 100%; padding-left: 22px; margin-top: -6px; }
 .dl-sv-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px; padding: 0 6px 4px; }
 .dl-sv-label { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin: 20px 0 6px; }
-.dl-sv-row2 { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.dl-sv-row2 { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-top: 12px; }
 .dl-sv-row2 .dl-inv-perm { height: 40px; border-radius: 12px; }
 .dl-sv-row2 .dl-inv-send { height: 36px; border-radius: 8px; padding: 0 20px; margin: 0; }
-.dl-sv-row2 .dl-inv-send:disabled { background: var(--surface2); color: var(--faint); opacity: 1; }
+.dl-sv-row2 .dl-inv-send:disabled { background: var(--auth-primary-bg); color: var(--auth-primary-text); opacity: var(--dl-disabled-opacity); }
 .dl-share-view .dl-inv-field { height: 44px; border-radius: 12px; width: 100%; flex: none; }
 .dl-sv-quiet { font-size: 13px; color: var(--faint); padding: 10px 0 4px; }
 .dl-sv-owner .dl-ppl-sub { display: block; }
@@ -1959,6 +1962,54 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
    primary buttons inside cards and pages start on the card's text edge instead of the 8px footer-gap margin. */
 .dialog.dl-std .dialog-body > .field:last-child { margin-bottom: 0; }
 .dl-page .btn-primary, .dl-page .dl-ad-actions .btn-primary, .set-group .dl-ad-actions .btn-primary { margin-left: 0; }
+/* Calendar views (Round 11). Month: even chip insets and ONE "today" treatment (the filled number; no tinted cell as well). */
+.day-cell { padding: 6px 5px 5px 6px; }
+.day-cell:last-child { padding-right: 6px; }
+.day-cell.today { background: transparent; }
+.day-cell.today.sel, .day-cell.sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
+/* Time grid: the 12 AM label sits inside the grid; the GMT label shares the hour labels' right edge; the now-pill sits in the grid on the
+   line (never over the hour labels). */
+.hour-label.is-first { transform: none; top: 4px !important; }
+.tg-gutter-head { align-items: flex-end; padding-right: 9px; font-size: 11px; letter-spacing: 0.02em; font-variant-numeric: tabular-nums; }
+.tg-wrap .now-pill { left: calc(var(--tg-gutter) + 6px); right: auto; transform: translateY(-100%); margin-top: -1px; border-radius: 6px 6px 6px 2px; }
+.hour-label { z-index: 7; }
+/* Day view: a one-hour event is not a screen-wide slab */
+.tg-day .ev-card { max-width: 720px; }
+/* Agenda and Tasks share one content column (same width, same left edge), and the agenda ends with a quiet line */
+.agenda-inner, .tasks-inner { max-width: 880px; }
+.agenda-end { text-align: center; font-size: 13px; color: var(--faint); padding: 28px 0 8px; }
+/* Sidebar rhythm: ONE row height, ONE section gap (the same under Create as under the mini calendar); the spare space sits above the account block. */
+#sidebar:not(.rail) { --sb-gap: 16px; }
+@media (max-height: 859px) { #sidebar:not(.rail) { --sb-gap: 10px; } }
+@media (max-height: 799px) { #sidebar:not(.rail) { --sb-gap: 8px; } }
+@media (min-height: 940px) { #sidebar:not(.rail) { --sb-gap: 20px; } }
+#sidebar:not(.rail) .create-pill { margin-bottom: var(--sb-gap); }
+#sidebar:not(.rail) #miniWrap { padding-bottom: var(--sb-gap); }
+#sidebar:not(.rail) .side-row, #sidebar:not(.rail) .side-row[data-side-row], #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 4px); padding-top: calc(var(--sb-row-py) - 1px); padding-bottom: calc(var(--sb-row-py) - 1px); }
+/* the row action buttons (gear, +) are never invisible-only: they show on hover, on keyboard focus anywhere in the row, and on touch */
+.cal-row:focus-within .cal-menu-btn, .side-label:focus-within .side-label-btn.add { opacity: 1; }
+@media (hover: none) { .cal-menu-btn, .side-label-btn.add { opacity: 1; } }
+/* Tasks: the empty state centers in the space that remains */
+.task-results:has(> .empty-state) { min-height: calc(100dvh - 400px); display: flex; align-items: center; justify-content: center; }
+/* Auth pages: one button height (the Log in / Create pill matches the Google and passkey pills), a balanced terms line, and a real
+   "Back to sign in" button. */
+.auth-primary, .auth-social, .auth-methods .auth-social { height: 50px; }
+.auth-terms { text-wrap: balance; }
+.auth-back { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--auth-ghost-border); font-size: 14px; font-weight: 550; color: var(--auth-muted); }
+.auth-back:hover { background: var(--auth-ghost-hover); color: var(--auth-text); text-decoration: none; }
+.auth-headline.is-one-line { white-space: nowrap; }
+/* The Create menu is as wide as the sidebar column, so it covers the mini calendar's next-month arrow instead of leaving a stray ">" at the Event row's edge. */
+.menu.dl-create-menu { width: min(260px, calc(100vw - 24px)); }
+/* ONE disabled rule for the whole app: the control keeps its own look and drops to the standard disabled opacity. */
+:root { --dl-disabled-opacity: 0.55; }
+.btn-primary:disabled, .btn-ghost:disabled, .btn-danger:disabled, .btn-danger-outline:disabled, .dd.disabled, .dd[aria-disabled="true"], .switch input:disabled + .slider, select:disabled, button.picker-btn:disabled { opacity: var(--dl-disabled-opacity); cursor: default; }
+/* ONE field treatment in every dialog: grey at rest; the elevated surface with the blue ring on focus (text, text area, pickers, dropdowns). */
+.dialog .text-input, .dialog .text-area, .dialog .picker-btn, .dialog .dd { background: var(--input-bg); }
+.dialog .text-input:focus, .dialog .text-area:focus, .dialog .picker-btn:focus, .dialog .picker-btn:focus-visible, .dialog .dd:focus-visible, .dialog .dd.open {
+  background: var(--surface); border-color: color-mix(in srgb, var(--accent) 55%, transparent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent); outline: none; }
+.dialog .text-input:disabled, .dialog .text-input[readonly] { background: transparent; }
+/* ONE label-to-field gap in every dialog */
+.dialog .field > label, .dialog .field > .field-label { display: block; margin-bottom: 10px; }
 /* The main calendar's lines and finish: hairlines at the same weight and color as Settings' dividers (the header rule used the heavier
    --line, and every cell edge was a full-strength line); events get the app's chip finish (8px radius, same padding). Lines and finish only. */
 .dow-row, .tg-head { border-bottom-color: var(--line-soft); }
@@ -3035,7 +3086,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             "</div>"
           );
           /* One button: a click anywhere on it opens the Event / Task menu. */
-          createPill.querySelector(".create-main").addEventListener("click", function () { openMenu(createPill, createMenuItems()); });
+          createPill.querySelector(".create-main").addEventListener("click", function () { openMenu(createPill, createMenuItems(), { className: "dl-create-menu" }); });
           sidebarEl.appendChild(createPill);
         }
         if (!state.sidebarRail) sidebarEl.appendChild(renderMiniCal());
@@ -3101,7 +3152,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             sidebarEl.appendChild(subList);
           }
         }
-        sidebarEl.appendChild(el('<div class="side-spacer"></div>'));
         if (!state.sidebarRail) sidebarEl.appendChild(el('<div class="side-label rail-hide"><span>Support</span></div>'));
         var help = el('<button class="side-row" title="Help center">' + icon("lifebuoy", 18) + '<span class="rail-hide">Help center</span></button>');
         help.addEventListener("click", function () { closeDrawer(); openHelp(); });
@@ -3114,6 +3164,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var set = el('<button class="side-row" title="Settings">' + icon("settings", 18) + '<span class="rail-hide">Settings</span></button>');
         set.addEventListener("click", function () { closeDrawer(); openSettings("profile"); });
         sidebarEl.appendChild(set);
+        /* sections stack with one gap; whatever space is left sits here, above the pinned account block */
+        sidebarEl.appendChild(el('<div class="side-spacer"></div>'));
         var profileInitials = state.profileName.trim().split(/\s+/).map(function (w) { return w.charAt(0).toUpperCase(); }).slice(0, 2).join("") || "?";
         var pw = el(
           '<div class="profile-wrap"><button class="profile-row" title="Account">' +
@@ -3327,6 +3379,13 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       }
 
       /* ================= Header ================= */
+      /* "Nov 8–14, 2026", "Nov 29 – Dec 5, 2026", "Dec 28, 2026 – Jan 3, 2027" */
+      function rangeLabel(days) {
+        var a = days[0], b = days[days.length - 1], sm = MONTHS[a.getMonth()].slice(0, 3), em = MONTHS[b.getMonth()].slice(0, 3);
+        if (a.getFullYear() !== b.getFullYear()) return sm + " " + a.getDate() + ", " + a.getFullYear() + " – " + em + " " + b.getDate() + ", " + b.getFullYear();
+        if (a.getMonth() !== b.getMonth()) return sm + " " + a.getDate() + " – " + em + " " + b.getDate() + ", " + b.getFullYear();
+        return sm + " " + a.getDate() + "–" + b.getDate() + ", " + b.getFullYear();
+      }
       function renderHeader() {
         /* The header band is the whole top of the main area — the
            compact toolbar cluster at the left, the drawer button,
@@ -3351,17 +3410,21 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         hdr.appendChild(ham);
         if (state.section === "calendar") {
           var isDay = state.view === "day";
-          var label = isDay ? fmtDateLong(state.cursor) : MONTHS[state.cursor.getMonth()] + " " + state.cursor.getFullYear();
-          var prevName = isDay ? "Previous day" : "Previous month";
-          var nextName = isDay ? "Next day" : "Next month";
+          var isWeek = state.view === "week", isAgenda = state.view === "agenda";
+          var label = isDay ? fmtDateLong(state.cursor) : isWeek ? rangeLabel(weekDays(state.cursor)) : isAgenda ? rangeLabel([sod(state.cursor), addDays(sod(state.cursor), 20)]) : MONTHS[state.cursor.getMonth()] + " " + state.cursor.getFullYear();
+          var unit = isDay ? "day" : isWeek ? "week" : isAgenda ? "period" : "month";
+          var prevName = "Previous " + unit;
+          var nextName = "Next " + unit;
           var tb = el('<div class="cal-toolbar">' +
             '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>" +
             '<span class="month-title' + (isDay ? " is-day" : "") + '" id="tbMonth">' + esc(label) + "</span>" +
             '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>" +
             '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + "</button>" +
           "</div>");
-          tb.querySelector("#tbPrev").addEventListener("click", function () { if (state.view === "day") pageDay(-1); else pageMonth(-1); });
-          tb.querySelector("#tbNext").addEventListener("click", function () { if (state.view === "day") pageDay(1); else pageMonth(1); });
+          /* the arrows move by the unit the header names: a day, a week, the agenda's three-week period, or a month */
+          function pageHeader(dir) { if (state.view === "day") pageDay(dir); else if (state.view === "week" || state.view === "agenda") pageBy(dir, true); else pageMonth(dir); }
+          tb.querySelector("#tbPrev").addEventListener("click", function () { pageHeader(-1); });
+          tb.querySelector("#tbNext").addEventListener("click", function () { pageHeader(1); });
           tb.querySelector("#tbToday").addEventListener("click", function () { goTodayMonth(); });
           hdr.appendChild(tb);
         }
@@ -3411,8 +3474,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           '<div class="dl-notif-empty"><span class="dl-notif-empty-ic">' + icon("bell", 20) + '</span><div class="dl-notif-empty-title">You’re all caught up</div><div class="dl-notif-empty-sub">New notifications will show up here.</div></div></div>');
         document.body.appendChild(panel);
         var r = anchor.getBoundingClientRect(), w = panel.offsetWidth;
+        var group = anchor.closest(".head-right"), edge = group ? group.getBoundingClientRect().right : r.right;   /* flush with the header actions' right edge */
         panel.style.top = Math.round(r.bottom + 8) + "px";
-        panel.style.left = Math.round(Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8))) + "px";
+        panel.style.left = Math.round(Math.max(8, Math.min(edge - w, window.innerWidth - w - 8))) + "px";
         notifPanelEl = panel; notifPanelAnchor = anchor;
         if (window.daylightNotifications) window.daylightNotifications.mount(panel);
         anchor.setAttribute("aria-expanded", "true");
@@ -3526,7 +3590,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             var today=days.some(function(d){return sameDay(d,TODAY);});
             var anchor=today?(new Date().getHours()+new Date().getMinutes()/60-1):(Number(state.workStart||540)/60);
             relevant.forEach(function(o){var hour=o.start.getHours()+o.start.getMinutes()/60;if(hour<anchor)anchor=hour;});
-            sc.scrollTop=Math.max(0,anchor*hourPx());
+            sc.scrollTop=Math.max(0,anchor*hourPx()-14);
           }
         }
       }
@@ -3866,8 +3930,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var scroll = el('<div class="tg-scroll"></div>');
         var body = el('<div class="tg-body" style="grid-template-columns:' + gridCols + ";height:" + 24 * hourPx() + 'px"></div>');
         var gutter = el('<div class="tg-gutter"></div>');
-        for (var hr = 1; hr < 24; hr++) {
-          var lab = el('<span class="hour-label" style="top:' + hr * hourPx() + 'px">' + fmtHourLabel(hr) + "</span>");
+        for (var hr = 0; hr < 24; hr++) {
+          var lab = el('<span class="hour-label' + (hr === 0 ? " is-first" : "") + '" style="top:' + hr * hourPx() + 'px">' + fmtHourLabel(hr) + "</span>");
           gutter.appendChild(lab);
         }
         body.appendChild(gutter);
@@ -3904,7 +3968,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var line = el('<div class="now-line" style="top:' + nowMin / 60 * hourPx() + 'px;left:var(--tg-gutter)"></div>');
           body.appendChild(line);
           var nowTxt = fmtEventTime(now);
-          var gutPill = el('<span class="now-pill" style="top:' + nowMin / 60 * hourPx() + 'px;left:2px;right:auto">' + nowTxt + "</span>");
+          var gutPill = el('<span class="now-pill" style="top:' + nowMin / 60 * hourPx() + 'px">' + nowTxt + "</span>");
           body.appendChild(gutPill);
         }
         scroll.appendChild(body);
@@ -3965,6 +4029,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             inner.appendChild(card);
           });
         });
+        if (keys.length) inner.appendChild(el('<div class="agenda-end">No more events in ' + MONTHS[addDays(start, 20).getMonth()] + '</div>'));
         scroll.appendChild(inner);
         var w = el('<div style="display:flex;flex-direction:column;flex:1;min-height:0"></div>');
         w.appendChild(scroll);
@@ -4106,8 +4171,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               host.appendChild(buildEmptyState({
                 icon: "checkSq", title: "No tasks yet",
                 sub: "Add your first task above — homework, swim gear, anything you need to remember.",
-                btnLabel: "Add a task", hint: false,
-                onBtn: function () { var i = document.getElementById("taskTitleInput"); if (i) i.focus(); }
+                hint: false
               }));
             } else if (state.taskFilter === "active") {
               host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing active", sub: "Everything is done. Nice work.", hint: false }));
@@ -4361,7 +4425,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             esc(ev.loc) + '</span></div>';
         }
         if (ev.desc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("alignLeft", 18) + '</span><span class="pop-main pop-desc">' + esc(ev.desc) + "</span></div>";
-        rows += '<div class="pop-row"><span class="pop-ic">' + icon("calendar", 18) + '</span><span class="pop-main">' + esc(cal.name) + (readOnly ? '<span class="pr-sub">' + (cal.builtin ? "Built-in calendar" : "Subscribed calendar") + "</span>" : "") + (ev.declined ? '<span class="pr-sub">Declined</span>' : "") + "</span></div>";
+        /* the calendar is named once, by the chip under the title (a second calendar row repeated it) */
+        if (ev.declined) rows += '<div class="pop-row"><span class="pop-ic">' + icon("info", 18) + '</span><span class="pop-main">Declined</span></div>';
         if (ev.reminder != null) rows += '<div class="pop-row"><span class="pop-ic">' + icon("bell", 18) + '</span><span class="pop-main">' + esc(fmtReminder(ev.reminder)) + "</span></div>";
         if (readOnly) rows += '<div class="pop-row"><span class="pop-ic">' + icon("info", 18) + '</span><span class="pop-main" style="color:var(--muted);font-size:13px">Read-only — you can\'t create, edit, or delete events on this calendar.</span></div>';
         var calLine = '<div class="pop-cal-line"><span class="pop-cal-chip"><span style="width:8px;height:8px;border-radius:50%;background:' + dotOf(cal) + ';display:inline-block"></span>' + esc(cal.name) + "</span>" + (ev.allDay ? "<span>All day</span>" : "") + (ev.repeat ? "<span>" + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span>" : "") + "</div>";
@@ -4769,7 +4834,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var pal = el('<div class="palette" role="dialog" aria-modal="true" aria-label="Search events">' +
           '<div class="palette-input-row">' + icon("search", 19) +
           '<input class="palette-input" id="palInput" type="text" placeholder="Search events…" aria-label="Search events" autocomplete="off" spellcheck="false">' +
-          '<button class="palette-clear" id="palClear" title="Clear search" aria-label="Clear search">' + icon("x", 13) + "</button>" +
           '<button class="palette-close" id="palClose" title="Close search" aria-label="Close search">' + icon("x", 17) + "</button></div>" +
           '<div class="palette-results" id="palResults"></div></div>');
         bd.appendChild(pal);
@@ -4779,8 +4843,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         bd.addEventListener("mousedown", function (e) { if (e.target === bd) closeSearch(); });
         pal.querySelector("#palClose").addEventListener("click", closeSearch);
         var inp = pal.querySelector("#palInput");
-        var clearBtn = pal.querySelector("#palClear");
-        clearBtn.addEventListener("click", function () { inp.value = ""; drawSearch(); inp.focus(); });
         inp.addEventListener("input", function () { drawSearch(); });
         inp.addEventListener("keydown", function (e) {
           if (e.key === "Enter") {
@@ -4798,9 +4860,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var inp = document.getElementById("palInput");
         if (!inp || !paletteEl) return;
         var results = paletteEl.querySelector("#palResults");
-        var clearBtn = document.getElementById("palClear");
         var q = inp.value.trim().toLowerCase();
-        if (clearBtn) clearBtn.classList.toggle("show", q.length > 0);
         results.innerHTML = "";
         if (!q) {
           results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events.</p></div>"));
@@ -5212,7 +5272,10 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         ddSetOptions(sumSel, minuteOptionList(30), state.summaryTime);
         sumSel.addEventListener("change", function () { state.summaryTime = +sumSel.value; });
         g.querySelector("#ntSound").addEventListener("change", function (e) { state.notifSound = e.target.checked; });
-        g.querySelector("#ntDaily").addEventListener("change", function (e) { state.dailySummary = e.target.checked; });
+        /* a feature's controls are disabled whenever the feature is off (same rule as Quiet hours below) */
+        function syncSummary() { sumSel.disabled = !state.dailySummary; }
+        syncSummary();
+        g.querySelector("#ntDaily").addEventListener("change", function (e) { state.dailySummary = e.target.checked; syncSummary(); });
         var gq = el('<div class="set-group"><div class="set-group-title">Quiet hours</div>' +
           setRowHTML("Quiet hours", "Hold notifications during the hours below. They are delivered when quiet hours end.", switchHTML("ntQuiet", state.quietEnabled)) +
           setRowHTML("Quiet from", "Notifications are held starting at this time.", selectHTML("ntQStart", [], state.quietStart, "xs")) +
@@ -5222,7 +5285,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var qsSel = gq.querySelector("#ntQStart"), qeSel = gq.querySelector("#ntQEnd");
         ddSetOptions(qsSel, minuteOptionList(30), state.quietStart);
         ddSetOptions(qeSel, minuteOptionList(30), state.quietEnd);
-        function syncQuiet() { var dis = !state.quietEnabled; qsSel.disabled = dis; qeSel.disabled = dis; qsSel.style.opacity = dis ? "0.5" : ""; qeSel.style.opacity = dis ? "0.5" : ""; }
+        function syncQuiet() { var dis = !state.quietEnabled; qsSel.disabled = dis; qeSel.disabled = dis; }
         syncQuiet();
         gq.querySelector("#ntQuiet").addEventListener("change", function (e) { state.quietEnabled = e.target.checked; syncQuiet(); });
         qsSel.addEventListener("change", function () { state.quietStart = +qsSel.value; });
@@ -5316,30 +5379,29 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         return '<svg width="19" height="19" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.2H12v4.3h6.5c-.1 1.1-.8 2.7-2.4 3.8l3.7 2.9c2.3-2.1 3.7-5.2 3.7-8.8z"/><path fill="#34A853" d="M12 24c3.2 0 5.9-1.1 7.9-2.9l-3.7-2.9c-1 .7-2.4 1.2-4.2 1.2-3.2 0-5.9-2.1-6.8-5l-3.9 3C3.3 21.3 7.3 24 12 24z"/><path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-3.9-3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z"/><path fill="#EA4335" d="M12 4.7c1.8 0 3 .8 3.7 1.4l3.3-3.2C17.9 1.1 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l3.9 3c.9-2.8 3.6-4.9 6.8-4.9z"/></svg>';
       }
       function authArt() {
-        var bars = { 3: "#e3a93d", 7: "#43b581", 11: "#e3a93d", 16: "#5b8def", 26: "#e3a93d" };
-        var cells = "";
-        for (var d = 1; d <= 21; d++) {
-          cells += '<div class="auth-art-day' + (d === 2 ? " today" : "") + '">' + d + (bars[d] ? '<span class="bar" style="background:' + bars[d] + '"></span>' : "") + "</div>";
-        }
-        /* Floating example card: title, time and color are picked fresh
-           on every page load — authArt runs once, when the shell is
-           built, so the card then stays frozen through mode switches
-           and theme toggles like the rest of the panel. Nothing is
-           stored and there are no controls. The November grid above
-           (today disc, tiny bars) never changes. The color comes from
-           the app's own calendar PALETTE — azure (blue), violet, green,
-           amber, rose (the red family) — and the dot plus the card's
-           tint and border all follow the pick, mixed into
-           --auth-card / --auth-card-line so the card still adapts to
-           light and dark. */
-        var cardTitles = ["Swim practice", "Soccer game", "Q1 meeting"];
+        /* A complete little month: weekday header, every date (adjacent months faint), today's disc, a few tiny bars, and one example
+           event chip sitting INSIDE its cell. Title, color and day are picked fresh on each page load (authArt runs once, when the
+           shell is built, so it then stays frozen through mode switches and theme toggles). Nothing is stored; no controls. The chip's
+           color comes from the app's own PALETTE and is mixed into --auth-card so it adapts to light and dark. */
+        var now = new Date(), y = now.getFullYear(), mo = now.getMonth();
+        var first = new Date(y, mo, 1), startOffset = first.getDay(), dim = new Date(y, mo + 1, 0).getDate(), prevDim = new Date(y, mo, 0).getDate();
+        var rows = Math.ceil((startOffset + dim) / 7), total = rows * 7;
+        var cardTitles = ["Swim", "Game", "Gym", "Lunch"];
         var cardTitle = cardTitles[Math.floor(Math.random() * cardTitles.length)];
         var cardKeys = ["blue", "violet", "green", "amber", "rose"];
         var cardDot = (PALETTE[cardKeys[Math.floor(Math.random() * cardKeys.length)]] || PALETTE.blue).dot;
-        var cardMins = 7 * 60 + Math.floor(Math.random() * 27) * 30; /* 7:00 AM–8:00 PM inclusive, on the hour or half hour */
-        var cardH24 = Math.floor(cardMins / 60);
-        var cardTime = (((cardH24 + 11) % 12) + 1) + ":" + (cardMins % 60 === 0 ? "00" : "30") + " " + (cardH24 < 12 ? "AM" : "PM");
-        return '<div class="auth-art"><div class="auth-art-float"><p class="auth-art-month">November</p><div class="auth-art-grid">' + cells + '</div><div class="auth-art-card" style="background:color-mix(in srgb, ' + cardDot + ' 13%, var(--auth-card));border-color:color-mix(in srgb, ' + cardDot + ' 34%, var(--auth-card-line))"><span class="cdot" style="background:' + cardDot + '"></span><span>' + esc(cardTitle) + '</span><span class="ctime">' + cardTime + "</span></div></div></div>";
+        var chipDay = 8 + Math.floor(Math.random() * Math.max(1, dim - 12));       /* a mid-month date, always inside the grid */
+        var bars = {}; [3, 7, 11, 16, 24].forEach(function (d, i) { if (d <= dim && d !== chipDay) bars[d] = ["#e3a93d", "#43b581", "#e3a93d", "#5b8def", "#e3a93d"][i]; });
+        var dows = ["S", "M", "T", "W", "T", "F", "S"].map(function (d) { return '<div class="auth-art-dow">' + d + "</div>"; }).join("");
+        var cells = "";
+        for (var c = 0; c < total; c++) {
+          var d = c - startOffset + 1, out = d < 1 || d > dim, num = d < 1 ? prevDim + d : d > dim ? d - dim : d;
+          var isToday = !out && d === now.getDate();
+          cells += '<div class="auth-art-day' + (out ? " out" : "") + (isToday ? " today" : "") + '">' + num +
+            (!out && bars[d] ? '<span class="bar" style="background:' + bars[d] + '"></span>' : "") +
+            (!out && d === chipDay ? '<span class="auth-art-chip" style="background:color-mix(in srgb, ' + cardDot + ' 24%, var(--auth-card));box-shadow:inset 3px 0 0 ' + cardDot + '">' + cardTitle + "</span>" : "") + "</div>";
+        }
+        return '<div class="auth-art"><div class="auth-art-float"><p class="auth-art-month">' + MONTHS[mo] + '</p><div class="auth-art-grid">' + dows + cells + "</div></div></div>";
       }
       function validEmail(v) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(v || "").trim()); }
       function pwRules(pw) {

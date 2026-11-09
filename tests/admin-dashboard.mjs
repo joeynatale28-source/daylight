@@ -164,8 +164,8 @@ for(const theme of ['dark','light']){
   await openAdmin();
   await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').scrollIntoView());
   await showTab('banners');await page.type('#adBanner','Scheduled maintenance tonight at 10pm Eastern');
-  await page.click('.dl-page .dl-ad-swatches .dl-sw:nth-child(4)');
-  const picked=await page.$eval('.dl-page .dl-ad-swatches .dl-sw[aria-pressed="true"]',b=>b.getAttribute('title'));
+  await page.click('.dl-page [data-presets] .dl-sw:nth-child(4)');
+  const picked=await page.evaluate(()=>{const k=document.querySelector('.dl-page [data-presets] .dl-sw[aria-pressed="true"]').dataset.color;return String(/^#/.test(k)?k:(PALETTE[k]&&PALETTE[k].dot)||k).toUpperCase()});
   await page.type('#adLink','https://example.com/status');
   await page.screenshot({path:path.join(out,`8-banner-form-${theme}.png`)});
   await page.evaluate(()=>document.querySelector('[data-panel="banners"] .set-group').querySelector('[data-post]').click());await sleep(800);

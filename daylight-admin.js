@@ -218,7 +218,7 @@
     var ban = make('<div class="set-group"><div class="set-group-title">Banner</div>' +
       '<p class="dl-ad-lead">A colored strip at the very top of the app. People cannot dismiss it; it stays until you remove it below.</p>' +
       '<div class="dl-ad-field"><label for="adBanner">Banner text</label><input class="text-input" id="adBanner" maxlength="200" autocomplete="off" placeholder="What should it say?"></div>' +
-      '<div class="dl-ad-field"><span class="dl-ad-label">Color</span><div class="dl-ad-swatches" data-swatches></div><div data-picker></div></div>' +
+      '<div class="dl-ad-field"><span class="dl-ad-label">Color</span><div data-picker></div></div>' +
       '<div class="dl-ad-field"><label for="adLink">Link (optional)</label><input class="text-input" id="adLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://"><div class="dl-ad-note">If set, clicking the banner text opens it in a new tab.</div></div>' +
       '<div data-aud-host></div>' +
       '<div class="dl-ad-field"><span class="dl-ad-label">Preview</span><div class="dl-ad-preview" data-preview></div></div>' +
@@ -226,20 +226,14 @@
       '<div class="dl-ad-actions"><button type="button" class="btn-primary" data-post disabled>Post banner</button></div></div>');
     var baud = audienceControl("Audience");
     ban.querySelector("[data-aud-host]").appendChild(baud);
-    var btext = ban.querySelector("#adBanner"), blink = ban.querySelector("#adLink"), post = ban.querySelector("[data-post]"), bst = ban.querySelector("[data-status]"), prev = ban.querySelector("[data-preview]"), sw = ban.querySelector("[data-swatches]");
-    var picker = null;
+    var btext = ban.querySelector("#adBanner"), blink = ban.querySelector("#adLink"), post = ban.querySelector("[data-post]"), bst = ban.querySelector("[data-status]"), prev = ban.querySelector("[data-preview]");
     function drawPreview() { prev.innerHTML = ""; prev.appendChild(bannerNode({ body: btext.value.trim() || "Your banner text", color: picked, link: null })); }
-    function drawSwatches() {
-      sw.innerHTML = "";
-      presets.forEach(function (key) {
-        var hex = hexOf(key);
-        var b = make('<button type="button" class="dl-sw" aria-pressed="' + (picked === hex) + '" title="' + hex + '" aria-label="Color ' + hex + '">' + (typeof icon === "function" ? icon("check", 14) : "") + "</button>");
-        b.style.setProperty("--c", hex);
-        b.addEventListener("click", function () { picked = hex; if (picker) picker.set(hex); drawSwatches(); drawPreview(); });
-        sw.appendChild(b);
-      });
+    /* the ONE color picker (same component as Manage and New calendar): presets, Your colors, the add tile that opens Custom color */
+    var picker = null;
+    if (window.daylightCalendarColorPicker) {
+      picker = window.daylightCalendarColorPicker(ban.querySelector("[data-picker]"), { value: presets[0] || picked, onChange: function (key) { picked = hexOf(key).toUpperCase(); drawPreview(); } });
     }
-    if (window.daylightInlineColorPicker) picker = window.daylightInlineColorPicker(ban.querySelector("[data-picker]"), picked, function (hex) { picked = String(hex).toUpperCase(); drawSwatches(); drawPreview(); }, { compact: true });
+    drawPreview();
     var syncPost = function () { post.disabled = !btext.value.trim() || !baud.valid(); };
     btext.addEventListener("input", function () { bst.textContent = ""; drawPreview(); syncPost(); });
     blink.addEventListener("input", function () { bst.textContent = ""; });
@@ -256,7 +250,7 @@
       } catch (e) { bst.className = "dl-ad-status is-warn"; bst.textContent = errorText(e, "Couldn’t post that. Check your connection and try again."); }
       post.textContent = "Post banner"; syncPost();
     });
-    drawSwatches(); drawPreview();
+    drawPreview();
     pane.appendChild(ban);
 
     /* c) manage */

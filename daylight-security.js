@@ -19,6 +19,17 @@
     ".dl-sec-list .dl-sec-row{padding:12px 0;border-top:1px solid var(--line-soft)}",
     ".dl-sec-list .dl-sec-row:first-child{border-top:0}",
     
+    ".dl-sec-actions[hidden]{display:none}",
+    ".dl-pk-entry{display:flex;align-items:center;gap:10px;padding:8px 0 8px 50px;border-top:0}",
+    ".dl-pk-entry+.dl-pk-entry{padding-top:4px}",
+    ".dl-pk-glyph{flex:none;width:16px;display:inline-grid;place-items:center;color:var(--faint);margin-left:-2px}",
+    ".dl-pk-entry .dl-sec-text{flex:1;min-width:0}",
+    ".dl-pk-name{font-size:13.5px;font-weight:550;line-height:1.35}",
+    ".dl-pk-entry .sw-sub{font-size:12px;color:var(--muted);white-space:normal}",
+    ".dl-pk-input{height:36px;width:100%;border-radius:10px}",
+    ".dl-pk-entry.is-editing{align-items:flex-start}.dl-pk-entry.is-editing .dl-sec-actions{padding-top:1px}",
+    ".dl-sec-status{font-size:13px;color:var(--muted);flex:none;font-weight:550}",
+    ".dl-sec-list .dl-sec-row+.dl-sec-row{border-top:1px solid var(--line-soft)}",
     ".dl-sec-actions{display:inline-flex;gap:8px;flex:none;align-items:center}",
     ".dl-sec-actions .btn-danger-outline{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px}",
     ".dl-sec-rename{display:flex;gap:8px;align-items:center;flex:1;min-width:0}",
@@ -124,26 +135,32 @@
     addBtn.addEventListener("click", function () { openPasskeyDialog(refresh); });
 
     function row(pk) {
-      var r = make('<div class="dl-sec-row" data-pk><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label" data-name></span><span class="sw-sub" data-meta></span></span><span class="dl-sec-actions"><button type="button" class="btn-ghost dl-btn-sm" data-rename>Rename</button><button type="button" class="btn-danger-outline" data-remove>Remove</button></span></div>');
+      /* An entry under the Passkeys row: indented, no icon tile (a small plain key), a quieter treatment than the category rows. */
+      var r = make('<div class="dl-pk-entry" data-pk><span class="dl-pk-glyph" aria-hidden="true">' + icon("key", 14) + '</span><span class="dl-sec-text"><span class="dl-pk-name" data-name></span><span class="sw-sub" data-meta></span></span>' +
+        '<span class="dl-sec-actions" data-view><button type="button" class="btn-ghost dl-btn-sm" data-rename>Rename</button><button type="button" class="btn-danger-outline" data-remove>Remove</button></span>' +
+        '<span class="dl-sec-actions" data-edit hidden><button type="button" class="btn-primary dl-btn-sm" style="margin:0;height:32px" data-save>Save</button><button type="button" class="btn-ghost dl-btn-sm" data-cancel>Cancel</button></span></div>');
       var nm = pk.friendly_name || pk.friendlyName || "Passkey";
-      r.querySelector("[data-name]").textContent = nm;
+      var nameEl = r.querySelector("[data-name]");
+      nameEl.textContent = nm;
       var added = dateText(pk.created_at || pk.createdAt), used = dateText(pk.last_used_at || pk.lastUsedAt);
       r.querySelector("[data-meta]").textContent = "Added " + (added || "recently") + " · " + (used ? "Last used " + used : "Never used");
-      var pid = pk.id;
+      var pid = pk.id, viewBox = r.querySelector("[data-view]"), editBox = r.querySelector("[data-edit]");
       r.querySelector("[data-rename]").addEventListener("click", function () {
-        var text = r.querySelector(".dl-sec-text"), actions = r.querySelector(".dl-sec-actions");
-        var box = make('<span class="dl-sec-rename"><input class="text-input" maxlength="60" aria-label="Passkey name"><button type="button" class="btn-primary dl-btn-sm" style="margin:0;height:32px">Save</button><button type="button" class="btn-ghost dl-btn-sm">Cancel</button></span>');
-        var input = box.querySelector("input"); input.value = nm;
-        text.hidden = true; actions.hidden = true; r.appendChild(box); input.focus(); input.select();
-        function back() { box.remove(); text.hidden = false; actions.hidden = false; }
-        box.querySelector(".btn-ghost").addEventListener("click", back);
+        /* the name itself becomes a full-width field, in place; Rename and Remove step aside for Save and Cancel */
+        var input = make('<input class="text-input dl-pk-input" maxlength="60" aria-label="Passkey name">');
+        input.value = nm;
+        nameEl.replaceWith(input);
+        viewBox.hidden = true; editBox.hidden = false; r.classList.add("is-editing");
+        input.focus(); input.select();
+        function back() { input.replaceWith(nameEl); viewBox.hidden = false; editBox.hidden = true; r.classList.remove("is-editing"); }
+        editBox.querySelector("[data-cancel]").onclick = back;
         async function save() {
           var v = input.value.trim(); if (!v) return;
           if (v === nm) { back(); return; }
           try { var res = await client().auth.passkey.update({ passkeyId: pid, friendlyName: v }); if (res && res.error) throw res.error; say("Passkey renamed."); refresh(); }
           catch (e) { say(errText(e, "Passkeys"), true); back(); }
         }
-        box.querySelector(".btn-primary").addEventListener("click", save);
+        editBox.querySelector("[data-save]").onclick = save;
         input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.stopPropagation(); back(); } });
       });
       var rm = r.querySelector("[data-remove]");
@@ -191,8 +208,9 @@
     var identities = null, passkeys = 0;
     securityGroup.addEventListener("dl:passkeys", function (e) { passkeys = e.detail.count; draw(); });
     function emailMethodRow(hasPassword) {
-      var r = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("mail", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Email and password</span><span class="sw-sub"></span></span></div>');
+      var r = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("mail", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Email and password</span><span class="sw-sub"></span></span><span class="dl-sec-status"></span></div>');
       r.querySelector(".sw-sub").textContent = hasPassword ? email : "Not set up. Use Change password above to add one.";
+      r.querySelector(".dl-sec-status").textContent = hasPassword ? "On" : "Off";
       return r;
     }
     function providerRow(p, identity, total) {
@@ -240,8 +258,8 @@
         var id = identities.filter(function (i) { return i.provider === p.id; })[0];
         host.appendChild(providerRow(p, id, identities.length));
       });
-      var pk = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys</span><span class="sw-sub"></span></span></div>');
-      pk.querySelector(".sw-sub").textContent = passkeys ? passkeys + (passkeys === 1 ? " passkey added" : " passkeys added") : "None added";
+      var pk = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys</span><span class="sw-sub">Fingerprint, face or screen lock</span></span><span class="dl-sec-status"></span></div>');
+      pk.querySelector(".dl-sec-status").textContent = passkeys ? "Connected" : "Not set up";
       host.appendChild(pk);
     }
     async function load() {

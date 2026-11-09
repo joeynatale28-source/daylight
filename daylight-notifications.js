@@ -10,6 +10,7 @@
 
   var css = document.createElement("style");
   css.textContent = [
+    ".dl-notif-head{display:flex;align-items:center;justify-content:space-between;gap:12px}.dl-notif-markall{font-size:12.5px;font-weight:600;color:var(--muted);padding:4px 8px;border-radius:8px;transition:background 140ms var(--ease-out),color 140ms var(--ease-out)}.dl-notif-markall:hover{background:var(--hover);color:var(--text)}.dl-notif-markall[hidden]{display:none}",
     ".dl-notif-btn{position:relative}",
     ".dl-notif-badge{position:absolute;top:3px;right:3px;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:var(--accent);color:var(--on-accent);font-size:10px;font-weight:700;line-height:16px;text-align:center;box-shadow:0 0 0 2px var(--bg);pointer-events:none;animation:popIn 160ms var(--ease-out)}",
     ".dl-notif-badge[hidden]{display:none}",
@@ -266,6 +267,21 @@
 
   function mount(panel) {
     var wasUnread = {};
+    /* "Mark all read": in the panel header, visible only while there are unread items */
+    var head = panel.querySelector(".dl-notif-head");
+    var markAll = null;
+    if (head) {
+      head.innerHTML = '<span>Notifications</span><button type="button" class="dl-notif-markall" hidden>Mark all read</button>';
+      markAll = head.querySelector(".dl-notif-markall");
+      markAll.addEventListener("click", function () {
+        items.forEach(function (n) { n.read = true; });
+        Object.keys(wasUnread).forEach(function (k) { if (k.indexOf("inv:") !== 0) wasUnread[k] = false; });
+        panel.querySelectorAll(".dl-notif-item.is-unread").forEach(function (r) { r.classList.remove("is-unread"); });
+        markAll.hidden = true; unread = pendingInvites(); paint();
+        rpc("daylight_mark_broadcasts_read").catch(function () {});
+      });
+    }
+    function syncMarkAll() { if (markAll) markAll.hidden = !panel.querySelector(".dl-notif-item.is-unread"); }
     var empty = panel.querySelector(".dl-notif-empty");
     function markSeen() {
       items.forEach(function (n) { if (!n.read) wasUnread[n.id] = true; });
@@ -329,6 +345,7 @@
         list.appendChild(row);
       });
       panel.appendChild(list);
+      syncMarkAll();
     }
     markSeen(); render();
     var hasUnreadBroadcast = function () { return items.some(function (n) { return !n.read; }); };

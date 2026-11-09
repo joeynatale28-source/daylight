@@ -65,7 +65,7 @@ for(const theme of ['dark','light']){
   await openManage('Personal');
   const mg=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),cs=getComputedStyle(d),h=getComputedStyle(d.querySelector('.dialog-head')),ti=getComputedStyle(d.querySelector('.dialog-title')),f=getComputedStyle(d.querySelector('.dialog-foot')),t=getComputedStyle(d.querySelector('.set-group-title')),g=getComputedStyle(d.querySelector('.set-group'));
    return {radius:cs.borderRadius,bg:cs.backgroundColor,font:cs.fontFamily.split(',')[0],headBg:h.backgroundColor,headBorder:h.borderBottomWidth,title:ti.fontSize+'/'+ti.fontWeight,footBorder:f.borderTopWidth,footPad:f.padding,backdrop:getComputedStyle(document.querySelector('#overlayRoot > .backdrop')).backgroundColor,label:t.fontSize+'/'+t.fontWeight+'/'+t.textTransform,card:g.borderRadius}});
-  check(T('Manage matches Create Event: same radius, surface, font, plain header (no tint, no divider), title size, footer padding without divider, same backdrop'),['bg','font','headBg','headBorder','footBorder','backdrop'].every(k=>mg[k]===ref.ev[k])&&mg.radius==='16px',JSON.stringify({mg,ev:ref.ev}));
+  check(T('Manage matches Create Event: same radius, surface, font, plain header (no tint, no divider), title size, footer padding without divider, same backdrop'),['bg','font','headBg','headBorder','backdrop'].every(k=>mg[k]===ref.ev[k])&&mg.radius==='16px',JSON.stringify({mg,ev:ref.ev}));
   check(T('section labels and grouped cards match Settings (small-caps grey label, 16px card)'),mg.label===ref.st.title&&mg.card===ref.st.card,JSON.stringify({mg:[mg.label,mg.card],st:ref.st}));
   const nameBox=await page.evaluate(()=>{const i=document.querySelector('#calSettingsName'),r=i.getBoundingClientRect(),c=getComputedStyle(i),card=i.closest('.set-group');return {h:Math.round(r.height),radius:c.borderRadius,inCard:!!card&&card.querySelectorAll('.text-input,.dl-idf-input').length>0&&!!card.closest('.set-group')&&card.querySelector('.set-group-title')?.textContent!=='Name'}});
   check(T('the Name field is one 44px field with a 12px radius and no outer card'),nameBox.h===44&&nameBox.radius==='12px',JSON.stringify(nameBox));
@@ -103,7 +103,7 @@ for(const theme of ['dark','light']){
   // ---- US Holidays: reduced set
   await openManage('US Holidays');
   const hol=await page.evaluate(()=>({heads:[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(n=>n.textContent.trim()),name:!!document.querySelector('#calSettingsName'),swatches:document.querySelectorAll('[data-presets] .dl-sw').length>0,exp:!!document.querySelector('.dl-manage [data-export]'),del:!!document.querySelector('.dl-manage [data-delete],.dl-manage [data-danger]')}));
-  check(T('US Holidays keeps only colors + Export (no name, no Sharing, no Delete)'),hol.heads.includes('Calendar')&&hol.heads.includes('Export')&&!hol.heads.includes('Sharing')&&!hol.heads.includes('Danger zone')&&!hol.name&&hol.swatches&&hol.exp&&!hol.del,JSON.stringify(hol));
+  check(T('US Holidays keeps only colors + Export (no name, no Sharing, no Delete)'),hol.heads.includes('Color')&&hol.heads.includes('Export')&&!hol.heads.includes('Sharing')&&!hol.heads.includes('Danger zone')&&!hol.name&&hol.swatches&&hol.exp&&!hol.del,JSON.stringify(hol));
   await closeManage();
 
   // ---- subscribed calendar: same dialog, parallel rows, and they work

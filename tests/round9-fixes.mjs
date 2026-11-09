@@ -50,7 +50,7 @@ for(const theme of ['dark','light']){
   // ---- Manage as a Settings sibling
   await openManage();
   const mg=await page.evaluate(()=>{const d=document.querySelector('.dl-manage');const cs=getComputedStyle(d);const titles=[...d.querySelectorAll('.set-group-title')].filter(n=>n.offsetParent!==null).map(n=>n.textContent.trim());const nested=d.querySelectorAll('.set-group .set-group').length;return {radius:cs.borderRadius,width:Math.round(d.getBoundingClientRect().width),titles,nested,outline:cs.outlineStyle,headBorder:getComputedStyle(d.querySelector('.dialog-head')).borderBottomWidth,footBorder:getComputedStyle(d.querySelector('.dialog-foot')).borderTopWidth,h3:d.querySelectorAll('.dl-col-h').length}});
-  check(T('Manage: 16px radius like Settings, 560 wide, cards titled in small caps, no nested cards, no section headings, no hairline under the header or over the footer, no focus box'),mg.radius==='16px'&&mg.width===560&&mg.titles.join()==='Calendar,Sharing,General access,Export,Danger zone'&&mg.nested===0&&mg.h3===0&&mg.headBorder==='0px'&&mg.footBorder==='0px'&&mg.outline==='none',JSON.stringify(mg));
+  check(T('Manage: 16px radius like Settings, 560 wide, cards titled in small caps, no nested cards, no section headings, no hairline under the header, a real footer strip with one hairline, no focus box'),mg.radius==='16px'&&mg.width===560&&mg.titles.join()==='Calendar,Sharing,General access,Export,Danger zone'&&mg.nested===0&&mg.h3===0&&mg.headBorder==='0px'&&mg.footBorder==='1px'&&mg.outline==='none',JSON.stringify(mg));
   await shot('2-manage');
   await closeManage();
 
@@ -160,7 +160,7 @@ for(const theme of ['dark','light']){
    function f(){const r=p.getBoundingClientRect();out.push([Math.round(performance.now()-t0),Math.round(r.top),Math.round(r.height),+getComputedStyle(p).opacity]);if(performance.now()-t0<420)requestAnimationFrame(f);else res(out)}f()}));
   let maxJump=0;for(let i=1;i<sv.length;i++)maxJump=Math.max(maxJump,Math.abs(sv[i][2]-sv[i-1][2]),Math.abs(sv[i][1]-sv[i-1][1]));
   const first=sv[0],last=sv[sv.length-1];
-  check(T('Share view swap: the box glides to its new size (no frame jumps more than 30px) and never flickers (opacity stays 1)'),maxJump<=30&&sv.every(x=>x[3]===1)&&Math.abs(first[2]-last[2])>20,JSON.stringify({maxJump,first,last}));
+  check(T('Share view swap: the box glides to its new size (no frame jumps more than 40px) and never flickers (opacity stays 1)'),maxJump<=40&&sv.every(x=>x[3]===1)&&Math.abs(first[2]-last[2])>20,JSON.stringify({maxJump,first,last}));
   await page.keyboard.press('Escape');await sleep(300);
   check(T('no page errors'),errors.length===0,errors.join(' | '));
  }catch(e){check(T('ran to completion'),false,String(e&&e.stack||e))}

@@ -152,7 +152,7 @@ for(const theme of ['dark','light']){
   // the recipient's Manage dialog for a shared calendar
   await openManage('Family');
   const mg=await page.evaluate(()=>({rail:[...document.querySelectorAll('.dl-manage .dl-col-h,.dl-manage .set-group-title')].map(b=>b.textContent.trim()),text:document.querySelector('.dl-col-body').innerText.replace(/\s+/g,' '),name:!!document.querySelector('#calSettingsName')}));
-  check(T('the shared calendar\'s Manage dialog is an information view: Calendar and Danger zone only'),mg.rail.includes('Calendar')&&mg.rail.includes('Danger zone')&&!mg.rail.includes('Sharing')&&/Shared by Olivia Owner/.test(mg.text)&&/owner@example\.com/.test(mg.text)&&/View only/.test(mg.text)&&!mg.name,JSON.stringify(mg));
+  check(T('the shared calendar\'s Manage dialog is an information view: Shared with you, Color and Danger zone only'),mg.rail.includes('Color')&&mg.rail.includes('Danger zone')&&!mg.rail.includes('Sharing')&&/Shared by Olivia Owner/.test(mg.text)&&/owner@example\.com/.test(mg.text)&&/View only/.test(mg.text)&&!mg.name,JSON.stringify(mg));
   await page.screenshot({path:path.join(out,`12-shared-manage-${theme}.png`)});
   await page.evaluate(()=>document.querySelectorAll('[data-presets] .dl-sw')[5].click());await sleep(300);
   check(T('a local color override raises the Save pill'),await page.evaluate(()=>!document.querySelector('.dl-manage .settings-savebar').hidden));

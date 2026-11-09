@@ -267,7 +267,7 @@
     /* Reading the sharing state. If it can't be read (for example the sign-in check on the server says no), show a calm,
        plain message with a retry instead of a red error on a dead switch. */
     function checkSharing(){
-      toggle.disabled=true;say('Checking sharing…');
+      toggle.disabled=true;   /* no transient status text: the switch is simply disabled until the state is known */
       call('ical-feed',{action:'public-status',calendar_id:cal.id}).then(result=>{
         enabled=!!result.public_enabled;
         if(!enabled&&cal.publicLink)remember('');

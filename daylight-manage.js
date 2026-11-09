@@ -17,14 +17,14 @@
     ".dl-col .dialog-head .dialog-title{display:block;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
     ".dl-col .dialog-head{align-items:center;gap:12px}",
     ".dl-col .dialog-head .settings-close{position:static;flex:none;width:36px;height:36px;margin:0}",
-    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:2px 28px 12px}",
+    ".dl-col-body{flex:1;min-height:0;overflow-y:auto;padding:2px 28px 16px}",
     ".dl-col-body .set-group{padding:20px 24px 18px;margin-bottom:18px}",
     ".dl-col-body .set-group:last-child{margin-bottom:4px}",
     /* a sibling of Settings: its 16px radius, its width, its header size; no hairlines under the header or above the footer */
     ".dialog.dl-manage.dl-col{width:min(560px,calc(100vw - 32px))!important;max-width:none!important;border-radius:16px!important}",
     ".dl-manage .dialog-head{border-bottom:0;padding:22px 28px 12px}",
     ".dl-manage .dialog-head .dialog-title{font-size:22px;font-weight:650;letter-spacing:-.02em}",
-    ".dl-manage .dialog-foot{border-top:0;padding:6px 28px 20px}",
+    ".dl-manage .dialog-foot{border-top:1px solid var(--line-soft)!important;padding:14px 28px 16px;background:var(--surface);border-radius:0 0 16px 16px}",
     ".dl-manage .set-group.is-danger{border-color:var(--line-soft)!important}",
     ".dl-manage .dl-ppl-row,.dl-manage .dl-ppl-row:first-child{border-top:0;padding:9px 0}",
     ".dl-manage .dl-cp-custom{border-top:0;padding-top:0}",
@@ -43,7 +43,7 @@
     ".dl-col-h:first-child{margin-top:0}",
     ".dl-col-sub{font-size:13px;color:var(--muted);line-height:1.5;margin:0 0 14px}",
     ".dl-col .dialog-foot{flex:none}",
-    ".dialog.dl-col .settings-savebar{position:absolute;left:50%;right:auto;bottom:70px;transform:translateX(-50%)}",
+    ".dialog.dl-col .settings-savebar{position:absolute;left:50%;right:auto;bottom:82px;transform:translateX(-50%)}",
     ".dialog.dl-col:has(.settings-savebar:not([hidden])) .dl-col-body{padding-bottom:76px}",
     /* the one color picker */
     ".dl-cp-yours[hidden]{display:none}",
@@ -56,13 +56,13 @@
     ".dl-cp-custom{margin-top:14px;padding-top:14px;border-top:1px solid var(--line-soft)}",
     ".dl-cp-custom[hidden]{display:none}",
     ".dl-cp-add{margin-top:12px}",
-    ".dl-cp .dl-mg-swatches{gap:12px 10px}",
+    ".dl-cp .dl-mg-swatches{gap:10px}",
     /* the invite: the search field on its own full-width row, then the permission picker (left) and the Invite pill (right) */
     ".dl-invite .dl-inv-field{height:44px;border-radius:12px;width:100%;flex:none}",
-    ".dl-invite .dl-inv-row2{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:12px}",
+    ".dl-invite .dl-inv-row2{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:12px}",
     ".dl-invite .dl-inv-perm{height:40px;border-radius:12px;flex:0 1 auto}",
     ".dl-invite .dl-inv-send{height:36px;border-radius:8px;padding:0 20px;margin:0}",
-    ".dl-invite .dl-inv-send:disabled{background:var(--surface2);color:var(--faint);opacity:1}",
+    ".dl-invite .dl-inv-send:disabled{background:var(--auth-primary-bg);color:var(--auth-primary-text);opacity:var(--dl-disabled-opacity)}",
     ".dl-invite .dl-inv-results{margin-top:8px}",
     ".dl-ppl-text{display:flex;flex-direction:column}",
     ".dl-manage .sr-title{display:flex;align-items:center;gap:9px;min-width:0}",
@@ -75,9 +75,21 @@
     ".dl-mg-name-input{width:100%;height:44px}",
     ".dl-mg-name-field{margin:0 0 20px}",
     ".dl-mg-sub{font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin:18px 0 10px}",
-    ".dl-mg-swatches{display:flex;flex-wrap:wrap;gap:12px;align-items:center}",
-    ".dl-mg-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:12px 10px}",
-    ".dl-mg-saved{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:12px 10px;min-height:26px}",
+    ".dl-mg-swatches{display:flex;flex-wrap:wrap;gap:10px;align-items:center}",
+    ".dl-mg-swatches[data-presets]{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:10px}",
+    ".dl-mg-saved{display:grid;grid-template-columns:repeat(var(--cols,10),26px);justify-content:start;gap:10px;min-height:0}",
+    /* white / black dots: a hairline ring in both themes, and a check that contrasts */
+    ".dl-sw.edge-light{box-shadow:inset 0 0 0 1px rgba(0,0,0,.3)}.dl-sw.edge-dark{box-shadow:inset 0 0 0 1px rgba(255,255,255,.42)}",
+    ".dl-sw.edge-light svg{color:#111;filter:none}.dl-sw.edge-dark svg{color:#fff;filter:none}",
+    ".dl-sw.edge-light[aria-pressed=true]{box-shadow:inset 0 0 0 1px rgba(0,0,0,.3),0 0 0 2px var(--surface),0 0 0 4px rgba(0,0,0,.55)}.dl-sw.edge-dark[aria-pressed=true]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.42),0 0 0 2px var(--surface),0 0 0 4px rgba(255,255,255,.75)}",
+    ".dl-cp .dl-cp-yours{margin-top:0}.dl-cp .dl-cp-yours .dl-mg-sub{margin:14px 0 8px}",
+    ".dl-cp .dl-cp-custom{margin-top:10px}",
+    /* the HEX / R / G / B fields: dialog-level .text-input rules (16px side padding, 44px height) were squeezing the numbers to zero width and
+       hiding them (Light theme); the compact picker fields keep their own box and text color in every dialog and page */
+    ".dl-compact .dl-inline-field .text-input{padding:0!important;height:auto!important;min-height:0!important;border:0!important;background:transparent!important;border-radius:0!important;box-shadow:none!important;color:var(--text)!important;-webkit-text-fill-color:var(--text);width:100%}",
+    ".dl-compact .dl-inline-field{height:36px;padding:0 10px;border-radius:10px}",
+    ".dl-compact .dl-inline-values{display:grid!important;grid-template-columns:minmax(0,1fr) 72px 72px 72px;gap:8px;align-items:stretch}",
+    ".dl-compact .dl-inline-field:focus-within{background:var(--surface);border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
     ".dl-sw-add svg{display:block!important;color:color-mix(in srgb,var(--text) 70%,transparent);filter:none}.dl-sw-add[aria-expanded=true]{color:var(--text);border-color:var(--text);border-style:solid}.dl-sw-add[aria-expanded=true] svg{color:var(--text)}",
     ".dl-mg-picker{margin-top:14px}",
     ".dl-mg-note{font-size:12.5px;color:var(--muted);line-height:1.5;margin:12px 0 0}",
@@ -165,6 +177,7 @@
      custom editor (hue + HEX / RGB) as an expandable "Custom color" section that is closed by default. Used everywhere a calendar
      color is chosen: Manage, New calendar, onboarding. opts: value (palette key or #hex), onChange(key), deferSaved (saving the
      list waits for a Save pill) and onSavedChange() (called when "Your colors" changed). Returns {setValue, inline}. */
+  function lumOf(hex) { var m = /^#?([0-9a-f]{6})$/i.exec(hex || ""); if (!m) return 0.5; var n = parseInt(m[1], 16); return (0.2126 * (n >> 16) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255)) / 255; }
   function swatchHex(key) { return /^#/.test(key) ? key : (window.PALETTE && PALETTE[key] ? PALETTE[key].dot : "#FF7A00"); }
   window.daylightCalendarColorPicker = function (host, opts) {
     opts = opts || {};
@@ -180,6 +193,8 @@
     function swatch(key, name) {
       var b = make('<button type="button" class="dl-sw" aria-pressed="' + (value === key) + '" title="' + esc(name || key) + '" aria-label="Color ' + esc(name || key) + '" data-color="' + esc(key) + '">' + icon("check", 14) + "</button>");
       b.style.setProperty("--c", swatchHex(key));
+      var lum = lumOf(swatchHex(key));
+      if (lum > 0.86) b.classList.add("edge-light"); else if (lum < 0.1) b.classList.add("edge-dark");   /* white and black dots get a visible hairline ring in BOTH themes */
       b.addEventListener("click", function () { pick(key); });
       return b;
     }
@@ -280,7 +295,7 @@
       /* name + color share ONE card (a card inside a card is what made this feel boxed in) */
       var group = inCard
         ? make('<div class="dl-mg-colorpart"><div class="dl-mg-sub">Color</div><div data-cp></div></div>')
-        : make('<div class="set-group"><div class="set-group-title">Calendar</div><div class="dl-mg-sub" style="margin-top:0">Color</div><div data-cp></div>' + (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
+        : make('<div class="set-group"><div class="set-group-title">Color</div><div data-cp></div>' + (note ? '<p class="dl-mg-note">' + esc(note) + "</p>" : "") + "</div>");
       host.appendChild(group);
       var cp = window.daylightCalendarColorPicker(group.querySelector("[data-cp]"), { value: cal.color, deferSaved: true, onSavedChange: function () { markDirty(); }, onChange: function (key) { previewColor(key); } });
       inline = cp.inline;

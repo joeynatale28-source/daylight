@@ -64,7 +64,7 @@ for(const theme of ['dark','light']){
   // Forgot password page
   await go('#authForgotLink');
   const fp=await page.evaluate(()=>({h:document.querySelector('.auth-headline').textContent,fields:[...document.querySelectorAll('.auth-pill-input')].length,btn:document.querySelector('.auth-primary').textContent}));
-  check(T('Forgot password opens its own page (email only)'),fp.h==='Forgot your password?'&&fp.fields===1&&fp.btn==='Send reset link',JSON.stringify(fp));
+  check(T('Forgot password opens its own page (email only)'),fp.h==='Forgot password?'&&fp.fields===1&&fp.btn==='Send reset link',JSON.stringify(fp));
   await shot('3-forgot');
   await page.click('.auth-primary');await sleep(300);
   check(T('an empty email is refused with a plain message'),/can't be empty|valid email/i.test(await text('.auth-error')||''));
@@ -80,7 +80,7 @@ for(const theme of ['dark','light']){
   // ---- Create account
   await go('#authToSignup');
   const su=await page.evaluate(()=>({h:document.querySelector('.auth-headline').textContent,fields:[...document.querySelectorAll('.auth-pill-label')].map(n=>n.textContent),btn:document.querySelector('.auth-primary').textContent,footer:(document.querySelector('.auth-footer-row')||{}).textContent,pills:[...document.querySelectorAll('.auth-methods .auth-social')].length}));
-  check(T('Create account page: Name, Email, Password, its own footer and Google'),su.h==='Create account'&&su.fields.join()==='Name,Email,Password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===1,JSON.stringify(su));
+  check(T('Create account page: Name, Email, Password, its own footer, Google and the passkey'),su.h==='Create account'&&su.fields.join()==='Name,Email,Password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===2,JSON.stringify(su));
   await shot('5-signup');
   await page.click('.auth-primary');await sleep(300);
   check(T('empty fields are flagged and nothing is sent'),(await calls()).filter(x=>x.fn==='signUp').length===0&&(await page.evaluate(()=>document.querySelectorAll('.auth-pill.err').length))>=2);
