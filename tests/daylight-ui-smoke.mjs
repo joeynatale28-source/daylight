@@ -310,7 +310,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    await new Promise(resolve=>setTimeout(resolve,90));
    assert.ok(!await page.$('.cal-source'), 'origin subtitle should be absent');
    await page.evaluate(()=>openSettings('ai'));
-   await page.waitForSelector('.dl-chatgpt-featured',{timeout:5000});
+   await page.waitForSelector('.dl-sec-row [data-name]',{timeout:5000});
    await page.screenshot({path:path.join(out,'chatgpt-card-'+theme+'.png')});
    await page.evaluate(()=>document.querySelector('.settings-close')?.click());
    await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:2000});
@@ -566,6 +566,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    row.querySelector('.cal-menu-btn').click();setTimeout(()=>{const m=document.querySelector('.menu .menu-item');if(m)m.click()},80);
  });
  await page.waitForSelector('.dl-manage',{timeout:3000});
+ await page.waitForFunction(()=>!document.querySelector('.menu[role=menu]'),{timeout:2000});
  assert.equal(await page.$('.menu[role=menu]'),null,'calendar dots should no longer open the narrow legacy menu');
  const popup=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),x=d.querySelector('.settings-close'),sw=d.querySelector('.dl-sw');
    return {box:[d.offsetWidth,d.offsetHeight,getComputedStyle(d).borderRadius],x:[x.offsetWidth,x.offsetHeight],swatch:sw.offsetWidth,isDialogShell:d.classList.contains('dialog')&&!d.classList.contains('settings-dialog'),
@@ -713,7 +714,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-status.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));
