@@ -1,5 +1,4 @@
-/* Event tools: Select mode (bulk move / delete in Search and Agenda) and Quick add (typed phrase -> title, date, time).
-   Both plug into the existing surfaces through small hooks in index.html (daylightSelect.*, daylightQuickAdd.*). */
+/* Event tools: Select mode (bulk move / delete in Search and Agenda) and photo attachments. They plug into the existing surfaces through small hooks in index.html. */
 (function () {
   "use strict";
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
@@ -20,11 +19,6 @@
     ".dl-selbar button:disabled{opacity:var(--dl-disabled-opacity,.55);cursor:default}",
     "@media (max-width:560px){.dl-selbar{flex-wrap:wrap}.dl-selbar .dl-sel-count{flex-basis:100%}}",
     "body.reduce-motion .dl-selbar{animation:none!important}",
-    ".dialog-head .dl-qa-input{flex:1;min-width:0;height:34px;margin:0 8px 0 18px;font-size:13px;padding:0 12px}",
-    "@media (max-width:560px){.dialog-head:has(.dl-qa-input){flex-wrap:wrap}.dialog-head .dl-qa-input{order:3;flex-basis:100%;margin:10px 0 0}}",
-    ".pal-create{display:flex;align-items:center;gap:12px;width:100%;text-align:left}",
-    ".pal-create .pc-ic{flex:none;width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:var(--hover);color:var(--text)}",
-    ".pal-create .pc-sum{font-weight:600}.pal-create .pc-when{color:var(--muted);font-size:12.5px;display:block}"
   ].join("\n");
   document.head.appendChild(css);
 
@@ -118,83 +112,6 @@
   document.addEventListener("keydown", function (e) {
     if (e.key === "Escape" && sel.surface && !document.querySelector(".menu,.backdrop")) { e.preventDefault(); e.stopPropagation(); exit(); }
   }, true);
-
-  /* ===================================================================== Quick add */
-  var WD = { sun: 0, sunday: 0, mon: 1, monday: 1, tue: 2, tues: 2, tuesday: 2, wed: 3, wednesday: 3, thu: 4, thur: 4, thurs: 4, thursday: 4, fri: 5, friday: 5, sat: 6, saturday: 6 };
-  var MO = { jan: 0, january: 0, feb: 1, february: 1, mar: 2, march: 2, apr: 3, april: 3, may: 4, jun: 5, june: 5, jul: 6, july: 6, aug: 7, august: 7, sep: 8, sept: 8, september: 8, oct: 9, october: 9, nov: 10, november: 10, dec: 11, december: 11 };
-  function parse(text, now) {
-    now = now || new Date();
-    var s = " " + String(text || "").replace(/[–—]/g, "-") + " ";
-    var out = { title: "", date: null, startMin: null, endMin: null, any: false };
-    function cut(re, fn) { var m = re.exec(s); if (!m) return false; if (fn(m) === false) return false; s = s.slice(0, m.index) + " " + s.slice(m.index + m[0].length); return true; }
-    /* time ranges and times */
-    var matchedTime = false;
-    matchedTime = cut(/\b(?:from\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)?\s*(?:-|to|until)\s*(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)\b/i, function (m) {
-      var ap2 = /^p/i.test(m[6]) ? "pm" : "am", ap1 = m[3] ? (/^p/i.test(m[3]) ? "pm" : "am") : ap2;
-      var a = to24(+m[1], m[2], ap1), b = to24(+m[4], m[5], ap2);
-      if (a == null || b == null) return false;
-      if (b <= a && !m[3]) { ap1 = ap1 === "pm" ? "am" : "pm"; a = to24(+m[1], m[2], ap1); }
-      out.startMin = a; out.endMin = b > a ? b : null; return true;
-    });
-    if (!matchedTime) matchedTime = cut(/\b(?:at\s+)?(\d{1,2})(?::(\d{2}))?\s*(am|pm|a|p)\b/i, function (m) {
-      var a = to24(+m[1], m[2], /^p/i.test(m[3]) ? "pm" : "am"); if (a == null) return false; out.startMin = a; return true;
-    });
-    if (!matchedTime) matchedTime = cut(/\b(?:at\s+)?([01]?\d|2[0-3]):([0-5]\d)\b/, function (m) { out.startMin = +m[1] * 60 + +m[2]; return true; });
-    /* dates: month + day, today / tomorrow, weekday */
-    var gotDate = cut(/\b(jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|june?|july?|aug(?:ust)?|sept?(?:ember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)\.?\s+(\d{1,2})(?:st|nd|rd|th)?\b/i, function (m) {
-      var mo = MO[m[1].toLowerCase()], day = +m[2]; if (mo == null || day < 1 || day > 31) return false;
-      var d = new Date(now.getFullYear(), mo, day);
-      if (d.getMonth() !== mo) return false;
-      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (d < today) d = new Date(now.getFullYear() + 1, mo, day);
-      out.date = d; return true;
-    });
-    if (!gotDate) gotDate = cut(/\b(today|tomorrow|tonight)\b/i, function (m) {
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      if (/tomorrow/i.test(m[1])) d.setDate(d.getDate() + 1);
-      out.date = d; return true;
-    });
-    if (!gotDate) gotDate = cut(/\b(?:on\s+|next\s+)?(sun(?:day)?|mon(?:day)?|tue(?:s|sday)?|wed(?:nesday)?|thu(?:r|rs|rsday)?|fri(?:day)?|sat(?:urday)?)\b/i, function (m) {
-      var w = WD[m[1].toLowerCase()]; if (w == null) return false;
-      var d = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      d.setDate(d.getDate() + ((w - d.getDay() + 7) % 7));
-      out.date = d; return true;
-    });
-    out.any = matchedTime || gotDate;
-    if (out.startMin != null && out.endMin == null) out.endMin = Math.min(out.startMin + 60, 23 * 60 + 59);
-    if (out.any && !out.date) { out.date = new Date(now.getFullYear(), now.getMonth(), now.getDate()); }
-    /* the words that remain are the title (connectors left dangling at the ends are dropped) */
-    s = s.replace(/\s+/g, " ").trim().replace(/^(?:at|on|from|to|until|-)\s+/i, "").replace(/\s+(?:at|on|from|to|until|-)$/i, "").trim();
-    out.title = s;
-    return out;
-  }
-  function to24(h, mm, ap) {
-    mm = mm ? +mm : 0; if (h < 1 || h > 12 || mm > 59) return null;
-    if (ap === "pm" && h !== 12) h += 12; if (ap === "am" && h === 12) h = 0;
-    return h * 60 + mm;
-  }
-  function fmtWhen(p) {
-    var d = p.date, names = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"], mons = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-    var out = names[d.getDay()] + ", " + mons[d.getMonth()] + " " + d.getDate();
-    if (p.startMin != null) out += " · " + clock(p.startMin);
-    return out;
-  }
-  function clock(min) { var h = Math.floor(min / 60), m = min % 60, ap = h >= 12 ? "PM" : "AM"; h = h % 12 || 12; return h + ":" + (m < 10 ? "0" : "") + m + " " + ap; }
-  window.daylightQuickAdd = {
-    parse: parse, describe: fmtWhen,
-    /* Search: the create row shown on top when the typed text parses as an event */
-    searchRow: function (text, onChoose) {
-      var p = parse(text);
-      if (!p.any || !p.title) return null;
-      var row = mk('<button type="button" class="pal-item pal-create"><span class="pc-ic">' + icon("calendar", 16) + '</span><span class="pi-text"><span class="pc-sum"></span><span class="pc-when"></span></span></button>');
-      row.querySelector(".pc-sum").textContent = "Create event: “" + p.title + "”";
-      row.querySelector(".pc-when").textContent = fmtWhen(p);
-      row.addEventListener("click", function () { onChoose(p); });
-      return row;
-    },
-    /* Create form: fill title, date and time from the parse (never saves) */
-    fillForm: function (p) { return p; }
-  };
 
   /* ===================================================================== Photo attachments */
   (function () {

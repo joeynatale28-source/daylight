@@ -4938,7 +4938,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var bd = el('<div class="backdrop"></div>');
         var dlg = el('<div class="dialog event-form-dialog" role="dialog" aria-modal="true"></div>');
         dlg.innerHTML =
-          '<div class="dialog-head"><span class="dialog-title">' + (isEdit ? "Edit event" : "New event") + '</span>' + (!isEdit ? '<input class="text-input dl-qa-input" id="efQuick" placeholder="Quick add: Haircut Tue 6:30pm" autocomplete="off" spellcheck="false" aria-label="Quick add">' : "") + '<button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
+          '<div class="dialog-head"><span class="dialog-title">' + (isEdit ? "Edit event" : "New event") + '</span>' + '<button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body">' +
             '<div class="field"><label for="efTitle">Title</label><input class="text-input" id="efTitle" placeholder="Event title" value="' + esc(f.title) + '"><div class="field-err" id="efTitleErr">Add a title</div></div>' +
             '<div class="field"><div class="switch-row"><span><span class="sw-label">All-day</span></span><label class="switch"><input type="checkbox" id="efAllDay" aria-label="All-day"' + (f.allDay ? " checked" : "") + '><span class="track"></span><span class="knob"></span></label></div></div>' +
@@ -4991,23 +4991,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
-        var quickIn = dlg.querySelector("#efQuick");
-        if (quickIn) quickIn.addEventListener("keydown", function (e) {
-          if (e.key !== "Enter") return;
-          e.preventDefault(); e.stopPropagation();
-          var qa = window.daylightQuickAdd, parsed = qa && qa.parse(quickIn.value);
-          if (!parsed || !parsed.title && !parsed.any) { return; }
-          /* fill only what parsed with confidence; nothing is saved */
-          if (parsed.title) { titleIn.value = parsed.title; f.title = parsed.title; titleIn.classList.remove("err"); }
-          if (parsed.any && parsed.date) {
-            f.sDate = sod(parsed.date); f.eDate = sod(parsed.date);
-            if (parsed.startMin != null) { f.allDay = false; f.sMin = parsed.startMin; f.eMin = Math.min(parsed.endMin != null ? parsed.endMin : parsed.startMin + 60, 23 * 60 + 30); if (f.eMin <= f.sMin) f.eMin = Math.min(f.sMin + 30, 23 * 60 + 30); var ad = dlg.querySelector("#efAllDay"); if (ad) ad.checked = false; }
-          }
-          markDirty(); syncUI(); quickIn.value = ""; titleIn.focus();
-        });
         var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
         if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
-        if (!quickIn) titleIn.focus();
+        titleIn.focus();
         titleIn.addEventListener("input", function () { f.title = titleIn.value; titleIn.classList.remove("err"); dlg.querySelector("#efTitleErr").classList.remove("show"); markDirty(); });
         locIn.addEventListener("input", function () { f.loc = locIn.value; markDirty(); });
         if (window.daylightAttachPlaces) window.daylightAttachPlaces(locIn,f,markDirty);
@@ -5177,18 +5163,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events.</p></div>"));
           return;
         }
-        /* Quick add: when the typed text parses as an event, the top result creates it (the form opens pre-filled; nothing saves) */
-        var qaRow = window.daylightQuickAdd && daylightQuickAdd.searchRow(inp.value.trim(), function (p) {
-          closeSearch();
-          var s0 = new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate(), 0, 0), draft = { title: p.title, cal: defaultCalId(), allDay: p.startMin == null, start: s0, end: s0, repeat: null, repeatEnd: null, reminder: defaultReminderFor(defaultCalId()), loc: "", desc: "", attachments: [] };
-          if (p.startMin != null) { draft.start = new Date(s0.getTime() + p.startMin * 60000); draft.end = new Date(s0.getTime() + (p.endMin != null ? p.endMin : p.startMin + 60) * 60000); }
-          openEventForm(null, null, null, draft);
-        });
-        if (qaRow) results.appendChild(qaRow);
-        /* Search spans the same horizon the built-in US Holidays
-           calendar covers — 2015 through the end of 2030 — so an
-           event is findable in any year the app can navigate to,
-           not just the sample years. */
         var range = occsInRange(dt(2015, 0, 1), dt(2031, 0, 1)).filter(function (o) {
           return o.ev.title.toLowerCase().indexOf(q) >= 0 || (o.ev.loc || "").toLowerCase().indexOf(q) >= 0;
         });

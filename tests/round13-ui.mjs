@@ -2,7 +2,7 @@
  * Round 13 UI fixes (both themes, stubbed Supabase):
  *  Fix 8 share-view inset (both popover variants) · Fix 12 Create menu icon pair · Fix 14 CUSTOM COLORS row ·
  *  Fix 15 drag-to-reorder calendars (pointer + keyboard) · Fix 17 Manage sharing sizing · Fix 20 Select mode ·
- *  Fix 21 quick add · Fix 22 sync indicator · Fix 23 default reminder · Fix 24 print month
+ *  Fix 22 sync indicator · Fix 23 default reminder · Fix 24 print month
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -127,24 +127,19 @@ for(const theme of ['dark','light']){
   // ---------------- Fix 17: Manage sharing sizing
   await openMg('Personal');
   const m17=await page.evaluate(()=>{const d=document.querySelector('.dl-manage'),r=s=>{const e=d.querySelector(s),b=e.getBoundingClientRect();return [Math.round(b.left),Math.round(b.right),Math.round(b.width)]};return {field:r('.dl-inv-field'),row2:r('.dl-inv-row2'),perm:r('.dl-inv-perm'),send:r('.dl-inv-send'),ppl:r('.dl-ppl-row')}});
-  check(T('Manage sharing: the permission picker + Invite row spans the same width as the search field; people rows fill the content width'),m17.row2[2]===m17.field[2]&&m17.send[1]===m17.field[1]&&m17.ppl[2]===m17.field[2]&&m17.perm[2]>200,J(m17));
+  check(T('Manage sharing: the picker + Invite row spans the field width with a content-sized picker and Invite at the right edge; people rows fill the content width'),m17.row2[2]===m17.field[2]&&m17.send[1]===m17.field[1]&&m17.ppl[2]===m17.field[2]&&m17.perm[2]<200,J(m17));
   await shot('fix17-manage-sharing');
   await page.evaluate(()=>document.querySelector('.dl-manage [data-done]').click());await sleep(500);
   await page.evaluate(()=>{document.querySelectorAll('.backdrop').forEach(b=>b.remove())});
 
-  // ---------------- Fix 21: quick add
+  // ---------------- Fix 34: Quick add is gone
   await page.evaluate(()=>openSearch());await sleep(400);await page.type('#palInput','Haircut Tue 6:30pm');await sleep(450);
-  const qa=await page.evaluate(()=>{const r=document.querySelector('.pal-create');return r?{sum:r.querySelector('.pc-sum').textContent,when:r.querySelector('.pc-when').textContent,first:r===document.querySelector('.pal-item')||r.previousElementSibling===null||true}:null});
-  check(T('Search: "Haircut Tue 6:30pm" shows a create row with the parsed summary'),qa&&qa.sum==='Create event: “Haircut”'&&/^Tue, [A-Z][a-z]{2} \d+ · 6:30 PM$/.test(qa.when),J(qa));
-  await shot('fix21-search-create-row');
-  await page.click('.pal-create');await sleep(700);
-  const qf=await page.evaluate(()=>({title:document.querySelector('#efTitle').value}));
-  check(T('choosing it opens Create Event pre-filled (nothing saved yet)'),qf.title==='Haircut'&&!await page.evaluate(()=>state.events.some(e=>e.title==='Haircut')),J(qf));
+  check(T('Search shows only search results (no create row for typed phrases)'),await page.evaluate(()=>!document.querySelector('.pal-create')&&!/Create event/.test(document.querySelector('#palResults').textContent)));
+  await page.keyboard.press('Escape');await sleep(300);
+  await page.evaluate(()=>openEventForm(null,state.selected));await sleep(500);
+  check(T('Create Event has no Quick add field and opens on Title'),await page.evaluate(()=>!document.querySelector('#efQuick')&&document.activeElement.id==='efTitle'));
   await page.keyboard.press('Escape');await sleep(300);
   await page.evaluate(()=>{document.querySelectorAll('.backdrop').forEach(b=>b.remove())});
-  await page.evaluate(()=>openSearch());await sleep(300);await page.type('#palInput','no date words here');await sleep(400);
-  check(T('text with no date/time shows no create row'),await page.evaluate(()=>!document.querySelector('.pal-create')));
-  await page.keyboard.press('Escape');await sleep(300);
 
   // ---------------- Fix 20: select mode in Agenda
   await page.evaluate(()=>{state.view='agenda';state.section='calendar';state.cursor=new Date(2026,10,15);renderAll(false)});await sleep(500);

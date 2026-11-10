@@ -134,7 +134,7 @@
       ".settings-pane .set-row .dd{width:auto!important;min-width:118px;max-width:230px}",
       ".settings-pane .dl-row-stack{flex-direction:column;align-items:flex-start!important;gap:10px}.settings-pane .dl-row-stack>span:first-child{padding-right:0}",
       /* the floating Save pill never covers a control: the pane keeps room under its content while the pill shows; Saved shows no Discard */
-      ".settings-dialog:has(.settings-savebar:not([hidden])) .settings-pane{padding-bottom:104px}",
+      ".settings-dialog .settings-pane{padding-bottom:104px}",
       /* Fix 26: the close X belongs to the dialog frame (not the scrolling pane); it has its own backing and the pane leaves it room */
       ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:0!important;background:var(--surface)!important;z-index:30!important}",
       "[data-theme=\"light\"] .settings-dialog>.settings-close{background:var(--gray-2)!important}",
@@ -157,6 +157,11 @@
       ".settings-savebar button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}",
       ".settings-savebar.is-nudge{animation:dlPillNudge 1100ms cubic-bezier(0.23,1,0.32,1) both;border-color:var(--accent)!important}.settings-savebar.is-nudge [data-save]:not(:disabled){animation:dlPillSave 1100ms cubic-bezier(0.23,1,0.32,1) both}@keyframes dlPillNudge{0%{box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 48%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 30%,transparent)}65%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 22%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent),0 10px 28px transparent}}@keyframes dlPillSave{0%,55%{filter:brightness(1.22);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 50%,transparent)}100%{filter:none;box-shadow:0 0 0 0 transparent}}body.reduce-motion .settings-savebar.is-nudge,body.reduce-motion .settings-savebar.is-nudge [data-save]{animation:none!important;box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent)}",,
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
+      /* ONE clean floating pill: a single border, a single background, no outline or leftover box at any point of its in/out motion */
+      ".settings-savebar{box-sizing:border-box;outline:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent;will-change:opacity,transform}",
+      ".settings-savebar:focus,.settings-savebar:focus-visible{outline:none}",
+      ".settings-savebar.is-nudge{animation:none!important}",
+      "body.reduce-motion .settings-savebar,body.reduce-motion .settings-savebar.is-dismissing{animation:none!important}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
     ].join("\n");
     document.head.appendChild(css);
@@ -192,9 +197,20 @@
       if (bar.classList.contains("is-saved")) return; // let the Save confirmation play out
       if (!settingsState.transactionActive || !bd.isConnected) return;
       const dirty=isDirty();
-      bar.hidden=!dirty;
-      bar.setAttribute("aria-hidden",String(!dirty));
-      if (dirty) bar.querySelector(".savebar-message").textContent="You have unsaved changes";
+      if (dirty) {
+        /* the moment anything differs from the saved state the pill animates in (cancelling an out-animation in progress) */
+        clearTimeout(bar._hideT);
+        bar.classList.remove("is-dismissing");
+        if (bar.hidden) bar.hidden=false;
+        bar.setAttribute("aria-hidden","false");
+        bar.querySelector(".savebar-message").textContent="You have unsaved changes";
+      } else if (!bar.hidden && !bar.classList.contains("is-dismissing")) {
+        /* undone back to the saved state: it animates out again */
+        bar.classList.add("is-dismissing");
+        bar.setAttribute("aria-hidden","true");
+        clearTimeout(bar._hideT);
+        bar._hideT=setTimeout(function(){ if(bar.classList.contains("is-dismissing")){ bar.hidden=true; bar.classList.remove("is-dismissing"); } }, 190);
+      }
     }
     settingsState.markDirty = markDirty;
 
@@ -218,6 +234,7 @@
       settingsState.viewSelect = null;
       settingsState.redrawPane = null;
       document.removeEventListener("keydown",closeOnEscape,true);
+      stopWatch();
       if(window.daylightExit)window.daylightExit(bd);else bd.remove();
       renderAll(false);
       if (save) {
@@ -227,11 +244,7 @@
       }
     }
     /* Briefly highlight the Save / Discard pill (no shake) so a click on X while changes are pending visibly points at it. */
-    function nudgePill() {
-      if (!bar || bar.hidden) return;
-      bar.classList.remove("is-nudge"); void bar.offsetWidth; bar.classList.add("is-nudge");
-      clearTimeout(bar._nudge); bar._nudge = setTimeout(function () { bar.classList.remove("is-nudge"); }, 1200);
-    }
+    function nudgePill() { /* the pill is already visible by the time anyone tries to leave; there is no separate highlight state */ }
     function close() {
       var focused = document.activeElement;
       if (focused && dlg.contains(focused) && focused.tagName === "INPUT") focused.blur();
@@ -305,6 +318,7 @@
       setTimeout(function(){
         if(!settingsState.transactionActive)return;
         bar.classList.add("is-dismissing");
+        clearTimeout(bar._hideT);
         setTimeout(function(){
           bar.hidden=true;
           bar.setAttribute("aria-hidden","true");
@@ -326,9 +340,17 @@
       markDirty();
     });
     bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
-    ["input", "change", "click"].forEach(function (eventType) {
+    ["input", "change", "click", "keyup", "pointerup"].forEach(function (eventType) {
       dlg.addEventListener(eventType, function () { setTimeout(markDirty, 0); });
     });
+    /* Menus (dropdown choices) are drawn outside the dialog, so also watch the whole document while Settings is open. */
+    function docWatch() { if (!bd.isConnected) { stopWatch(); return; } setTimeout(markDirty, 0); }
+    var watchTimer = setInterval(function () { if (!bd.isConnected) { stopWatch(); return; } markDirty(); }, 160);
+    function stopWatch() {
+      clearInterval(watchTimer);
+      ["input", "change", "click", "keyup", "pointerup"].forEach(function (t) { document.removeEventListener(t, docWatch, true); });
+    }
+    ["input", "change", "click", "keyup", "pointerup"].forEach(function (t) { document.addEventListener(t, docWatch, true); });
 
     function drawPane() {
       settingsState.redrawPane = drawPane;
