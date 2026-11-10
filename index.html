@@ -3682,8 +3682,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var notifBtn = el('<button class="icon-btn dl-notif-btn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">' + icon("bell", 19) + "</button>");
         notifBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleNotifPanel(notifBtn); });
         if (window.daylightNotifications) window.daylightNotifications.decorate(notifBtn);
-        if (typeof dayArrows !== "undefined" && dayArrows && state.view === "day") right.appendChild(dayArrows);
+        /* the sync label (its width changes) stays leftmost so everything to its right never shifts */
         if (window.daylightSyncIndicator) right.appendChild(window.daylightSyncIndicator());
+        if (typeof dayArrows !== "undefined" && dayArrows && state.view === "day") right.appendChild(dayArrows);
         /* Month view only: a quiet overflow (⋯) menu, currently holding Print month */
         if (state.section === "calendar" && state.view === "month") {
           var moreBtn = el('<button class="icon-btn" title="More" aria-label="More" aria-haspopup="menu">' + icon("dotsH", 19) + "</button>");
@@ -3692,7 +3693,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           });
           right.appendChild(moreBtn);
         }
-        right.appendChild(searchBtn); right.appendChild(notifBtn); right.appendChild(gearBtn); right.appendChild(helpBtn);
+        right.appendChild(searchBtn); right.appendChild(notifBtn); right.appendChild(gearBtn);   /* (the header Help button is not rendered: it was always removed right after paint, which made the controls jump) */
         hdr.appendChild(right);
       }
       var notifPanelEl = null, notifPanelAnchor = null;
