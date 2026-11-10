@@ -136,7 +136,7 @@
       /* the floating Save pill never covers a control: the pane keeps room under its content while the pill shows; Saved shows no Discard */
       ".settings-dialog:has(.settings-savebar:not([hidden])) .settings-pane{padding-bottom:104px}",
       /* Fix 26: the close X belongs to the dialog frame (not the scrolling pane); it has its own backing and the pane leaves it room */
-      ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:11px!important;background:var(--surface)!important;z-index:30!important}",
+      ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:0!important;background:var(--surface)!important;z-index:30!important}",
       "[data-theme=\"light\"] .settings-dialog>.settings-close{background:var(--gray-2)!important}",
       ".settings-dialog>.settings-close::before{inset:0!important;border-radius:10px!important}",
       ".settings-dialog .settings-pane{padding-right:60px}",
