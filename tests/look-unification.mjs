@@ -82,7 +82,7 @@ for(const theme of ['dark','light']){
   await page.evaluate(()=>{const i=document.querySelector('#csWeekends');i.checked=!i.checked;i.dispatchEvent(new Event('change',{bubbles:true}))});await sleep(400);
   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(160);
   const nudge=await page.evaluate(()=>({nudge:document.querySelector('.settings-savebar').classList.contains('is-nudge'),open:!!document.querySelector('.settings-dialog'),anim:getComputedStyle(document.querySelector('.settings-savebar')).animationName,transform:getComputedStyle(document.querySelector('.settings-savebar')).transform}));
-  check(T('Settings: clicking X with unsaved changes highlights the Save/Discard pill (and keeps Settings open)'),nudge.nudge&&nudge.open&&/dlPillNudge/.test(nudge.anim),JSON.stringify(nudge));
+  check(T('Settings: clicking X with unsaved changes keeps Settings open; the pill was already showing and gets no separate highlight'),!nudge.nudge&&nudge.open&&!/dlPillNudge/.test(nudge.anim),JSON.stringify(nudge));
   await page.screenshot({path:path.join(out,`7-settings-x-nudge-${theme}.png`)});
   const xpos=await page.evaluate(()=>{const d=document.querySelector('.settings-dialog').getBoundingClientRect(),x=document.querySelector('.settings-close').getBoundingClientRect();return {right:Math.round(d.right-x.right),top:Math.round(x.top-d.top),inside:x.right<=d.right&&x.top>=d.top}});
   check(T('Settings: the X stays inside the dialog\'s top-right corner while changes are pending'),xpos.inside&&xpos.right===13&&xpos.top===13,JSON.stringify(xpos));
