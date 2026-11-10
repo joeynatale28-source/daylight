@@ -500,6 +500,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  const afterDiscard=await page.evaluate(keys=>Object.fromEntries(keys.map(key=>[key,Array.isArray(state[key])?state[key].slice():state[key]])),savedSettingKeys);
  assert.deepEqual(afterDiscard,oldSettings,'Discard failed to restore every saved setting');
  assert.ok(await page.$('.settings-dialog'),'Discard must keep Settings open');
+ await page.waitForFunction(()=>document.querySelector('.settings-savebar').hidden,{timeout:2000}).catch(()=>{});
  assert.equal(await page.$eval('.settings-savebar',x=>x.hidden),true,'Discard must hide the pill after reverting');
  await page.evaluate(()=>{
    const input=document.querySelector('#csWeekends');
