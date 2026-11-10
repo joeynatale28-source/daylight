@@ -100,11 +100,11 @@
       ".settings-pane{position:relative;isolation:isolate;padding-bottom:44px;overflow-y:auto;min-height:0}",
       /* While the save pill shows, the scrolling area ends above it, so the pill never sits on a label, description or control. */
       /* Fix 25: the pane keeps its full height; the strip the pill covers is blurred (bounded, soft edge) and fades in and out with the pill. */
-      ".settings-dialog:has(.settings-savebar:not([hidden]))::after{content:\"\";position:absolute;left:236px;right:0;bottom:0;height:96px;z-index:11;pointer-events:none;backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);background:linear-gradient(to top,color-mix(in srgb,var(--surface) 60%,transparent),transparent);-webkit-mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%);mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%);animation:settingsBlurIn 190ms cubic-bezier(0.23,1,0.32,1) both}",
-      "[data-theme=\"light\"] .settings-dialog:has(.settings-savebar:not([hidden]))::after{background:linear-gradient(to top,color-mix(in srgb,var(--gray-2) 60%,transparent),transparent)}",
-      ".settings-dialog:has(.settings-savebar.is-dismissing)::after{animation:settingsBlurOut 180ms ease-in forwards}",
-      "@keyframes settingsBlurIn{from{opacity:0}to{opacity:1}}@keyframes settingsBlurOut{to{opacity:0}}",
-      "body.reduce-motion .settings-dialog::after,body.reduce-motion .settings-savebar{animation:none!important}@media (prefers-reduced-motion:reduce){.settings-dialog::after,.settings-savebar{animation:none!important}}",
+      ".settings-dialog::after{content:\"\";position:absolute;left:236px;right:0;bottom:0;height:96px;z-index:11;pointer-events:none;opacity:0;transition:opacity 190ms cubic-bezier(0.23,1,0.32,1);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);background:linear-gradient(to top,color-mix(in srgb,var(--surface) 60%,transparent),transparent);-webkit-mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%);mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%)}",
+      "[data-theme=\"light\"] .settings-dialog::after{background:linear-gradient(to top,color-mix(in srgb,var(--gray-2) 60%,transparent),transparent)}",
+      ".settings-dialog:has(.settings-savebar:not([hidden]))::after{opacity:1}",
+      ".settings-dialog:has(.settings-savebar.is-dismissing)::after{opacity:0;transition-duration:180ms;transition-timing-function:ease-in}",
+      "body.reduce-motion .settings-dialog::after{transition:none!important}@media (prefers-reduced-motion:reduce){.settings-dialog::after{transition:none!important}}",
       ".settings-savebar{position:absolute;left:calc(50% + 100px);right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
       ".settings-savebar{background:var(--surface)!important;border:1px solid var(--line)!important;box-shadow:var(--shadow-pop)!important;isolation:isolate}",
       ".settings-savebar[hidden]{display:none!important}",
