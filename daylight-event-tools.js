@@ -325,3 +325,5 @@
     window.daylightCopyAttachments = window.daylightAttachments.copy;
   })();
 })();
+
+/* Round 14: Select mode, photo attachments. */
