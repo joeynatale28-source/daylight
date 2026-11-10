@@ -473,6 +473,8 @@
       .month-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; padding: 0 7px; white-space: nowrap; box-sizing: border-box; display: inline-block; width: 9.2em; text-align: center; overflow: hidden; flex: none; }
       .month-title.is-day { width: 19.5em; }
       .month-title.is-range { width: 12.4em; }
+      .dl-day-arrows { display: inline-flex; align-items: center; gap: 2px; margin-right: 4px; }
+      .dl-day-arrows .icon-btn { width: 36px; height: 36px; }
       .today-btn { margin-left: 6px; color: var(--muted); }
       .today-btn:hover { color: var(--accent); }
       /* Primary = the login's big pill at app scale: monochrome fill
@@ -1932,12 +1934,13 @@
 
 /* Calendar reorder grip (Fix 15): six dots at the far left, quiet at rest, clearer on hover / focus / touch; only the grip drags. */
 #sidebar:not(.rail) .cal-row { padding-left: 20px; }
-.cal-grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); width: 14px; height: 24px; display: grid; place-items: center; color: var(--faint); opacity: .45; cursor: grab; border-radius: 6px; padding: 0; touch-action: none; transition: opacity 150ms var(--dl-ease-out), color 150ms var(--dl-ease-out), background 150ms var(--dl-ease-out); }
-.cal-row:hover .cal-grip, .cal-grip:focus-visible, .cal-row:focus-within .cal-grip { opacity: .95; color: var(--muted); }
+.cal-grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); width: 14px; height: 24px; display: grid; place-items: center; color: var(--faint); opacity: .2; cursor: grab; border-radius: 6px; padding: 0; touch-action: none; transition: opacity 150ms var(--dl-ease-out), color 150ms var(--dl-ease-out), background 150ms var(--dl-ease-out); }
+.cal-grip svg { width: 9px; height: 12px; }
+.cal-row:hover .cal-grip, .cal-grip:focus-visible, .cal-row:focus-within .cal-grip, .cal-row.is-dragging .cal-grip { opacity: .85; color: var(--muted); }
 .cal-grip:hover { color: var(--text); background: var(--hover); }
 .cal-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .cal-grip:active, body.dl-reordering .cal-grip { cursor: grabbing; }
-@media (hover: none) { .cal-grip { opacity: .9; } }
+@media (hover: none) { .cal-grip { opacity: .55; } .cal-grip:active { opacity: .95; } }
 #sidebar.rail .cal-grip { display: none; }
 .cal-row.is-parting { transition: transform 190ms var(--dl-ease-out), background 140ms var(--dl-ease-out); }
 .cal-row.is-dragging { z-index: 5; transition: box-shadow 160ms var(--dl-ease-out); box-shadow: var(--shadow-pop); background: var(--surface); cursor: grabbing; }
@@ -2598,7 +2601,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           return days <= 1 ? "All day" : days + " days · All day";
         }
         var mins = Math.round((occ.end - occ.start) / 60000);
-        if (mins <= 0) return "";
+        if (mins <= 0) return "0 minutes";
         if (mins < 60) return mins + (mins === 1 ? " minute" : " minutes");
         var h = Math.floor(mins / 60), m = mins % 60;
         var hs = h + (h === 1 ? " hour" : " hours");
@@ -3634,24 +3637,35 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var prevName = "Previous " + unit;
           var nextName = "Next " + unit;
           var tb = el('<div class="cal-toolbar">' +
-            '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>" +
+            (isDay ? "" : '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>") +
             '<span class="month-title' + (isDay ? " is-day" : (isAgenda ? " is-range" : "")) + '" id="tbMonth">' + esc(label) + "</span>" +
-            '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>" +
+            (isDay ? "" : '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>") +
             '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + "</button>" +
           "</div>");
           /* the arrows move by the unit the header names: a day, a week, the agenda's three-week period, or a month */
           function pageHeader(dir) { if (state.view === "day") pageDay(dir); else if (state.view === "week" || state.view === "agenda") pageBy(dir, true); else pageMonth(dir); }
-          tb.querySelector("#tbPrev").addEventListener("click", function () { pageHeader(-1); });
-          tb.querySelector("#tbNext").addEventListener("click", function () { pageHeader(1); });
+          if (!isDay) {
+            tb.querySelector("#tbPrev").addEventListener("click", function () { pageHeader(-1); });
+            tb.querySelector("#tbNext").addEventListener("click", function () { pageHeader(1); });
+          } else {
+            /* Day view: the day arrows live at the right end of the header; the left spot is a real Back */
+            var dayArrows = el('<div class="dl-day-arrows"><button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + '</button><button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button></div>");
+            dayArrows.querySelector("#tbPrev").addEventListener("click", function () { pageHeader(-1); });
+            dayArrows.querySelector("#tbNext").addEventListener("click", function () { pageHeader(1); });
+          }
           tb.querySelector("#tbToday").addEventListener("click", function () { goTodayMonth(); });
           hdr.appendChild(tb);
         }
-        if (state.view === "day" && state.prevView && state.section === "calendar") {
-          var back = el('<button class="back-btn">' + icon("arrowL", 15) + "Back</button>");
+        if (state.view === "day" && state.section === "calendar") {
+          var back = el('<button class="back-btn" id="tbBack" title="Back" aria-label="Back">' + icon("arrowL", 15) + "Back</button>");
           back.addEventListener("click", function () {
-            var pv = state.prevView; state.prevView = null; state.view = pv; renderAll(true, -1);
+            /* returns to the view he came from (Month when there is none), with that view's date kept */
+            var pv = state.prevView || "month"; state.prevView = null; state.view = pv;
+            if (state.prevCursor) { state.cursor = sod(state.prevCursor); state.prevCursor = null; }
+            renderAll(true, -1);
           });
-          hdr.appendChild(back);
+          var toolbarEl = hdr.querySelector(".cal-toolbar");
+          if (toolbarEl) hdr.insertBefore(back, toolbarEl); else hdr.appendChild(back);
         }
         var right = el('<div class="head-right"></div>');
         /* Three quiet icon buttons only: search (full-screen command
@@ -3668,6 +3682,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var notifBtn = el('<button class="icon-btn dl-notif-btn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">' + icon("bell", 19) + "</button>");
         notifBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleNotifPanel(notifBtn); });
         if (window.daylightNotifications) window.daylightNotifications.decorate(notifBtn);
+        if (typeof dayArrows !== "undefined" && dayArrows && state.view === "day") right.appendChild(dayArrows);
         if (window.daylightSyncIndicator) right.appendChild(window.daylightSyncIndicator());
         /* Month view only: a quiet overflow (⋯) menu, currently holding Print month */
         if (state.section === "calendar" && state.view === "month") {
@@ -3823,7 +3838,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       }
       function drillToDay(date) {
         state.section = "calendar";
-        if (state.view !== "day") state.prevView = state.view;
+        if (state.view !== "day") { state.prevView = state.view; state.prevCursor = new Date(state.cursor); }
         state.view = "day"; state.cursor = sod(date); state.selected = sod(date);
         renderAll(true, 1);
       }
@@ -4704,7 +4719,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var bBtns = "";
           if (!readOnly) bBtns += '<button class="pop-banner-btn" data-act="edit" title="Edit event" aria-label="Edit event">' + icon("pencil", 15) + '</button><button class="pop-banner-btn" data-act="del" title="Delete event" aria-label="Delete event">' + icon("trash", 15) + '</button><button class="pop-banner-btn" data-act="more" title="More actions" aria-label="More actions" aria-haspopup="menu">' + icon("dotsV", 16) + "</button>";
           bBtns += '<button class="pop-banner-btn" data-act="close" title="Close" aria-label="Close">' + icon("x", 16) + "</button>";
-          var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ)) + "</div>";
+          var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ) + (!ev.allDay && dur ? " · " + dur : "")) + "</div>";
           p = el('<div class="popover has-banner" role="dialog" aria-label="Event details">' +
             '<div class="pop-banner' + (holidayBanner ? " holiday-banner" : "") + '"><img src="' + esc(bannerSrc) + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
             '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + calLine + "</div></div>" +
@@ -5269,9 +5284,12 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         function drawPane() {
           settingsState.redrawPane = drawPane;
           pane.innerHTML = "";
-          var x = el('<button class="icon-btn settings-close" title="Close settings">' + icon("x", 17) + "</button>");
-          x.addEventListener("click", close);
-          pane.appendChild(x);
+          var x = dlg.querySelector(":scope > .settings-close");
+          if (!x) {
+            x = el('<button class="icon-btn settings-close" title="Close settings" aria-label="Close settings">' + icon("x", 17) + "</button>");
+            x.addEventListener("click", close);
+            dlg.appendChild(x);
+          }
           var fn = { general: paneGeneral, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, data: paneData, ai: window.daylightAiPane, about: paneAbout }[settingsState.section];
           fn(pane, close);
           bindDropdowns(pane);

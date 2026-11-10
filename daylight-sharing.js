@@ -519,6 +519,8 @@
     var edit = p.querySelector('[data-act="edit"]');
     if (edit) {
       var shareBtn = mk('<button type="button" class="icon-btn" data-act="share" title="Share event" aria-label="Share event">' + ico("user", 16) + "</button>");
+      /* take the exact button treatment of its neighbor: plain popovers use icon-btn, banner popovers use the dark pop-banner-btn circles */
+      shareBtn.className = edit.className;
       edit.parentNode.insertBefore(shareBtn, edit.nextSibling);
       shareBtn.addEventListener("click", function (e) { e.stopPropagation(); showShareView(p, ev); });
     }

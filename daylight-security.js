@@ -130,6 +130,8 @@
     });
 
     var list = group.querySelector("[data-pk-list]"), addBtn = group.querySelector("[data-add-passkey]"), sub = group.querySelector("[data-pk-sub]");
+    var pkSay = say;
+    group._setPkSay = function (fn) { pkSay = fn; };
     var supported = passkeysApi();
     if (!supported) { addBtn.disabled = true; sub.textContent = window.PublicKeyCredential ? "Passkeys aren’t available for this account yet." : "This browser doesn’t support passkeys."; }
     addBtn.addEventListener("click", function () { openPasskeyDialog(refresh); });
@@ -157,8 +159,8 @@
         async function save() {
           var v = input.value.trim(); if (!v) return;
           if (v === nm) { back(); return; }
-          try { var res = await client().auth.passkey.update({ passkeyId: pid, friendlyName: v }); if (res && res.error) throw res.error; say("Passkey renamed."); refresh(); }
-          catch (e) { say(errText(e, "Passkeys"), true); back(); }
+          try { var res = await client().auth.passkey.update({ passkeyId: pid, friendlyName: v }); if (res && res.error) throw res.error; pkSay("Passkey renamed."); refresh(); }
+          catch (e) { pkSay(errText(e, "Passkeys"), true); back(); }
         }
         editBox.querySelector("[data-save]").onclick = save;
         input.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); save(); } else if (e.key === "Escape") { e.stopPropagation(); back(); } });
@@ -171,8 +173,8 @@
           return;
         }
         rm.disabled = true;
-        try { var res = await client().auth.passkey.delete({ passkeyId: pid }); if (res && res.error) throw res.error; say("Passkey removed."); refresh(); }
-        catch (e) { rm.disabled = false; delete rm.dataset.sure; rm.textContent = "Remove"; say(errText(e, "Passkeys"), true); }
+        try { var res = await client().auth.passkey.delete({ passkeyId: pid }); if (res && res.error) throw res.error; pkSay("Passkey removed."); refresh(); }
+        catch (e) { rm.disabled = false; delete rm.dataset.sure; rm.textContent = "Remove"; pkSay(errText(e, "Passkeys"), true); }
       });
       return r;
     }
@@ -198,6 +200,11 @@
     group._ids = function () { return passkeyIds.slice(); };
     group._refresh = refresh;
     refresh();
+    /* Fix 29: passkeys are managed in Sign-in methods, not here. The pieces stay alive (detached) and Sign-in methods adopts them. */
+    group._pkAdd = addBtn; group._pkSubEl = sub; group._pkList = list;
+    var pkRowEl = addBtn.closest(".dl-sec-row");
+    if (pkRowEl) pkRowEl.remove();
+    list.remove();
     return group;
   }
 
@@ -208,6 +215,7 @@
     var host = group.querySelector("[data-methods]"), status = group.querySelector("[data-method-status]");
     function say(msg, bad) { status.textContent = msg || ""; status.classList.toggle("is-error", !!bad); }
     var identities = null, passkeys = 0;
+    if (securityGroup._setPkSay) securityGroup._setPkSay(say);
     securityGroup.addEventListener("dl:passkeys", function (e) { passkeys = e.detail.count; draw(); });
     function emailMethodRow(hasPassword) {
       var r = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("mail", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Email and password</span><span class="sw-sub"></span></span><span class="dl-sec-status"></span></div>');
@@ -262,6 +270,8 @@
       });
       var pk = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("key", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Passkeys</span><span class="sw-sub">Fingerprint, face or screen lock</span></span><span class="dl-sec-actions"></span></div>');
       var pkActions = pk.querySelector(".dl-sec-actions");
+      if (securityGroup._pkSubEl) pk.querySelector(".sw-sub").replaceWith(securityGroup._pkSubEl);
+      if (securityGroup._pkAdd) pkActions.appendChild(securityGroup._pkAdd);
       if (passkeys) {
         /* Disconnect = remove passkey sign-in for the account (every registered passkey), after the standard confirmation. The last sign-in method is never removed. */
         var pb = make('<button type="button" class="btn-danger-outline">Disconnect</button>');
@@ -282,6 +292,7 @@
         var none = make('<span class="dl-sec-status"></span>'); none.textContent = "Not connected"; pkActions.appendChild(none);
       }
       host.appendChild(pk);
+      if (securityGroup._pkList) host.appendChild(securityGroup._pkList);
     }
     async function load() {
       var c = client();
