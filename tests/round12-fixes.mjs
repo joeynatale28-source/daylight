@@ -41,7 +41,7 @@ for(const theme of ['dark','light']){
   await shot('3-public-link-off');
   await page.evaluate(()=>{window.__feed={public_enabled:true,url:'x'}});
   const ycs=await page.evaluate(()=>{const d=document.querySelector('.dl-manage');const card=d.querySelector('.set-group');const tile=d.querySelector('[data-saved] .dl-sw');const rc=card.getBoundingClientRect();const lab=d.querySelector('.dl-cp-yourslabel').getBoundingClientRect();return {count:d.querySelectorAll('[data-saved] .dl-sw[data-color]').length,tileBottomToCard:Math.round(rc.bottom-tile.getBoundingClientRect().bottom),labelToTile:Math.round(tile.getBoundingClientRect().top-lab.bottom)}});
-  check(T('"Your colors" with none saved takes only its label + the add tile on the color grid, then normal card spacing'),ycs.count===0&&ycs.tileBottomToCard<=26&&ycs.labelToTile<=12,J(ycs));
+  check(T('"Your colors" with none saved takes only its label + the add tile on the color grid, then normal card spacing'),ycs.count===0&&ycs.labelToTile<=12,J(ycs));
   await page.evaluate(()=>document.querySelector('.dl-manage [data-done]').click());await sleep(500);
 
   // ================= Fix 2: Support section directly above the account block

@@ -80,6 +80,7 @@
     get user() { return user; },
     get ready() { return !!user && !loading && !conflict; },
     save: function () { changesQueued(); },
+    retry: function () { if (conflict) { location.reload(); return; } clearTimeout(saveTimer); status('Saving…'); saveWorkspace(); },
     /* True when this sign-in found no saved workspace: a brand-new account (drives first-run onboarding). */
     isNewAccount: function () { return !loadedWithRow; },
     /* Edge functions authenticate with the access token supabase-js attaches. If the session is dead (refresh token
@@ -173,7 +174,87 @@
   function status(message, error) {
     lastStatus = message;
     document.getElementById('cloudStatus')?.remove();
+    syncState = error ? 'offline' : (/^Saving/.test(String(message)) ? 'saving' : (/^Saved/.test(String(message)) ? 'saved' : syncState));
+    paintSync();
   }
+
+  /* ===== Sync status indicator (header): a dot + short label driven by the REAL save queue and connectivity ===== */
+  var syncState = 'saved', syncButtons = [];
+  (function () {
+    var css = document.createElement('style');
+    css.textContent = '.dl-sync{display:inline-flex;align-items:center;gap:7px;height:32px;padding:0 10px;border-radius:999px;font-size:12px;font-weight:550;color:var(--muted);white-space:nowrap;transition:background 160ms var(--ease-out),color 160ms var(--ease-out)}' +
+      '.dl-sync[hidden]{display:none}.dl-sync:hover{background:var(--hover);color:var(--text)}.dl-sync.is-calm{cursor:default}.dl-sync.is-calm:hover{background:none;color:var(--muted)}' +
+      '.dl-sync-dot{width:8px;height:8px;border-radius:50%;flex:none;background:#22c55e;transition:background 200ms var(--ease-out)}' +
+      '.dl-sync.is-saving .dl-sync-dot{background:var(--muted);animation:dlSyncPulse 1s ease-in-out infinite}' +
+      '.dl-sync.is-offline{color:#b45309}[data-theme="dark"] .dl-sync.is-offline{color:#f5b04a}.dl-sync.is-offline .dl-sync-dot{background:#f59e0b}' +
+      '@keyframes dlSyncPulse{0%,100%{opacity:.4}50%{opacity:1}}body.reduce-motion .dl-sync-dot{animation:none!important}@media (prefers-reduced-motion:reduce){.dl-sync-dot{animation:none!important}}' +
+      '@media (max-width:720px){.dl-sync-label{display:none}.dl-sync{padding:0 8px}}' +
+      '.dl-sync-pop{position:fixed;z-index:9000;width:260px;padding:14px 16px;border-radius:12px;background:var(--surface);box-shadow:var(--shadow-pop);color:var(--text);font-size:13.5px;line-height:1.45;animation:dl-overlay-show .19s cubic-bezier(.23,1,.32,1) both;transform-origin:100% 0}' +
+      '.dl-sync-pop b{display:block;font-size:14px;margin-bottom:2px}.dl-sync-pop p{margin:0 0 12px;color:var(--muted);font-size:12.5px}.dl-sync-pop .btn-primary{height:34px;margin:0;padding:0 16px}';
+    document.head.appendChild(css);
+  })();
+  function syncView() {
+    var offlineNet = typeof navigator !== 'undefined' && navigator.onLine === false;
+    var st = offlineNet ? 'offline' : syncState;
+    return { st: st, label: st === 'saving' ? 'Saving…' : st === 'offline' ? (offlineNet ? 'Offline' : 'Not saved') : 'Saved' };
+  }
+  function paintSync() {
+    var v = syncView();
+    syncButtons = syncButtons.filter(function (b) { return b.isConnected; });
+    document.querySelectorAll('.dl-sync').forEach(function (b) { if (syncButtons.indexOf(b) === -1) syncButtons.push(b); });
+    syncButtons.forEach(function (b) {
+      b.hidden = !user;
+      b.className = 'dl-sync is-' + v.st + (v.st === 'offline' ? '' : ' is-calm');
+      b.querySelector('.dl-sync-label').textContent = v.label;
+      b.setAttribute('aria-label', 'Sync status: ' + v.label);
+      b.title = v.st === 'offline' ? 'Changes are waiting to be saved' : v.label;
+    });
+  }
+  function pendingCount() {
+    try {
+      var cur = workspace(), old = JSON.parse(lastSaved || 'null') || {}, n = 0;
+      ['calendars', 'events', 'tasks'].forEach(function (k) {
+        var a = cur[k] || [], b = old[k] || [], was = {}, seen = {};
+        b.forEach(function (x) { was[String(x.id)] = JSON.stringify(x); });
+        a.forEach(function (x) { var id = String(x.id); seen[id] = 1; if (was[id] !== JSON.stringify(x)) n++; });
+        b.forEach(function (x) { if (!seen[String(x.id)]) n++; });
+      });
+      if (JSON.stringify(cur.settings) !== JSON.stringify(old.settings)) n++;
+      return Math.max(n, 1);
+    } catch (e) { return 1; }
+  }
+  var syncPop = null;
+  function closeSyncPop() { if (syncPop) { var p = syncPop; syncPop = null; if (window.daylightExit) window.daylightExit(p); else p.remove(); document.removeEventListener('mousedown', syncOutside, true); document.removeEventListener('keydown', syncKey, true); } }
+  function syncOutside(e) { if (syncPop && !syncPop.contains(e.target) && !(e.target.closest && e.target.closest('.dl-sync'))) closeSyncPop(); }
+  function syncKey(e) { if (e.key === 'Escape') closeSyncPop(); }
+  function openSyncPop(anchor) {
+    if (syncPop) { closeSyncPop(); return; }
+    var n = pendingCount(), v = syncView();
+    var p = document.createElement('div'); p.className = 'dl-sync-pop'; p.setAttribute('role', 'dialog'); p.setAttribute('aria-label', 'Sync status');
+    p.innerHTML = '<b></b><p></p><button type="button" class="btn-primary" data-retry>' + (conflict ? 'Reload' : 'Retry') + '</button>';
+    p.querySelector('b').textContent = v.label === 'Offline' ? 'You’re offline' : 'Changes aren’t saved yet';
+    p.querySelector('p').textContent = conflict ? 'Your calendar changed on another device. Reload to review it.' : n + (n === 1 ? ' change is' : ' changes are') + ' waiting to be saved. Daylight keeps trying on its own.';
+    document.body.appendChild(p);
+    var r = anchor.getBoundingClientRect();
+    p.style.top = (r.bottom + 8) + 'px'; p.style.left = Math.max(8, Math.min(window.innerWidth - 268, r.right - 260)) + 'px';
+    p.querySelector('[data-retry]').addEventListener('click', function () { closeSyncPop(); window.daylightCloud.retry(); });
+    syncPop = p;
+    setTimeout(function () { document.addEventListener('mousedown', syncOutside, true); document.addEventListener('keydown', syncKey, true); }, 0);
+  }
+  window.daylightSyncIndicator = function () {
+    var b = document.createElement('button');
+    b.type = 'button'; b.className = 'dl-sync is-calm'; b.hidden = !user;
+    b.innerHTML = '<span class="dl-sync-dot" aria-hidden="true"></span><span class="dl-sync-label">Saved</span>';
+    b.setAttribute('aria-live', 'polite');
+    b.addEventListener('click', function () { if (syncView().st === 'offline') openSyncPop(b); });
+    syncButtons.push(b);
+    setTimeout(paintSync, 0);
+    return b;
+  };
+  window.addEventListener('offline', paintSync);
+  window.addEventListener('online', function () { paintSync(); });
+  document.addEventListener('daylight:workspace-ready', paintSync);
+  document.addEventListener('daylight:workspace-signed-out', function () { closeSyncPop(); syncState = 'saved'; paintSync(); });
 
   /* New accounts get ONLY the built-in US Holidays calendar; their first calendar is created in onboarding. */
   var loadedWithRow = false;
@@ -256,7 +337,8 @@
         id: id, name: name, color: (PALETTE[item.color] || (typeof item.color === 'string' && /^#[0-9a-f]{6}$/i.test(item.color))) ? item.color : 'blue',
         hidden: !!item.hidden, subscribed: isHoliday || !!item.subscribed,
         shared: !isHoliday && !!item.shared, builtin: !!isHoliday,
-        publicLink: !isHoliday && typeof item.publicLink === 'string' && /^https:\/\//.test(item.publicLink) ? item.publicLink : ''
+        publicLink: !isHoliday && typeof item.publicLink === 'string' && /^https:\/\//.test(item.publicLink) ? item.publicLink : '',
+        defaultReminder: !isHoliday && item.defaultReminder != null && Number.isFinite(Number(item.defaultReminder)) ? Number(item.defaultReminder) : null
       });
     });
     if (!seen.holidays) {
@@ -284,6 +366,7 @@
           id: id, title: String(e.title || 'Untitled'), cal: String(e.cal || 'personal'),
           start: start, end: end, allDay: allDay, loc: String(e.loc || ''),
           desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday,
+          attachments: Array.isArray(e.attachments) ? e.attachments.filter(function (m) { return m && typeof m.path === 'string'; }).slice(0,10).map(function (m) { return { path:String(m.path), name:String(m.name||''), type:String(m.type||''), size:Number(m.size)||0 }; }) : [],
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
@@ -366,13 +449,14 @@
         var out = { id:c.id, name:c.name, color:c.color, hidden:!!c.hidden,
           subscribed:!!c.subscribed, shared:!!c.shared, builtin:!!c.builtin };
         if (c.publicLink) out.publicLink = String(c.publicLink);
+        if (c.defaultReminder != null && Number.isFinite(Number(c.defaultReminder))) out.defaultReminder = Number(c.defaultReminder);
         return out;
       }),
       events: state.events.filter(function (e) { return !e.feedSubscriptionId && !e.feedShareId && !e.feedEventShareId && String(e.cal).indexOf('share:') !== 0 && String(e.cal).indexOf('evs:') !== 0; }).map(function (e) {
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
-          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, reminder:e.reminder == null ? null : e.reminder,
+          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, attachments:Array.isArray(e.attachments)&&e.attachments.length?e.attachments:undefined, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,

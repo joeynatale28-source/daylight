@@ -61,6 +61,8 @@
     ".dl-invite .dl-inv-field{height:44px;border-radius:12px;width:100%;flex:none}",
     ".dl-invite .dl-inv-row2{display:flex;align-items:center;justify-content:flex-start;gap:10px;margin-top:12px}",
     ".dl-invite .dl-inv-perm{height:40px;border-radius:12px;flex:0 1 auto}",
+    ".dl-manage .dl-invite .dl-inv-row2{width:100%}",
+    ".dl-manage .dl-invite .dl-inv-perm{flex:1 1 auto;min-width:0;justify-content:space-between}",
     ".dl-invite .dl-inv-send{height:36px;border-radius:8px;padding:0 20px;margin:0}",
     ".dl-invite .dl-inv-send:disabled{background:var(--auth-primary-bg);color:var(--auth-primary-text);opacity:var(--dl-disabled-opacity)}",
     ".dl-invite .dl-inv-results{margin-top:8px}",
@@ -195,8 +197,8 @@
     var value = opts.value;
     host.textContent = ""; host.classList.add("dl-cp");
     host.innerHTML = '<div class="dl-mg-swatches" data-presets></div>' +
-      '<div class="dl-cp-yours"><div class="dl-mg-sub dl-cp-yourslabel">Your colors</div><div class="dl-mg-swatches dl-mg-saved" data-saved></div></div>' +
-      '<div class="dl-cp-custom" hidden><div data-inline-picker></div><button type="button" class="btn-ghost dl-btn-sm dl-cp-add" data-save-custom>Add to Your colors</button></div>';
+      '<div class="dl-cp-yours"><div class="dl-mg-sub dl-cp-yourslabel">Custom colors</div><div class="dl-mg-swatches dl-mg-saved" data-saved></div></div>' +
+      '<div class="dl-cp-custom" hidden><div data-inline-picker></div></div>';
     var presets = host.querySelector("[data-presets]"), saved = host.querySelector("[data-saved]"), label = host.querySelector(".dl-cp-yourslabel"),
         yours = host.querySelector(".dl-cp-yours"), custom = host.querySelector(".dl-cp-custom");
     var inline = null;
@@ -243,6 +245,7 @@
     }
     function toggleCustom() {
       var open = custom.hidden;
+      if (!open && inline) commitCustom(inline.value);
       custom.hidden = !open;
       var t = host.querySelector("[data-custom-toggle]"); if (t) { t.setAttribute("aria-expanded", String(open)); t.classList.toggle("is-open", open); }
     }
@@ -252,12 +255,19 @@
       if (inline && key !== inline.value) inline.set(swatchHex(key));
       if (opts.onChange) opts.onChange(key);
     }
-    host.querySelector("[data-save-custom]").addEventListener("click", function () {
-      var hex = inline ? inline.value : swatchHex(value);
-      state.customColors = [hex].concat(savedList().filter(function (c) { return c !== hex; })).slice(0, 30);
-      pick(hex); savedChanged();
-    });
-    if (window.daylightInlineColorPicker) inline = window.daylightInlineColorPicker(host.querySelector("[data-inline-picker]"), swatchHex(value), function (hex) { pick(hex); }, { compact: true });
+    /* A color made in the custom creator joins CUSTOM COLORS on its own (no prompt): once the user pauses on a color, or closes the creator. */
+    var commitTimer = null;
+    function commitCustom(hex) {
+      clearTimeout(commitTimer);
+      hex = String(hex || "").toUpperCase();
+      if (!/^#[0-9A-F]{6}$/.test(hex)) return;
+      var presetsList = (window.daylightPresetColors || []).map(function (c) { return String(c).toUpperCase(); });
+      if (presetsList.indexOf(hex) !== -1 || savedList().some(function (c) { return c.toUpperCase() === hex; })) return;
+      state.customColors = [hex].concat(savedList()).slice(0, 30);
+      draw(); savedChanged();
+    }
+    function scheduleCommit(hex) { clearTimeout(commitTimer); commitTimer = setTimeout(function () { commitCustom(hex); }, 800); }
+    if (window.daylightInlineColorPicker) inline = window.daylightInlineColorPicker(host.querySelector("[data-inline-picker]"), swatchHex(value), function (hex) { pick(hex); scheduleCommit(hex); }, { compact: true });
     draw();
     return { setValue: function (key) { value = key; draw(); if (inline && inline.value !== swatchHex(key)) inline.set(swatchHex(key)); }, get inline() { return inline; } };
   };
@@ -266,7 +276,8 @@
     if (!calArg || settingsState.transactionActive) return;
     var cal = calArg;
     var kind = (cal.id === "holidays" || cal.builtin) ? "holidays" : cal.remoteShareId ? "shared" : cal.remoteSubscriptionId ? "subscribed" : "owned";
-    var original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice() };
+    var original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice(), defaultReminder: cal.defaultReminder == null ? null : cal.defaultReminder };
+    var remValue = original.defaultReminder;
     settingsState.transactionActive = true;
     settingsState.markDirty = null;
     window.daylightCalendarOriginal = function (c) { return c === cal ? original : null; };
@@ -284,7 +295,7 @@
 
     function currentName() { return nameInput ? nameInput.value.trim() : cal.name; }
     function isDirty() {
-      return (nameInput && currentName() !== original.name) || cal.color !== original.color || !sameList(state.customColors, original.customColors);
+      return (nameInput && currentName() !== original.name) || cal.color !== original.color || !sameList(state.customColors, original.customColors) || remValue !== original.defaultReminder;
     }
     function paintHeader() {
       head.querySelector(".dl-mg-name").textContent = currentName() || original.name;
@@ -349,6 +360,17 @@
         pane.appendChild(g2);
       }
       colorGroup(calCard || pane, kind === "shared" ? "This only changes how the calendar looks in your sidebar." : "", !!calCard);
+      if (kind === "owned" && calCard) {
+        var choices = window.daylightReminderChoices || [[null, "None"]];
+        var remRow = make('<div class="dl-mg-colorpart dl-mg-reminder"><div class="dl-mg-sub">Default reminder</div><button type="button" class="dl-select-btn" data-rem aria-haspopup="menu"><span></span>' + icon("chevD", 14) + "</button></div>");
+        var remLabel = function () { var hit = choices.filter(function (p) { return p[0] === remValue; })[0]; remRow.querySelector("span").textContent = hit ? hit[1] : "None"; };
+        remLabel();
+        remRow.querySelector("[data-rem]").addEventListener("click", function () {
+          var anchor = this;
+          openMenu(anchor, [{ label2: "Default reminder" }].concat(choices.map(function (pair) { return { label: pair[1], right: remValue === pair[0] ? "check" : null, fn: function () { remValue = pair[0]; remLabel(); markDirty(); } }; })), { above: true });
+        });
+        calCard.appendChild(remRow);
+      }
       paintHeader();
     }
     var pendingName = null;
@@ -615,6 +637,7 @@
 
     function revert() {
       cal.color = original.color;
+      remValue = original.defaultReminder;
       state.customColors = original.customColors.slice();
       pendingName = null;
       renderSidebar(); renderView(false);
@@ -667,6 +690,7 @@
           if (window.daylightCloud && window.daylightCloud.commit) window.daylightCloud.commit();
         } else {
           if (nameInput) cal.name = newName;
+          if (kind === "owned") cal.defaultReminder = remValue;
           if (window.daylightCloud && window.daylightCloud.commit) window.daylightCloud.commit();
         }
       } catch (e) {
@@ -674,7 +698,8 @@
         bar.querySelector(".savebar-message").textContent = (e && e.message) || "Couldn’t save that change.";
         return;
       }
-      original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice() };
+      original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice(), defaultReminder: cal.defaultReminder == null ? null : cal.defaultReminder };
+      remValue = original.defaultReminder;
       pendingName = null;
       renderSidebar(); renderView(false); paintHeader();
       bar.classList.add("is-saved");

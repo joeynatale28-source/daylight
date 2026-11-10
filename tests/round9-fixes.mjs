@@ -29,11 +29,11 @@ for(const theme of ['dark','light']){
   // ---- 1. Your colors
   await openManage();
   const y0=await page.evaluate(()=>{const l=document.querySelector('.dl-cp-yourslabel');const tile=document.querySelector('.dl-cp [data-custom-toggle]');return {visible:!!l&&l.offsetParent!==null,text:l&&l.textContent,tile:!!tile,tileRound:tile&&getComputedStyle(tile).borderRadius,custom:document.querySelector('.dl-cp-custom').hidden,chip:!!document.querySelector('.dl-cp-toggle')}});
-  check(T('"Your colors" is always there, with one add tile (circle +) and the old Custom color chip gone'),y0.visible&&y0.text==='Your colors'&&y0.tile&&y0.custom&&!y0.chip,JSON.stringify(y0));
+  check(T('"Your colors" is always there, with one add tile (circle +) and the old Custom color chip gone'),y0.visible&&y0.text==='Custom colors'&&y0.tile&&y0.custom&&!y0.chip,JSON.stringify(y0));
   await page.click('.dl-cp [data-custom-toggle]');await sleep(250);
   check(T('the add tile expands Custom color'),await page.evaluate(()=>!document.querySelector('.dl-cp-custom').hidden&&document.querySelector('.dl-cp [data-custom-toggle]').getAttribute('aria-expanded')==='true'));
   await page.$eval('.dl-cp-custom [data-hex]',n=>{n.value=''});await page.type('.dl-cp-custom [data-hex]','#7A3FD0');await page.keyboard.press('Enter');await sleep(250);
-  await page.evaluate(()=>document.querySelector('[data-save-custom]').click());await sleep(300);
+  await sleep(1100);
   const y1=await page.evaluate(()=>{const sw=[...document.querySelectorAll('[data-saved] .dl-sw[data-color]')];const pre=document.querySelector('[data-presets] .dl-sw');return {saved:sw.map(b=>b.dataset.color),pressed:sw.map(b=>b.getAttribute('aria-pressed')),sameSize:sw[0]&&pre&&sw[0].offsetWidth===pre.offsetWidth,savedState:state.customColors.slice()}});
   check(T('a saved custom color appears in "Your colors" as a swatch the size of the presets, selected (check)'),y1.saved.join()==='#7A3FD0'&&y1.pressed[0]==='true'&&y1.sameSize,JSON.stringify(y1));
   await page.evaluate(()=>{document.querySelector('.dl-col-body').scrollTop=0});

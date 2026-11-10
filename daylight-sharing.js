@@ -77,6 +77,7 @@
       id: hashId("share:" + shareId + ":" + e.id), title: String(e.title || "Untitled"), cal: calId, start: start, end: end, allDay: !!e.allDay,
       loc: String(e.loc || ""), desc: String(e.desc || ""), repeat: e.repeat || null, repeatEnd: e.repeatEnd || null, accent: e.accent || null,
       weekdaysOnly: !!e.weekdaysOnly, reminder: e.reminder == null ? null : Number(e.reminder), declined: !!e.declined, uid: e.uid, rrule: e.rrule,
+      attachments: Array.isArray(e.attachments) ? e.attachments : [],
       exdates: e.exdates, timezone: e.timezone, recurrenceId: e.recurrenceId, status: e.status, placeId: e.placeId || null,
       locationLat: e.locationLat == null ? null : e.locationLat, locationLng: e.locationLng == null ? null : e.locationLng, feedShareId: shareId
     };

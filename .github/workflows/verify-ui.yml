@@ -11,6 +11,8 @@ on:
       - daylight-auth.js
       - daylight-security.js
       - daylight-ai-access.js
+      - daylight-print.js
+      - daylight-event-tools.js
       - daylight-sharing.js
       - daylight-manage.js
       - daylight-onboarding.js

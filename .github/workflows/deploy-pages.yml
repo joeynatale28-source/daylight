@@ -12,6 +12,8 @@ on:
       - daylight-auth.js
       - daylight-security.js
       - daylight-ai-access.js
+      - daylight-print.js
+      - daylight-event-tools.js
       - daylight-sharing.js
       - daylight-manage.js
       - daylight-onboarding.js
@@ -49,7 +51,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p _site/assets
-          cp index.html daylight-cloud.js daylight-notifications.js daylight-admin.js daylight-adminpage.js daylight-auth.js daylight-security.js daylight-ai-access.js daylight-sharing.js daylight-manage.js daylight-onboarding.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
+          cp index.html daylight-cloud.js daylight-notifications.js daylight-admin.js daylight-adminpage.js daylight-auth.js daylight-security.js daylight-ai-access.js daylight-print.js daylight-event-tools.js daylight-sharing.js daylight-manage.js daylight-onboarding.js daylight-settings.js daylight-integrations.js daylight-places.js daylight-places.css daylight-enhancements.js daylight-oauth.js daylight-banners.js 404.html _site/
           cp -R assets/. _site/assets/
           # Version-bust every deploy: caches and first-paint snapshots written by a
           # different build are ignored (see window.__DL_BUILD in index.html).
@@ -63,6 +65,8 @@ jobs:
           test -s _site/daylight-auth.js
           test -s _site/daylight-security.js
           test -s _site/daylight-ai-access.js
+          test -s _site/daylight-print.js
+          test -s _site/daylight-event-tools.js
           test -s _site/daylight-sharing.js
           test -s _site/daylight-manage.js
           test -s _site/daylight-onboarding.js

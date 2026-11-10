@@ -31,7 +31,7 @@ for(const theme of ['dark','light']){
      read:d.querySelector('#dl-can-read').checked,write:d.querySelector('#dl-can-write').checked,del:d.querySelector('#dl-can-delete').checked}});
    check(T(who+': the consent card is the app dialog (Inter, 12px radius, 480px), with the sun-arc mark and the app switches and buttons'),v.font==='Inter'&&v.radius==='12px'&&v.w===480&&v.marks===1&&v.switches===3&&/btn-primary/.test(v.allowCls)&&/btn-ghost/.test(v.denyCls),J(v));
    check(T(who+': it states who is asking, from where, and who is signed in'),v.heading===who+' wants to access your Daylight account'&&v.origin===(who==='Claude'?'claude.ai':'chatgpt.com')&&v.account==='demo@example.com',J(v));
-   check(T(who+': the real logo of the requesting app is shown'),v.clientLogo&&v.clientIsDark===(who==='ChatGPT'),J(v));
+   check(T(who+': the real logo of the requesting app is shown'),v.clientLogo&&!v.clientIsDark,J(v));
    check(T(who+': Read is on by default, Write and Delete off'),v.read&&!v.write&&!v.del);
    await shot('1-consent');
    // permission rules (unchanged logic)
@@ -42,8 +42,9 @@ for(const theme of ['dark','light']){
    check(T(who+': turning Read off turns everything off and disables Allow'),await page.evaluate(()=>!document.querySelector('#dl-can-write').checked&&!document.querySelector('#dl-can-delete').checked&&document.querySelector('#dl-oauth-allow').disabled));
    await page.evaluate(()=>{document.querySelector('#dl-can-read').click()});await sleep(150);
    await page.click('#dl-oauth-allow');await sleep(500);
-   const ap=await page.evaluate(()=>({heading:document.querySelector('.dl-consent-dialog h2').textContent,calls:window.__consentCalls}));
+   const ap=await page.evaluate(()=>({heading:document.querySelector('.dl-consent-dialog h2').textContent,calls:window.__consentCalls,lead:(document.querySelector('.dl-oauth-state .dl-oauth-logo img')||{}).getAttribute&&document.querySelector('.dl-oauth-state .dl-oauth-logo img').getAttribute('src'),mark:document.querySelectorAll('.dl-oauth-state .dl-oauth-logo.daylight').length}));
    check(T(who+': Allow approves through Supabase and shows the connected state'),ap.calls.join()==='approve'&&ap.heading===who+' is connected',J(ap));
+   check(T(who+': the redirecting screen leads with the connecting app logo, not the Daylight mark'),ap.mark===0&&new RegExp(who==='Claude'?'claude-logo.png':'chatgpt-logo.svg').test(ap.lead||''),J(ap));
    await shot('2-approved');
   }catch(e){check(T(who+': ran to completion'),false,String(e&&e.stack||e))}
   await app.close();

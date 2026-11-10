@@ -85,7 +85,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
   // an event created through the real dialog (this is where the gray default came from)
   await page.evaluate(()=>openEventForm(null,new Date(2026,10,13)));
   await page.waitForSelector('#efCal');
-  await page.type('.event-form-dialog input.text-input','Dialog created');
+  await page.type('#efTitle','Dialog created');
   await page.click('#efCal');await page.waitForSelector('.menu');
   await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>b.textContent.trim()==='Custom orange').click());
   await sleep(150);await page.click('[data-save]');

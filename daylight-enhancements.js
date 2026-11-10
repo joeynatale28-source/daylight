@@ -276,7 +276,7 @@ window.daylightColorPicker=function(host,initial,onChange,options){
  colors.forEach(key=>make(key));
  if(initial&&!colors.includes(initial)&&!saved.includes(initial))
    make(initial,"Current color");
- if(saved.length||options.alwaysShowSaved){const label=document.createElement("div");label.className="dl-color-label";label.textContent="Your colors";label.style.gridColumn="1/-1";host.append(label);saved.forEach(key=>make(key,null,true));if(!saved.length){const empty=document.createElement("div");empty.className="dl-color-empty";empty.style.gridColumn="1/-1";empty.textContent="Colors you save from the custom picker appear here.";host.append(empty)}}
+ if(saved.length||options.alwaysShowSaved){const label=document.createElement("div");label.className="dl-color-label";label.textContent="Custom colors";label.style.gridColumn="1/-1";host.append(label);saved.forEach(key=>make(key,null,true));if(!saved.length){const empty=document.createElement("div");empty.className="dl-color-empty";empty.style.gridColumn="1/-1";empty.textContent="Colors you save from the custom picker appear here.";host.append(empty)}}
  if(options.noCustomButton)return;
  const plus=document.createElement("button");plus.type="button";plus.className="dl-color-item dl-color-plus";plus.textContent="+";plus.title="Create custom color";plus.setAttribute("aria-label","Create custom color");plus.onclick=()=>custom(key=>{selected=key;onChange(key);window.daylightColorPicker(host,selected,onChange,options)},/^#/.test(selected)?selected:"#FF7A00",options);host.append(plus);
 };

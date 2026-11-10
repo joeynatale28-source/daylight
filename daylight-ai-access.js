@@ -12,7 +12,7 @@
   var AIS = [
     { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/claude-logo.png", tile: "plain",
       steps: ["Open Claude and go to Settings → Connectors.", "Choose Add custom connector.", "Paste the address above.", "Choose “Register automatically”.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
-    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/chatgpt-logo-white.svg", tile: "dark",
+    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/chatgpt-logo.svg", tile: "plain",
       steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] }
   ];
 

@@ -56,7 +56,7 @@ async function renderConsent(){
  const bd=document.createElement("div");bd.id="daylightOAuthConsent";bd.className="dl-consent-backdrop";
  const pane=document.createElement("div");pane.className="dl-consent-dialog";pane.setAttribute("role","dialog");pane.setAttribute("aria-modal","true");pane.setAttribute("aria-label","Authorize connected application");
  bd.append(pane);document.body.append(bd);
- const state=(heading,text,kind)=>{pane.innerHTML='<div class="dl-oauth-state"><div class="dl-oauth-logos">'+markLogo+'</div><h2>'+esc(heading)+'</h2>'+(text?'<p'+(kind==="error"?' role="alert"':'')+'>'+esc(text)+'</p>':'')+(kind==="error"?'<a class="btn-ghost" href="./">Return to Daylight</a>':'')+'</div>'};
+ const state=(heading,text,kind,lead)=>{pane.innerHTML='<div class="dl-oauth-state"><div class="dl-oauth-logos">'+(lead||markLogo)+'</div><h2>'+esc(heading)+'</h2>'+(text?'<p'+(kind==="error"?' role="alert"':'')+'>'+esc(text)+'</p>':'')+(kind==="error"?'<a class="btn-ghost" href="./">Return to Daylight</a>':'')+'</div>'};
  const problem=msg=>state("Unable to authorize",msg,"error");
  if(!id){problem("The authorization request is missing its ID.");return}
  if(!client()?.auth?.oauth){problem("The installed Supabase Auth client does not support OAuth consent.");return}
@@ -79,9 +79,12 @@ async function renderConsent(){
   const profileName=String(profile.full_name||profile.name||email.split('@')[0]||'Your account');
   const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'?u.href:null}catch{return null}};
   /* the requesting app's logo: its own registered logo, else the real Claude / ChatGPT marks, else its initial */
-  const known=/chatgpt|openai/i.test(name)?{src:"./assets/chatgpt-logo-white.svg",dark:true}:/claude|anthropic/i.test(name)?{src:"./assets/claude-logo.png",dark:false}:null;
+  const known=/chatgpt|openai/i.test(name)?{src:"./assets/chatgpt-logo.svg",dark:false}:/claude|anthropic/i.test(name)?{src:"./assets/claude-logo.png",dark:false}:null;
   const clientLogo=safeImage(d.client?.logo_uri||d.client?.logo_url||d.client?.icon_uri)||(known&&known.src);
   const avatar=safeImage(profile.avatar_url||profile.picture);
+  /* after approve / deny the screen leads with the CONNECTING app's logo, not Daylight's */
+  const initial=name.charAt(0).toUpperCase();
+  const leadHtml='<div class="dl-oauth-logo client" data-i="'+esc(initial)+'" aria-label="'+esc(name)+'">'+(clientLogo?'<img src="'+esc(clientLogo)+'" alt="" onerror="this.parentNode.textContent=this.parentNode.dataset.i">':esc(initial))+'</div>';
   pane.innerHTML='<div class="dl-oauth-logos">'+
     '<div class="dl-oauth-logo client" id="dl-oauth-client-logo"></div>'+
     '<div class="dl-oauth-swap" aria-hidden="true">'+(typeof icon==="function"?icon("chevR",18):"⇄")+'</div>'+
@@ -152,13 +155,13 @@ async function renderConsent(){
       const approved=await db.auth.oauth.approveAuthorization(id);
       if(approved.error)throw approved.error;
       if(!approved.data?.redirect_url)throw Error("Approval did not return a client redirect");
-      state(name+" is connected","Returning you to "+name+"…");
+      state(name+" is connected","Returning you to "+name+"…","",leadHtml);
       location.assign(approved.data.redirect_url);
     }catch(e){err.textContent=e.message||"Authorization failed";allow.disabled=false;deny.disabled=false}
   };
   deny.onclick=async()=>{
     allow.disabled=true;deny.disabled=true;
-    try{const denied=await db.auth.oauth.denyAuthorization(id);if(denied.error)throw denied.error;if(denied.data?.redirect_url){state("Access was not allowed","Returning you to "+name+"…");location.assign(denied.data.redirect_url)}else throw Error("Missing denial redirect")}
+    try{const denied=await db.auth.oauth.denyAuthorization(id);if(denied.error)throw denied.error;if(denied.data?.redirect_url){state("Access was not allowed","Returning you to "+name+"…","",leadHtml);location.assign(denied.data.redirect_url)}else throw Error("Missing denial redirect")}
     catch(e){err.textContent=e.message||"Unable to deny";allow.disabled=false;deny.disabled=false}
   };
  }catch(e){problem(e.message||"Authorization could not be loaded")}

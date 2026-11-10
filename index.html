@@ -472,6 +472,7 @@
          never move with the month name. Day view shows a full date and gets a wider (still fixed) area. */
       .month-title { font-size: 17px; font-weight: 600; letter-spacing: -0.015em; padding: 0 7px; white-space: nowrap; box-sizing: border-box; display: inline-block; width: 9.2em; text-align: center; overflow: hidden; flex: none; }
       .month-title.is-day { width: 19.5em; }
+      .month-title.is-range { width: 12.4em; }
       .today-btn { margin-left: 6px; color: var(--muted); }
       .today-btn:hover { color: var(--accent); }
       /* Primary = the login's big pill at app scale: monochrome fill
@@ -806,6 +807,7 @@
       .dl-account-menu .menu-item { min-height: 40px; padding: 0 12px; gap: 11px; font-size: 14px; }
       .menu-item .ic { color: var(--muted); }
       .menu-item.danger { color: var(--danger); }
+      .menu-sep { height: 1px; margin: 4px 8px; background: var(--line-soft); }
       .menu-item.danger .ic { color: var(--danger); }
       .menu-item .mi-right { margin-left: auto; color: var(--muted); display: flex; }
       /* Selection in a menu is a LEFT checkmark (Linear/Plain anatomy) —
@@ -1762,9 +1764,8 @@
 .dl-std .dl-banner[hidden] { display: none; }
 .dl-std .btn-primary:disabled { opacity: var(--dl-disabled-opacity, 0.55); cursor: default; }
 .dl-btn-spin { width: 14px; height: 14px; border-radius: 50%; border: 2px solid currentColor; border-right-color: transparent; animation: dlLoadingSpin 700ms linear infinite; display: inline-block; }
-.dl-wd-check { display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; margin: 2px 0 12px; cursor: pointer; }
+.dl-wd-check { margin: 2px 0 12px; }
 .dl-wd-check[hidden] { display: none; }
-.dl-wd-check input { width: 16px; height: 16px; accent-color: var(--text); flex: none; margin: 0; cursor: pointer; }
 .dl-opts { display: flex; flex-direction: column; gap: 16px; padding-bottom: 16px; }
 .dl-opt { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 64px; padding: 12px 16px; border: 1px solid var(--line); border-radius: 14px; background: transparent; text-align: left; cursor: pointer; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out); }
 .dl-opt:hover, .dl-opt:focus-visible { background: var(--hover); border-color: color-mix(in srgb, var(--text) 24%, var(--line)); outline: none; }
@@ -1908,8 +1909,10 @@
 .popover .pop-top .icon-btn[data-act="share"] { width: 34px; height: 34px; }
 /* The Share view lives INSIDE the popover (same popover, width and position). */
 .popover.is-sharing { width: min(384px, calc(100vw - 16px)); max-height: min(620px, calc(100dvh - 16px)); display: flex; flex-direction: column; overflow: hidden; }
-.dl-share-view { display: flex; flex-direction: column; min-height: 0; flex: 1; }
-.dl-sv-head { display: flex; align-items: center; gap: 4px; margin: 0 -6px 0 -8px; flex: none; }
+.popover.is-sharing, .popover.has-banner.is-sharing { padding: 14px 18px 16px; }
+.dl-share-view { display: flex; flex-direction: column; min-height: 0; flex: 1; width: 100%; min-width: 0; box-sizing: border-box; }
+.dl-share-view > *, .dl-sv-scroll > * { max-width: 100%; box-sizing: border-box; }
+.dl-sv-head { display: flex; align-items: center; gap: 4px; margin: 0; flex: none; }
 .dl-sv-head .icon-btn { width: 34px; height: 34px; border-radius: 50%; flex: none; }
 .dl-sv-head .icon-btn:hover { background: var(--hover); }
 .dl-sv-title { flex: 1; font-size: 18px; font-weight: 600; letter-spacing: -0.012em; padding-left: 4px; }
@@ -1917,7 +1920,7 @@
 .dl-sv-event .dl-sv-dot { width: 12px; height: 12px; border-radius: 4px; flex: none; align-self: center; }
 .dl-sv-event b { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .dl-sv-event span.when { color: var(--muted); flex-basis: 100%; padding-left: 22px; margin-top: -6px; }
-.dl-sv-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0 -6px; padding: 0 6px 4px; }
+.dl-sv-scroll { flex: 1; min-height: 0; overflow-y: auto; margin: 0; padding: 0 0 4px; }
 .dl-sv-label { font-size: 11px; font-weight: 650; letter-spacing: 0.09em; text-transform: uppercase; color: var(--faint); margin: 20px 0 6px; }
 .dl-sv-row2 { display: flex; align-items: center; justify-content: flex-start; gap: 10px; margin-top: 12px; }
 .dl-sv-row2 .dl-inv-perm { height: 40px; border-radius: 12px; }
@@ -1927,6 +1930,35 @@
 .dl-sv-quiet { font-size: 13px; color: var(--faint); padding: 10px 0 4px; }
 .dl-sv-owner .dl-ppl-sub { display: block; }
 
+/* Calendar reorder grip (Fix 15): six dots at the far left, quiet at rest, clearer on hover / focus / touch; only the grip drags. */
+#sidebar:not(.rail) .cal-row { padding-left: 20px; }
+.cal-grip { position: absolute; left: 3px; top: 50%; transform: translateY(-50%); width: 14px; height: 24px; display: grid; place-items: center; color: var(--faint); opacity: .45; cursor: grab; border-radius: 6px; padding: 0; touch-action: none; transition: opacity 150ms var(--dl-ease-out), color 150ms var(--dl-ease-out), background 150ms var(--dl-ease-out); }
+.cal-row:hover .cal-grip, .cal-grip:focus-visible, .cal-row:focus-within .cal-grip { opacity: .95; color: var(--muted); }
+.cal-grip:hover { color: var(--text); background: var(--hover); }
+.cal-grip:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.cal-grip:active, body.dl-reordering .cal-grip { cursor: grabbing; }
+@media (hover: none) { .cal-grip { opacity: .9; } }
+#sidebar.rail .cal-grip { display: none; }
+.cal-row.is-parting { transition: transform 190ms var(--dl-ease-out), background 140ms var(--dl-ease-out); }
+.cal-row.is-dragging { z-index: 5; transition: box-shadow 160ms var(--dl-ease-out); box-shadow: var(--shadow-pop); background: var(--surface); cursor: grabbing; }
+body.dl-reordering { user-select: none; cursor: grabbing; }
+body.reduce-motion .cal-row.is-parting { transition: none !important; }
+/* The app's premium checkbox (events: Only include weekdays; Select mode): 20px rounded box, animated check, focus ring, aligned label. */
+.dl-checkbox { position: relative; display: inline-flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; line-height: 1.3; cursor: pointer; user-select: none; }
+.dl-checkbox > input { position: absolute; opacity: 0; width: 20px; height: 20px; margin: 0; cursor: pointer; }
+.dl-cb-box { width: 20px; height: 20px; flex: none; border-radius: 6px; border: 1.5px solid var(--line); background: var(--input-bg); color: var(--bg); display: inline-grid; place-items: center; transition: background 160ms var(--dl-ease-out), border-color 160ms var(--dl-ease-out), transform 160ms var(--dl-ease-out), box-shadow 160ms var(--dl-ease-out); }
+.dl-cb-box svg { display: block; }
+.dl-cb-box svg path { stroke-dasharray: 20; stroke-dashoffset: 20; opacity: 0; transition: stroke-dashoffset 200ms var(--dl-ease-out) 40ms, opacity 100ms ease 40ms; }
+.dl-checkbox:hover > input:not(:checked) + .dl-cb-box { border-color: var(--muted); }
+.dl-checkbox > input:checked + .dl-cb-box { background: var(--text); border-color: var(--text); }
+.dl-checkbox > input:checked + .dl-cb-box svg path { stroke-dashoffset: 0; opacity: 1; }
+.dl-checkbox:active .dl-cb-box { transform: scale(0.94); }
+.dl-checkbox > input:focus-visible + .dl-cb-box { box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 30%, transparent); border-color: var(--accent); }
+.dl-checkbox > input:disabled + .dl-cb-box { opacity: var(--dl-disabled-opacity, .55); }
+body.reduce-motion .dl-cb-box, body.reduce-motion .dl-cb-box svg path { transition: none !important; }
+.dl-select-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 13.5px; font-weight: 550; color: var(--text); text-align: left; transition: background 160ms var(--dl-ease-out), border-color 160ms var(--dl-ease-out); }
+.dl-select-btn:hover { background: var(--hover); }
+.dl-select-btn .ic { color: var(--muted); flex: none; }
 /* ===== Finish and feel: one depth language, one motion system (visual finish only; no layout, size, copy or color changes) =====
    Motion: enters 190ms ease-out (fade + 0.96 scale), exits 170ms ease-in (the same motion in reverse), feedback 160ms ease-out;
    only transform and opacity animate. Depth: every floating surface uses --shadow-pop and the 12px popup radius (Settings and the
@@ -2110,6 +2142,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       var ICONS = {
         calendar: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/>',
         calendarPlus: '<path d="M16 19h6"/><path d="M19 16v6"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M11 10H3"/><path d="M17.5 22H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v7.34"/>',
+        calendarEvt: '<rect x="3" y="3.5" width="18" height="17.5" rx="3"/><path d="M3 9.5h18"/><path d="M8 2v3"/><path d="M16 2v3"/>',
         checkSq: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="m8.3 12.3 2.5 2.5 4.9-5.3"/>',
         calendarDot: '<rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4"/><path d="M8 2v4"/><path d="M3 10h18"/><circle cx="12" cy="16" r="1.7" fill="currentColor" stroke="none"/>',
         search: '<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>',
@@ -2165,6 +2198,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         sparkle: '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8Z"/><path d="M19 15l.7 2 2 .7-2 .7-.7 2-.7-2-2-.7 2-.7Z"/>',
         upload: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m17 8-5-5-5 5"/><path d="M12 3v12"/>',
         link: '<path d="M10 13a5 5 0 0 0 7.5.5l3-3a5 5 0 0 0-7-7l-1.7 1.7"/><path d="M14 11a5 5 0 0 0-7.5-.5l-3 3a5 5 0 0 0 7 7l1.7-1.7"/>',
+        printer: '<path d="M6 9V3h12v6"/><rect x="6" y="14" width="12" height="7" rx="1"/><path d="M6 17H4a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"/>',
         copy: '<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h10a1 1 0 0 1 1 1v1"/>',
         refresh: '<path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"/><path d="M3 21v-5h5"/>'
       };
@@ -2510,13 +2544,23 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         if (state.dateFormat === "ymd") return d.getFullYear() + "-" + pad2(d.getMonth() + 1) + "-" + pad2(d.getDate());
         return MONTHS_S[d.getMonth()] + " " + d.getDate() + ", " + d.getFullYear();
       }
+      var REMINDER_CHOICES = [[null, "None"], [0, "At the start time"], [5, "5 minutes before"], [10, "10 minutes before"], [15, "15 minutes before"], [30, "30 minutes before"], [60, "1 hour before"], [1440, "1 day before"]];
+      window.daylightReminderChoices = REMINDER_CHOICES;
       function fmtReminder(mins) {
         if (mins == null) return "";
         if (mins === 0) return "At the start time";
         if (mins < 60) return mins + " minutes before";
         if (mins === 60) return "1 hour before";
+        if (mins === 1440) return "1 day before";
         return Math.floor(mins / 60) + " hours before";
       }
+      /* the reminder a NEW event on this calendar starts with: the calendar's own default, else the account default */
+      function defaultReminderFor(calId) {
+        var c = state.calendars.filter(function (x) { return x.id === calId; })[0];
+        if (c && c.defaultReminder != null) return c.defaultReminder;
+        return state.defaultReminder > 0 ? state.defaultReminder : null;
+      }
+      window.daylightDefaultReminderFor = defaultReminderFor;
       function isoWeek(d) {
         var x = sod(d); x.setDate(x.getDate() + 3 - ((x.getDay() + 6) % 7));
         var first = new Date(x.getFullYear(), 0, 4);
@@ -2788,14 +2832,18 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       }
 
       /* ================= Toasts ================= */
-      function toast(msg, action) {
+      function toast(msg, action, opts) {
         var root = document.getElementById("toastRoot");
+        opts = opts || {};
+        /* one undo toast at a time: a newer delete replaces the older one (its Undo now covers the latest action) */
+        if (opts.replaceKey) root.querySelectorAll('.toast[data-key="' + opts.replaceKey + '"]').forEach(function (n) { n.remove(); });
         /* Dedupe: an identical message that is already on screen is
            never stacked a second time — one event, one toast. */
         var dup = false;
         root.querySelectorAll(".toast:not(.out) > span:first-child").forEach(function (s) { if (s.textContent === msg) dup = true; });
         if (dup) return;
         var t = el('<div class="toast"><span>' + esc(msg) + "</span></div>");
+        if (opts.replaceKey) t.setAttribute("data-key", opts.replaceKey);
         if (action) {
           var a = el('<button class="t-action">' + esc(action.label) + "</button>");
           a.addEventListener("click", function () { action.fn(); dismiss(); });
@@ -2805,7 +2853,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         c.addEventListener("click", dismiss);
         t.appendChild(c);
         root.appendChild(t);
-        var timer = setTimeout(dismiss, 4200);
+        var timer = setTimeout(dismiss, opts.duration || 4200);
         function dismiss() { clearTimeout(timer); t.classList.add("out"); setTimeout(function () { t.remove(); }, 220); }
       }
 
@@ -3085,7 +3133,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
            event form; the caret segment offers Event / Task. */
         var createMenuItems = function () {
           return [
-            { icon: "calendarPlus", label: "Event", fn: function () { closeDrawer(); openEventForm(null, state.selected); } },
+            { icon: "calendarEvt", label: "Event", fn: function () { closeDrawer(); openEventForm(null, state.selected); } },
             { icon: "checkSq", label: "Task", fn: function () {
               closeDrawer(); showTasks();
               setTimeout(function () { var ti = document.getElementById("taskTitleInput"); if (ti) ti.focus(); }, 40);
@@ -3274,8 +3322,121 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         });
         Promise.all(fades).then(finish).catch(finish);
       }
+      /* ===== Reorder calendars: the grip (six dots) is the only drag handle; Arrow Up / Down move a row from the keyboard. ===== */
+      var GRIP_SVG = '<svg width="12" height="16" viewBox="0 0 12 16" aria-hidden="true" focusable="false"><g fill="currentColor"><circle cx="3.5" cy="3" r="1.35"/><circle cx="8.5" cy="3" r="1.35"/><circle cx="3.5" cy="8" r="1.35"/><circle cx="8.5" cy="8" r="1.35"/><circle cx="3.5" cy="13" r="1.35"/><circle cx="8.5" cy="13" r="1.35"/></g></svg>';
+      function calSectionOf(cal) { return cal.remoteShareId ? "shared" : (isSubscribed(cal) ? "sub" : "mine"); }
+      /* Move `cal` to position `to` among the calendars of its own section; the other sections keep their places in state.calendars. */
+      function reorderCalendar(cal, to) {
+        var sec = calSectionOf(cal);
+        var idxs = [], list = [];
+        state.calendars.forEach(function (c, i) { if (!c.eventShare && calSectionOf(c) === sec) { idxs.push(i); list.push(c); } });
+        var from = list.indexOf(cal);
+        to = Math.max(0, Math.min(list.length - 1, to));
+        if (from < 0 || from === to) return false;
+        list.splice(from, 1); list.splice(to, 0, cal);
+        idxs.forEach(function (stateIndex, k) { state.calendars[stateIndex] = list[k]; });
+        return true;
+      }
+      function sidebarRowTops() {
+        var map = {};
+        document.querySelectorAll("#sidebar .cal-row[data-cal-id]").forEach(function (r) { map[r.getAttribute("data-cal-id")] = r.getBoundingClientRect().top; });
+        return map;
+      }
+      /* FLIP: after a re-render, every row slides from where it was to where it is now (the app's 190 ms ease-out). */
+      function flipSidebarRows(before) {
+        var reduce = state.reduceMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        if (reduce) return;
+        document.querySelectorAll("#sidebar .cal-row[data-cal-id]").forEach(function (r) {
+          var was = before[r.getAttribute("data-cal-id")];
+          if (was == null) return;
+          var dy = was - r.getBoundingClientRect().top;
+          if (Math.abs(dy) < 1) return;
+          r.animate([{ transform: "translateY(" + dy + "px)" }, { transform: "translateY(0)" }], { duration: 190, easing: "cubic-bezier(0.23, 1, 0.32, 1)" });
+        });
+      }
+      function calGrip(cal, row) {
+        row.setAttribute("data-cal-id", String(cal.id));
+        var grip = el('<button type="button" class="cal-grip" title="Drag to reorder" aria-label="Reorder ' + esc(cal.name) + '. Use the Up and Down arrow keys." aria-roledescription="reorder handle">' + GRIP_SVG + "</button>");
+        grip.addEventListener("click", function (e) { e.stopPropagation(); });
+        grip.addEventListener("keydown", function (e) {
+          if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+          e.preventDefault();
+          var sec = calSectionOf(cal);
+          var list = state.calendars.filter(function (c) { return !c.eventShare && calSectionOf(c) === sec; });
+          var at = list.indexOf(cal), before = sidebarRowTops();
+          if (!reorderCalendar(cal, at + (e.key === "ArrowUp" ? -1 : 1))) return;
+          renderSidebar(); flipSidebarRows(before); persistCalendarChange();
+          var rowsNow = document.querySelectorAll("#sidebar .cal-row[data-cal-id]");
+          for (var i = 0; i < rowsNow.length; i++) {
+            if (rowsNow[i].getAttribute("data-cal-id") === String(cal.id)) { var g = rowsNow[i].querySelector(".cal-grip"); if (g) g.focus(); break; }
+          }
+        });
+        grip.addEventListener("pointerdown", function (e) {
+          if (e.button != null && e.button !== 0) return;
+          var rows = Array.prototype.slice.call(row.parentNode.querySelectorAll(".cal-row[data-cal-id]"));
+          var start = rows.indexOf(row);
+          if (start < 0 || rows.length < 2) return;
+          e.preventDefault();
+          try { grip.setPointerCapture(e.pointerId); } catch (err) {}
+          var tops = rows.map(function (r) { return r.getBoundingClientRect(); });
+          var h = tops[start].height, y0 = e.clientY, target = start, moved = false;
+          var reduce = state.reduceMotion || window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+          function place(dy) {
+            row.style.transform = "translateY(" + dy + "px) scale(1.015)";
+            var mid = tops[start].top + dy + h / 2;
+            var next = start;
+            rows.forEach(function (r, i) {
+              if (i < start && mid < tops[i].top + tops[i].height / 2) next = Math.min(next, i);
+              if (i > start && mid > tops[i].top + tops[i].height / 2) next = Math.max(next, i);
+            });
+            target = next;
+            rows.forEach(function (r, i) {
+              if (i === start) return;
+              var shift = 0;
+              if (start < target && i > start && i <= target) shift = -h;
+              if (start > target && i < start && i >= target) shift = h;
+              r.style.transform = shift ? "translateY(" + shift + "px)" : "";
+            });
+          }
+          function onMove(ev) {
+            var dy = ev.clientY - y0;
+            if (!moved) {
+              if (Math.abs(dy) < 3) return;
+              moved = true; document.body.classList.add("dl-reordering");
+              row.classList.add("is-dragging");
+              rows.forEach(function (r) { if (r !== row) r.classList.add("is-parting"); });
+            }
+            var minDy = tops[0].top - tops[start].top, maxDy = tops[rows.length - 1].top - tops[start].top;
+            place(Math.max(minDy, Math.min(maxDy, dy)));
+          }
+          function finish(commit) {
+            grip.removeEventListener("pointermove", onMove); grip.removeEventListener("pointerup", onUp); grip.removeEventListener("pointercancel", onCancel);
+            try { grip.releasePointerCapture(e.pointerId); } catch (err) {}
+            document.body.classList.remove("dl-reordering");
+            function clean() { rows.forEach(function (r) { r.style.transform = ""; r.classList.remove("is-dragging", "is-parting"); }); }
+            if (!moved) { clean(); return; }
+            if (!commit || target === start) {
+              row.classList.remove("is-dragging"); row.style.transform = "";
+              setTimeout(clean, reduce ? 0 : 200);
+              return;
+            }
+            /* settle: the lifted row eases into its slot, then the list is rebuilt in the new order (the rows are already there: no jump) */
+            var settle = tops[target].top - tops[start].top;
+            row.classList.remove("is-dragging"); row.classList.add("is-parting"); row.style.transform = "translateY(" + settle + "px)";
+            setTimeout(function () {
+              clean();
+              if (reorderCalendar(cal, target)) { renderSidebar(); persistCalendarChange(); }
+            }, reduce ? 0 : 190);
+          }
+          function onUp() { finish(true); }
+          function onCancel() { finish(false); }
+          grip.addEventListener("pointermove", onMove); grip.addEventListener("pointerup", onUp); grip.addEventListener("pointercancel", onCancel);
+        });
+        return grip;
+      }
       function calRow(cal) {
         var row = el('<div class="cal-row"></div>');
+        if (!state.sidebarRail) row.appendChild(calGrip(cal, row));
         var chk = el('<button class="cal-check' + (cal.hidden ? " off" : "") + '" style="background:' + dotOf(cal) + ";border-color:" + dotOf(cal) + ";color:" + checkColorFor(cal.color) + '" title="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-label="' + (cal.hidden ? "Show " : "Hide ") + esc(cal.name) + '" aria-pressed="' + (!cal.hidden) + '">' + icon("check", 13) + "</button>");
         chk.addEventListener("click", function () { animateCalendarToggle(cal); });
         row.appendChild(chk);
@@ -3474,7 +3635,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var nextName = "Next " + unit;
           var tb = el('<div class="cal-toolbar">' +
             '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>" +
-            '<span class="month-title' + (isDay ? " is-day" : "") + '" id="tbMonth">' + esc(label) + "</span>" +
+            '<span class="month-title' + (isDay ? " is-day" : (isAgenda ? " is-range" : "")) + '" id="tbMonth">' + esc(label) + "</span>" +
             '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>" +
             '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + "</button>" +
           "</div>");
@@ -3507,6 +3668,15 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var notifBtn = el('<button class="icon-btn dl-notif-btn" title="Notifications" aria-label="Notifications" aria-haspopup="dialog" aria-expanded="false">' + icon("bell", 19) + "</button>");
         notifBtn.addEventListener("click", function (e) { e.stopPropagation(); toggleNotifPanel(notifBtn); });
         if (window.daylightNotifications) window.daylightNotifications.decorate(notifBtn);
+        if (window.daylightSyncIndicator) right.appendChild(window.daylightSyncIndicator());
+        /* Month view only: a quiet overflow (⋯) menu, currently holding Print month */
+        if (state.section === "calendar" && state.view === "month") {
+          var moreBtn = el('<button class="icon-btn" title="More" aria-label="More" aria-haspopup="menu">' + icon("dotsH", 19) + "</button>");
+          moreBtn.addEventListener("click", function () {
+            openMenu(moreBtn, [{ icon: "printer", label: "Print month", fn: function () { if (window.daylightPrintMonth) window.daylightPrintMonth(); } }], { align: "right" });
+          });
+          right.appendChild(moreBtn);
+        }
         right.appendChild(searchBtn); right.appendChild(notifBtn); right.appendChild(gearBtn); right.appendChild(helpBtn);
         hdr.appendChild(right);
       }
@@ -4058,6 +4228,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         });
         var scroll = el('<div class="agenda-scroll"></div>');
         var inner = el('<div class="agenda-inner"></div>');
+        var agSelect = window.daylightSelect && daylightSelect.entry("agenda", function () { renderView(false); });
+        if (agSelect) inner.appendChild(agSelect);
         var keys = Object.keys(byDay).sort(function (a, b) { return a - b; });
         if (!keys.length) {
           inner.appendChild(buildEmptyState({
@@ -4083,6 +4255,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               (o.ev.loc ? '<span class="agenda-location">' + icon("pin",13) + '<span>'+esc(o.ev.loc)+'</span></span>' : '') +
               "</span></button>");
             card.addEventListener("click", function (e) { openPopover(o, card); e.stopPropagation(); });
+            if (window.daylightSelect) daylightSelect.decorate(card, o.ev, "agenda");
             inner.appendChild(card);
           });
         });
@@ -4090,6 +4263,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         scroll.appendChild(inner);
         var w = el('<div style="display:flex;flex-direction:column;flex:1;min-height:0"></div>');
         w.appendChild(scroll);
+        var agBar = window.daylightSelect && daylightSelect.bar("agenda");
+        if (agBar) inner.appendChild(agBar);
         return w;
       }
 
@@ -4402,14 +4577,31 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       function previousRepeatOccurrence(date,frequency){
         var d=new Date(date);if(frequency==="weekly")d.setDate(d.getDate()-7);else if(frequency==="monthly")d.setMonth(d.getMonth()-1);else if(frequency==="yearly")d.setFullYear(d.getFullYear()-1);else d.setDate(d.getDate()-1);return d;
       }
+      /* Deleting events: one Undo toast (5 s) restores the whole action exactly as it was (calendar, times, details, attachments). */
+      function undoDeleteToast(restore) {
+        toast("Event deleted", { label: "Undo", fn: function () { restore(); renderAll(false); renderSidebar(); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } }, { duration: 5000, replaceKey: "undo-delete" });
+      }
+      window.daylightDeleteEvents = function (list) {
+        /* bulk delete (Select mode): ONE action, ONE Undo */
+        var gone = list.slice(), at = gone.map(function (e) { return state.events.indexOf(e); });
+        state.events = state.events.filter(function (e) { return gone.indexOf(e) === -1; });
+        if (window.daylightAttachments) daylightAttachments.cleanupLater(gone);
+        renderAll(false);
+        toast(gone.length === 1 ? "Event deleted" : gone.length + " events deleted", { label: "Undo", fn: function () {
+          gone.forEach(function (e, i) { state.events.splice(Math.min(at[i] < 0 ? state.events.length : at[i], state.events.length), 0, e); });
+          renderAll(false); renderSidebar(); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save();
+        } }, { duration: 5000, replaceKey: "undo-delete" });
+      };
       function confirmDeleteEvent(ev,occ) {
         var recurring=!!ev.repeat&&occ&&occ.start.getTime()!==ev.start.getTime();
         function remove(scope){
           closePopover();
-          if(scope==="only"){ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occ.start.toISOString())}
-          else if(scope==="following")ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();
-          else{var uid=ev.uid;state.events=state.events.filter(function(e){return e!==ev&&(uid?e.uid!==uid:e.id!==ev.id)})}
-          renderAll(false);toast("Event deleted");
+          var undo;
+          if(scope==="only"){var oldEx=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates=oldEx.slice();ev.exdates.push(occ.start.toISOString());undo=function(){ev.exdates=oldEx}}
+          else if(scope==="following"){var oldEnd=ev.repeatEnd;ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();undo=function(){ev.repeatEnd=oldEnd}}
+          else{var uid=ev.uid;var before=state.events.slice();state.events=state.events.filter(function(e){return e!==ev&&(uid?e.uid!==uid:e.id!==ev.id)});undo=function(){var keep=state.events.filter(function(e){return before.indexOf(e)===-1});state.events=before.concat(keep)}}
+          renderAll(false);undoDeleteToast(undo);
+          if(scope==="all"&&window.daylightAttachments)daylightAttachments.cleanupLater([ev]);
         }
         if(recurring){chooseRepeatScope("Delete repeating event","Choose which occurrences to delete.",remove);return}
         openConfirm({title:"Delete this event?",body:"“"+ev.title+"” will be removed from "+calOf(ev.cal).name+". This cannot be undone.",confirmLabel:"Delete",danger:true,fn:function(){remove("all")}});
@@ -4423,6 +4615,18 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           openEventForm(copy,null,copy);
         });
       }
+      /* Duplicate: the Create form opens pre-filled with a full copy (an occurrence of a repeating series becomes one standalone event). Nothing is saved until the user saves. */
+      function duplicateEvent(ev, occ) {
+        var o = occ || ev;
+        var draft = {
+          title: ev.title, cal: ev.cal, allDay: !!ev.allDay, start: new Date(o.start), end: new Date(o.end),
+          repeat: ev.repeat && occ ? null : ev.repeat, repeatEnd: ev.repeat && occ ? null : ev.repeatEnd,
+          reminder: ev.reminder, loc: ev.loc, desc: ev.desc, placeId: ev.placeId || null, locationLat: ev.locationLat == null ? null : ev.locationLat, locationLng: ev.locationLng == null ? null : ev.locationLng,
+          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
+        };
+        if (isReadOnlyEvent(ev)) { draft.cal = defaultCalId(); }
+        openEventForm(null, null, null, draft);
+      }
       function openPopMenu(anchor, ev, occ) {
         if (popMenuEl) { closePopMenu(); return; }
         var m = el('<div class="menu" role="menu" style="width:204px"></div>');
@@ -4430,7 +4634,12 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         del.addEventListener("click", function () { closePopMenu(); confirmDeleteEvent(ev,occ); });
         var exportItem = el('<button class="menu-item">' + icon("download",16) + '<span>Export event (.ics)</span></button>');
         exportItem.addEventListener("click",function(){closePopMenu();window.daylightExportEvent(ev);});
+        /* the share-and-copy cluster (Duplicate, Export), then a hairline, then the destructive action on its own */
+        var dup = el('<button class="menu-item">' + icon("copy", 16) + "<span>Duplicate</span></button>");
+        dup.addEventListener("click", function () { closePopMenu(); duplicateEvent(ev, occ); });
+        if (!isReadOnlyEvent(ev) || true) m.appendChild(dup);
         m.appendChild(exportItem);
+        m.appendChild(el('<div class="menu-sep" role="separator"></div>'));
         m.appendChild(del);
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
@@ -4519,6 +4728,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             '<div class="pop-rows">' + rows + "</div></div>");
         }
         p._occId = ev.id; p._occStart = occ.start.getTime(); p._anchor = anchor;
+        if (window.daylightAttachments) daylightAttachments.renderPopover(p, ev);
         document.body.appendChild(p);
         var r = anchor.getBoundingClientRect();
         var pw = 384, ph = p.offsetHeight;
@@ -4591,13 +4801,21 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var bd = el('<div class="backdrop"><div class="dialog dl-std">' +
           '<div class="dialog-head"><span class="dialog-title">New calendar</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body"><div class="field"><label for="ncName">Name</label><input class="text-input" id="ncName" placeholder="Calendar name"><div class="field-err" id="ncErr">Add a name</div></div>' +
-          '<div class="field"><label>Color</label><div class="swatches" id="ncSwatches"></div></div></div>' +
+          '<div class="field"><label>Color</label><div class="swatches" id="ncSwatches"></div></div>' +
+          '<div class="field"><label>Default reminder</label><button type="button" class="dl-select-btn" id="ncReminder" aria-haspopup="menu"><span>None</span>' + icon("chevD", 14) + '</button></div></div>' +
           '<div class="dialog-foot"><button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" style="margin-left:0" data-ok>Create calendar</button></div></div></div>');
+        var ncRem = null;
         overlayRoot.appendChild(bd);
         var sw = bd.querySelector("#ncSwatches");
         window.daylightColorPicker(sw,chosen,function(key){chosen=key;});
         var input = bd.querySelector("#ncName");
         input.focus();
+        bd.querySelector("#ncReminder").addEventListener("click", function () {
+          var btn = this;
+          openMenu(btn, [{ label2: "Default reminder" }].concat(REMINDER_CHOICES.map(function (pair) {
+            return { label: pair[1], right: ncRem === pair[0] ? "check" : null, fn: function () { ncRem = pair[0]; btn.querySelector("span").textContent = pair[1]; } };
+          })));
+        });
         function close() { if(window.daylightExit)window.daylightExit(bd);else bd.remove(); }
         bd.querySelector("[data-x]").addEventListener("click", close);
         bd.querySelector("[data-cancel]").addEventListener("click", close);
@@ -4605,7 +4823,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         bd.querySelector("[data-ok]").addEventListener("click", function () {
           var name = input.value.trim();
           if (!name) { input.classList.add("err"); bd.querySelector("#ncErr").classList.add("show"); return; }
-          state.calendars.push({ id: newCalendarId(), name: name, color: chosen, hidden: false, subscribed: false, shared: false });
+          state.calendars.push({ id: newCalendarId(), name: name, color: chosen, hidden: false, subscribed: false, shared: false, defaultReminder: ncRem });
           close(); renderSidebar(); toast("Calendar created");
         });
       }
@@ -4669,12 +4887,12 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       function dpOutside(e) { var p = document.getElementById("datePop"); if (p && !p.contains(e.target)) closeDatePicker(); }
       function closeDatePicker() { var p = document.getElementById("datePop"); if (p) { p.removeAttribute("id"); daylightExit(p); } document.removeEventListener("mousedown", dpOutside, true); }
 
-      function openEventForm(existing, presetDate, occ) {
+      function openEventForm(existing, presetDate, occ, draft) {
         closePopover(); closeMenu();
         if (existing && isReadOnlyEvent(existing)) { toast("Subscribed calendars are read-only — events can't be edited"); return; }
         if (!existing && !writableCalendars().length) { toast("Create a calendar first"); openNewCalendar(); return; }
         var isEdit = !!existing;
-        var src = existing || null;
+        var src = existing || draft || null;
         var base = occ || src;
         var now = new Date();
         var nextHour = Math.min(23, now.getHours() + 1);
@@ -4690,19 +4908,21 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           repeatEnd: src && src.repeatEnd ? new Date(src.repeatEnd) : null,
           accent: "calendar",
           weekdaysOnly: src ? !!src.weekdaysOnly : false,
-          reminder: src ? src.reminder : (state.defaultReminder > 0 ? state.defaultReminder : null),
+          reminder: src ? src.reminder : defaultReminderFor(src ? src.cal : defaultCalId()),
+          reminderTouched: !!src,
           loc: src ? src.loc : "",
           placeId:src ? (src.placeId||null) : null,
           locationLat:src ? (src.locationLat??null) : null,
           locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
+          attachments: src && Array.isArray(src.attachments) ? src.attachments.slice() : [],
           dirty: false
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
         var bd = el('<div class="backdrop"></div>');
         var dlg = el('<div class="dialog event-form-dialog" role="dialog" aria-modal="true"></div>');
         dlg.innerHTML =
-          '<div class="dialog-head"><span class="dialog-title">' + (isEdit ? "Edit event" : "New event") + '</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
+          '<div class="dialog-head"><span class="dialog-title">' + (isEdit ? "Edit event" : "New event") + '</span>' + (!isEdit ? '<input class="text-input dl-qa-input" id="efQuick" placeholder="Quick add: Haircut Tue 6:30pm" autocomplete="off" spellcheck="false" aria-label="Quick add">' : "") + '<button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body">' +
             '<div class="field"><label for="efTitle">Title</label><input class="text-input" id="efTitle" placeholder="Event title" value="' + esc(f.title) + '"><div class="field-err" id="efTitleErr">Add a title</div></div>' +
             '<div class="field"><div class="switch-row"><span><span class="sw-label">All-day</span></span><label class="switch"><input type="checkbox" id="efAllDay" aria-label="All-day"' + (f.allDay ? " checked" : "") + '><span class="track"></span><span class="knob"></span></label></div></div>' +
@@ -4712,7 +4932,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               '<div class="field" id="efSTimeWrap"><label>Start time</label><button type="button" class="dd" id="efSTime" aria-haspopup="listbox" aria-expanded="false"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div>' +
               '<div class="field" id="efETimeWrap"><label>End time</label><button type="button" class="dd" id="efETime" aria-haspopup="listbox" aria-expanded="false"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div>' +
             "</div>" +
-            '<label class="dl-wd-check" id="efWeekdaysWrap" hidden><input type="checkbox" id="efWeekdays"><span>Only include weekdays</span></label>' +
+            '<label class="dl-checkbox dl-wd-check" id="efWeekdaysWrap" hidden><input type="checkbox" id="efWeekdays"><span class="dl-cb-box"><svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M2.4 6.3l2.4 2.4 4.8-5.1" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>Only include weekdays</span></label>' +
             '<div class="field"><label>Repeats</label><button class="picker-btn" id="efRepeat">' + icon("repeat", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
             '<div class="field" id="efRepeatEndWrap"><label>Repeat until</label><button class="picker-btn" id="efRepeatEnd">' + icon("calendar",15) + '<span></span></button></div>' +
             '<div class="field"><label>Reminder</label><button class="picker-btn" id="efReminder">' + icon("bell", 15) + '<span></span><span style="margin-left:auto;color:var(--muted)">' + icon("chevD", 15) + "</span></button></div>" +
@@ -4755,7 +4975,23 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
-        titleIn.focus();
+        var quickIn = dlg.querySelector("#efQuick");
+        if (quickIn) quickIn.addEventListener("keydown", function (e) {
+          if (e.key !== "Enter") return;
+          e.preventDefault(); e.stopPropagation();
+          var qa = window.daylightQuickAdd, parsed = qa && qa.parse(quickIn.value);
+          if (!parsed || !parsed.title && !parsed.any) { return; }
+          /* fill only what parsed with confidence; nothing is saved */
+          if (parsed.title) { titleIn.value = parsed.title; f.title = parsed.title; titleIn.classList.remove("err"); }
+          if (parsed.any && parsed.date) {
+            f.sDate = sod(parsed.date); f.eDate = sod(parsed.date);
+            if (parsed.startMin != null) { f.allDay = false; f.sMin = parsed.startMin; f.eMin = Math.min(parsed.endMin != null ? parsed.endMin : parsed.startMin + 60, 23 * 60 + 30); if (f.eMin <= f.sMin) f.eMin = Math.min(f.sMin + 30, 23 * 60 + 30); var ad = dlg.querySelector("#efAllDay"); if (ad) ad.checked = false; }
+          }
+          markDirty(); syncUI(); quickIn.value = ""; titleIn.focus();
+        });
+        var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
+        if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
+        if (!quickIn) titleIn.focus();
         titleIn.addEventListener("input", function () { f.title = titleIn.value; titleIn.classList.remove("err"); dlg.querySelector("#efTitleErr").classList.remove("show"); markDirty(); });
         locIn.addEventListener("input", function () { f.loc = locIn.value; markDirty(); });
         if (window.daylightAttachPlaces) window.daylightAttachPlaces(locIn,f,markDirty);
@@ -4792,15 +5028,15 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         repEndBtn.addEventListener("click",function(){if(!f.repeat)return;openDatePicker(repEndBtn,f.repeatEnd||f.eDate,function(d){f.repeatEnd=d;markDirty();syncUI()})});
         remBtn.addEventListener("click", function () {
           var items = [{ label2: "Reminder" }];
-          [[null, "None"], [0, "At the start time"], [5, "5 minutes before"], [10, "10 minutes before"], [15, "15 minutes before"], [30, "30 minutes before"], [60, "1 hour before"]].forEach(function (pair) {
-            items.push({ label: pair[1], right: f.reminder === pair[0] ? "check" : null, fn: function () { f.reminder = pair[0]; markDirty(); syncUI(); } });
+          REMINDER_CHOICES.forEach(function (pair) {
+            items.push({ label: pair[1], right: f.reminder === pair[0] ? "check" : null, fn: function () { f.reminder = pair[0]; f.reminderTouched = true; markDirty(); syncUI(); } });
           });
           openMenu(remBtn, items);
         });
         calBtn.addEventListener("click", function () {
           var items = [{ label2: "Calendar" }];
           writableCalendars().forEach(function (c) {
-            items.push({ label: c.name, title: c.name, dot: dotOf(c), checkRight: true, selected: f.cal === c.id, fn: function () { f.cal = c.id; markDirty(); syncUI(); } });
+            items.push({ label: c.name, title: c.name, dot: dotOf(c), checkRight: true, selected: f.cal === c.id, fn: function () { f.cal = c.id; if (!f.reminderTouched) f.reminder = defaultReminderFor(c.id); markDirty(); syncUI(); } });
           });
           if (!writableCalendars().length) items.push({ label: "No writable calendars yet — create one from the sidebar", fn: function () {} });
           openMenu(calBtn, items, { matchWidth: true, maxHeight: 280 });
@@ -4848,6 +5084,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               delete src._seriesParentId;delete src._seriesScope;delete src._seriesStart;state.events.push(src);
             }
             daylightExit(bd); renderAll(false); toast("Event updated");
+            if (window.daylightAttachments) daylightAttachments.commit(src, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
           } else {
             var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
@@ -4855,6 +5092,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
             state.events.push(created);
             daylightExit(bd); renderAll(false); toast("Event created");
+            if (window.daylightAttachments) daylightAttachments.commit(created, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
           }
         });
       }
@@ -4923,6 +5161,14 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events.</p></div>"));
           return;
         }
+        /* Quick add: when the typed text parses as an event, the top result creates it (the form opens pre-filled; nothing saves) */
+        var qaRow = window.daylightQuickAdd && daylightQuickAdd.searchRow(inp.value.trim(), function (p) {
+          closeSearch();
+          var s0 = new Date(p.date.getFullYear(), p.date.getMonth(), p.date.getDate(), 0, 0), draft = { title: p.title, cal: defaultCalId(), allDay: p.startMin == null, start: s0, end: s0, repeat: null, repeatEnd: null, reminder: defaultReminderFor(defaultCalId()), loc: "", desc: "", attachments: [] };
+          if (p.startMin != null) { draft.start = new Date(s0.getTime() + p.startMin * 60000); draft.end = new Date(s0.getTime() + (p.endMin != null ? p.endMin : p.startMin + 60) * 60000); }
+          openEventForm(null, null, null, draft);
+        });
+        if (qaRow) results.appendChild(qaRow);
         /* Search spans the same horizon the built-in US Holidays
            calendar covers — 2015 through the end of 2030 — so an
            event is findable in any year the app can navigate to,
@@ -4949,6 +5195,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         }
         var groups = {};
         range.slice(0, 30).forEach(function (o) { (groups[o.ev.cal] = groups[o.ev.cal] || []).push(o); });
+        var selEntry = window.daylightSelect && daylightSelect.entry("search", drawSearch);
+        if (selEntry) results.appendChild(selEntry);
         Object.keys(groups).forEach(function (calId) {
           var cal = calOf(calId);
           results.appendChild(el('<div class="pal-group">' + esc(cal.name) + "</div>"));
@@ -4965,9 +5213,12 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
               state.cursor = sod(o.start);
               renderAll(false);
             });
+            if (window.daylightSelect) daylightSelect.decorate(item, o.ev, "search");
             results.appendChild(item);
           });
         });
+        var selBar = window.daylightSelect && daylightSelect.bar("search");
+        if (selBar) results.appendChild(selBar);
       }
       /* ================= Settings ================= */
       var settingsState = { section: "general", pendingView: null };
@@ -6193,6 +6444,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
     <script src="./daylight-enhancements.js"></script>
     <script src="./daylight-oauth.js"></script>
     <script src="./daylight-ai-access.js"></script>
+    <script src="./daylight-print.js"></script>
+    <script src="./daylight-event-tools.js"></script>
     <script src="./daylight-banners.js"></script>
   </body>
 </html>

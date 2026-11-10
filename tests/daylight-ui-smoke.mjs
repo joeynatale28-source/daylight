@@ -599,11 +599,11 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  assert.equal(colorSync.calColor,'#FF7A00','colour previews on the calendar before saving');
  assert.ok(colorSync.pill,'a colour change shows the save capsule');
  await page.evaluate(()=>{
-   document.querySelector('.dl-manage [data-save-custom]').click();
    const name=document.querySelector('#calSettingsName');
    name.value='Personal Renamed';name.dispatchEvent(new Event('input',{bubbles:true}));
  });
- assert.ok(await page.evaluate(()=>state.customColors.includes('#FF7A00')),'Add to Your colors stores the colour on this account');
+ await new Promise(r=>setTimeout(r,1100));
+ assert.ok(await page.evaluate(()=>state.customColors.includes('#FF7A00')),'a color made in the custom creator joins CUSTOM COLORS on its own');
  await page.screenshot({path:path.join(out,'calendar-settings-unsaved.png')});
  // Unsaved changes: the pill is the only gate; Done and the close button do nothing until Save or Discard.
  await page.evaluate(()=>document.querySelector('.dl-manage [data-done]').click());
@@ -667,9 +667,9 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    host.querySelector('[data-custom-toggle]').click();
    const hex=host.querySelector('[data-hex]');
    hex.value='#FF7A00';hex.dispatchEvent(new Event('input',{bubbles:true}));
-   host.querySelector('[data-save-custom]').click();
    host.remove();
  });
+ await new Promise(r=>setTimeout(r,1100));
  assert.equal(await page.evaluate(()=>state.calendars.find(c=>c.id==='c2').color),'#FF7A00');
  assert.ok(await page.evaluate(()=>state.customColors.includes('#FF7A00')),'custom colors should be stored in the account workspace');
  assert.equal(await page.evaluate(()=>localStorage.getItem('daylight-custom-colors')),null,'custom colors must not remain in shared browser storage');
@@ -714,7 +714,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/round13-events.mjs',{}],['tests/round13-ui.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));
