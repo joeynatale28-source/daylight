@@ -23,7 +23,7 @@ export const tools=[
  opt('create_task','Create a task',object({title:str,due_date:str},['title']),'write'),
  opt('complete_task','Mark a task complete or incomplete',object({id:str,completed:{type:'boolean'}},['id','completed']),'write'),
  opt('list_attachments','List the attachments of an event (file name, type and caption)',object({id:str},['id']),'read'),
- opt('add_attachment','Attach an image (JPEG, PNG, WebP, GIF) or PDF to an event. Pass the file content base64-encoded; up to 10 MB and 10 attachments per event',object({id:str,file_name:str,content_base64:str,mime_type:str,caption:str},['id','file_name','content_base64']),'write'),
+ opt('add_attachment','Attach an image (JPEG, PNG, WebP, GIF) or a PDF to an event. Give EITHER url (an https link to the file; the server downloads it) OR content_base64 (the file itself, base64-encoded). Up to 10 MB each and 10 attachments per event. caption is an optional one-line label',object({id:str,url:str,file_name:str,content_base64:str,mime_type:str,caption:str},['id']),'write'),
  opt('remove_attachment','Remove one attachment from an event, by the attachment_id returned from list_attachments',object({id:str,attachment_id:str},['id','attachment_id']),'delete')
 ];
 function publicTool(def){const {permission,...rest}=def;return rest}

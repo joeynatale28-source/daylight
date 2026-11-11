@@ -219,7 +219,7 @@
     securityGroup.addEventListener("dl:passkeys", function (e) { passkeys = e.detail.count; draw(); });
     function emailMethodRow(hasPassword) {
       var r = make('<div class="dl-sec-row"><span class="dl-sec-tile">' + icon("mail", 17) + '</span><span class="dl-sec-text"><span class="sw-label">Email and password</span><span class="sw-sub"></span></span><span class="dl-sec-status"></span></div>');
-      r.querySelector(".sw-sub").textContent = hasPassword ? email : "Not set up. Use Change password above to add one.";
+      r.querySelector(".sw-sub").textContent = hasPassword ? email : "Not set up. Set a password from Profile → Security.";
       r.querySelector(".dl-sec-status").textContent = hasPassword ? "On" : "Off";
       return r;
     }
@@ -317,8 +317,19 @@
       var old = groups.filter(function (g) { var t = g.querySelector(".set-group-title"); return t && /^security$/i.test(t.textContent.trim()); })[0];
       if (!old) return;
       var security = buildSecurity(email);
-      old.replaceWith(security);
-      security.after(buildMethods(security, email));
+      old.replaceWith(security);   /* Profile keeps Security (password, sessions); sign-in management lives in its own Settings pane */
     } catch (e) { /* the original Security group stays */ }
+  };
+  /* Settings -> Sign-in methods: everything about HOW you sign in (Google, passkeys with rename / remove / add, Disconnect) */
+  window.daylightSignInPane = function (pane) {
+    if (typeof paneHead === "function") paneHead(pane, "Sign-in methods", "The ways you can get into this account.");
+    var user = window.daylightCloud && window.daylightCloud.user;
+    var email = (user && user.email) || window.__dlIdentityEmail || "";
+    try {
+      var holder = buildSecurity(email);   /* its passkey pieces are adopted by the methods card below */
+      var group = buildMethods(holder, email);
+      var hint = group.querySelector(".dl-sec-hint"); if (hint) hint.remove();
+      pane.appendChild(group);
+    } catch (e) { pane.appendChild(make('<div class="dl-ai-empty">Sign-in methods aren’t available right now.</div>')); }
   };
 })();

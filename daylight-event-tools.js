@@ -122,6 +122,11 @@
       ".dl-attach-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(76px,1fr));gap:10px 8px;align-items:start}",
       ".dl-att-item{min-width:0;display:flex;flex-direction:column;gap:5px}",
       ".dl-att-cap{font-size:12px;line-height:1.35;color:var(--muted);overflow-wrap:anywhere}",
+      ".dl-att-capwrap[hidden]{display:none}",
+      ".dl-att-capwrap{display:flex;align-items:flex-start;gap:3px;min-width:0}.dl-att-capwrap .dl-att-cap{flex:1;min-width:0;padding-top:2px}",
+      ".dl-att-pencil{flex:none;width:22px;height:22px;border-radius:7px;display:inline-grid;place-items:center;color:var(--faint);border:0;padding:0;cursor:pointer;transition:background 150ms var(--dl-ease-out),color 150ms var(--dl-ease-out),transform 150ms var(--dl-ease-out)}",
+      ".dl-att-pencil:hover{background:var(--hover);color:var(--text)}.dl-att-pencil:active{transform:scale(.92)}.dl-att-pencil:focus-visible{outline:2px solid var(--accent);outline-offset:1px}",
+      ".dl-att-pencil.is-add{width:auto;gap:4px;padding:0 8px 0 6px;font-size:11.5px;font-weight:550;color:var(--faint)}",
       ".dl-att-capin{width:100%;height:28px;border:1px solid var(--line);border-radius:8px;background:var(--input-bg);color:var(--text);font:inherit;font-size:12px;padding:0 8px;outline:none;transition:border-color 140ms var(--dl-ease-out),box-shadow 140ms var(--dl-ease-out)}",
       ".dl-att-capin::placeholder{color:var(--faint)}.dl-att-capin:focus{border-color:color-mix(in srgb,var(--accent) 55%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--accent) 14%,transparent)}",
       ".dl-attach-tile{position:relative;aspect-ratio:1/1;border-radius:10px;overflow:hidden;background:var(--hover);border:1px solid var(--line-soft);padding:0;display:block;width:100%;cursor:zoom-in;transition:transform 160ms var(--dl-ease-out),border-color 160ms var(--dl-ease-out)}",
@@ -158,10 +163,14 @@
       ".dl-lightbox .lb-pages{width:100%;max-height:78vh;overflow-y:auto;display:flex;flex-direction:column;gap:12px;scroll-behavior:smooth;border-radius:12px}",
       ".dl-lightbox .lb-page{display:block;width:100%;height:auto;background:#fff;border-radius:12px;box-shadow:var(--shadow-pop)}",
       ".dl-lightbox [hidden]{display:none!important}",
+      ".dl-lightbox .lb-loading{min-height:min(60vh,520px);display:grid;place-items:center;align-content:center;gap:14px;color:rgba(255,255,255,.8);font-size:13px}",
+      ".dl-lightbox .lb-spin{width:30px;height:30px;border-radius:50%;border:3px solid rgba(255,255,255,.18);border-top-color:#fff;animation:dlLbSpin .8s linear infinite}@keyframes dlLbSpin{to{transform:rotate(360deg)}}",
+      ".dl-lightbox .lb-page.is-ph{opacity:0}.dl-lightbox .lb-page{transition:opacity 220ms var(--dl-ease-out)}",
+      ".dl-lightbox .lb-error{min-height:220px;display:grid;place-items:center;align-content:center;gap:8px;text-align:center;color:#fff;padding:26px 18px;border-radius:12px;background:rgba(255,255,255,.08)}.dl-lightbox .lb-error b{font-size:15px}.dl-lightbox .lb-error span{font-size:13px;color:rgba(255,255,255,.75)}",
       ".dl-lightbox .lb-note{color:rgba(255,255,255,.85);font-size:13px;text-align:center;padding:24px 0}",
       ".dl-lightbox .lb-bar{display:flex;gap:8px;align-items:center;justify-content:center;flex-wrap:wrap}",
       ".dl-lightbox .lb-link{display:inline-flex;align-items:center;gap:6px;height:32px;padding:0 13px;border-radius:999px;background:rgba(255,255,255,.14);color:#fff;font-size:12.5px;font-weight:550;text-decoration:none;transition:background 150ms var(--dl-ease-out)}.dl-lightbox .lb-link:hover{background:rgba(255,255,255,.26)}",
-      "body.reduce-motion .dl-lightbox,body.reduce-motion .dl-lightbox img,body.reduce-motion .dl-lightbox .lb-pages,body.reduce-motion .dl-attach-tile img{animation:none!important;transition:none!important}"
+      "body.reduce-motion .dl-lightbox .lb-spin{animation-duration:2.4s!important}body.reduce-motion .dl-lightbox,body.reduce-motion .dl-lightbox img,body.reduce-motion .dl-lightbox .lb-pages,body.reduce-motion .dl-attach-tile img{animation:none!important;transition:none!important}"
     ].join("\n");
     document.head.appendChild(acss);
 
@@ -217,23 +226,14 @@
       opts = opts || {};
       var pdf = isPdf(meta);
       var wrap = mk('<div class="dl-att-item' + (pdf ? " is-pdf" : "") + '"></div>');
-      var cap = String(meta.caption || "").trim();
-      if (opts.editCaption) {
-        var inp = mk('<input type="text" class="dl-att-capin" maxlength="200" placeholder="Caption (optional)" aria-label="Caption (optional)">');
-        inp.value = meta.caption || "";
-        inp.addEventListener("input", function () { meta.caption = inp.value; if (opts.onCaption) opts.onCaption(); });
-        wrap.appendChild(inp);
-      } else if (cap) {
-        var c = mk('<div class="dl-att-cap"></div>'); c.textContent = cap; wrap.appendChild(c);
-      }
+      /* where a caption would sit (above the attachment) a PDF shows its file name; photos show nothing */
+      if (pdf) { var nameAbove = mk('<div class="dl-att-cap"></div>'); nameAbove.textContent = meta.name || "document.pdf"; wrap.appendChild(nameAbove); }
       var el;
       if (pdf) {
         el = mk('<button type="button" class="dl-att-pdf" aria-label="Open PDF ' + esc(meta.name || "") + '"><span class="pdf-ph" aria-hidden="true">PDF</span><img alt=""><span class="pdf-badge" aria-hidden="true">PDF</span></button>');
         var pimg = el.querySelector("img");
         pimg.addEventListener("load", function () { pimg.classList.add("is-in"); el.classList.add("has-thumb"); });
         pdfThumb(meta).then(function (url) { pimg.src = url; }).catch(function () {});
-        var nmEl = mk('<div class="dl-att-name"></div>'); nmEl.textContent = meta.name || "document.pdf";
-        wrap.__after = nmEl;
       } else {
         el = mk('<button type="button" class="dl-attach-tile" aria-label="' + esc(meta.name || "Photo") + '"><img alt=""></button>');
         var img = el.querySelector("img");
@@ -260,7 +260,7 @@
         var m = metas[i], key = keyOf(m);
         function put() { img.src = m._local || urlOf(key); }
         if (m._local) put(); else sign([key]).then(put);
-        box.querySelector(".lb-cap").textContent = String(m.caption || "").trim();
+        box.querySelector(".lb-cap").textContent = "";
         box.querySelector(".lb-count").textContent = metas.length > 1 ? (i + 1) + " of " + metas.length : (m.name || "");
         box.querySelector(".lb-prev").style.display = box.querySelector(".lb-next").style.display = metas.length > 1 ? "" : "none";
       }
@@ -281,10 +281,10 @@
     /* The PDF viewer: the same overlay as the photo preview (caption above, close, previous / next, "n of N"), showing the PDF's pages one under the other. */
     function pdfViewer(m) {
       var key = keyOf(m);
-      var box = mk('<div class="dl-lightbox is-pdf" role="dialog" aria-modal="true" aria-label="PDF viewer"><div class="lb-frame"><div class="lb-cap"></div><div class="lb-pages" tabindex="0"><div class="lb-note">Loading…</div></div>' +
+      var box = mk('<div class="dl-lightbox is-pdf" role="dialog" aria-modal="true" aria-label="PDF viewer"><div class="lb-frame"><div class="lb-cap"></div><div class="lb-pages" tabindex="0" aria-busy="true"><div class="lb-loading"><span class="lb-spin" aria-hidden="true"></span><span>Loading…</span></div></div>' +
         '<div class="lb-bar" hidden><a class="lb-link" data-newtab target="_blank" rel="noopener">Open in new tab</a><a class="lb-link" data-download>Download</a></div></div>' +
         '<button class="lb-btn lb-close" aria-label="Close">' + icon("x", 18) + '</button><button class="lb-btn lb-prev" aria-label="Previous page" hidden>' + icon("chevL", 20) + '</button><button class="lb-btn lb-next" aria-label="Next page" hidden>' + icon("chevR", 20) + '</button><div class="lb-count"></div></div>');
-      box.querySelector(".lb-cap").textContent = String(m.caption || "").trim() || (m.name || "");
+      box.querySelector(".lb-cap").textContent = m.name || "";
       var scroller = box.querySelector(".lb-pages"), pages = [], cur = 0, doc = null;
       function close() { document.removeEventListener("keydown", onKey, true); if (doc && doc.destroy) { try { doc.destroy(); } catch (e) {} } if (window.daylightExit) window.daylightExit(box); else box.remove(); }
       function setCount() { box.querySelector(".lb-count").textContent = pages.length > 1 ? "Page " + (cur + 1) + " of " + pages.length : (m.name || ""); }
@@ -305,8 +305,9 @@
       document.addEventListener("keydown", onKey, true);
       document.body.appendChild(box);
       box.querySelector(".lb-close").focus();
-      function fallback(msg) {
-        scroller.innerHTML = ""; var n = document.createElement("div"); n.className = "lb-note"; n.textContent = msg; scroller.appendChild(n);
+      function fallback() {
+        scroller.setAttribute("aria-busy", "false");
+        scroller.innerHTML = '<div class="lb-error"><b>This PDF couldn’t be shown here</b><span>You can still open it in a new tab or download it.</span></div>';
         sign([key]).then(function () {
           var u = m._file ? URL.createObjectURL(m._file) : urlOf(key); if (!u) return;
           var bar = box.querySelector(".lb-bar"), nt = bar.querySelector("[data-newtab]"), dl = bar.querySelector("[data-download]");
@@ -314,21 +315,29 @@
         });
       }
       openPdfDoc(m).then(function (d) {
-        doc = d; scroller.innerHTML = "";
-        var width = scroller.clientWidth || 800, dpr = Math.min(2, window.devicePixelRatio || 1);
-        box.querySelector(".lb-prev").hidden = box.querySelector(".lb-next").hidden = d.numPages < 2;
-        var chain = Promise.resolve();
-        for (var n = 1; n <= d.numPages; n++) (function (num) {
-          var cv = document.createElement("canvas"); cv.className = "lb-page"; cv.setAttribute("aria-label", "Page " + num); scroller.appendChild(cv); pages.push(cv);
-          chain = chain.then(function () { return d.getPage(num); }).then(function (page) {
-            var v0 = page.getViewport({ scale: 1 }), v = page.getViewport({ scale: (width * dpr) / v0.width });
-            cv.width = Math.round(v.width); cv.height = Math.round(v.height);
-            return page.render({ canvasContext: cv.getContext("2d"), viewport: v }).promise;
+        doc = d;
+        return d.getPage(1).then(function (first) {
+          var v1 = first.getViewport({ scale: 1 }), width = scroller.clientWidth || 800, dpr = Math.min(2, window.devicePixelRatio || 1);
+          scroller.innerHTML = ""; scroller.setAttribute("aria-busy", "false");
+          box.querySelector(".lb-prev").hidden = box.querySelector(".lb-next").hidden = d.numPages < 2;
+          /* every page gets its place up front (page 1's proportions), so nothing jumps as pages arrive */
+          for (var n = 1; n <= d.numPages; n++) {
+            var cv = document.createElement("canvas"); cv.className = "lb-page is-ph"; cv.setAttribute("aria-label", "Page " + n);
+            cv.style.aspectRatio = v1.width + " / " + v1.height; cv.width = 2; cv.height = 2;
+            scroller.appendChild(cv); pages.push(cv);
+          }
+          setCount();
+          var chain = Promise.resolve();
+          pages.forEach(function (cv, idx) {
+            chain = chain.then(function () { return d.getPage(idx + 1); }).then(function (page) {
+              var v0 = page.getViewport({ scale: 1 }), v = page.getViewport({ scale: (width * dpr) / v0.width });
+              cv.width = Math.round(v.width); cv.height = Math.round(v.height); cv.style.aspectRatio = v0.width + " / " + v0.height;
+              return page.render({ canvasContext: cv.getContext("2d"), viewport: v }).promise;
+            }).then(function () { cv.classList.remove("is-ph"); });
           });
-        })(n);
-        setCount();
-        return chain;
-      }).catch(function () { fallback("This PDF couldn’t be shown here."); });
+          return chain;
+        });
+      }).catch(fallback);
     }
     function open(list, idx) {
       var m = list[idx];
@@ -348,7 +357,7 @@
       });
     }
     function safeName(n) { return String(n || "attachment").replace(/[^A-Za-z0-9._-]+/g, "-").replace(/^-+|-+$/g, "").slice(-60) || "attachment"; }
-    function capOf(m) { var c = String(m.caption || "").trim(); return c ? c.slice(0, 200) : undefined; }
+    function capOf() { return undefined; }   /* captions are not part of the app */
     function rec(m, blobType, size) { var r = { path: m.path, name: m.name, type: blobType || m.type, size: size != null ? size : m.size }; var c = capOf(m); if (c) r.caption = c; return r; }
 
     window.daylightAttachments = {
@@ -375,7 +384,6 @@
           var list = all();
           list.forEach(function (m, idx) {
             grid.appendChild(item(m, {
-              editCaption: true, onCaption: markDirty,
               onRemove: function () {
                 if (idx < f.attachments.length) f.attachments.splice(idx, 1); else f._newFiles.splice(idx - f.attachments.length, 1);
                 markDirty(); draw();
@@ -457,7 +465,9 @@
         if (!list.length) return;
         var sec = mk('<div class="pop-attach"><div class="pop-attach-h">Attachments</div><div class="dl-attach-grid"></div></div>');
         var grid = sec.querySelector(".dl-attach-grid");
-        list.forEach(function (m, i) { grid.appendChild(item(m, { onOpen: function () { open(list, i); } })); });
+        list.forEach(function (m, i) {
+          grid.appendChild(item(m, { onOpen: function () { open(list, i); } }));
+        });
         (p.querySelector(".pop-body") || p).appendChild(sec);
       },
       /* a duplicate gets its own copies of the files, captions included (made when the copy is saved) */

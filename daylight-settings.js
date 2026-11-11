@@ -159,7 +159,8 @@
       /* ONE clean floating pill: a single border, a single background, no outline or leftover box at any point of its in/out motion */
       ".settings-savebar{box-sizing:border-box;outline:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent}",
       ".settings-savebar:focus,.settings-savebar:focus-visible{outline:none}",
-      ".settings-savebar.is-nudge{animation:none!important}",
+      ".settings-savebar.is-nudge{border-color:var(--accent)!important;animation:dlPillPulse 1100ms cubic-bezier(0.23,1,0.32,1) both!important}@keyframes dlPillPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 55%,transparent),var(--shadow-pop)}45%{box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 28%,transparent),var(--shadow-pop)}100%{box-shadow:0 0 0 2px color-mix(in srgb,var(--accent) 55%,transparent),var(--shadow-pop)}}",
+      "body.reduce-motion .settings-savebar.is-nudge{animation:none!important;box-shadow:0 0 0 2px var(--accent),var(--shadow-pop)!important}@media (prefers-reduced-motion:reduce){.settings-savebar.is-nudge{animation:none!important;box-shadow:0 0 0 2px var(--accent),var(--shadow-pop)!important}}",
       "body.reduce-motion .settings-savebar,body.reduce-motion .settings-savebar.is-dismissing{animation:none!important}",
       "@media(prefers-reduced-motion:reduce){.settings-savebar{animation:none!important}}"
     ].join("\n");
@@ -244,7 +245,12 @@
       }
     }
     /* Briefly highlight the Save / Discard pill (no shake) so a click on X while changes are pending visibly points at it. */
-    function nudgePill() { /* the pill is already visible by the time anyone tries to leave; there is no separate highlight state */ }
+    /* Trying to leave with unsaved changes points at the answer: the pill that is already showing pulses once in the accent color (a steady outline with Reduce motion). */
+    function nudgePill() {
+      if (!bar || bar.hidden) return;
+      bar.classList.remove("is-nudge"); void bar.offsetWidth; bar.classList.add("is-nudge");
+      clearTimeout(bar._nudge); bar._nudge = setTimeout(function () { bar.classList.remove("is-nudge"); }, 1300);
+    }
     function close() {
       var focused = document.activeElement;
       if (focused && dlg.contains(focused) && focused.tagName === "INPUT") focused.blur();
@@ -257,6 +263,7 @@
 
     [
       ["profile", "user", "Profile"],
+      ["signin", "key", "Sign-in methods"],
       ["appearance", "droplet", "Appearance"],
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
@@ -356,7 +363,7 @@
       settingsState.redrawPane = drawPane;
       pane.innerHTML = "";
       var fn = {
-        profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar,
+        profile: window.daylightProfilePane, signin: window.daylightSignInPane, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
         ai: window.daylightAiPane, admin: window.daylightAdminPane
       }[settingsState.section];

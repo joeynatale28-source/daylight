@@ -52,7 +52,7 @@ for(const theme of (process.env.THEMES||'dark,light').split(',')){
    avatar:!!document.querySelector('.dl-profile-avatar'),name:document.querySelector('#profileFullName').value,lock:!!document.querySelector('.dl-idf-lock svg'),emailText:document.querySelector('.dl-idf-lock [data-email]').textContent,emailEditable:!!document.querySelector('.dl-idf-lock input'),
    sec:{tile:!!document.querySelector('.dl-sec-tile svg'),button:document.querySelector('.dl-sec-row [data-reset-password]').textContent},
    badge:document.querySelector('.dl-session-badge')?.textContent,others:!document.querySelector('[data-signout-others]').hidden}));
-  assert.deepEqual(prof.rail,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
+  assert.deepEqual(prof.rail,['Profile','Sign-in methods','Appearance','Calendar','Notifications','AI access','Shortcuts']);
   assert.equal(prof.active,'Profile');
   assert.ok(prof.avatar&&prof.lock&&!prof.emailEditable&&prof.emailText==='demo@example.com'&&prof.name==='Calendar Demo','identity card: '+JSON.stringify(prof));
   assert.deepEqual([prof.sec.tile,prof.sec.button,prof.badge,prof.others],[true,'Change password','This device',true],'security + sessions: '+JSON.stringify(prof));

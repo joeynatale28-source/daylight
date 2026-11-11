@@ -157,7 +157,8 @@
         });
         actions.appendChild(b);
       } else {
-        sub.textContent = "Not connected";
+        /* never contradicts the activity log: a past connection that was disconnected says so, with when it was last used */
+        sub.textContent = lastAt ? "Not connected · Disconnected · Last activity " + ago(lastAt) : "Not connected";
         var c = make('<button type="button" class="btn-ghost dl-btn-sm">Connect</button>');
         c.addEventListener("click", function () { openConnect(ai); });
         actions.appendChild(c);
@@ -193,7 +194,8 @@
       AIS.forEach(function (ai) {
         var conns = live.filter(function (g) { return ai.re.test(g._name + " " + (g.client_name || "")); });
         conns.forEach(function (g) { used[g.client_id] = true; });
-        list.appendChild(row(ai, ai.name, conns, conns[0], conns.length ? lastFor(conns) : null));
+        var past = allGrants.filter(function (g) { return ai.re.test((names[g.client_id] || "") + " " + (g.client_name || "")); });
+        list.appendChild(row(ai, ai.name, conns, conns[0], conns.length ? lastFor(conns) : lastFor(past)));
       });
       live.filter(function (g) { return !used[g.client_id]; }).forEach(function (g) {
         list.appendChild(row(null, "Other connection" + (g._name ? " · " + g._name : ""), [g], g, lastFor([g])));

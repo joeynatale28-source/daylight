@@ -1966,6 +1966,15 @@ body.reduce-motion .dl-cb-box, body.reduce-motion .dl-cb-box svg path { transiti
 #sidebar { overflow: hidden; }
 #sidebar > .side-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; margin: 0 -20px; padding: 0 20px; scrollbar-color: var(--sidebar-selected) transparent; }
 #sidebar > .side-bottom { flex: none; display: flex; flex-direction: column; padding-top: 6px; }
+/* Fix 60/61/63 */
+.dl-sk { display: block; background: var(--hover); border-radius: 6px; animation: dlSkPulse 1.2s ease-in-out infinite; }
+@keyframes dlSkPulse { 0%, 100% { opacity: .55; } 50% { opacity: 1; } }
+body.reduce-motion .dl-sk { animation: none; }
+.dl-sk-row { pointer-events: none; }
+.dl-sk-profile { pointer-events: none; }
+#sidebar > .side-scroll { padding-top: 4px; padding-bottom: 12px; }
+#sidebar > .side-scroll.fade-b { -webkit-mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); mask-image: linear-gradient(to bottom, #000 calc(100% - 22px), transparent); }
+@media (max-width: 1100px) { .head-right.is-day .dl-sync-label { display: none; } .head-right.is-day .dl-sync { padding: 0 8px; } }
 /* ===== Finish and feel: one depth language, one motion system (visual finish only; no layout, size, copy or color changes) =====
    Motion: enters 190ms ease-out (fade + 0.96 scale), exits 170ms ease-in (the same motion in reverse), feedback 160ms ease-out;
    only transform and opacity animate. Depth: every floating surface uses --shadow-pop and the 12px popup radius (Settings and the
@@ -3179,12 +3188,13 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var nav = el('<div class="side-nav"></div>');
         var calNav = el('<button class="side-row' + (state.section === "calendar" ? " active" : "") + '" title="Calendar" aria-current="' + (state.section === "calendar") + '">' + icon("calendar", 18) + '<span class="rail-hide">Calendar</span></button>');
         calNav.addEventListener("click", function () { showCalendar(); });
-        var taskNav = el('<button class="side-row' + (state.section === "tasks" ? " active" : "") + '" title="Tasks" aria-current="' + (state.section === "tasks") + '">' + icon("checkSq", 18) + '<span class="rail-hide">Tasks</span>' + (state.tasks.filter(function (t) { return !t.done; }).length ? '<span class="rail-hide" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--muted)">' + state.tasks.filter(function (t) { return !t.done; }).length + "</span>" : "") + "</button>");
+        var taskNav = el('<button class="side-row' + (state.section === "tasks" ? " active" : "") + '" title="Tasks" aria-current="' + (state.section === "tasks") + '">' + icon("list", 18) + '<span class="rail-hide">Tasks</span>' + (state.tasks.filter(function (t) { return !t.done; }).length ? '<span class="rail-hide" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--muted)">' + state.tasks.filter(function (t) { return !t.done; }).length + "</span>" : "") + "</button>");
         taskNav.addEventListener("click", function () { showTasks(); });
         nav.appendChild(calNav); nav.appendChild(taskNav);
         sidebarEl.appendChild(nav);
         /* Two calendar sections. "My calendars" holds owned calendars;
            "Subscriptions" holds subscribed calendars, including US Holidays. */
+        var dlLoading = !!(window.daylightCloud && window.daylightCloud.loading);
         var ownedCals = state.calendars.filter(function (c) { return !isSubscribed(c) && !c.remoteShareId && !c.eventShare; });
         var sharedCals = state.calendars.filter(function (c) { return !!c.remoteShareId; });
         var subCals = state.calendars.filter(function (c) { return isSubscribed(c) && !c.remoteShareId && !c.eventShare; });
@@ -3200,7 +3210,10 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         sidebarEl.appendChild(label);
         if (state.sidebarRail || state.calSectionOpen) {
           var list = el('<div class="cal-list"></div>');
-          ownedCals.forEach(function (cal) { list.appendChild(calRow(cal)); });
+          if (dlLoading) {
+            /* the account is still loading: hold the space with a quiet skeleton instead of a partial list presented as real */
+            for (var sk = 0; sk < 4; sk++) list.appendChild(el('<div class="cal-row dl-sk-row" aria-hidden="true"><span class="dl-sk" style="width:20px;height:20px;border-radius:5px"></span><span class="dl-sk" style="height:12px;flex:1;max-width:' + (96 + (sk % 3) * 34) + 'px"></span></div>'));
+          } else ownedCals.forEach(function (cal) { list.appendChild(calRow(cal)); });
           sidebarEl.appendChild(list);
         }
         /* Calendars other Daylight accounts have shared with you. The owner's name sits under each calendar's name. */
@@ -3258,6 +3271,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           "</button></div>"
         );
         /* The account block opens a small menu right above it: Settings and Log out (red). */
+        if (dlLoading) {
+          pw = el('<div class="profile-wrap"><div class="profile-row dl-sk-profile" aria-hidden="true"><span class="dl-sk" style="width:36px;height:36px;border-radius:50%"></span><span style="flex:1;display:flex;flex-direction:column;gap:7px"><span class="dl-sk" style="height:11px;width:96px"></span><span class="dl-sk" style="height:9px;width:132px"></span></span></div></div>');
+        }
         var profileRow = pw.querySelector(".profile-row");
         profileRow.setAttribute("aria-haspopup", "menu");
         profileRow.addEventListener("click", function () {
@@ -3281,6 +3297,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           kids.slice(at + 1).forEach(function (n) { bottomBox.appendChild(n); });
           spacer.remove();
           sidebarEl.appendChild(scrollBox); sidebarEl.appendChild(bottomBox);
+          /* a row is never shown cut in half at the scroll edge: the edge fades while there is more below, and is clear once you reach the end */
+          var fade = function () { scrollBox.classList.toggle("fade-b", scrollBox.scrollHeight - scrollBox.clientHeight - scrollBox.scrollTop > 6); };
+          scrollBox.addEventListener("scroll", fade); requestAnimationFrame(fade); setTimeout(fade, 400); if (window.ResizeObserver) new ResizeObserver(fade).observe(scrollBox);
         })();
       }
       /* The main view's visible range — sidebar counts are the number
@@ -3692,7 +3711,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var toolbarEl = hdr.querySelector(".cal-toolbar");
           if (toolbarEl) hdr.insertBefore(back, toolbarEl); else hdr.appendChild(back);
         }
-        var right = el('<div class="head-right"></div>');
+        var right = el('<div class="head-right' + (state.view === "day" && state.section === "calendar" ? " is-day" : "") + '"></div>');
         /* Three quiet icon buttons only: search (full-screen command
            palette), Settings, and help. View switching lives in
            Settings → Default Calendar View. */
@@ -4665,7 +4684,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           title: ev.title, cal: ev.cal, allDay: !!ev.allDay, start: new Date(o.start), end: new Date(o.end),
           repeat: ev.repeat && occ ? null : ev.repeat, repeatEnd: ev.repeat && occ ? null : ev.repeatEnd,
           reminder: ev.reminder, loc: ev.loc, desc: ev.desc, placeId: ev.placeId || null, locationLat: ev.locationLat == null ? null : ev.locationLat, locationLng: ev.locationLng == null ? null : ev.locationLng,
-          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
+          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, banner: ev.banner || null, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
         };
         if (isReadOnlyEvent(ev)) { draft.cal = defaultCalId(); }
         openEventForm(null, null, null, draft);
@@ -4962,6 +4981,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
           attachments: src && Array.isArray(src.attachments) ? src.attachments.slice() : [],
+          banner: src && src.banner ? src.banner : null,
+          bannerTouched: !!(src && src.banner),
           dirty: false
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
@@ -5021,6 +5042,29 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
+        /* Smart banner: the control rides on the Description row; the match from the title shows pre-selected before saving */
+        (function () {
+          var descField = dlg.querySelector("#efDesc"); descField = descField && descField.closest(".field");
+          if (!descField || !window.daylightBannerList) return;
+          descField.style.position = "relative";
+          var tools = el('<div class="dl-desc-tools"></div>');
+          var bBtn = el('<button type="button" class="dl-attach-inline dl-banner-btn" aria-haspopup="menu"><span></span></button>');
+          tools.appendChild(bBtn); descField.appendChild(tools);
+          function effective() { if (f.banner === "none") return null; if (f.banner) return f.banner; return f.bannerTouched ? null : (window.daylightSuggestBanner ? daylightSuggestBanner(titleIn.value) : null); }
+          function labelOf(k) { var hit = daylightBannerList.filter(function (x) { return x.key === k; })[0]; return hit ? hit.label : ""; }
+          function paint() { var k = effective(); bBtn.querySelector("span").textContent = "Banner: " + (k ? labelOf(k) : "None"); }
+          f._bannerPaint = paint; f._bannerEffective = effective;
+          bBtn.addEventListener("click", function () {
+            var cur = effective(), items = [{ label2: "Banner" }, { label: "None", right: cur ? null : "check", fn: function () { f.banner = "none"; f.bannerTouched = true; markDirty(); paint(); } }];
+            ["school-life", "sports", "holidays"].forEach(function (g) {
+              items.push({ label2: g === "school-life" ? "Everyday" : g === "sports" ? "Sports" : "Holidays" });
+              daylightBannerList.filter(function (x) { return x.group === g; }).forEach(function (x) { items.push({ label: x.label, right: cur === x.key ? "check" : null, fn: function () { f.banner = x.key; f.bannerTouched = true; markDirty(); paint(); } }); });
+            });
+            openMenu(bBtn, items, { maxHeight: 320 });
+          });
+          titleIn.addEventListener("input", function () { if (!f.bannerTouched) paint(); });
+          paint();
+        })();
         var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
         if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
         titleIn.focus();
@@ -5110,6 +5154,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
             src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
+            if (f._bannerEffective) { var bk = f._bannerEffective(); if (f.banner === "none") src.banner = "none"; else if (bk) src.banner = bk; else if (f.bannerTouched) src.banner = "none"; }
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
               if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
@@ -5122,6 +5167,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
             created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
+            if (f._bannerEffective) { var nb = f._bannerEffective(); if (f.banner === "none") created.banner = "none"; else if (nb) created.banner = nb; else if (f.bannerTouched) created.banner = "none"; }
             state.events.push(created);
             daylightExit(bd); renderAll(false); toast("Event created");
             if (window.daylightAttachments) daylightAttachments.commit(created, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
@@ -5197,6 +5243,24 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           return o.ev.title.toLowerCase().indexOf(q) >= 0 || (o.ev.loc || "").toLowerCase().indexOf(q) >= 0;
         });
         range.sort(function (a, b) { return a.start - b.start; });
+        /* One holiday (or one repeating event) is not many results: a series shows its next upcoming occurrence and its most recent past one */
+        (function () {
+          var today = sod(TODAY), groups = {}, order = [];
+          range.forEach(function (o) {
+            var ev = o.ev, k = ev.repeat ? "r:" + ev.id : (ev.cal === "holidays" || ev.builtin) ? "h:" + (ev.title || "") : null;
+            if (!k) { order.push({ solo: o }); return; }
+            if (!groups[k]) { groups[k] = { list: [] }; order.push({ g: groups[k] }); }
+            groups[k].list.push(o);
+          });
+          var keep = [];
+          order.forEach(function (x) {
+            if (x.solo) { keep.push(x.solo); return; }
+            var past = null, next = null;
+            x.g.list.forEach(function (o) { if (o.start < today) past = o; else if (!next) next = o; });
+            [past, next].forEach(function (o) { if (o) keep.push(o); });
+          });
+          range = keep.sort(function (a, b) { return a.start - b.start; });
+        })();
         if (!range.length) {
           var noRes = el('<div class="empty-state" style="padding:26px 18px"><span class="es-badge">' + icon("search", 22) + '</span><div class="es-title">No results for \u201c' + esc(inp.value.trim()) + '\u201d</div><p class="es-sub">Nothing on your calendars matches that search.</p></div>');
           var createBtn = el('<button class="btn-primary es-btn">' + icon("plus", 16) + "<span>New event</span></button>");

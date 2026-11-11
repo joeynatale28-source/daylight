@@ -326,7 +326,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
         signout:out?{w:box.width,h:box.height,title:out.title,color:getComputedStyle(out).color,hasIcon:!!out.querySelector('svg'),text:out.textContent.trim()}:null,textButton:!!row.querySelector('button.btn-ghost')}}),
      closeSize:(()=>{const r=document.querySelector('.settings-close').getBoundingClientRect();return [r.width,r.height]})()
    }));
-   assert.deepEqual(profile.sections,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
+   assert.deepEqual(profile.sections,['Profile','Sign-in methods','Appearance','Calendar','Notifications','AI access','Shortcuts']);
    assert.equal(profile.email,'demo@example.com','Profile must show the authenticated email');
    assert.ok(profile.sessions.some(text=>text.includes('Chrome on Windows')&&text.includes('This device')),'current session is labelled This device: '+JSON.stringify(profile.sessions));
    const [current,other]=profile.sessionUi;

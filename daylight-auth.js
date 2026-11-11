@@ -158,6 +158,7 @@
     setBusy(root, true, "Working…");
     try {
       if (!(await providerOn(name))) { setBusy(root, false); showFlash(root, "error", label + " sign-in isn’t available yet. Use your email and password for now."); return; }
+      try { sessionStorage.setItem("dl-oauth-pending", String(Date.now())); } catch (e2) {}
       var res = await c.auth.signInWithOAuth({ provider: name, options: { redirectTo: location.origin + location.pathname } });
       if (res && res.error) throw res.error;
       /* the browser is now on its way to the provider: the buttons stay disabled until the page changes (or the person comes back to it) */
@@ -253,11 +254,25 @@
   window.addEventListener("pageshow", function () { var r = document.getElementById("authRoot"); if (busy && r) setBusy(r, false); });
   /* a sign-in that finished (any method) leaves nothing behind */
   document.addEventListener("daylight:workspace-signed-out", function () { flash = null; busy = false; });
+  document.addEventListener("daylight:workspace-ready", function () { flash = null; });
   /* ROOT CAUSE of "the social buttons only appear after signing out": daylight-cloud.js resolves the saved session while it loads and,
      with no session, paints the sign-in screen right away (showSignedOut -> renderAuth), which can happen BEFORE this file has replaced
      buildAuthFormInner. A sign-out later rebuilt the screen with the new builder, so the buttons showed up then and vanished on reload.
      Fix: the moment these overrides are installed, rebuild any sign-in screen that was already painted with the old builder. The result
      is the same on a cold load, a reload and after signing out. */
+  /* A provider flow that failed or was abandoned lands softly back here with a friendly message: an error in the return URL, or coming
+     back from a provider (Back button) without a sign-in code. The form stays usable. */
+  (function oauthReturn() {
+    try {
+      var q = new URLSearchParams(location.search), h = new URLSearchParams(location.hash.replace(/^#/, ""));
+      var failed = !!(q.get("error") || h.get("error") || q.get("error_code") || h.get("error_code"));
+      var pending = sessionStorage.getItem("dl-oauth-pending");
+      var succeeded = !!(q.get("code") || h.get("access_token"));
+      if (failed) { try { history.replaceState(null, "", location.pathname); } catch (e3) {} }
+      if (pending) sessionStorage.removeItem("dl-oauth-pending");
+      if (failed || (pending && !succeeded)) flash = { kind: "error", text: "Google sign-in didn’t go through. Try again, or use your email and password." };
+    } catch (e4) {}
+  })();
   (function repaintIfPainted() {
     var root = document.getElementById("authRoot");
     if (root && root.querySelector("#authScreen") && typeof renderAuth === "function") renderAuth();

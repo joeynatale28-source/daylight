@@ -205,7 +205,9 @@ return findRule(t);
 }
 bannerKeyFor=function(ev,cal){
 ev=ev||{};
-return titleBanner(ev.title);   /* automatic only: no manual banner picking */
+if(ev.banner==="none")return null;
+if(ev.banner&&/^dl-banner-/.test(ev.banner))return ev.banner;
+return titleBanner(ev.title);
 };
 window.daylightSuggestBanner=function(title){return titleBanner(title)};
 window.daylightBannerList=FILES.map(function(p){var n=p.split("/")[1].replace(/-/g," ");return {key:key(p),group:p.split("/")[0],label:n.replace(/\b[a-z]/g,function(c){return c.toUpperCase()})}});

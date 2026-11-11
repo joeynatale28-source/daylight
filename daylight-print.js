@@ -108,20 +108,41 @@
     document.body.classList.remove("dl-printing");
     var n = document.getElementById("dlPrint"); if (n) n.remove();
   }
-  /* Printing never touches the live app: the printout is built only for the moment the browser prints (beforeprint) and removed right after
-     (afterprint, which also fires when the dialog is cancelled). Everything that makes it white and black lives in @media print, so the
-     on-screen theme, background and state are never changed, before, during or after. */
+  /* PRINTING NEVER TOUCHES THE LIVE APP. The printout is a separate document inside a hidden iframe: it has its own white page and black
+     text, and the print dialog prints THAT document. The app's own page (theme, classes, menus, scroll, state) is not changed before, during
+     or after, so nothing can flash, stick or freeze, and cancelling the dialog simply removes the iframe. */
   function inMonthView() { return !!window.state && state.section === "calendar" && state.view === "month"; }
-  window.addEventListener("beforeprint", function () {
-    if (!inMonthView()) return;
-    cleanup();
-    document.body.appendChild(build());
-    document.body.classList.add("dl-printing");
-  });
-  window.addEventListener("afterprint", cleanup);
-  window.daylightPrintMonth = function () { if (inMonthView()) window.print(); };
+  function elementCss() { return css.textContent.split("\n").filter(function (l) { return /^#dlPrint \.pm-/.test(l); }).join("\n"); }
+  function printDocument() {
+    var node = build(), title = (node.querySelector(".pm-title") || {}).textContent || "Daylight";
+    return "<!doctype html><html><head><meta charset=\"utf-8\"><title>" + esc(title) + "</title><style>@page{size:landscape;margin:9mm}" +
+      "html,body{margin:0;background:#fff;color:#000;-webkit-print-color-adjust:exact;print-color-adjust:exact}" +
+      "#dlPrint{display:flex;flex-direction:column;width:100%;height:186mm;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#000;background:#fff}" +
+      elementCss() + "</style></head><body>" + node.outerHTML + "</body></html>";
+  }
+  var printing = null;
+  window.daylightPrintMonth = function () {
+    if (!inMonthView() || printing) return;
+    try { if (typeof closeMenu === "function") closeMenu(); } catch (e) {}
+    var f = document.createElement("iframe");
+    f.setAttribute("aria-hidden", "true"); f.setAttribute("tabindex", "-1"); f.title = "Print";
+    f.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
+    document.body.appendChild(f);
+    printing = f;
+    var d = f.contentDocument; d.open(); d.write(printDocument()); d.close();
+    function done() { clearTimeout(guard); if (printing === f) printing = null; try { f.parentNode && f.parentNode.removeChild(f); } catch (e) {} }
+    var guard = setTimeout(done, 180000);
+    try { f.contentWindow.addEventListener("afterprint", done); } catch (e) {}
+    setTimeout(function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { done(); } }, 200);
+  };
   /* test hook / preview: builds the same layout without opening the print dialog */
   window.daylightBuildPrintMonth = function () { cleanup(); var n = build(); document.body.appendChild(n); document.body.classList.add("dl-printing"); return n; };
   window.daylightEndPrintPreview = cleanup;
+  document.addEventListener("keydown", function (e) {
+    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === "p" && inMonthView()) {
+      if (document.querySelector(".backdrop,.settings-dialog,.dl-consent-backdrop,.dl-lightbox")) return;
+      e.preventDefault(); window.daylightPrintMonth();
+    }
+  });
 })();
 /* Printing is driven only by the browser print events; the live app is never changed to print. */

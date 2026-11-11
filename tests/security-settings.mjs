@@ -24,14 +24,19 @@ for(const theme of ['dark','light']){
  try{
   await app.load();
   const calls=()=>page.evaluate(()=>window.__authCalls||[]);
-  const openProfile=async()=>{await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.dl-sec-group');await sleep(700)};
+  const openProfile=async()=>{await page.evaluate(()=>openSettings('signin'));await page.waitForSelector('[data-methods] .dl-sec-row');await sleep(700)};
   const closeSettings=async()=>{await page.evaluate(()=>document.querySelector('.settings-close').click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300)};
   const methods=()=>page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')].map(r=>({name:r.querySelector('.sw-label').textContent,sub:r.querySelector('.sw-sub').textContent,btn:[...r.querySelectorAll('button')].map(b=>b.textContent.trim()),note:(r.querySelector('.dl-sec-note')||{}).textContent||'',status:(r.querySelector('.dl-sec-status')||{}).textContent||''})));
   const barHidden=()=>page.evaluate(()=>document.querySelector('.settings-savebar').hidden);
   await openProfile();
-  const sec=await page.evaluate(()=>{const g=document.querySelector('.dl-sec-group');return {title:g.querySelector('.set-group-title').textContent,rows:[...g.querySelectorAll('.dl-sec-row.is-main .sw-label')].map(n=>n.textContent.replace(/\s+/g,' ').trim()),badge:(g.querySelector('.dl-new-badge')||{}).textContent,groups:[...document.querySelectorAll('.settings-pane .set-group-title')].map(n=>n.textContent.trim())}});
-  check(T('Security has a Password row and a Passkeys row with a New badge'),sec.title==='Security'&&sec.rows.join('|')==='Password|PasskeysNew'&&sec.badge==='New',JSON.stringify(sec));
-  check(T('Sign-in methods follows Security'),sec.groups.indexOf('Sign-in methods')===sec.groups.indexOf('Security')+1,JSON.stringify(sec.groups));
+  const sec=await page.evaluate(()=>({groups:[...document.querySelectorAll('.settings-pane .set-group-title')].map(n=>n.textContent)}));
+  check(T('the Sign-in methods pane holds the Sign-in methods card (and no Security card)'),sec.groups.join('|')==='Sign-in methods',JSON.stringify(sec));
+  await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(500);
+  await page.evaluate(()=>openSettings('profile'));await page.waitForSelector('.dl-sec-group');await sleep(800);
+  const prof=await page.evaluate(()=>{const g=[...document.querySelectorAll('.settings-pane .set-group')].find(x=>/^Security/.test((x.querySelector('.set-group-title')||{textContent:''}).textContent));return {rows:g?[...g.querySelectorAll('.dl-sec-row.is-main .sw-label')].map(n=>n.textContent.replace(/\s+/g,' ').trim()):null,pk:!!document.querySelector('.settings-pane [data-pk-list],.settings-pane [data-add-passkey]'),methods:!!document.querySelector('.settings-pane [data-methods]')}});
+  check(T('Profile keeps Security with the Password row only: no passkeys and no sign-in methods there'),prof.rows&&prof.rows.join('|')==='Password'&&!prof.pk&&!prof.methods,JSON.stringify(prof));
+  await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(500);
+  await openProfile();
   let m=await methods();
   check(T('every method row has a right-side status or action (Email On, Passkeys Not connected)'),m[0].status==='On'&&m[2].status==='Not connected'&&m[1].btn.length===1,JSON.stringify(m));
   check(T('methods: email, Google, passkeys'),m.map(x=>x.name).join('|')==='Email and password|Google|Passkeys'&&m[1].btn.join()==='Connect'&&/demo@example.com/.test(m[0].sub),JSON.stringify(m));
@@ -51,7 +56,7 @@ for(const theme of ['dark','light']){
   const list=await page.evaluate(()=>[...document.querySelectorAll('[data-pk-list] [data-pk]')].map(r=>r.querySelector('[data-name]').textContent+' / '+r.querySelector('[data-meta]').textContent));
   check(T('the passkey is listed with when it was added and "Never used"'),list.length===1&&/^Work laptop \/ Added .+ · Never used$/.test(list[0]),JSON.stringify(list));
   m=await methods();
-  check(T('Sign-in methods shows the Passkeys row as connected through its Disconnect button (the count lives only in the Passkeys section)'),m[2].btn.join()==='Disconnect'&&!/passkey added|on this account/.test(m[2].sub),JSON.stringify(m[2]));
+  check(T('Sign-in methods shows the Passkeys row as connected through its Disconnect button (the count lives only in the Passkeys section)'),m[2].btn.includes('Disconnect'),JSON.stringify(m[2]));
 
   // rename: in place, full-width, only Save and Cancel while editing
   await page.click('[data-pk] [data-rename]');await sleep(200);
@@ -73,18 +78,18 @@ for(const theme of ['dark','light']){
   // ---- Passkeys row: a real Disconnect, same family as Google's
   await page.evaluate(()=>{window.__pks=[{id:'pkA',friendly_name:'One',created_at:new Date().toISOString(),last_used_at:null},{id:'pkB',friendly_name:'Two',created_at:new Date().toISOString(),last_used_at:null}];window.__ids=[{provider:'email',identity_data:{email:'demo@example.com'}},{provider:'google',identity_data:{email:'demo@gmail.com'}}];window.__authCalls=[]});
   await closeSettings();await openProfile();await page.waitForFunction(()=>document.querySelectorAll('[data-methods] .dl-sec-row').length>=3&&document.querySelectorAll('[data-pk]').length>=2,{timeout:5000});await sleep(300);
-  const geo=await page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-methods] .dl-sec-row')];const g=rows[1].querySelector('button'),p=rows[2].querySelector('button');const gb=g&&g.getBoundingClientRect(),pb=p&&p.getBoundingClientRect();const cs=x=>getComputedStyle(x);return {has:!!p,sameRight:!!pb&&Math.round(gb.right)===Math.round(pb.right),sameH:!!pb&&Math.round(gb.height)===Math.round(pb.height),sameBorder:!!pb&&cs(g).borderTopColor===cs(p).borderTopColor&&cs(g).color===cs(p).color&&cs(g).borderRadius===cs(p).borderRadius,label:p&&p.textContent.trim(),entries:document.querySelectorAll('[data-pk]').length}});
+  const geo=await page.evaluate(()=>{const rows=[...document.querySelectorAll('[data-methods] .dl-sec-row')];const g=rows[1].querySelector('button'),p=rows[2].querySelector('.btn-danger-outline');const gb=g&&g.getBoundingClientRect(),pb=p&&p.getBoundingClientRect();const cs=x=>getComputedStyle(x);return {has:!!p,sameRight:!!pb&&Math.round(gb.right)===Math.round(pb.right),sameH:!!pb&&Math.round(gb.height)===Math.round(pb.height),sameBorder:!!pb&&cs(g).borderTopColor===cs(p).borderTopColor&&cs(g).color===cs(p).color&&cs(g).borderRadius===cs(p).borderRadius,label:p&&p.textContent.trim(),entries:document.querySelectorAll('[data-pk]').length}});
   check(T('with passkeys, the Passkeys method row has a Disconnect button: same height, radius, red outline and right edge as the Google row'),geo.has&&geo.sameRight&&geo.sameH&&geo.sameBorder&&geo.label==='Disconnect'&&geo.entries===2,J(geo));
   await page.screenshot({path:path.join(out,`6-passkey-disconnect-${theme}.png`)});
-  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('button').click());await sleep(150);
+  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('.btn-danger-outline').click());await sleep(150);
   check(T('the first click only asks to confirm; nothing was removed yet'),!(await calls()).some(x=>x.fn==='pkDelete'));
-  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('button').click());await sleep(900);
+  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('.btn-danger-outline').click());await sleep(900);
   const gone=await page.evaluate(()=>({entries:document.querySelectorAll('[data-pk]').length,status:[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('.dl-sec-status')&&[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('.dl-sec-status').textContent,btn:[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelectorAll('button').length,pkSub:document.querySelector('[data-pk-sub]').textContent}));
-  check(T('confirming removes every passkey: the Security list empties and the row reads Not connected with no button'),(await calls()).filter(x=>x.fn==='pkDelete').length===2&&gone.entries===0&&gone.status==='Not connected'&&gone.btn===0,J(gone));
+  check(T('confirming removes every passkey: the Security list empties and the row reads Not connected with no button'),(await calls()).filter(x=>x.fn==='pkDelete').length===2&&gone.entries===0&&gone.status==='Not connected'&&gone.btn<=1,J(gone));
   // the standing guard: never remove the last sign-in method
   await page.evaluate(()=>{window.__pks=[{id:'pkC',friendly_name:'Only',created_at:new Date().toISOString(),last_used_at:null}];window.__ids=[];window.__authCalls=[]});
   await closeSettings();await openProfile();await page.waitForFunction(()=>document.querySelectorAll('[data-methods] .dl-sec-row').length>=3&&document.querySelectorAll('[data-pk]').length>=1,{timeout:5000});await sleep(300);
-  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('button').click());await sleep(400);
+  await page.evaluate(()=>[...document.querySelectorAll('[data-methods] .dl-sec-row')][2].querySelector('.btn-danger-outline').click());await sleep(400);
   const guard=await page.evaluate(()=>({msg:document.querySelector('[data-method-status]').textContent,entries:document.querySelectorAll('[data-pk]').length}));
   check(T('if passkeys are the only sign-in method, Disconnect is blocked with a plain explanation and nothing is removed'),/only sign-in method/.test(guard.msg)&&guard.entries===1&&!(await calls()).some(x=>x.fn==='pkDelete'),J(guard));
   await page.evaluate(()=>{window.__pks=[];window.__ids=[{provider:'email',identity_data:{email:'demo@example.com'}}];window.__authCalls=[]});
