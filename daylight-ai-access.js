@@ -12,9 +12,11 @@
   var AIS = [
     { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/claude-logo.png", tile: "plain",
       steps: ["Open Claude and go to Settings → Connectors.", "Choose Add custom connector.", "Paste the address above.", "Choose “Register automatically”.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
-    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/chatgpt-logo.png", fallback: "./assets/chatgpt-logo.svg", tile: "plain",
+    /* ChatGPT: the owner-uploaded mark (assets/ChatGPT-Logo.svg.webp, black on transparent) shown WHITE on its black rounded-square tile. */
+    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/ChatGPT-Logo.svg.webp", bg: "#0D0D0D", invert: true, pad: "20%", tile: "plain",
       steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
-    { id: "gemini", name: "Google Gemini", re: /gemini/i, logo: "./assets/gemini-logo.png", initial: "G", tile: "plain",
+    /* Google Gemini registers itself as "Google" (or "Gemini …"); the owner-uploaded gradient spark is used as-is on the standard tile. */
+    { id: "gemini", name: "Google Gemini", re: /gemini|google/i, logo: "./assets/Google_Gemini_icon_2025.svg.webp", pad: "17%", initial: "G", tile: "plain",
       steps: ["Open Gemini CLI.", "Add Daylight as an MCP server, using the address above.", "Leave the client ID and client secret blank if it asks.", "Approve access on the Daylight consent screen."] }
   ];
 
@@ -60,10 +62,10 @@
     var t = make('<span class="dl-ai-tile' + (ai && ai.tile === "dark" ? " is-dark" : "") + (small ? " is-sm" : "") + '" aria-hidden="true"></span>');
     if (ai) {
       var img = document.createElement("img"); img.alt = ""; img.src = ai.logo;
-      img.addEventListener("error", function () {
-        if (ai.fallback && img.getAttribute("src") !== ai.fallback) { img.src = ai.fallback; return; }
-        img.remove(); t.classList.add("is-other"); t.textContent = ai.initial || ai.name.charAt(0);
-      });
+      if (ai.bg) t.style.background = ai.bg;
+      if (ai.pad) { var inner = 100 - 2 * parseFloat(ai.pad); img.style.width = img.style.height = inner + "%"; img.style.maxWidth = "none"; img.style.objectFit = "contain"; }
+      if (ai.invert) img.style.filter = "invert(1)";
+      img.addEventListener("error", function () { img.remove(); t.removeAttribute("style"); t.classList.add("is-other"); t.textContent = ai.initial || ai.name.charAt(0); });
       t.appendChild(img);
     }
     else { t.classList.add("is-other"); t.textContent = "?"; }

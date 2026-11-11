@@ -20,7 +20,7 @@ for(const [f,expect] of [['daylight-sunarc-light-NOBG.png',0],['daylight-sunarc-
  check(f+' is an RGBA PNG (has an alpha channel)',buf[25]===6,'color type '+buf[25]);
 }
 const shipped=fs.readdirSync('assets').filter(f=>/\.(png|svg|jpg|jpeg|webp|ico)$/i.test(f));
-const logoLike=shipped.filter(f=>/logo|sun|arc|mark|icon/i.test(f)&&!/NOBG|favicon|apple-touch|chatgpt-logo|claude-logo|daylight-logo-dark/i.test(f));
+const logoLike=shipped.filter(f=>/logo|sun|arc|mark|icon/i.test(f)&&!/NOBG|favicon|apple-touch|chatgpt-logo|claude-logo|google_gemini_icon|daylight-logo-dark/i.test(f));
 check('no old solid logo files are shipped',logoLike.length===0,JSON.stringify(logoLike));
 const refs=execFileSync('git',['grep','-n','-I','-E','daylight-sunarc|logo-solid|sunarc-(light|dark)[^-]',...['--','index.html','daylight-settings.js','daylight-integrations.js','daylight-cloud.js','daylight-enhancements.js','404.html']],{encoding:'utf8'}).split('\n').filter(l=>/sunarc/.test(l)&&!/NOBG/.test(l));
 check('every code reference points at a -NOBG file',refs.length===0,refs.join(' | ').slice(0,200));

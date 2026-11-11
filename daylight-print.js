@@ -108,22 +108,19 @@
     document.body.classList.remove("dl-printing");
     var n = document.getElementById("dlPrint"); if (n) n.remove();
   }
-  window.daylightPrintMonth = function () {
-    if (!window.state || state.section !== "calendar" || state.view !== "month") return;
+  /* Printing never touches the live app: the printout is built only for the moment the browser prints (beforeprint) and removed right after
+     (afterprint, which also fires when the dialog is cancelled). Everything that makes it white and black lives in @media print, so the
+     on-screen theme, background and state are never changed, before, during or after. */
+  function inMonthView() { return !!window.state && state.section === "calendar" && state.view === "month"; }
+  window.addEventListener("beforeprint", function () {
+    if (!inMonthView()) return;
     cleanup();
     document.body.appendChild(build());
     document.body.classList.add("dl-printing");
-    window.addEventListener("afterprint", cleanup, { once: true });
-    setTimeout(function () { window.print(); }, 30);
-  };
+  });
+  window.addEventListener("afterprint", cleanup);
+  window.daylightPrintMonth = function () { if (inMonthView()) window.print(); };
   /* test hook / preview: builds the same layout without opening the print dialog */
   window.daylightBuildPrintMonth = function () { cleanup(); var n = build(); document.body.appendChild(n); document.body.classList.add("dl-printing"); return n; };
   window.daylightEndPrintPreview = cleanup;
-  /* Ctrl/Cmd+P in Month view prints the month layout instead of the app chrome */
-  document.addEventListener("keydown", function (e) {
-    if ((e.ctrlKey || e.metaKey) && !e.shiftKey && !e.altKey && String(e.key).toLowerCase() === "p" && window.state && state.section === "calendar" && state.view === "month") {
-      if (document.querySelector(".backdrop,.settings-dialog,.dl-consent-backdrop")) return;
-      e.preventDefault(); window.daylightPrintMonth();
-    }
-  });
 })();
