@@ -139,7 +139,6 @@
       ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:0!important;background:var(--surface)!important;z-index:30!important}",
       "[data-theme=\"light\"] .settings-dialog>.settings-close{background:var(--gray-2)!important}",
       ".settings-dialog>.settings-close::before{inset:0!important;border-radius:10px!important}",
-      ".settings-dialog .settings-pane{padding-right:60px}",
       ".settings-savebar.is-saved [data-discard]{display:none}",
       /* Shortcuts rows use the same divider as every other pane */
       ".settings-pane .shortcut-row{border-bottom:1px solid var(--line-soft)!important}.settings-pane .shortcut-row:last-child{border-bottom:0!important}",
@@ -266,8 +265,8 @@
       var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
         icon(s[1], 17) + "<span>" + s[2] + "</span></button>");
       btn.addEventListener("click", function () {
+        /* switching sections keeps unsaved changes and the pill exactly as they are (the dirty state belongs to the account's settings, not one pane) */
         markDirty();
-        if (isDirty()) return;   /* the pill is the only way out of unsaved changes */
         settingsState.section = s[0];
         rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.remove("active"); });
         btn.classList.add("active");

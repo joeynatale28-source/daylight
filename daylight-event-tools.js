@@ -19,6 +19,7 @@
     ".dl-selbar button:disabled{opacity:var(--dl-disabled-opacity,.55);cursor:default}",
     "@media (max-width:560px){.dl-selbar{flex-wrap:wrap}.dl-selbar .dl-sel-count{flex-basis:100%}}",
     "body.reduce-motion .dl-selbar{animation:none!important}",
+    "body.dl-selecting .palette-results,body.dl-selecting .agenda-inner{padding-bottom:88px}",
   ].join("\n");
   document.head.appendChild(css);
 
@@ -127,6 +128,8 @@
       ".dl-attach-x:hover{background:rgba(18,18,18,.92)}.dl-attach-x:active{transform:scale(.92)}",
       ".dl-attach-field{margin:0 0 14px}.dl-attach-field[hidden]{display:none}",
       ".dl-attach-h{font-size:13px;font-weight:550;margin:0 0 8px}.dl-attach-note{display:block;font-size:12px;color:var(--faint);margin-top:6px}.dl-attach-note:empty{display:none}",
+      ".dl-desc-tools{position:absolute;right:0;top:-3px;display:flex;align-items:center;gap:2px}",
+      ".dl-desc-tools .dl-attach-inline{position:static}",
       ".dl-attach-inline{position:absolute;right:0;top:-3px;display:inline-flex;align-items:center;gap:5px;height:26px;padding:0 9px;border-radius:8px;font-size:12.5px;font-weight:550;color:var(--muted);transition:background 150ms var(--dl-ease-out),color 150ms var(--dl-ease-out)}",
       ".dl-attach-inline:hover:not(:disabled){background:var(--hover);color:var(--text)}.dl-attach-inline:disabled{opacity:var(--dl-disabled-opacity,.55)}",
       ".dl-attach-tile.is-busy::after{content:'';position:absolute;inset:0;background:color-mix(in srgb,var(--surface) 55%,transparent)}",
@@ -223,7 +226,10 @@
         var field = mk('<div class="dl-attach-field" hidden><div class="dl-attach-h">Attachments</div><div class="dl-attach-grid" data-grid></div><span class="dl-attach-note" data-note></span></div>');
         var addBtn = mk('<button type="button" class="dl-attach-inline" data-add>' + icon("plus", 14) + '<span>Add photos</span></button>');
         var input = mk('<input type="file" accept="image/*" multiple hidden>');
-        after.style.position = "relative"; after.appendChild(addBtn); after.appendChild(input);
+        after.style.position = "relative";
+        var toolsBox = after.querySelector(".dl-desc-tools");
+        if (toolsBox) { toolsBox.appendChild(addBtn); } else { after.appendChild(addBtn); }
+        after.appendChild(input);
         after.parentNode.insertBefore(field, after.nextSibling);
         var grid = field.querySelector("[data-grid]"), note = field.querySelector("[data-note]");
         function all() { return f.attachments.concat(f._newFiles); }

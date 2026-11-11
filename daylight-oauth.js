@@ -19,7 +19,8 @@ css.textContent=`
 .dl-oauth-logos{display:flex;justify-content:center;align-items:center;gap:14px;margin:0 0 20px}
 .dl-oauth-logo{height:56px;width:56px;border-radius:14px;display:grid;place-items:center;overflow:hidden;background:var(--hover);border:1px solid var(--line-soft);font-size:22px;font-weight:650}
 .dl-oauth-logo img{width:100%;height:100%;object-fit:cover}
-.dl-oauth-logo.is-dark{background:#17191b}.dl-oauth-logo.is-dark img{width:122%;height:122%;max-width:none;object-fit:contain}
+.dl-oauth-logo.is-dark{background:#17191b}
+[data-theme="dark"] .dl-oauth-logo.client{outline:1px solid rgba(255,255,255,.2);outline-offset:-1px}.dl-oauth-logo.is-dark img{width:122%;height:122%;max-width:none;object-fit:contain}
 .dl-oauth-logo.daylight img{width:32px;height:32px;object-fit:contain}
 .dl-oauth-logo .daylight-mark-dark{display:none}[data-theme="dark"] .dl-oauth-logo .daylight-mark-light{display:none}[data-theme="dark"] .dl-oauth-logo .daylight-mark-dark{display:block}
 .dl-oauth-swap{color:var(--faint);display:grid;place-items:center}
@@ -79,12 +80,12 @@ async function renderConsent(){
   const profileName=String(profile.full_name||profile.name||email.split('@')[0]||'Your account');
   const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'?u.href:null}catch{return null}};
   /* the requesting app's logo: its own registered logo, else the real Claude / ChatGPT marks, else its initial */
-  const known=/chatgpt|openai/i.test(name)?{src:"./assets/chatgpt-logo.svg",dark:false}:/claude|anthropic/i.test(name)?{src:"./assets/claude-logo.png",dark:false}:null;
+  const known=/chatgpt|openai/i.test(name)?{src:"./assets/chatgpt-logo.png",fallback:"./assets/chatgpt-logo.svg",dark:false}:/claude|anthropic/i.test(name)?{src:"./assets/claude-logo.png",dark:false}:/gemini/i.test(name)?{src:"./assets/gemini-logo.png",dark:false}:null;
   const clientLogo=safeImage(d.client?.logo_uri||d.client?.logo_url||d.client?.icon_uri)||(known&&known.src);
   const avatar=safeImage(profile.avatar_url||profile.picture);
   /* after approve / deny the screen leads with the CONNECTING app's logo, not Daylight's */
   const initial=name.charAt(0).toUpperCase();
-  const leadHtml='<div class="dl-oauth-logo client" data-i="'+esc(initial)+'" aria-label="'+esc(name)+'">'+(clientLogo?'<img src="'+esc(clientLogo)+'" alt="" onerror="this.parentNode.textContent=this.parentNode.dataset.i">':esc(initial))+'</div>';
+  const leadHtml='<div class="dl-oauth-logo client" data-i="'+esc(initial)+'" data-f="'+esc((known&&known.fallback)||"")+'" aria-label="'+esc(name)+'">'+(clientLogo?'<img src="'+esc(clientLogo)+'" alt="" onerror="var f=this.parentNode.dataset.f;if(f&&this.getAttribute(\'src\')!==f){this.src=f}else{this.parentNode.textContent=this.parentNode.dataset.i}">':esc(initial))+'</div>';
   pane.innerHTML='<div class="dl-oauth-logos">'+
     '<div class="dl-oauth-logo client" id="dl-oauth-client-logo"></div>'+
     '<div class="dl-oauth-swap" aria-hidden="true">'+(typeof icon==="function"?icon("chevR",18):"⇄")+'</div>'+
@@ -116,7 +117,7 @@ async function renderConsent(){
   if(clientLogo){
     const image=document.createElement('img');image.alt=name+' logo';image.src=clientLogo;
     if(known&&known.dark)logo.classList.add("is-dark");
-    image.onerror=()=>{logo.classList.remove("is-dark");logo.textContent=name.charAt(0).toUpperCase()};
+    image.onerror=()=>{if(known&&known.fallback&&image.getAttribute("src")!==known.fallback){image.src=known.fallback;return}logo.classList.remove("is-dark");logo.textContent=name.charAt(0).toUpperCase()};
     logo.append(image);
   }else logo.textContent=name.charAt(0).toUpperCase();
   const avatarNode=pane.querySelector("#dl-oauth-avatar");

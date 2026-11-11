@@ -194,18 +194,22 @@ var RULES=[
 [/\byoga\b/,"school-life/yoga"]
 ];
 function findRule(s){if(!s)return null;for(var i=0;i<RULES.length;i++)if(RULES[i][0].test(" "+s+" "))return key(RULES[i][1]);return null}
+/* Smart banners: the closest banner is chosen from the event's TITLE only (never the description, location, category or calendar name),
+   entirely inside the app. A banner the user picked (or cleared: "none") is stored on the event and always wins. */
+function titleBanner(title){
+var t=norm(title);if(!t)return null;
+if(/\bteam usa\b/.test(t))return key("sports/swim");
+var swim=/\bswim[a-z]*\b|\baquatic\b|\bwater polo\b|\bgral\b/.test(t);
+if(swim)return key("sports/swim");
+return findRule(t);
+}
 bannerKeyFor=function(ev,cal){
-ev=ev||{};var title=norm(ev.title),category=norm([ev.category,ev.categoryName,ev.type,ev.kind,ev.tags,ev.categories].map(val).join(" "));
-var calendar=norm([ev.calendarName,cal&&cal.name,cal&&cal.id].map(val).join(" "));var combined=title+" "+category+" "+calendar;
-var swim=/\bswim[a-z]*\b|\baquatic\b|\bwater polo\b/.test(combined);
-var championship=/\bteam usa\b|\bworld championships?\b|\bnational championships?\b|\bchampionships?\b|\bolympics?\b/.test(title+" "+category);
-if(swim&&championship)return key("sports/swim");
-if(/\bteam usa\b/.test(title))return key("sports/swim");
-if(swim&&/\bpractice\b|\btraining\b|\bmeet\b|\bworkout\b/.test(title))return key("sports/swim");
-var hit=findRule(category);if(hit)return hit;
-hit=findRule(title);if(hit)return hit;
-hit=findRule(title+" "+category);if(hit)return hit;
-return null;
+ev=ev||{};
+if(ev.banner==="none")return null;
+if(ev.banner&&/^dl-banner-/.test(ev.banner))return ev.banner;
+return titleBanner(ev.title);
 };
+window.daylightSuggestBanner=function(title){return titleBanner(title)};
+window.daylightBannerList=FILES.map(function(p){var n=p.split("/")[1].replace(/-/g," ");return {key:key(p),group:p.split("/")[0],label:n.replace(/\b[a-z]/g,function(c){return c.toUpperCase()})}});
 window.daylightBannerFiles=FILES.slice();
 })();

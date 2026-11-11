@@ -83,7 +83,7 @@
     function row(title, ic, fn, flag, active) {
       var b = el('<button class="side-row' + (active ? " active" : "") + '" title="' + title + '" data-side-row="' + flag + '">' + icon(ic, 18) + '<span class="rail-hide">' + title + "</span></button>");
       b.addEventListener("click", fn);
-      sb.insertBefore(b, settings);
+      settings.parentNode.insertBefore(b, settings);
     }
     if (isOwner()) row("Admin", "shield", openAdmin, "admin", state.section === "admin");
     /* Documentation: a normal-looking row; the link comes later, so clicking does nothing for now */

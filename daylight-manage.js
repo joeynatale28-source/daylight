@@ -275,6 +275,7 @@
 
   window.daylightCalendarSettings = function (calArg) {
     if (!calArg || settingsState.transactionActive) return;
+    if (typeof closeMenu === "function") closeMenu();
     var cal = calArg;
     var kind = (cal.id === "holidays" || cal.builtin) ? "holidays" : cal.remoteShareId ? "shared" : cal.remoteSubscriptionId ? "subscribed" : "owned";
     var original = { name: cal.name, color: cal.color, customColors: (state.customColors || []).slice(), defaultReminder: cal.defaultReminder == null ? null : cal.defaultReminder };

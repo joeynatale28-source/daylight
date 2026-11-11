@@ -40,10 +40,10 @@ for(const theme of ['dark','light']){
   const openAi=async()=>{await page.evaluate(()=>openSettings('ai'));await page.waitForSelector('.dl-sec-row [data-name]',{timeout:8000});await sleep(700)};
   await openAi();
   const rows=await page.evaluate(()=>[...document.querySelectorAll('.settings-pane [data-list] .dl-sec-row')].map(r=>({name:r.querySelector('[data-name]').textContent,badge:r.querySelector('.dl-ai-badge').textContent,on:r.querySelector('.dl-ai-badge').classList.contains('is-on'),sub:r.querySelector('[data-sub]').textContent,btn:[...r.querySelectorAll('button')].map(b=>b.textContent.trim()),logo:!!r.querySelector('.dl-ai-tile img')})));
-  check(T('AI list: Claude, ChatGPT, then the unrecognized registration as "Other connection"'),rows.map(r=>r.name).join('|')==='Claude|ChatGPT|Other connection · Acme Notes Bot',J(rows));
+  check(T('AI list: Claude, ChatGPT, Google Gemini, then the unrecognized registration as "Other connection"'),rows.map(r=>r.name).join('|')==='Claude|ChatGPT|Google Gemini|Other connection · Acme Notes Bot',J(rows));
   check(T('both known AIs show their real logo and a live Connected status'),rows[0].logo&&rows[1].logo&&rows[0].on&&rows[1].on&&rows[0].badge==='Connected',J(rows));
   check(T('Connected rows show when, the permission level and last activity'),/Connected [A-Z][a-z]{2} \d+, \d{4} · Read and write · Last activity/.test(rows[0].sub)&&/Read, write and delete · Last activity 10 minutes ago/.test(rows[1].sub),J([rows[0].sub,rows[1].sub]));
-  check(T('each connected row has a Disconnect; the other connection has the same one'),rows.every(r=>r.btn.join()==='Disconnect'),J(rows.map(r=>r.btn)));
+  check(T('each connected row has a Disconnect (Gemini, not connected, offers Connect); the other connection has the same Disconnect'),rows[0].btn.join()==='Disconnect'&&rows[1].btn.join()==='Disconnect'&&rows[2].btn.join()==='Connect'&&rows[3].btn.join()==='Disconnect',J(rows.map(r=>r.btn)));
   const act=await page.evaluate(()=>[...document.querySelectorAll('.settings-pane .dl-ai-act')].map(r=>({what:r.querySelector('.dl-ai-act-what').textContent,meta:r.querySelector('.dl-ai-act-meta').textContent,logo:!!r.querySelector('.dl-ai-tile img')})));
   check(T('Recent AI activity (below the list) names which AI did each thing'),act.length===3&&act[0].what==='Created the event “Dentist”'&&/^ChatGPT · /.test(act[0].meta)&&act[0].logo&&/^Claude · /.test(act[1].meta)&&act[1].what==='Viewed your calendar'&&/^Acme Notes Bot · /.test(act[2].meta),J(act));
   await shot('1-ai-access');

@@ -65,8 +65,8 @@ for(const theme of ['dark','light']){
   await clickChip('Family dinner');
   const order=await page.evaluate(()=>[...document.querySelectorAll('.popover .pop-top .icon-btn')].map(b=>b.getAttribute('data-act')));
   check(T('the popover top row is Edit, Share (person icon), more, Close'),order.join('|')==='edit|share|more|close',JSON.stringify(order));
-  const chip=await page.evaluate(()=>{const sq=document.querySelector('.popover .pop-color-sq').getBoundingClientRect(),c=document.querySelector('.popover .pop-cal-chip').getBoundingClientRect(),t=document.querySelector('.popover .pop-title').getBoundingClientRect();return {sq:Math.round(sq.left),chip:Math.round(c.left),title:Math.round(t.left)}});
-  check(T('the calendar chip lines up with the colour square (the title row\'s left edge), not the title text'),Math.abs(chip.chip-chip.sq)<=3&&chip.title-chip.chip>=10,JSON.stringify(chip));
+  const chip=await page.evaluate(()=>{const rows=[...document.querySelectorAll('.popover .pop-rows .pop-row')];const c=document.querySelector('.popover .pop-rows .pop-cal-chip');const idx=c?rows.indexOf(c.closest('.pop-row')):-1;const descIdx=rows.findIndex(r=>r.querySelector('.pop-desc'));return {inRow:idx>=0,idx,descIdx,headChip:!!document.querySelector('.popover .pop-head .pop-cal-chip')}});
+  check(T('the calendar chip is its own row in the popover (below the description, not under the title)'),chip.inRow&&!chip.headChip&&(chip.descIdx<0||chip.idx>chip.descIdx),JSON.stringify(chip));
   check(T('the bottom row is gone: no lone people icon and no separate "Share event" pill'),await page.evaluate(()=>!document.querySelector('.popover [data-share-event],.popover .dl-pop-share-row,.popover .dl-pop-people')));
   await page.screenshot({path:path.join(out,`1-popover-share-button-${theme}.png`)});
   // the ... menu sits beside the popover and never over its date/time

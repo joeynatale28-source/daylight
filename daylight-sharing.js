@@ -280,7 +280,7 @@
   function avatarOf(person, size) { return window.daylightSharing.avatar(person, size); }
   function ico(name, size) { return typeof icon === "function" ? icon(name, size) : ""; }
   function evWhen(ev) {
-    try { return new Date(ev.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) + (ev.allDay ? " · All day" : " · " + new Date(ev.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })); }
+    try { return new Date(ev.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" }) + ((window.daylightIsAllDayLike ? window.daylightIsAllDayLike(ev) : ev.allDay) ? " · All day" : " · " + new Date(ev.start).toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" })); }
     catch (e) { return ""; }
   }
   function isOwnedEvent(ev) {

@@ -12,8 +12,10 @@
   var AIS = [
     { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/claude-logo.png", tile: "plain",
       steps: ["Open Claude and go to Settings → Connectors.", "Choose Add custom connector.", "Paste the address above.", "Choose “Register automatically”.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
-    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/chatgpt-logo.svg", tile: "plain",
-      steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] }
+    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/chatgpt-logo.png", fallback: "./assets/chatgpt-logo.svg", tile: "plain",
+      steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
+    { id: "gemini", name: "Google Gemini", re: /gemini/i, logo: "./assets/gemini-logo.png", initial: "G", tile: "plain",
+      steps: ["Open Gemini CLI.", "Add Daylight as an MCP server, using the address above.", "Leave the client ID and client secret blank if it asks.", "Approve access on the Daylight consent screen."] }
   ];
 
   var css = document.createElement("style");
@@ -22,6 +24,7 @@
     ".dl-ai-tile img{width:100%;height:100%;object-fit:cover;display:block}",
     ".dl-ai-tile.is-dark{background:#17191b;border:1px solid var(--line-soft)}.dl-ai-tile.is-dark img{width:122%;height:122%;max-width:none;object-fit:contain;flex:none}",
     ".dl-ai-tile.is-other{color:var(--muted);font-weight:650;font-size:14px}",
+    "[data-theme=\"dark\"] .dl-ai-tile{outline:1px solid rgba(255,255,255,.2);outline-offset:-1px}",
     ".dl-ai-tile.is-sm{width:28px;height:28px;border-radius:8px}.dl-ai-tile.is-sm.is-dark img{width:122%;height:122%}",
     ".dl-ai-name{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}",
     ".dl-ai-badge{display:inline-flex;align-items:center;gap:6px;padding:2px 9px 2px 8px;border-radius:999px;background:var(--hover);color:var(--muted);font-size:11.5px;font-weight:600;line-height:16px}",
@@ -55,7 +58,14 @@
   function level(g) { return g.can_delete ? "Read, write and delete" : g.can_write ? "Read and write" : "Read only"; }
   function tile(ai, small) {
     var t = make('<span class="dl-ai-tile' + (ai && ai.tile === "dark" ? " is-dark" : "") + (small ? " is-sm" : "") + '" aria-hidden="true"></span>');
-    if (ai) { var img = document.createElement("img"); img.alt = ""; img.src = ai.logo; t.appendChild(img); }
+    if (ai) {
+      var img = document.createElement("img"); img.alt = ""; img.src = ai.logo;
+      img.addEventListener("error", function () {
+        if (ai.fallback && img.getAttribute("src") !== ai.fallback) { img.src = ai.fallback; return; }
+        img.remove(); t.classList.add("is-other"); t.textContent = ai.initial || ai.name.charAt(0);
+      });
+      t.appendChild(img);
+    }
     else { t.classList.add("is-other"); t.textContent = "?"; }
     return t;
   }
@@ -77,6 +87,16 @@
     if (/^complete_task/.test(t)) return "Completed a task" + safe;
     if (/^(list|get|search)_/.test(t)) return "Viewed your calendar";
     return "Used calendar access";
+  }
+
+  /* "for Mon, Nov 16": the date of the event an action concerned, so same-titled events can be told apart */
+  function eventDateOf(row) {
+    try {
+      if (!/event/i.test(String(row.tool || "")) || row.target_id == null || !window.state || !state.events) return "";
+      var ev = state.events.filter(function (e) { return String(e.id) === String(row.target_id); })[0];
+      if (!ev) return "";
+      return " · for " + new Date(ev.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });
+    } catch (e) { return ""; }
   }
 
   function openConnect(ai) {
@@ -146,7 +166,7 @@
         res = await Promise.all([
           client.auth.oauth.listGrants(),
           client.from("mcp_grants").select("client_id,client_name,can_read,can_write,can_delete,granted_at,revoked_at").eq("user_id", uid),
-          client.from("mcp_workspace_audit").select("tool,result,created_at,client_id").eq("user_id", uid).order("created_at", { ascending: false }).limit(60)
+          client.from("mcp_workspace_audit").select("tool,result,created_at,client_id,target_id").eq("user_id", uid).order("created_at", { ascending: false }).limit(60)
         ]);
         if (res[0].error) throw res[0].error; if (res[1].error) throw res[1].error;
       } catch (e) {
@@ -181,7 +201,7 @@
         var r = make('<div class="dl-ai-act"><span class="dl-ai-act-text"><span class="dl-ai-act-what"></span><span class="dl-ai-act-meta"></span></span></div>');
         r.insertBefore(tile(ai, true), r.firstChild);
         r.querySelector(".dl-ai-act-what").textContent = describe(a);
-        r.querySelector(".dl-ai-act-meta").textContent = (ai ? ai.name : (nm || "An AI connection")) + " · " + when(a.created_at);
+        r.querySelector(".dl-ai-act-meta").textContent = (ai ? ai.name : (nm || "An AI connection")) + eventDateOf(a) + " · " + when(a.created_at);
         actHost.appendChild(r);
       });
     }

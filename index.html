@@ -1907,7 +1907,7 @@
 .dialog.dl-form .dl-drop { border-radius: 16px; }
 
 /* Event popover: the calendar chip lines up with the colour square (the title row's left edge), not with the title text. */
-.popover .pop-head .pop-cal-line { margin-left: -30px; margin-top: 10px; }
+.popover .pop-row .pop-cal-line { margin: 0; font-size: 13.5px; color: var(--text); }
 .popover .pop-top .icon-btn[data-act="share"] { width: 34px; height: 34px; }
 /* The Share view lives INSIDE the popover (same popover, width and position). */
 .popover.is-sharing { width: min(384px, calc(100vw - 16px)); max-height: min(620px, calc(100dvh - 16px)); display: flex; flex-direction: column; overflow: hidden; }
@@ -1962,6 +1962,10 @@ body.reduce-motion .dl-cb-box, body.reduce-motion .dl-cb-box svg path { transiti
 .dl-select-btn { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 40px; padding: 0 14px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 13.5px; font-weight: 550; color: var(--text); text-align: left; transition: background 160ms var(--dl-ease-out), border-color 160ms var(--dl-ease-out); }
 .dl-select-btn:hover { background: var(--hover); }
 .dl-select-btn .ic { color: var(--muted); flex: none; }
+/* Fix 39: the sidebar scrolls only above a pinned bottom cluster, so no Support row or the profile block is ever sliced by a scroll edge. */
+#sidebar { overflow: hidden; }
+#sidebar > .side-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; margin: 0 -20px; padding: 0 20px; scrollbar-color: var(--sidebar-selected) transparent; }
+#sidebar > .side-bottom { flex: none; display: flex; flex-direction: column; padding-top: 6px; }
 /* ===== Finish and feel: one depth language, one motion system (visual finish only; no layout, size, copy or color changes) =====
    Motion: enters 190ms ease-out (fade + 0.96 scale), exits 170ms ease-in (the same motion in reverse), feedback 160ms ease-out;
    only transform and opacity animate. Depth: every floating surface uses --shadow-pop and the 12px popup radius (Settings and the
@@ -2532,6 +2536,14 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         return "GMT " + sign + hh + (mm !== "00" ? ":" + mm : "");
       }
       function fmtTimeRange(a, b) { return fmtEventTime(a) + " - " + fmtEventTime(b); }
+      /* An all-day event (or one migrated as midnight-to-midnight) has no real times: it must never render "12:00am – 12:00am". */
+      function isAllDayLike(ev, start, end) {
+        if (ev && ev.allDay) return true;
+        var a = new Date(start || ev.start), b = new Date(end || ev.end);
+        var mid = function (d) { return d.getHours() === 0 && d.getMinutes() === 0; };
+        return mid(a) && mid(b);
+      }
+      window.daylightIsAllDayLike = isAllDayLike;
       function fmtHourLabel(h) {
         if (state.timeFormat === "24h") return pad2(h) + ":00";
         if (h === 0) return "12 AM"; if (h === 12) return "12 PM";
@@ -2882,7 +2894,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 
       /* ================= Menus ================= */
       var openMenuEl = null;
-      function closeMenu() { closeDropdown(); if (openMenuEl) { daylightExit(openMenuEl); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); document.removeEventListener("keydown", menuEscape, true); } }
+      function closeMenu() { closeDropdown(); if (openMenuEl) { daylightExit(openMenuEl); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); document.removeEventListener("click", menuOutside, true); document.removeEventListener("focusin", menuOutside, true); document.removeEventListener("keydown", menuEscape, true); } }
       function menuEscape(e) { if (e.key === "Escape" && openMenuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); } }
       function menuOutside(e) { if (openMenuEl && !openMenuEl.contains(e.target)) closeMenu(); }
       function openMenu(anchor, items, opts) {
@@ -2914,6 +2926,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         m.style.transformOrigin = Math.round(Math.max(0, Math.min(mw, r.left + r.width / 2 - left))) + "px " + (top >= r.bottom - 1 ? "0" : "100%");
         openMenuEl = m;
         document.addEventListener("mousedown", menuOutside, true);
+        /* keyboard activation and programmatic navigation never fire mousedown: also close on any outside click or focus move */
+        setTimeout(function () { if (openMenuEl) { document.addEventListener("click", menuOutside, true); document.addEventListener("focusin", menuOutside, true); } }, 0);
         document.addEventListener("keydown", menuEscape, true);
         return m;
       }
@@ -3124,6 +3138,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         /* the logo is "home": it returns the main area to the calendar from Tasks, Admin or any swapped-in view. It is navigation, not a
            reload: the date, view and calendar state stay as they are and nothing is re-fetched. On the calendar already, it does nothing. */
         brand.querySelector(".brand-home").addEventListener("click", function () {
+          closeMenu(); closePopover();
           closeDrawer();
           if (state.section !== "calendar") { state.section = "calendar"; renderAll(true, 1); }
         });
@@ -3257,6 +3272,16 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var watch = setInterval(function () { if (openMenuEl !== m) { clearInterval(watch); profileRow.setAttribute("aria-expanded", "false"); } }, 120);
         });
         sidebarEl.appendChild(pw);
+        /* Fix 39: the bottom cluster (Support rows + account block) is ONE pinned container that is never part of the scroll area; the sections above scroll and give up the space. */
+        (function () {
+          var kids = Array.prototype.slice.call(sidebarEl.children), spacer = sidebarEl.querySelector(":scope > .side-spacer"), at = kids.indexOf(spacer);
+          if (at < 0) return;
+          var scrollBox = el('<div class="side-scroll"></div>'), bottomBox = el('<div class="side-bottom"></div>');
+          kids.slice(0, at).forEach(function (n) { scrollBox.appendChild(n); });
+          kids.slice(at + 1).forEach(function (n) { bottomBox.appendChild(n); });
+          spacer.remove();
+          sidebarEl.appendChild(scrollBox); sidebarEl.appendChild(bottomBox);
+        })();
       }
       /* The main view's visible range — sidebar counts are the number
          of occurrences each calendar has inside it. */
@@ -3727,11 +3752,13 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         window.addEventListener("resize", closeNotifPanel);
       }
       function showCalendar() {
+        closeMenu();
         state.section = "calendar";
         renderAll(true, 1);
         closeDrawer();
       }
       function showTasks() {
+        closeMenu();
         state.section = "tasks";
         renderAll(true, 1);
         closeDrawer();
@@ -4262,8 +4289,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           inner.appendChild(head);
           byDay[k].slice().sort(function (a, b) { return (a.ev.allDay ? 0 : 1) - (b.ev.allDay ? 0 : 1) || a.start - b.start; }).forEach(function (o) {
             var cal = calOf(o.ev.cal);
-            var meta = o.ev.allDay
-              ? (isMultiDay(o) ? fmtDateShort(o.start) + " - " + fmtDateShort(sod(o.end)) : "All day")
+            var meta = isAllDayLike(o.ev, o.start, o.end)
+              ? (o.ev.allDay && isMultiDay(o) ? fmtDateShort(o.start) + " - " + fmtDateShort(sod(o.end)) : "All day")
               : fmtTimeRange(o.start, o.end);
             var card = el('<button class="agenda-card">' +
               '<span class="ac-dot" style="background:' + dotOf(cal) + '"></span>' +
@@ -4638,7 +4665,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           title: ev.title, cal: ev.cal, allDay: !!ev.allDay, start: new Date(o.start), end: new Date(o.end),
           repeat: ev.repeat && occ ? null : ev.repeat, repeatEnd: ev.repeat && occ ? null : ev.repeatEnd,
           reminder: ev.reminder, loc: ev.loc, desc: ev.desc, placeId: ev.placeId || null, locationLat: ev.locationLat == null ? null : ev.locationLat, locationLng: ev.locationLng == null ? null : ev.locationLng,
-          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
+          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, banner: ev.banner || null, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
         };
         if (isReadOnlyEvent(ev)) { draft.cal = defaultCalId(); }
         openEventForm(null, null, null, draft);
@@ -4699,6 +4726,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
            size (18) down the whole gutter, no redundant row labels.
            With a banner, the date line sits under the title Google-style
            and the clock row is not repeated. */
+        var calLine = '<div class="pop-cal-line"><span class="pop-cal-chip"><span style="width:8px;height:8px;border-radius:50%;background:' + dotOf(cal) + ';display:inline-block"></span>' + esc(cal.name) + "</span>" + (ev.allDay ? "<span>All day</span>" : "") + (ev.repeat ? "<span>" + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span>" : "") + "</div>";
         var rows = "";
         if (!bannerKey) rows += '<div class="pop-row"><span class="pop-ic">' + icon("clock", 18) + '</span><span class="pop-main"><span class="pr-strong">' + esc(timeMain) + '</span><span class="pr-sub">' + esc(timeSub) + "</span></span></div>";
         if (ev.repeat) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span></div>";
@@ -4707,11 +4735,11 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             esc(ev.loc) + '</span></div>';
         }
         if (ev.desc) rows += '<div class="pop-row"><span class="pop-ic">' + icon("alignLeft", 18) + '</span><span class="pop-main pop-desc">' + esc(ev.desc) + "</span></div>";
-        /* the calendar is named once, by the chip under the title (a second calendar row repeated it) */
+        /* the calendar: its own row, below the description and above the reminder (the settled popover order) */
+        rows += '<div class="pop-row"><span class="pop-ic">' + icon("calendar", 18) + '</span><span class="pop-main">' + calLine + "</span></div>";
         if (ev.declined) rows += '<div class="pop-row"><span class="pop-ic">' + icon("info", 18) + '</span><span class="pop-main">Declined</span></div>';
         if (ev.reminder != null) rows += '<div class="pop-row"><span class="pop-ic">' + icon("bell", 18) + '</span><span class="pop-main">' + esc(fmtReminder(ev.reminder)) + "</span></div>";
         if (readOnly) rows += '<div class="pop-row"><span class="pop-ic">' + icon("info", 18) + '</span><span class="pop-main" style="color:var(--muted);font-size:13px">Read-only — you can\'t create, edit, or delete events on this calendar.</span></div>';
-        var calLine = '<div class="pop-cal-line"><span class="pop-cal-chip"><span style="width:8px;height:8px;border-radius:50%;background:' + dotOf(cal) + ';display:inline-block"></span>' + esc(cal.name) + "</span>" + (ev.allDay ? "<span>All day</span>" : "") + (ev.repeat ? "<span>" + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span>" : "") + "</div>";
         var p;
         if (bannerKey) {
           /* Banner layout (Google): illustration across the top, the
@@ -4723,7 +4751,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var dateLine = '<div class="pop-date-line">' + esc(fmtGoogleWhen(occ) + (!ev.allDay && dur ? " · " + dur : "")) + "</div>";
           p = el('<div class="popover has-banner" role="dialog" aria-label="Event details">' +
             '<div class="pop-banner' + (holidayBanner ? " holiday-banner" : "") + '"><img src="' + esc(bannerSrc) + '" alt="" draggable="false"><div class="pop-banner-actions">' + bBtns + "</div></div>" +
-            '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + calLine + "</div></div>" +
+            '<div class="pop-body"><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + dateLine + "</div></div>" +
             '<div class="pop-rows">' + rows + "</div></div></div>");
           var bImg = p.querySelector(".pop-banner img");
           bImg.addEventListener("error", function () {
@@ -4740,17 +4768,19 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             wirePopActions(p, ev, occ);
           });
         } else {
-          p = el('<div class="popover" role="dialog" aria-label="Event details"><div class="pop-top">' + popTopBtns(readOnly) + '</div><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + calLine + "</div></div>" +
+          p = el('<div class="popover" role="dialog" aria-label="Event details"><div class="pop-top">' + popTopBtns(readOnly) + '</div><div class="pop-head"><span class="pop-color-sq" style="background:' + dotOf(cal) + '"></span><div style="flex:1;min-width:0"><div class="pop-title">' + esc(ev.title) + "</div>" + "</div></div>" +
             '<div class="pop-rows">' + rows + "</div></div>");
         }
         p._occId = ev.id; p._occStart = occ.start.getTime(); p._anchor = anchor;
         if (window.daylightAttachments) daylightAttachments.renderPopover(p, ev);
         document.body.appendChild(p);
         var r = anchor.getBoundingClientRect();
+        /* Fix 42: never taller than the window: the popover scrolls inside itself instead of running off-screen */
+        p.style.maxHeight = (window.innerHeight - 16) + "px"; p.style.overflowY = "auto";
         var pw = 384, ph = p.offsetHeight;
         var left = Math.max(8, Math.min(r.left, window.innerWidth - pw - 8));
         var top = r.bottom + 8;
-        if (top + ph > window.innerHeight - 8) top = Math.max(8, r.top - ph - 8);
+        if (top + ph > window.innerHeight - 8) { var above = r.top - ph - 8; top = above >= 8 ? above : Math.max(8, window.innerHeight - 8 - ph); }
         p.style.left = left + "px"; p.style.top = top + "px";
         popEl = p;
         markSelected(anchor, cal);
@@ -4932,6 +4962,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
           attachments: src && Array.isArray(src.attachments) ? src.attachments.slice() : [],
+          banner: src && src.banner ? src.banner : null,
+          bannerTouched: !!(src && src.banner),
           dirty: false
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
@@ -4991,6 +5023,29 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
+        /* Smart banner: the control rides on the Description row; the match from the title shows pre-selected before saving */
+        (function () {
+          var descField = dlg.querySelector("#efDesc"); descField = descField && descField.closest(".field");
+          if (!descField || !window.daylightBannerList) return;
+          descField.style.position = "relative";
+          var tools = el('<div class="dl-desc-tools"></div>');
+          var bBtn = el('<button type="button" class="dl-attach-inline dl-banner-btn" aria-haspopup="menu"><span></span></button>');
+          tools.appendChild(bBtn); descField.appendChild(tools);
+          function effective() { if (f.banner === "none") return null; if (f.banner) return f.banner; return f.bannerTouched ? null : (window.daylightSuggestBanner ? daylightSuggestBanner(titleIn.value) : null); }
+          function labelOf(k) { var hit = daylightBannerList.filter(function (x) { return x.key === k; })[0]; return hit ? hit.label : ""; }
+          function paint() { var k = effective(); bBtn.querySelector("span").textContent = "Banner: " + (k ? labelOf(k) : "None"); }
+          f._bannerPaint = paint; f._bannerEffective = effective;
+          bBtn.addEventListener("click", function () {
+            var cur = effective(), items = [{ label2: "Banner" }, { label: "None", right: cur ? null : "check", fn: function () { f.banner = "none"; f.bannerTouched = true; markDirty(); paint(); } }];
+            ["school-life", "sports", "holidays"].forEach(function (g) {
+              items.push({ label2: g === "school-life" ? "Everyday" : g === "sports" ? "Sports" : "Holidays" });
+              daylightBannerList.filter(function (x) { return x.group === g; }).forEach(function (x) { items.push({ label: x.label, right: cur === x.key ? "check" : null, fn: function () { f.banner = x.key; f.bannerTouched = true; markDirty(); paint(); } }); });
+            });
+            openMenu(bBtn, items, { maxHeight: 320 });
+          });
+          titleIn.addEventListener("input", function () { if (!f.bannerTouched) paint(); });
+          paint();
+        })();
         var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
         if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
         titleIn.focus();
@@ -5080,6 +5135,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
             src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
+            if (f._bannerEffective) { var bk = f._bannerEffective(); if (f.banner === "none") src.banner = "none"; else if (bk) src.banner = bk; else if (f.bannerTouched) src.banner = "none"; }
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
               if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
@@ -5092,6 +5148,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
             created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
+            if (f._bannerEffective) { var nb = f._bannerEffective(); if (f.banner === "none") created.banner = "none"; else if (nb) created.banner = nb; else if (f.bannerTouched) created.banner = "none"; }
             state.events.push(created);
             daylightExit(bd); renderAll(false); toast("Event created");
             if (window.daylightAttachments) daylightAttachments.commit(created, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
@@ -5191,7 +5248,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           var cal = calOf(calId);
           results.appendChild(el('<div class="pal-group">' + esc(cal.name) + "</div>"));
           groups[calId].forEach(function (o) {
-            var sub = o.ev.allDay ? fmtDateShort(o.start) + " \u00b7 All day" : fmtDateShort(o.start) + " \u00b7 " + fmtTimeRange(o.start, o.end);
+            var sub = isAllDayLike(o.ev, o.start, o.end) ? fmtDateShort(o.start) + " \u00b7 All day" : fmtDateShort(o.start) + " \u00b7 " + fmtTimeRange(o.start, o.end);
             if (o.ev.loc) sub += " \u00b7 " + o.ev.loc;
             var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(o.ev.title) + '</span><br><span class="pi-sub">' + esc(sub) + "</span></span>" + icon("chevR", 15) + "</button>");
             item.addEventListener("click", function () {

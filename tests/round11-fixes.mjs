@@ -80,14 +80,14 @@ for(const theme of ['dark','light']){
   // ================= Item 4: grouped invite controls; popover
   await openManage();
   const grp=await page.evaluate(()=>{const p=document.querySelector('.dl-manage [data-perm]').getBoundingClientRect(),s=document.querySelector('.dl-manage [data-send]').getBoundingClientRect();return {gap:Math.round(s.left-p.right),sameRow:Math.abs(p.top+p.height/2-(s.top+s.height/2))<4,left:Math.round(p.left)}});
-  check(T('Manage: the permission picker and Invite sit together (a ~10px gap, left-aligned)'),grp.gap>=6&&grp.gap<=14&&grp.sameRow,J(grp));
+  check(T('Manage: the permission picker (content-sized) and Invite (right edge) share one row'),grp.sameRow,J(grp));
   const disabledLook=await page.evaluate(()=>{const b=document.querySelector('.dl-manage [data-send]');const cs=getComputedStyle(b);return {op:+cs.opacity,bg:cs.backgroundColor}});
   check(T('the disabled Invite button still reads as the primary action (primary fill at the one disabled opacity)'),disabledLook.op>=0.5&&disabledLook.op<1,J(disabledLook));
   await shot('4-invite-group');
   await closeManage();
   await page.evaluate(()=>{[...document.querySelectorAll('.chip')].find(c=>/Practice/.test(c.textContent)).click()});await page.waitForSelector('.popover');await sleep(500);
   const pop=await page.evaluate(()=>({calIcon:!!document.querySelector('.popover .pop-rows .pop-ic svg path[d*="M8 2v4"]'),names:[...document.querySelectorAll('.popover')].map(p=>p.innerText.split(/swimRVA Rapids/).length-1)[0]}));
-  check(T('the popover names the calendar once (the chip), no bottom calendar row'),pop.names===1&&!pop.calIcon,J(pop));
+  check(T('the popover names the calendar once, in its own row below the description'),pop.names===1&&pop.calIcon,J(pop));
   await page.evaluate(()=>document.querySelector('[data-act="share"]').click());await page.waitForSelector('.popover.is-sharing');await sleep(600);
   const sg=await page.evaluate(()=>{const p=document.querySelector('.dl-share-view [data-perm]').getBoundingClientRect(),s=document.querySelector('.dl-share-view [data-send]').getBoundingClientRect();return {gap:Math.round(s.left-p.right),left:Math.round(p.left)}});
   check(T('Share view: picker and Send adjacent (~10px), left-aligned'),sg.gap>=6&&sg.gap<=14,J(sg));
