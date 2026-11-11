@@ -80,7 +80,7 @@ async function renderConsent(){
   const profileName=String(profile.full_name||profile.name||email.split('@')[0]||'Your account');
   const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'?u.href:null}catch{return null}};
   /* the requesting app's logo: its own registered logo, else the real Claude / ChatGPT marks, else its initial */
-  const known=/chatgpt|openai/i.test(name)?{src:"./assets/ChatGPT-Logo.svg.webp",bg:"#0D0D0D",invert:true,pad:"20%"}:/claude|anthropic/i.test(name)?{src:"./assets/claude-logo.png"}:/gemini|google/i.test(name)?{src:"./assets/Google_Gemini_icon_2025.svg.webp",pad:"17%"}:null;
+  const known=/chatgpt|openai/i.test(name)?{src:"./assets/ChatGPT-Logo.svg.webp",invert:true,pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/claude|anthropic/i.test(name)?{src:"./assets/Claude_AI_symbol.svg",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/gemini|google/i.test(name)?{src:"./assets/Google_Gemini_icon_2025.svg.webp",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:null;
   const clientLogo=safeImage(d.client?.logo_uri||d.client?.logo_url||d.client?.icon_uri)||(known&&known.src);
   const avatar=safeImage(profile.avatar_url||profile.picture);
   /* after approve / deny the screen leads with the CONNECTING app's logo, not Daylight's */

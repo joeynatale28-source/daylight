@@ -10,22 +10,24 @@
   "use strict";
   var MCP_URL = window.DAYLIGHT_MCP_URL || "https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp";
   var AIS = [
-    { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/claude-logo.png", tile: "plain",
+    { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/Claude_AI_symbol.svg", pad: "19%", tile: "plain",
       steps: ["Open Claude and go to Settings → Connectors.", "Choose Add custom connector.", "Paste the address above.", "Choose “Register automatically”.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
     /* ChatGPT: the owner-uploaded mark (assets/ChatGPT-Logo.svg.webp, black on transparent) shown WHITE on its black rounded-square tile. */
-    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/ChatGPT-Logo.svg.webp", bg: "#0D0D0D", invert: true, pad: "20%", tile: "plain",
+    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/ChatGPT-Logo.svg.webp", invert: true, pad: "19%", tile: "plain",
       steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
     /* Google Gemini registers itself as "Google" (or "Gemini …"); the owner-uploaded gradient spark is used as-is on the standard tile. */
-    { id: "gemini", name: "Google Gemini", re: /gemini|google/i, logo: "./assets/Google_Gemini_icon_2025.svg.webp", pad: "17%", initial: "G", tile: "plain",
+    { id: "gemini", name: "Google Gemini", re: /gemini|google/i, logo: "./assets/Google_Gemini_icon_2025.svg.webp", pad: "19%", initial: "G", tile: "plain",
       steps: ["Open Gemini CLI.", "Add Daylight as an MCP server, using the address above.", "Leave the client ID and client secret blank if it asks.", "Approve access on the Daylight consent screen."] }
   ];
 
   var css = document.createElement("style");
   css.textContent = [
-    ".dl-ai-tile{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;overflow:hidden;background:var(--hover)}",
+    /* ONE shared tile for every AI: same size, shape and background; the background follows the app theme (dark enough in both themes for ChatGPT's white knot, light enough in Dark to separate from the card) */
+    ":root{--dl-ai-tile-bg:#26272B}[data-theme=\"dark\"]{--dl-ai-tile-bg:#3A3C42}",
+    ".dl-ai-tile{width:36px;height:36px;border-radius:10px;flex:none;display:grid;place-items:center;overflow:hidden;background:var(--dl-ai-tile-bg)}",
     ".dl-ai-tile img{width:100%;height:100%;object-fit:cover;display:block}",
     ".dl-ai-tile.is-dark{background:#17191b;border:1px solid var(--line-soft)}.dl-ai-tile.is-dark img{width:122%;height:122%;max-width:none;object-fit:contain;flex:none}",
-    ".dl-ai-tile.is-other{color:var(--muted);font-weight:650;font-size:14px}",
+    ".dl-ai-tile.is-other{color:var(--muted);font-weight:650;font-size:14px;background:var(--hover)}",
     "[data-theme=\"dark\"] .dl-ai-tile{outline:1px solid rgba(255,255,255,.2);outline-offset:-1px}",
     ".dl-ai-tile.is-sm{width:28px;height:28px;border-radius:8px}.dl-ai-tile.is-sm.is-dark img{width:122%;height:122%}",
     ".dl-ai-name{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap}",
@@ -62,7 +64,6 @@
     var t = make('<span class="dl-ai-tile' + (ai && ai.tile === "dark" ? " is-dark" : "") + (small ? " is-sm" : "") + '" aria-hidden="true"></span>');
     if (ai) {
       var img = document.createElement("img"); img.alt = ""; img.src = ai.logo;
-      if (ai.bg) t.style.background = ai.bg;
       if (ai.pad) { var inner = 100 - 2 * parseFloat(ai.pad); img.style.width = img.style.height = inner + "%"; img.style.maxWidth = "none"; img.style.objectFit = "contain"; }
       if (ai.invert) img.style.filter = "invert(1)";
       img.addEventListener("error", function () { img.remove(); t.removeAttribute("style"); t.classList.add("is-other"); t.textContent = ai.initial || ai.name.charAt(0); });
@@ -84,6 +85,9 @@
     if (/^create_event/.test(t)) return "Created the event" + safe;
     if (/^update_event/.test(t)) return "Edited the event" + safe;
     if (/^delete_event/.test(t)) return "Deleted an event" + safe;
+    if (/^add_attachment/.test(t)) return "Added an attachment to the event" + safe;
+    if (/^remove_attachment/.test(t)) return "Removed an attachment from the event" + safe;
+    if (/^list_attachments/.test(t)) return "Viewed an event’s attachments" + safe;
     if (/^create_calendar/.test(t)) return "Created a calendar" + safe;
     if (/^create_task/.test(t)) return "Created a task" + safe;
     if (/^complete_task/.test(t)) return "Completed a task" + safe;
@@ -94,7 +98,7 @@
   /* "for Mon, Nov 16": the date of the event an action concerned, so same-titled events can be told apart */
   function eventDateOf(row) {
     try {
-      if (!/event/i.test(String(row.tool || "")) || row.target_id == null || !window.state || !state.events) return "";
+      if (!/event|attachment/i.test(String(row.tool || "")) || row.target_id == null || !window.state || !state.events) return "";
       var ev = state.events.filter(function (e) { return String(e.id) === String(row.target_id); })[0];
       if (!ev) return "";
       return " · for " + new Date(ev.start).toLocaleDateString(undefined, { weekday: "short", month: "short", day: "numeric" });

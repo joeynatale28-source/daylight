@@ -102,7 +102,7 @@
       /* Fix 25: the pane keeps its full height; the strip the pill covers is blurred (bounded, soft edge) and fades in and out with the pill. */
       ".settings-dialog::after{content:\"\";position:absolute;left:236px;right:0;bottom:0;height:96px;z-index:11;pointer-events:none;opacity:0;transition:opacity 190ms cubic-bezier(0.23,1,0.32,1);backdrop-filter:blur(9px);-webkit-backdrop-filter:blur(9px);background:linear-gradient(to top,color-mix(in srgb,var(--surface) 60%,transparent),transparent);-webkit-mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%);mask-image:linear-gradient(to top,#000 0,#000 52%,transparent 100%)}",
       "[data-theme=\"light\"] .settings-dialog::after{background:linear-gradient(to top,color-mix(in srgb,var(--gray-2) 60%,transparent),transparent)}",
-      ".settings-dialog:has(.settings-savebar:not([hidden]))::after{opacity:1}",
+      ".settings-dialog:has(.settings-savebar:not([hidden]):not(.is-dismissing))::after{opacity:1}",
       ".settings-dialog:has(.settings-savebar.is-dismissing)::after{opacity:0;transition-duration:180ms;transition-timing-function:ease-in}",
       "body.reduce-motion .settings-dialog::after{transition:none!important}@media (prefers-reduced-motion:reduce){.settings-dialog::after{transition:none!important}}",
       ".settings-savebar{position:absolute;left:calc(50% + 100px);right:auto;bottom:14px;transform:translateX(-50%);z-index:12;display:flex;align-items:center;gap:14px;max-width:calc(100% - 30px);width:max-content;padding:7px 8px 7px 18px;border:1px solid var(--line);border-radius:999px;background:var(--surface);color:var(--text);box-shadow:var(--shadow-pop);font-size:12.5px;font-weight:500}",
@@ -157,7 +157,7 @@
       ".settings-savebar.is-nudge{animation:dlPillNudge 1100ms cubic-bezier(0.23,1,0.32,1) both;border-color:var(--accent)!important}.settings-savebar.is-nudge [data-save]:not(:disabled){animation:dlPillSave 1100ms cubic-bezier(0.23,1,0.32,1) both}@keyframes dlPillNudge{0%{box-shadow:0 0 0 7px color-mix(in srgb,var(--accent) 48%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 30%,transparent)}65%{box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent),0 10px 28px color-mix(in srgb,var(--accent) 22%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--accent) 0%,transparent),0 10px 28px transparent}}@keyframes dlPillSave{0%,55%{filter:brightness(1.22);box-shadow:0 0 0 4px color-mix(in srgb,var(--accent) 50%,transparent)}100%{filter:none;box-shadow:0 0 0 0 transparent}}body.reduce-motion .settings-savebar.is-nudge,body.reduce-motion .settings-savebar.is-nudge [data-save]{animation:none!important;box-shadow:0 0 0 5px color-mix(in srgb,var(--accent) 36%,transparent)}",,
       "@media(max-width:640px){.settings-savebar{left:50%;right:auto;bottom:12px;transform:translateX(-50%);max-width:calc(100% - 24px);width:max-content;border-radius:999px;padding:7px 9px;gap:7px;justify-content:center}.settings-savebar .savebar-message{font-size:11px;line-height:1.2}.settings-savebar button{padding:7px 9px}}",
       /* ONE clean floating pill: a single border, a single background, no outline or leftover box at any point of its in/out motion */
-      ".settings-savebar{box-sizing:border-box;outline:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent;will-change:opacity,transform}",
+      ".settings-savebar{box-sizing:border-box;outline:none;background-clip:padding-box;-webkit-tap-highlight-color:transparent}",
       ".settings-savebar:focus,.settings-savebar:focus-visible{outline:none}",
       ".settings-savebar.is-nudge{animation:none!important}",
       "body.reduce-motion .settings-savebar,body.reduce-motion .settings-savebar.is-dismissing{animation:none!important}",
@@ -199,14 +199,15 @@
       if (dirty) {
         /* the moment anything differs from the saved state the pill animates in (cancelling an out-animation in progress) */
         clearTimeout(bar._hideT);
-        bar.classList.remove("is-dismissing");
+        if (bar.classList.contains("is-dismissing")) bar.classList.remove("is-dismissing");
         if (bar.hidden) bar.hidden=false;
-        bar.setAttribute("aria-hidden","false");
-        bar.querySelector(".savebar-message").textContent="You have unsaved changes";
+        if (bar.getAttribute("aria-hidden")!=="false") bar.setAttribute("aria-hidden","false");
+        var msgEl=bar.querySelector(".savebar-message");
+        if (msgEl.textContent!=="You have unsaved changes") msgEl.textContent="You have unsaved changes";
       } else if (!bar.hidden && !bar.classList.contains("is-dismissing")) {
         /* undone back to the saved state: it animates out again */
         bar.classList.add("is-dismissing");
-        bar.setAttribute("aria-hidden","true");
+        if (bar.getAttribute("aria-hidden")!=="true") bar.setAttribute("aria-hidden","true");
         clearTimeout(bar._hideT);
         bar._hideT=setTimeout(function(){ if(bar.classList.contains("is-dismissing")){ bar.hidden=true; bar.classList.remove("is-dismissing"); } }, 190);
       }

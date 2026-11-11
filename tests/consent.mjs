@@ -44,7 +44,7 @@ for(const theme of ['dark','light']){
    await page.click('#dl-oauth-allow');await sleep(500);
    const ap=await page.evaluate(()=>({heading:document.querySelector('.dl-consent-dialog h2').textContent,calls:window.__consentCalls,lead:(document.querySelector('.dl-oauth-state .dl-oauth-logo img')||{}).getAttribute&&document.querySelector('.dl-oauth-state .dl-oauth-logo img').getAttribute('src'),mark:document.querySelectorAll('.dl-oauth-state .dl-oauth-logo.daylight').length}));
    check(T(who+': Allow approves through Supabase and shows the connected state'),ap.calls.join()==='approve'&&ap.heading===who+' is connected',J(ap));
-   check(T(who+': the redirecting screen leads with the connecting app logo, not the Daylight mark'),ap.mark===0&&new RegExp(who==='Claude'?'claude-logo.png':'ChatGPT-Logo.svg.webp').test(ap.lead||''),J(ap));
+   check(T(who+': the redirecting screen leads with the connecting app logo, not the Daylight mark'),ap.mark===0&&new RegExp(who==='Claude'?'Claude_AI_symbol.svg':'ChatGPT-Logo.svg.webp').test(ap.lead||''),J(ap));
    await shot('2-approved');
   }catch(e){check(T(who+': ran to completion'),false,String(e&&e.stack||e))}
   await app.close();

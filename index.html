@@ -4665,7 +4665,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           title: ev.title, cal: ev.cal, allDay: !!ev.allDay, start: new Date(o.start), end: new Date(o.end),
           repeat: ev.repeat && occ ? null : ev.repeat, repeatEnd: ev.repeat && occ ? null : ev.repeatEnd,
           reminder: ev.reminder, loc: ev.loc, desc: ev.desc, placeId: ev.placeId || null, locationLat: ev.locationLat == null ? null : ev.locationLat, locationLng: ev.locationLng == null ? null : ev.locationLng,
-          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, banner: ev.banner || null, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
+          weekdaysOnly: ev.repeat ? false : !!ev.weekdaysOnly, accent: ev.accent, attachments: window.daylightCopyAttachments ? window.daylightCopyAttachments(ev) : []
         };
         if (isReadOnlyEvent(ev)) { draft.cal = defaultCalId(); }
         openEventForm(null, null, null, draft);
@@ -4962,8 +4962,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
           attachments: src && Array.isArray(src.attachments) ? src.attachments.slice() : [],
-          banner: src && src.banner ? src.banner : null,
-          bannerTouched: !!(src && src.banner),
           dirty: false
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
@@ -5023,29 +5021,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
-        /* Smart banner: the control rides on the Description row; the match from the title shows pre-selected before saving */
-        (function () {
-          var descField = dlg.querySelector("#efDesc"); descField = descField && descField.closest(".field");
-          if (!descField || !window.daylightBannerList) return;
-          descField.style.position = "relative";
-          var tools = el('<div class="dl-desc-tools"></div>');
-          var bBtn = el('<button type="button" class="dl-attach-inline dl-banner-btn" aria-haspopup="menu"><span></span></button>');
-          tools.appendChild(bBtn); descField.appendChild(tools);
-          function effective() { if (f.banner === "none") return null; if (f.banner) return f.banner; return f.bannerTouched ? null : (window.daylightSuggestBanner ? daylightSuggestBanner(titleIn.value) : null); }
-          function labelOf(k) { var hit = daylightBannerList.filter(function (x) { return x.key === k; })[0]; return hit ? hit.label : ""; }
-          function paint() { var k = effective(); bBtn.querySelector("span").textContent = "Banner: " + (k ? labelOf(k) : "None"); }
-          f._bannerPaint = paint; f._bannerEffective = effective;
-          bBtn.addEventListener("click", function () {
-            var cur = effective(), items = [{ label2: "Banner" }, { label: "None", right: cur ? null : "check", fn: function () { f.banner = "none"; f.bannerTouched = true; markDirty(); paint(); } }];
-            ["school-life", "sports", "holidays"].forEach(function (g) {
-              items.push({ label2: g === "school-life" ? "Everyday" : g === "sports" ? "Sports" : "Holidays" });
-              daylightBannerList.filter(function (x) { return x.group === g; }).forEach(function (x) { items.push({ label: x.label, right: cur === x.key ? "check" : null, fn: function () { f.banner = x.key; f.bannerTouched = true; markDirty(); paint(); } }); });
-            });
-            openMenu(bBtn, items, { maxHeight: 320 });
-          });
-          titleIn.addEventListener("input", function () { if (!f.bannerTouched) paint(); });
-          paint();
-        })();
         var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
         if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
         titleIn.focus();
@@ -5135,7 +5110,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
             src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
-            if (f._bannerEffective) { var bk = f._bannerEffective(); if (f.banner === "none") src.banner = "none"; else if (bk) src.banner = bk; else if (f.bannerTouched) src.banner = "none"; }
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
               if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
@@ -5148,7 +5122,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
             created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
-            if (f._bannerEffective) { var nb = f._bannerEffective(); if (f.banner === "none") created.banner = "none"; else if (nb) created.banner = nb; else if (f.bannerTouched) created.banner = "none"; }
             state.events.push(created);
             daylightExit(bd); renderAll(false); toast("Event created");
             if (window.daylightAttachments) daylightAttachments.commit(created, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });

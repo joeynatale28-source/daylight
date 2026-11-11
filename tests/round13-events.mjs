@@ -37,7 +37,7 @@ for(const theme of ['dark','light']){
   // ---------------- Fix 10: attachments in the form
   await create('Photo day');
   const grp=await page.evaluate(()=>{const add=document.querySelector('#efDesc').closest('.field').querySelector('[data-add]');return add?{add:add.textContent.trim(),hiddenGroup:document.querySelector('.dl-attach-field').hidden}:null});
-  check(T('the form has "Add photos" on the Description row (no extra height while empty)'),grp&&/Add photos/.test(grp.add)&&grp.hiddenGroup,J(grp));
+  check(T('the form has "Add attachments" on the Description row (no extra height while empty)'),grp&&/Add attachments/.test(grp.add)&&grp.hiddenGroup,J(grp));
   const input=await page.$('#efDesc ~ input[type=file], .field input[type=file]');
   await input.uploadFile(f1,f2);await sleep(600);
   const tiles=await page.evaluate(()=>({n:document.querySelectorAll('.dl-attach-field .dl-attach-tile').length,x:document.querySelectorAll('.dl-attach-field .dl-attach-x').length}));

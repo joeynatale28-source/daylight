@@ -21,7 +21,10 @@ export const tools=[
  opt('update_event','Edit a calendar event',object({id:str,title:str,starts_at:str,ends_at:str,location:str,description:str},['id']),'write'),
  opt('delete_event','Delete a calendar event permanently',object({id:str},['id']),'delete'),
  opt('create_task','Create a task',object({title:str,due_date:str},['title']),'write'),
- opt('complete_task','Mark a task complete or incomplete',object({id:str,completed:{type:'boolean'}},['id','completed']),'write')
+ opt('complete_task','Mark a task complete or incomplete',object({id:str,completed:{type:'boolean'}},['id','completed']),'write'),
+ opt('list_attachments','List the attachments of an event (file name, type and caption)',object({id:str},['id']),'read'),
+ opt('add_attachment','Attach an image (JPEG, PNG, WebP, GIF) or PDF to an event. Pass the file content base64-encoded; up to 10 MB and 10 attachments per event',object({id:str,file_name:str,content_base64:str,mime_type:str,caption:str},['id','file_name','content_base64']),'write'),
+ opt('remove_attachment','Remove one attachment from an event, by the attachment_id returned from list_attachments',object({id:str,attachment_id:str},['id','attachment_id']),'delete')
 ];
 function publicTool(def){const {permission,...rest}=def;return rest}
 export function availableTools(grant){return tools.filter(t=>grant?.can_read&&(
