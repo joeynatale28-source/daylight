@@ -212,4 +212,4 @@ return titleBanner(ev.title);
 window.daylightSuggestBanner=function(title){return titleBanner(title)};
 window.daylightBannerList=FILES.map(function(p){var n=p.split("/")[1].replace(/-/g," ");return {key:key(p),group:p.split("/")[0],label:n.replace(/\b[a-z]/g,function(c){return c.toUpperCase()})}});
 window.daylightBannerFiles=FILES.slice();
-})();
+})();/* Every banner subject is reachable from a plain-language title (covered by the smoke test). */

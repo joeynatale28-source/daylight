@@ -171,7 +171,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  const bannerRouting=await page.evaluate(files=>{
    const routes=files.map(({group,subject})=>({
      expected:`dl-banner-${group}-${subject}`,
-     actual:bannerKeyFor({title:'',category:subject})
+     actual:bannerKeyFor({title:subject.replace(/-/g,' ')})
    }));
    const cases=[
      ['Morning swim practice','dl-banner-sports-swim'],
