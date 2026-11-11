@@ -49,7 +49,7 @@ for(const theme of ['dark','light']){
   await attempt('Esc',()=>page.keyboard.press('Escape'));
   await page.screenshot({path:path.join(out,`4-after-esc-${theme}.png`)});
   i=await attempt('switching to another Settings page',()=>page.evaluate(()=>[...document.querySelectorAll('.settings-rail .sr-item')].find(b=>/Calendar/.test(b.textContent)).click()));
-  check(T('switching pages did not switch (still on Appearance)'),/Appearance/.test(i.section),i.section);
+  check(T('switching to another Settings page switches, keeping the unsaved changes and the pill (nothing silently dead)'),/Calendar/.test(i.section)&&i.pill,i.section);
   await page.screenshot({path:path.join(out,`5-after-page-switch-${theme}.png`)});
   await page.click('.settings-savebar [data-save]');
   await page.waitForFunction(()=>document.querySelector('.settings-savebar')?.hidden,{timeout:4000});await sleep(400);

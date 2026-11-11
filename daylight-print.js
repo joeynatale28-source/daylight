@@ -124,3 +124,4 @@
   window.daylightBuildPrintMonth = function () { cleanup(); var n = build(); document.body.appendChild(n); document.body.classList.add("dl-printing"); return n; };
   window.daylightEndPrintPreview = cleanup;
 })();
+/* Printing is driven only by the browser print events; the live app is never changed to print. */
