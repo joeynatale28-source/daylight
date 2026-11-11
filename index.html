@@ -3195,7 +3195,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         /* Two calendar sections. "My calendars" holds owned calendars;
            "Subscriptions" holds subscribed calendars, including US Holidays. */
         /* skeleton only while the account is still loading AND the placeholder identity is in place (real data, however it arrived, is never hidden) */
-        var dlLoading = !!(window.daylightCloud && window.daylightCloud.loading && state.profileName === "Account");
+        var dlLoading = !!(window.daylightCloud && window.daylightCloud.loading && window.daylightCloud.user && state.profileName === "Account");
         var ownedCals = state.calendars.filter(function (c) { return !isSubscribed(c) && !c.remoteShareId && !c.eventShare; });
         var sharedCals = state.calendars.filter(function (c) { return !!c.remoteShareId; });
         var subCals = state.calendars.filter(function (c) { return isSubscribed(c) && !c.remoteShareId && !c.eventShare; });
