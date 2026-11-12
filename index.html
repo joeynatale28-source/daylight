@@ -842,11 +842,12 @@
       .pop-banner-actions { position: absolute; top: 10px; right: 10px; display: flex; gap: 6px; }
       .pop-banner-btn {
         width: 34px; height: 34px; border-radius: 50%; flex: none;
-        background: rgba(18, 18, 18, 0.52); color: #fff;
+        background: var(--surface); color: var(--text); border: 1px solid var(--line);
+        box-shadow: 0 1px 6px rgba(0, 0, 0, 0.32);   /* a solid chip: readable on any banner art, in both themes */
         display: inline-flex; align-items: center; justify-content: center;
         transition: background 140ms var(--ease-out), transform 120ms var(--ease-out);
       }
-      .pop-banner-btn:hover { background: rgba(18, 18, 18, 0.8); }
+      .pop-banner-btn:hover { background: var(--hover); }
       .pop-banner-btn:active { transform: scale(0.94); }
       .pop-body { padding: 14px 18px 0; }
       .popover.has-banner .pop-rows { padding-top: 8px; }
@@ -1013,12 +1014,12 @@
          to a single right column. */
       .settings-dialog {
         background: var(--surface); border: 1px solid var(--line); border-radius: 20px;
-        width: min(900px, 94vw); height: min(660px, 92dvh); display: flex; overflow: hidden;
+        width: min(900px, 94vw); height: auto; min-height: min(640px, 92dvh); max-height: min(800px, 92dvh); display: flex; overflow: hidden;
         box-shadow: var(--shadow-pop);
         animation: dialogIn 260ms var(--ease-out);
       }
       /* Wide, tall monitors: Settings grows a little so it is not a small box in a large window. */
-      @media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { width: min(980px, 94vw); height: min(740px, 92dvh); } }
+      @media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { width: min(980px, 94vw); height: min(800px, 92dvh); } }
       /* Light Settings inverts the stack: the dialog takes the warm
          canvas tone and the group panels become the white cards on
          top of it — the same "white cards on #f5f5f5" logic as the
@@ -3188,7 +3189,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         var nav = el('<div class="side-nav"></div>');
         var calNav = el('<button class="side-row' + (state.section === "calendar" ? " active" : "") + '" title="Calendar" aria-current="' + (state.section === "calendar") + '">' + icon("calendar", 18) + '<span class="rail-hide">Calendar</span></button>');
         calNav.addEventListener("click", function () { showCalendar(); });
-        var taskNav = el('<button class="side-row' + (state.section === "tasks" ? " active" : "") + '" title="Tasks" aria-current="' + (state.section === "tasks") + '">' + icon("list", 18) + '<span class="rail-hide">Tasks</span>' + (state.tasks.filter(function (t) { return !t.done; }).length ? '<span class="rail-hide" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--muted)">' + state.tasks.filter(function (t) { return !t.done; }).length + "</span>" : "") + "</button>");
+        var taskNav = el('<button class="side-row' + (state.section === "tasks" ? " active" : "") + '" title="Tasks" aria-current="' + (state.section === "tasks") + '">' + icon("checkSq", 18) + '<span class="rail-hide">Tasks</span>' + (state.tasks.filter(function (t) { return !t.done; }).length ? '<span class="rail-hide" style="margin-left:auto;font-size:12px;font-weight:600;color:var(--muted)">' + state.tasks.filter(function (t) { return !t.done; }).length + "</span>" : "") + "</button>");
         taskNav.addEventListener("click", function () { showTasks(); });
         nav.appendChild(calNav); nav.appendChild(taskNav);
         sidebarEl.appendChild(nav);
@@ -3730,8 +3731,8 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         /* the sync label (its width changes) stays leftmost so everything to its right never shifts */
         if (window.daylightSyncIndicator) right.appendChild(window.daylightSyncIndicator());
         if (typeof dayArrows !== "undefined" && dayArrows && state.view === "day") right.appendChild(dayArrows);
-        /* Month view only: a quiet overflow (⋯) menu, currently holding Print month */
-        if (state.section === "calendar" && state.view === "month") {
+        /* Month and Day views: a quiet overflow (⋯) menu, currently holding Print month */
+        if (state.section === "calendar" && (state.view === "month" || state.view === "day")) {
           var moreBtn = el('<button class="icon-btn" title="More" aria-label="More" aria-haspopup="menu">' + icon("dotsH", 19) + "</button>");
           moreBtn.addEventListener("click", function () {
             openMenu(moreBtn, [{ icon: "printer", label: "Print month", fn: function () { if (window.daylightPrintMonth) window.daylightPrintMonth(); } }], { align: "right" });
@@ -4640,7 +4641,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
       function previousRepeatOccurrence(date,frequency){
         var d=new Date(date);if(frequency==="weekly")d.setDate(d.getDate()-7);else if(frequency==="monthly")d.setMonth(d.getMonth()-1);else if(frequency==="yearly")d.setFullYear(d.getFullYear()-1);else d.setDate(d.getDate()-1);return d;
       }
-      /* Deleting events: one Undo toast (5 s) restores the whole action exactly as it was (calendar, times, details, attachments). */
+      /* Deleting events: one Undo toast (5 s) restores the whole action exactly as it was (calendar, times, details). */
       function undoDeleteToast(restore) {
         toast("Event deleted", { label: "Undo", fn: function () { restore(); renderAll(false); renderSidebar(); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } }, { duration: 5000, replaceKey: "undo-delete" });
       }
@@ -4648,7 +4649,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         /* bulk delete (Select mode): ONE action, ONE Undo */
         var gone = list.slice(), at = gone.map(function (e) { return state.events.indexOf(e); });
         state.events = state.events.filter(function (e) { return gone.indexOf(e) === -1; });
-        if (window.daylightAttachments) daylightAttachments.cleanupLater(gone);
         renderAll(false);
         toast(gone.length === 1 ? "Event deleted" : gone.length + " events deleted", { label: "Undo", fn: function () {
           gone.forEach(function (e, i) { state.events.splice(Math.min(at[i] < 0 ? state.events.length : at[i], state.events.length), 0, e); });
@@ -4664,7 +4664,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           else if(scope==="following"){var oldEnd=ev.repeatEnd;ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();undo=function(){ev.repeatEnd=oldEnd}}
           else{var uid=ev.uid;var before=state.events.slice();state.events=state.events.filter(function(e){return e!==ev&&(uid?e.uid!==uid:e.id!==ev.id)});undo=function(){var keep=state.events.filter(function(e){return before.indexOf(e)===-1});state.events=before.concat(keep)}}
           renderAll(false);undoDeleteToast(undo);
-          if(scope==="all"&&window.daylightAttachments)daylightAttachments.cleanupLater([ev]);
         }
         if(recurring){chooseRepeatScope("Delete repeating event","Choose which occurrences to delete.",remove);return}
         openConfirm({title:"Delete this event?",body:"“"+ev.title+"” will be removed from "+calOf(ev.cal).name+". This cannot be undone.",confirmLabel:"Delete",danger:true,fn:function(){remove("all")}});
@@ -4792,7 +4791,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             '<div class="pop-rows">' + rows + "</div></div>");
         }
         p._occId = ev.id; p._occStart = occ.start.getTime(); p._anchor = anchor;
-        if (window.daylightAttachments) daylightAttachments.renderPopover(p, ev);
         document.body.appendChild(p);
         var r = anchor.getBoundingClientRect();
         /* Fix 42: never taller than the window: the popover scrolls inside itself instead of running off-screen */
@@ -4981,9 +4979,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           locationLat:src ? (src.locationLat??null) : null,
           locationLng:src ? (src.locationLng??null) : null,
           desc: src ? (src.desc || "") : "",
-          attachments: src && Array.isArray(src.attachments) ? src.attachments.slice() : [],
-          banner: src && src.banner ? src.banner : null,
-          bannerTouched: !!(src && src.banner),
           dirty: false
         };
         if (f.eMin >= 24 * 60) f.eMin = 23 * 60 + 30;
@@ -5043,31 +5038,6 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
           calBtn.querySelector("span").innerHTML = '<span class="dl-cal-field-main"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0;flex:none"></span><span class="dl-cal-field-name">' + esc(cal.name) + "</span></span>";
         }
         syncUI();
-        /* Smart banner: the control rides on the Description row; the match from the title shows pre-selected before saving */
-        (function () {
-          var descField = dlg.querySelector("#efDesc"); descField = descField && descField.closest(".field");
-          if (!descField || !window.daylightBannerList) return;
-          descField.style.position = "relative";
-          var tools = el('<div class="dl-desc-tools"></div>');
-          var bBtn = el('<button type="button" class="dl-attach-inline dl-banner-btn" aria-haspopup="menu"><span></span></button>');
-          tools.appendChild(bBtn); descField.appendChild(tools);
-          function effective() { if (f.banner === "none") return null; if (f.banner) return f.banner; return f.bannerTouched ? null : (window.daylightSuggestBanner ? daylightSuggestBanner(titleIn.value) : null); }
-          function labelOf(k) { var hit = daylightBannerList.filter(function (x) { return x.key === k; })[0]; return hit ? hit.label : ""; }
-          function paint() { var k = effective(); bBtn.querySelector("span").textContent = "Banner: " + (k ? labelOf(k) : "None"); }
-          f._bannerPaint = paint; f._bannerEffective = effective;
-          bBtn.addEventListener("click", function () {
-            var cur = effective(), items = [{ label2: "Banner" }, { label: "None", right: cur ? null : "check", fn: function () { f.banner = "none"; f.bannerTouched = true; markDirty(); paint(); } }];
-            ["school-life", "sports", "holidays"].forEach(function (g) {
-              items.push({ label2: g === "school-life" ? "Everyday" : g === "sports" ? "Sports" : "Holidays" });
-              daylightBannerList.filter(function (x) { return x.group === g; }).forEach(function (x) { items.push({ label: x.label, right: cur === x.key ? "check" : null, fn: function () { f.banner = x.key; f.bannerTouched = true; markDirty(); paint(); } }); });
-            });
-            openMenu(bBtn, items, { maxHeight: 320 });
-          });
-          titleIn.addEventListener("input", function () { if (!f.bannerTouched) paint(); });
-          paint();
-        })();
-        var ownsEvent = !existing || (!existing.feedShareId && !existing.feedEventShareId && String(existing.cal).indexOf("share:") !== 0 && String(existing.cal).indexOf("evs:") !== 0);
-        if (window.daylightAttachments && ownsEvent) daylightAttachments.mountEditor(dlg, f, markDirty);
         titleIn.focus();
         titleIn.addEventListener("input", function () { f.title = titleIn.value; titleIn.classList.remove("err"); dlg.querySelector("#efTitleErr").classList.remove("show"); markDirty(); });
         locIn.addEventListener("input", function () { f.loc = locIn.value; markDirty(); });
@@ -5155,23 +5125,19 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
             src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
-            if (f._bannerEffective) { var bk = f._bannerEffective(); if (f.banner === "none") src.banner = "none"; else if (bk) src.banner = bk; else if (f.bannerTouched) src.banner = "none"; }
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
               if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
               delete src._seriesParentId;delete src._seriesScope;delete src._seriesStart;state.events.push(src);
             }
             daylightExit(bd); renderAll(false); toast("Event updated");
-            if (window.daylightAttachments) daylightAttachments.commit(src, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
           } else {
             var created = mkEv(f.title, f.cal, start, end, { allDay: f.allDay, loc: locIn.value.trim(), desc: descIn ? descIn.value.trim() : "", repeat: f.repeat, reminder: f.reminder });
             created.placeId = f.placeId || null; created.locationLat = f.locationLat ?? null;
             created.locationLng = f.locationLng ?? null;
             created.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;created.accent=f.accent;created.weekdaysOnly=weekdaysOnly;
-            if (f._bannerEffective) { var nb = f._bannerEffective(); if (f.banner === "none") created.banner = "none"; else if (nb) created.banner = nb; else if (f.bannerTouched) created.banner = "none"; }
             state.events.push(created);
             daylightExit(bd); renderAll(false); toast("Event created");
-            if (window.daylightAttachments) daylightAttachments.commit(created, f).then(function (changed) { if (changed) { renderAll(false); if (window.daylightCloud && window.daylightCloud.save) window.daylightCloud.save(); } });
           }
         });
       }
@@ -5674,8 +5640,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
         g.querySelector("#ntDaily").addEventListener("change", function (e) { state.dailySummary = e.target.checked; syncSummary(); });
         var gq = el('<div class="set-group"><div class="set-group-title">Quiet hours</div>' +
           setRowHTML("Quiet hours", "Hold notifications during the hours below. They are delivered when quiet hours end.", switchHTML("ntQuiet", state.quietEnabled)) +
-          setRowHTML("Quiet from", "Notifications are held starting at this time.", selectHTML("ntQStart", [], state.quietStart, "xs")) +
-          setRowHTML("Quiet until", "Notifications resume at this time.", selectHTML("ntQEnd", [], state.quietEnd, "xs")) +
+          setRowHTML("Quiet window", "Notifications are held from the first time until the second.", '<span class="dl-q-pair">' + selectHTML("ntQStart", [], state.quietStart, "xs") + "<span>to</span>" + selectHTML("ntQEnd", [], state.quietEnd, "xs") + "</span>") +
           "</div>");
         pane.appendChild(gq);
         var qsSel = gq.querySelector("#ntQStart"), qeSel = gq.querySelector("#ntQEnd");

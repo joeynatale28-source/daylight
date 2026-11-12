@@ -122,7 +122,7 @@
   }
   var printing = null;
   window.daylightPrintMonth = function () {
-    if (!inMonthView() || printing) return;
+    if (!window.state || state.section !== "calendar" || (state.view !== "month" && state.view !== "day") || printing) return;   /* the ⋯ menu offers it in Month and Day */
     try { if (typeof closeMenu === "function") closeMenu(); } catch (e) {}
     var f = document.createElement("iframe");
     f.setAttribute("aria-hidden", "true"); f.setAttribute("tabindex", "-1"); f.title = "Print";

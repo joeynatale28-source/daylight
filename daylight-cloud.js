@@ -367,7 +367,6 @@
           id: id, title: String(e.title || 'Untitled'), cal: String(e.cal || 'personal'),
           start: start, end: end, allDay: allDay, loc: String(e.loc || ''),
           desc: String(e.desc || ''), repeat: e.repeat || null, repeatEnd:e.repeatEnd||null, accent:e.accent||null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, banner: (typeof e.banner === 'string' && /^(none|dl-banner-[a-z0-9-]+)$/.test(e.banner)) ? e.banner : undefined,
-          attachments: Array.isArray(e.attachments) ? e.attachments.filter(function (m) { return m && typeof m.path === 'string'; }).slice(0,10).map(function (m) { var r = { path:String(m.path), name:String(m.name||''), type:String(m.type||''), size:Number(m.size)||0 }; return r; }) : [],
           reminder: e.reminder == null ? null : Number(e.reminder),
           declined: !!e.declined, uid: e.uid, rrule: e.rrule,
           exdates: e.exdates, feedKey: e.feedKey,
@@ -457,7 +456,7 @@
         ensureMeta(e);
         return { id:e.id, title:e.title, cal:e.cal, start:e.start.toISOString(),
           end:e.end.toISOString(), allDay:!!e.allDay, loc:e.loc || '',
-          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, banner:e.banner||undefined, attachments:Array.isArray(e.attachments)&&e.attachments.length?e.attachments:undefined, reminder:e.reminder == null ? null : e.reminder,
+          desc:e.desc || '', repeat:e.repeat || null, repeatEnd:e.repeatEnd || null, accent:e.accent || null, weekdaysOnly:!!e.weekdaysOnly, birthday:!!e.birthday, banner:e.banner||undefined, reminder:e.reminder == null ? null : e.reminder,
           declined:!!e.declined, uid:e.uid, rrule:e.rrule, exdates:e.exdates, feedKey:e.feedKey,
           timezone:e.timezone,dtstamp:e.dtstamp,sequence:e.sequence,
           recurrenceId:e.recurrenceId,status:e.status,

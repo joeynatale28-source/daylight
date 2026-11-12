@@ -134,7 +134,10 @@
       ".settings-pane .set-row .dd{width:auto!important;min-width:118px;max-width:230px}",
       ".settings-pane .dl-row-stack{flex-direction:column;align-items:flex-start!important;gap:10px}.settings-pane .dl-row-stack>span:first-child{padding-right:0}",
       /* the floating Save pill never covers a control: the pane keeps room under its content while the pill shows; Saved shows no Discard */
-      ".settings-dialog .settings-pane{padding-bottom:104px}",
+      ".settings-dialog .settings-pane{padding-bottom:28px;transition:padding-bottom 190ms cubic-bezier(0.23,1,0.32,1)}.settings-dialog.has-pill .settings-pane{padding-bottom:104px}",
+      /* Fix 75: tighter rows so real settings (Quiet hours, Motion) are on screen without hunting for them */
+      ".settings-dialog .set-row{padding-top:12px;padding-bottom:12px}.settings-dialog .set-group{margin-bottom:16px;padding-top:18px;padding-bottom:6px}.settings-dialog .settings-pane{padding-top:28px}.settings-dialog .settings-pane .pane-sub{margin-bottom:18px}",
+      ".settings-pane .dl-q-pair{display:inline-flex;align-items:center;gap:8px;flex:none;color:var(--muted);font-size:13px}",
       /* Fix 26: the close X belongs to the dialog frame (not the scrolling pane); it has its own backing and the pane leaves it room */
       ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:0!important;background:var(--surface)!important;z-index:30!important}",
       "[data-theme=\"light\"] .settings-dialog>.settings-close{background:var(--gray-2)!important}",
@@ -202,6 +205,7 @@
         clearTimeout(bar._hideT);
         if (bar.classList.contains("is-dismissing")) bar.classList.remove("is-dismissing");
         if (bar.hidden) bar.hidden=false;
+        dlg.classList.add("has-pill");
         if (bar.getAttribute("aria-hidden")!=="false") bar.setAttribute("aria-hidden","false");
         var msgEl=bar.querySelector(".savebar-message");
         if (msgEl.textContent!=="You have unsaved changes") msgEl.textContent="You have unsaved changes";
@@ -210,7 +214,7 @@
         bar.classList.add("is-dismissing");
         if (bar.getAttribute("aria-hidden")!=="true") bar.setAttribute("aria-hidden","true");
         clearTimeout(bar._hideT);
-        bar._hideT=setTimeout(function(){ if(bar.classList.contains("is-dismissing")){ bar.hidden=true; bar.classList.remove("is-dismissing"); } }, 190);
+        bar._hideT=setTimeout(function(){ if(bar.classList.contains("is-dismissing")){ bar.hidden=true; bar.classList.remove("is-dismissing"); dlg.classList.remove("has-pill"); } }, 190);
       }
     }
     settingsState.markDirty = markDirty;
@@ -263,7 +267,6 @@
 
     [
       ["profile", "user", "Profile"],
-      ["signin", "key", "Sign-in methods"],
       ["appearance", "droplet", "Appearance"],
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
@@ -327,7 +330,7 @@
         bar.classList.add("is-dismissing");
         clearTimeout(bar._hideT);
         setTimeout(function(){
-          bar.hidden=true;
+          bar.hidden=true; dlg.classList.remove("has-pill");
           bar.setAttribute("aria-hidden","true");
           bar.classList.remove("is-saved","is-dismissing");
           saveButton.disabled=false;
@@ -363,7 +366,7 @@
       settingsState.redrawPane = drawPane;
       pane.innerHTML = "";
       var fn = {
-        profile: window.daylightProfilePane, signin: window.daylightSignInPane, appearance: paneAppearance, calendar: paneCalendar,
+        profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar,
         notifications: paneNotifications, shortcuts: paneShortcuts,
         ai: window.daylightAiPane, admin: window.daylightAdminPane
       }[settingsState.section];

@@ -38,17 +38,9 @@ test('invalid args cannot invoke dangerous action',async()=>{
  const r=await dispatchMcp(base(7,'tools/call',{name:'delete_event',arguments:{id:123},_meta:meta}),full,async()=>{throw Error('Must not execute')});
  assert.equal(r.data.result.isError,true);
 });
-test('attachment tools follow the grant levels: list needs read, add needs write, remove needs delete',async()=>{
- const names=g=>availableTools(g).map(t=>t.name);
- assert.ok(names(read).includes('list_attachments'));
- assert.ok(!names(read).includes('add_attachment')&&!names(read).includes('remove_attachment'));
- const write={can_read:true,can_write:true,can_delete:false};
- assert.ok(names(write).includes('add_attachment')&&!names(write).includes('remove_attachment'));
- assert.ok(names(full).includes('remove_attachment'));
- const denied=await dispatchMcp(base(8,'tools/call',{name:'add_attachment',arguments:{id:'1',file_name:'a.png',content_base64:'AA=='},_meta:meta}),read,async()=>{throw Error('Must not execute')});
- assert.equal(denied.status,403);
- const deniedRm=await dispatchMcp(base(9,'tools/call',{name:'remove_attachment',arguments:{id:'1',attachment_id:'x'},_meta:meta}),write,async()=>{throw Error('Must not execute')});
- assert.equal(deniedRm.status,403);
- const ok=await dispatchMcp(base(10,'tools/call',{name:'add_attachment',arguments:{id:'1',file_name:'a.png',content_base64:'AA==',caption:'c'},_meta:meta}),write,async(t,a)=>({t,a}));
- assert.equal(ok.status,200);
+test('no attachment tools exist for any grant level',async()=>{
+ const full={can_read:true,can_write:true,can_delete:true};
+ assert.ok(!availableTools(full).some(t=>/attach/i.test(t.name)));
+ const r=await dispatchMcp(base(8,'tools/call',{name:'add_attachment',arguments:{id:'1'},_meta:meta}),full,async()=>{throw Error('Must not execute')});
+ assert.ok(r.data.error);
 });

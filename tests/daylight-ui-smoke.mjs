@@ -326,7 +326,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
         signout:out?{w:box.width,h:box.height,title:out.title,color:getComputedStyle(out).color,hasIcon:!!out.querySelector('svg'),text:out.textContent.trim()}:null,textButton:!!row.querySelector('button.btn-ghost')}}),
      closeSize:(()=>{const r=document.querySelector('.settings-close').getBoundingClientRect();return [r.width,r.height]})()
    }));
-   assert.deepEqual(profile.sections,['Profile','Sign-in methods','Appearance','Calendar','Notifications','AI access','Shortcuts']);
+   assert.deepEqual(profile.sections,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
    assert.equal(profile.email,'demo@example.com','Profile must show the authenticated email');
    assert.ok(profile.sessions.some(text=>text.includes('Chrome on Windows')&&text.includes('This device')),'current session is labelled This device: '+JSON.stringify(profile.sessions));
    const [current,other]=profile.sessionUi;
@@ -715,7 +715,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/round13-events.mjs',{}],['tests/round13-ui.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/round13-events.mjs',{}],['tests/round13-ui.mjs',{}],['tests/round19.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));
