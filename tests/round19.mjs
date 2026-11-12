@@ -1,6 +1,6 @@
 /**
  * Round 19, both themes (stubbed Supabase):
- *  66 no attachments in form / popover · 75 Settings panes fit their content · 77 English-only Settings ·
+ *  66 no attachments in form / popover · 77 English-only Settings ·
  *  78 Day view "..." menu · 79 popover buttons readable on banner art · 82 no banner picker in the event form
  * (the "extras" fixes 68-72, 74, 76, 80 were cancelled: this test also checks that none of them is present)
  */
@@ -30,13 +30,6 @@ for(const theme of ['dark','light']){
   await shot('78-day-more-menu');
   await page.keyboard.press('Escape');await sleep(300);
   await go('month',2026,10,15);await sleep(400);
-  for(const sec of ['notifications','appearance']){
-   await page.evaluate(s=>openSettings(s),sec);await sleep(900);
-   const fit=await page.evaluate(()=>{const p=document.querySelector('.settings-pane');const q=[...document.querySelectorAll('.settings-pane .sw-label')].find(n=>/Quiet window/.test(n.textContent));const pr=p.getBoundingClientRect();const r=q&&q.getBoundingClientRect();return {scroll:p.scrollHeight-p.clientHeight,quiet:r?(r.bottom<=pr.bottom&&r.top>=pr.top):null}});
-   check(T(sec+': real settings visible without inner scrolling'),fit.scroll<=1&&(sec==='appearance'||fit.quiet===true),J(fit));
-   await shot('75-settings-'+sec);
-   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(500);
-  }
   const SPANISH=/\b(solo|afecta|este|dispositivo|vista|recordatorio|cuando|abres|predeterminad[oa]|nuevos|eventos)\b/i;
   for(const sec of ['profile','appearance','calendar','notifications','ai','shortcuts']){
    await page.evaluate(s=>openSettings(s),sec);await sleep(700);

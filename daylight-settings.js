@@ -137,6 +137,9 @@
       ".settings-dialog .settings-pane{padding-bottom:28px;transition:padding-bottom 190ms cubic-bezier(0.23,1,0.32,1)}.settings-dialog.has-pill .settings-pane{padding-bottom:104px}",
       /* Fix 75: tighter rows so real settings (Quiet hours, Motion) are on screen without hunting for them */
       ".settings-dialog .set-row{padding-top:12px;padding-bottom:12px}.settings-dialog .set-group{margin-bottom:16px;padding-top:18px;padding-bottom:6px}.settings-dialog .settings-pane{padding-top:28px}.settings-dialog .settings-pane .pane-sub{margin-bottom:18px}",
+      ".settings-pane .dl-set-sec{padding-bottom:30px}.settings-pane .dl-set-sec+.dl-set-sec{border-top:1px solid var(--line-soft);padding-top:30px}.settings-pane{scroll-behavior:auto!important}",
+      ".settings-rail .sr-item.active{box-shadow:inset 3px 0 0 var(--accent)}",
+      ".dl-leave{width:min(420px,94vw)}.dl-leave-text{margin:0;font-size:14px;line-height:1.55;color:var(--muted)}.dl-leave .dialog-foot{gap:8px}.dl-leave [data-keep]{margin-right:auto}",
       ".settings-pane .dl-q-pair{display:inline-flex;align-items:center;gap:8px;flex:none;color:var(--muted);font-size:13px}",
       /* Fix 26: the close X belongs to the dialog frame (not the scrolling pane); it has its own backing and the pane leaves it room */
       ".settings-dialog>.settings-close{top:12px!important;right:12px!important;width:40px!important;height:40px!important;min-width:40px!important;min-height:40px!important;border-radius:0!important;background:var(--surface)!important;z-index:30!important}",
@@ -221,7 +224,7 @@
 
     function closeOnEscape(event) {
       if(event.key!=="Escape"||overlayRoot.lastElementChild!==bd)return;
-      event.preventDefault();
+      event.preventDefault(); event.stopPropagation();
       close();
     }
     document.addEventListener("keydown",closeOnEscape,true);
@@ -261,31 +264,75 @@
       markDirty();
       /* Unsaved changes: the pill (Save / Discard) is the ONLY gate. Closing from the X, the backdrop or Esc simply does
          nothing while it is showing: no second popup, no animation. */
-      if (isDirty()) { nudgePill(); return; }   /* the pill stays the gate, but a click on X points at it */
+      if (isDirty()) { nudgePill(); askLeave(); return; }   /* never silent: a clear Save / Discard / Keep editing choice (the pill also pulses) */
       finish(false);
     }
+    /* Leaving Settings (X, Escape or a click outside) with unsaved changes: Save, Discard, or Keep editing. */
+    var leaveEl = null;
+    function askLeave() {
+      if (leaveEl) return;
+      leaveEl = el('<div class="backdrop dl-leave-bd"><div class="dialog dl-std dl-look dl-leave" role="alertdialog" aria-modal="true" aria-label="Unsaved changes" aria-describedby="dlLeaveText">' +
+        '<div class="dialog-head"><span class="dialog-title">Save your changes?</span></div>' +
+        '<div class="dialog-body"><p id="dlLeaveText" class="dl-leave-text">You have unsaved changes in Settings. Save them, discard them, or keep editing.</p></div>' +
+        '<div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-ghost" data-drop>Discard</button><button type="button" class="btn-primary" style="margin-left:0" data-yes>Save</button></div></div></div>');
+      overlayRoot.appendChild(leaveEl);
+      function shut() { document.removeEventListener("keydown", onKey, true); var n = leaveEl; leaveEl = null; if (window.daylightExit) window.daylightExit(n); else n.remove(); }
+      function onKey(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); shut(); nudgePill(); } }
+      document.addEventListener("keydown", onKey, true);
+      leaveEl.querySelector("[data-keep]").addEventListener("click", function () { shut(); nudgePill(); });
+      leaveEl.addEventListener("mousedown", function (e) { if (e.target === leaveEl) { shut(); nudgePill(); } });
+      leaveEl.querySelector("[data-drop]").addEventListener("click", function () { shut(); finish(false); });
+      leaveEl.querySelector("[data-yes]").addEventListener("click", function () {
+        shut();
+        bar.querySelector("[data-save]").click();
+        var tries = 0, t = setInterval(function () {
+          tries++;
+          if (!settingsState.transactionActive) { clearInterval(t); return; }
+          if (!isDirty()) { clearInterval(t); settingsState.onDiscard = null; setTimeout(function () { if (settingsState.transactionActive) finish(false); }, 700); }
+          else if (tries > 120) clearInterval(t);   /* a save that could not finish keeps Settings open with its message on the pill */
+        }, 60);
+      });
+      setTimeout(function () { var y = leaveEl && leaveEl.querySelector("[data-yes]"); if (y) y.focus(); }, 0);
+    }
 
-    [
+    var SECS = [
       ["profile", "user", "Profile"],
       ["appearance", "droplet", "Appearance"],
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
       ["ai", "sparkle", "AI access"],
       ["shortcuts", "keyboard", "Shortcuts"]
-    ].forEach(function (s) {
-      var btn = el('<button class="sr-item' + (settingsState.section === s[0] ? " active" : "") + '">' +
-        icon(s[1], 17) + "<span>" + s[2] + "</span></button>");
-      btn.addEventListener("click", function () {
-        /* switching sections keeps unsaved changes and the pill exactly as they are (the dirty state belongs to the account's settings, not one pane) */
-        markDirty();
-        settingsState.section = s[0];
-        rail.querySelectorAll(".sr-item").forEach(function (x) { x.classList.remove("active"); });
-        btn.classList.add("active");
-        drawPane();
-        markDirty();
-      });
+    ];
+    var secEls = {}, railBtns = {}, spyLock = 0;
+    function setActive(id) {
+      settingsState.section = id;
+      SECS.forEach(function (x) { var b = railBtns[x[0]]; if (!b) return; var on = x[0] === id; b.classList.toggle("active", on); if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current"); });
+    }
+    function goTo(id, smooth) {
+      var sec = secEls[id]; if (!sec) return;
+      var top = Math.max(0, sec.offsetTop - parseFloat(getComputedStyle(pane).paddingTop || 0));
+      var calm = state.reduceMotion || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+      spyLock = Date.now() + (smooth && !calm ? 700 : 150);
+      setActive(id);
+      if (smooth && !calm) pane.scrollTo({ top: top, behavior: "smooth" }); else pane.scrollTop = top;
+    }
+    SECS.forEach(function (sx) {
+      var btn = el('<button class="sr-item' + (settingsState.section === sx[0] ? " active" : "") + '" data-sec-nav="' + sx[0] + '">' + icon(sx[1], 17) + "<span>" + sx[2] + "</span></button>");
+      btn.addEventListener("click", function () { markDirty(); goTo(sx[0], true); markDirty(); });
+      railBtns[sx[0]] = btn;
       rail.appendChild(btn);
     });
+    /* scroll-spy: the nav highlights the section that is at the top of the page as you scroll */
+    var spyTick = 0;
+    function spy() {
+      if (Date.now() < spyLock) return;
+      var edge = pane.scrollTop + parseFloat(getComputedStyle(pane).paddingTop || 0) + 24, cur = SECS[0][0];
+      SECS.forEach(function (sx) { var sec = secEls[sx[0]]; if (sec && sec.offsetTop <= edge) cur = sx[0]; });
+      if (pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 2) cur = SECS[SECS.length - 1][0];
+      if (cur !== settingsState.section) setActive(cur);
+    }
+    pane.addEventListener("scroll", function () { if (spyTick) return; spyTick = requestAnimationFrame(function () { spyTick = 0; spy(); }); });
+    window.addEventListener("resize", sizeLast);
     /* Admin is its own page now (sidebar, owners only; daylight-adminpage.js), not a Settings section. */
     dlg.appendChild(rail); dlg.appendChild(pane); dlg.appendChild(bar);
     /* Item 11: the close button lives on the dialog itself (not inside the
@@ -362,15 +409,20 @@
     }
     ["input", "change", "click", "keyup", "pointerup"].forEach(function (t) { document.addEventListener(t, docWatch, true); });
 
-    function drawPane() {
+    function sizeLast() {
+      var last = secEls[SECS[SECS.length - 1][0]]; if (!last || !last.isConnected) return;
+      last.style.minHeight = Math.max(0, pane.clientHeight - parseFloat(getComputedStyle(pane).paddingTop || 0) - 8) + "px";   /* so even the last section can reach the top */
+    }
+    function drawPane(initial) {
       settingsState.redrawPane = drawPane;
+      var keep = pane.scrollTop;
       pane.innerHTML = "";
-      var fn = {
-        profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar,
-        notifications: paneNotifications, shortcuts: paneShortcuts,
-        ai: window.daylightAiPane, admin: window.daylightAdminPane
-      }[settingsState.section];
-      fn(pane, close);
+      SECS.forEach(function (sx) {
+        var sec = el('<section class="dl-set-sec" id="dl-sec-' + sx[0] + '" data-sec="' + sx[0] + '" aria-label="' + sx[2] + '"></section>');
+        pane.appendChild(sec); secEls[sx[0]] = sec;
+        var fn = { profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, ai: window.daylightAiPane }[sx[0]];
+        try { fn(sec, close); } catch (err) { sec.appendChild(el('<div class="dl-ai-empty">This section isn’t available right now.</div>')); }
+      });
       bindDropdowns(pane);
       pane.querySelectorAll('label.switch input[type="checkbox"]').forEach(function (input) {
         if (input.getAttribute("aria-label")) return;
@@ -378,11 +430,13 @@
         var label = row && row.querySelector(".sw-label");
         if (label) input.setAttribute("aria-label", label.textContent.trim());
       });
-      pane.classList.remove("pane-in");
-      void pane.offsetWidth;
-      pane.classList.add("pane-in");
+      sizeLast();
+      if (initial === true) {
+        pane.classList.remove("pane-in"); void pane.offsetWidth; pane.classList.add("pane-in");
+        goTo(settingsState.section in secEls ? settingsState.section : "profile", false);
+      } else pane.scrollTop = keep;
     }
-    drawPane();
+    drawPane(true);
   };
 
   /* Settings → Profile (Item 8/16). Identity card, security rows, active

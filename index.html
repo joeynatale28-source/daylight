@@ -18,7 +18,16 @@
          for this account and build? Everything is wrapped: storage can throw. */
       window.__DL_BUILD = "__BUILD_ID__";
       /* The real window height, so the layout never depends on dvh agreeing with what is actually visible. */
-      (function () { var set = function () { document.documentElement.style.setProperty("--dl-app-h", window.innerHeight + "px"); }; set(); window.addEventListener("resize", set); window.addEventListener("orientationchange", set); })();
+      (function () {
+        /* The smallest of every height the browser reports, so the app is never taller than what can actually be seen (an embedded pane or
+           browser bar can make innerHeight larger than the visible area, which pushed the last month row out of reach). */
+        var set = function () {
+          var hs = [window.innerHeight, document.documentElement.clientHeight || 0, window.visualViewport ? window.visualViewport.height : 0].filter(function (n) { return n > 100; });
+          document.documentElement.style.setProperty("--dl-app-h", Math.floor(Math.min.apply(null, hs)) + "px");
+        };
+        set(); window.addEventListener("resize", set); window.addEventListener("orientationchange", set);
+        if (window.visualViewport) window.visualViewport.addEventListener("resize", set);
+      })();
       (function () {
         var theme = "dark", mode = "system", boot = { hint: false, snap: null };
         try { mode = localStorage.getItem("daylight-theme-mode") || "system"; } catch (e) {}

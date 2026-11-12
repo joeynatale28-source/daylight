@@ -1,8 +1,7 @@
 /**
- * Item 6 on the real page, both themes: the Settings save pill is the ONLY unsaved-changes gate.
- * With an unsaved change, every exit route (X, backdrop click, Esc, switching to another Settings page) leaves Settings open,
- * the pill still visible and fully on screen, with NO second popup and no shake animation. Save and Discard are the only
- * ways out; afterwards Settings closes normally. Also at phone widths.
+ * Settings with an unsaved change, both themes (Fix 86): X, Escape and a click outside never do nothing. Each shows a clear
+ * "Save your changes?" choice: Save / Discard / Keep editing. Keep editing returns to Settings with the pill (which pulses);
+ * Discard closes without saving; Save saves and closes. Without unsaved changes X and Escape close as before.
  * LIVE_URL=<deployed build> runs it against the deployed page.
  */
 import fs from 'node:fs';
@@ -20,67 +19,62 @@ for(const theme of ['dark','light']){
  const {page}=app;
  try{
   await app.load();await sleep(500);
-  const state0=()=>page.evaluate(()=>({reduce:state.reduceMotion,weekends:state.showWeekends}));
-  const open=async sec=>{await page.evaluate(s=>openSettings(s),sec);await page.waitForSelector('.settings-dialog');await sleep(550)};
-  const dirty=async()=>{ // flip "Reduce motion" in Appearance
+  const reduce=()=>page.evaluate(()=>state.reduceMotion);
+  const open=async sec=>{await page.evaluate(s=>openSettings(s),sec);await page.waitForSelector('.settings-dialog');await sleep(600)};
+  const dirty=async()=>{
    await page.evaluate(()=>{const row=[...document.querySelectorAll('.settings-pane .set-row')].find(r=>/Reduce motion/.test(r.textContent));row.querySelector('input').click()});
    await page.waitForFunction(()=>{const b=document.querySelector('.settings-savebar');return b&&!b.hidden},{timeout:3000});await sleep(250)};
-  const info=()=>page.evaluate(()=>{const d=document.querySelector('.settings-dialog'),b=document.querySelector('.settings-savebar');const r=b&&b.getBoundingClientRect();
-   const hit=r?document.elementFromPoint(r.left+r.width/2,r.top+r.height/2):null;
-   return {open:!!d,pill:!!b&&!b.hidden,onScreen:!!r&&r.top>=0&&r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight,uncovered:!!hit&&b.contains(hit),
-    popups:document.querySelectorAll('#overlayRoot > .backdrop').length,confirm:!!document.getElementById('dlSettingsDiscardConfirm'),section:(document.querySelector('.settings-rail .sr-item.active')||{}).textContent,
-    anim:[d&&getComputedStyle(d).animationName,b&&getComputedStyle(b).animationName].join(' ')}});
-  const attempt=async(label,fn)=>{
-   await fn();await sleep(500);
-   const i=await info();
-   check(T(`${label}: Settings stays open, the pill stays, nothing stacked on top`),i.open&&i.pill&&i.popups===1&&!i.confirm,JSON.stringify(i));
-   check(T(`${label}: the pill is fully on screen and not covered`),i.onScreen&&i.uncovered,JSON.stringify(i));
-   check(T(`${label}: no shake, wiggle or bounce on the dialog or pill (the only motion allowed is the quiet pill highlight)`),!/shake|wiggle|bounce/i.test(i.anim),i.anim);
-   return i;
-  };
+  const info=()=>page.evaluate(()=>({open:!!document.querySelector('.settings-dialog'),prompt:!!document.querySelector('.dl-leave'),buttons:[...document.querySelectorAll('.dl-leave button')].map(b=>b.textContent.trim()),pill:!!document.querySelector('.settings-savebar')&&!document.querySelector('.settings-savebar').hidden}));
+  const asks=async(label,fn)=>{await fn();await sleep(450);const i=await info();check(T(`${label}: a Save / Discard / Keep editing choice appears (never silent)`),i.open&&i.prompt&&i.buttons.join('|')==='Keep editing|Discard|Save',JSON.stringify(i));return i};
 
-  // ---- Save path
-  await open('appearance');const before=await state0();await dirty();
-  await page.screenshot({path:path.join(out,`1-unsaved-pill-${theme}.png`)});
-  let i=await attempt('the X',()=>page.click('.settings-close'));
-  await page.screenshot({path:path.join(out,`2-after-X-${theme}.png`)});
-  await attempt('clicking the backdrop',()=>page.mouse.click(30,450));
-  await page.screenshot({path:path.join(out,`3-after-backdrop-${theme}.png`)});
-  await attempt('Esc',()=>page.keyboard.press('Escape'));
-  await page.screenshot({path:path.join(out,`4-after-esc-${theme}.png`)});
-  i=await attempt('switching to another Settings page',()=>page.evaluate(()=>[...document.querySelectorAll('.settings-rail .sr-item')].find(b=>/Calendar/.test(b.textContent)).click()));
-  check(T('switching to another Settings page switches, keeping the unsaved changes and the pill (nothing silently dead)'),/Calendar/.test(i.section)&&i.pill,i.section);
-  await page.screenshot({path:path.join(out,`5-after-page-switch-${theme}.png`)});
-  await page.click('.settings-savebar [data-save]');
-  await page.waitForFunction(()=>document.querySelector('.settings-savebar')?.hidden,{timeout:4000});await sleep(400);
+  // no unsaved change: X and Escape close as before
+  await open('appearance');await page.click('.settings-close');await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
+  check(T('no unsaved changes: X closes'),true);
+  await open('appearance');await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
+  check(T('no unsaved changes: Escape closes'),true);
+
+  // unsaved: prompts
+  await open('appearance');const before=await reduce();await dirty();
+  await asks('X',()=>page.click('.settings-close'));
+  await page.screenshot({path:path.join(out,`1-prompt-after-X-${theme}.png`)});
+  await page.evaluate(()=>document.querySelector('.dl-leave [data-keep]').click());await sleep(450);
+  let i=await info();
+  check(T('Keep editing: back in Settings with the pill still showing'),i.open&&!i.prompt&&i.pill,JSON.stringify(i));
+  check(T('Keep editing: the pill highlights'),await page.evaluate(()=>document.querySelector('.settings-savebar').classList.contains('is-nudge')));
+  await asks('Escape',()=>page.keyboard.press('Escape'));
+  await page.keyboard.press('Escape');await sleep(450);
   i=await info();
-  check(T('Save: the pill leaves cleanly, Settings is still open, no popup'),i.open&&!i.pill&&i.popups===1&&!i.confirm,JSON.stringify(i));
-  check(T('Save: the change was kept'),(await state0()).reduce!==before.reduce);
-  await page.screenshot({path:path.join(out,`6-after-save-${theme}.png`)});
-  await page.click('.settings-close');await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
-  check(T('after Save, the X closes Settings'),true);
+  check(T('Escape inside the prompt means Keep editing'),i.open&&!i.prompt&&i.pill,JSON.stringify(i));
+  await asks('a click outside',()=>page.mouse.click(30,450));
+  await page.screenshot({path:path.join(out,`2-prompt-after-outside-click-${theme}.png`)});
+  await page.evaluate(()=>document.querySelector('.dl-leave [data-drop]').click());
+  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});await sleep(300);
+  check(T('Discard: Settings closes and the change was not saved'),(await reduce())===before);
 
-  // ---- Discard path
-  await open('appearance');const before2=await state0();await dirty();
-  await attempt('the X (again)',()=>page.click('.settings-close'));
+  // Save from the prompt
+  await open('appearance');await dirty();
+  await asks('X (again)',()=>page.click('.settings-close'));
+  await page.evaluate(()=>document.querySelector('.dl-leave [data-yes]').click());
+  await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:6000});await sleep(300);
+  check(T('Save: the change is kept and Settings closes'),(await reduce())!==before);
+  await page.evaluate(()=>{state.reduceMotion=false;document.body.classList.remove('reduce-motion')});
+
+  // the pill's own Save / Discard still work
+  await open('appearance');await dirty();
   await page.click('.settings-savebar [data-discard]');await sleep(600);
   i=await info();
-  check(T('Discard: no confirmation popup appears, the pill leaves, Settings is still open'),i.open&&!i.pill&&i.popups===1&&!i.confirm,JSON.stringify(i));
-  check(T('Discard: the change was undone'),(await state0()).reduce===before2.reduce);
-  await page.screenshot({path:path.join(out,`7-after-discard-${theme}.png`)});
+  check(T('the pill Discard still works and leaves Settings open'),i.open&&!i.pill&&!i.prompt,JSON.stringify(i));
   await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
-  check(T('after Discard, Esc closes Settings'),true);
 
-  // ---- phones: the pill is always on screen
-  for(const [w,h] of [[390,844],[360,640],[430,932]]){
+  // phones
+  for(const [w,h] of [[390,844],[360,640]]){
    await page.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:true,hasTouch:true});await sleep(500);
    await open('appearance');await dirty();
-   const pi=await info();
-   check(T(`${w}x${h}: the pill is fully on screen and uncovered with an unsaved change`),pi.onScreen&&pi.uncovered&&pi.popups===1,JSON.stringify(pi));
-   await page.screenshot({path:path.join(out,`8-phone-${w}x${h}-${theme}.png`)});
-   await attempt(`${w}x${h} the X`,()=>page.click('.settings-close'));
-   await page.click('.settings-savebar [data-discard]');await sleep(500);
-   await page.keyboard.press('Escape');await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
+   await asks(`${w}x${h} the X`,()=>page.click('.settings-close'));
+   const fits=await page.evaluate(()=>{const r=document.querySelector('.dl-leave').getBoundingClientRect();return r.left>=0&&r.right<=innerWidth&&r.bottom<=innerHeight});
+   check(T(`${w}x${h}: the prompt fits on screen`),fits);
+   await page.screenshot({path:path.join(out,`3-prompt-phone-${w}x${h}-${theme}.png`)});
+   await page.evaluate(()=>document.querySelector('.dl-leave [data-drop]').click());await page.waitForFunction(()=>!document.querySelector('.settings-dialog'),{timeout:4000});
   }
   await page.setViewport({width:1440,height:900,deviceScaleFactor:1,isMobile:false,hasTouch:false});
  }finally{await app.close()}

@@ -6,6 +6,10 @@
   var css = document.createElement("style");
   css.textContent = [
     "#dlPrint{display:none}",
+    ".dialog.dl-print-dlg{width:min(1080px,96vw)!important;max-width:96vw!important}.dl-print-body{display:grid;place-items:center;padding-top:6px}",
+    ".dl-print-stage{position:relative;overflow:hidden;border-radius:8px;border:1px solid var(--line);background:#fff;box-shadow:var(--shadow-pop)}",
+    ".dl-print-frame{display:block;border:0;background:#fff;transform-origin:0 0}",
+    ".dl-print-dlg .dialog-foot{gap:8px}.dl-print-dlg [data-tab]{margin-right:auto}",
     "@media print{",
     "  @page{size:landscape;margin:9mm}",
     "  html,body{background:#fff!important;color:#000!important;height:auto!important;overflow:visible!important}",
@@ -120,20 +124,51 @@
       "#dlPrint{display:flex;flex-direction:column;width:100%;height:186mm;font-family:Inter,system-ui,-apple-system,Segoe UI,sans-serif;color:#000;background:#fff}" +
       elementCss() + "</style></head><body>" + node.outerHTML + "</body></html>";
   }
+  /* "Print month" opens an in-app preview of the page (a separate white document in a visible frame) with Print and Close.
+     Nothing blocks until the person presses Print; if a browser cannot show a print dialog the preview still opens, the app stays
+     fully usable, and "Open in a new tab" gives a page that can be printed from there. */
   var printing = null;
   window.daylightPrintMonth = function () {
     if (!window.state || state.section !== "calendar" || (state.view !== "month" && state.view !== "day") || printing) return;   /* the ⋯ menu offers it in Month and Day */
     try { if (typeof closeMenu === "function") closeMenu(); } catch (e) {}
-    var f = document.createElement("iframe");
-    f.setAttribute("aria-hidden", "true"); f.setAttribute("tabindex", "-1"); f.title = "Print";
-    f.style.cssText = "position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none";
-    document.body.appendChild(f);
-    printing = f;
-    var d = f.contentDocument; d.open(); d.write(printDocument()); d.close();
-    function done() { clearTimeout(guard); if (printing === f) printing = null; try { f.parentNode && f.parentNode.removeChild(f); } catch (e) {} }
-    var guard = setTimeout(done, 180000);
-    try { f.contentWindow.addEventListener("afterprint", done); } catch (e) {}
-    setTimeout(function () { try { f.contentWindow.focus(); f.contentWindow.print(); } catch (e) { done(); } }, 200);
+    var html = printDocument();
+    var bd = document.createElement("div"); bd.className = "backdrop dl-print-bd";
+    bd.innerHTML = '<div class="dialog dl-std dl-look dl-print-dlg" role="dialog" aria-modal="true" aria-label="Print month">' +
+      '<div class="dialog-head"><span class="dialog-title">Print month</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + '</button></div>' +
+      '<div class="dialog-body dl-print-body"><div class="dl-print-stage"><iframe class="dl-print-frame" title="Month preview" tabindex="-1"></iframe></div></div>' +
+      '<div class="dialog-foot"><button type="button" class="btn-ghost" data-tab>Open in a new tab</button><button type="button" class="btn-ghost" data-close>Close</button><button type="button" class="btn-primary" style="margin-left:0" data-print>' + icon("printer", 15) + '<span>Print</span></button></div></div>';
+    var host = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body;
+    host.appendChild(bd); printing = bd;
+    var frame = bd.querySelector("iframe"), stage = bd.querySelector(".dl-print-stage");
+    var W = 1000, H = 790;
+    frame.style.width = W + "px"; frame.style.height = H + "px";
+    function fit() {
+      var k = Math.max(0.3, Math.min(1, (window.innerWidth - 80) / W, (window.innerHeight - 230) / H));
+      frame.style.transform = "scale(" + k + ")"; stage.style.width = Math.round(W * k) + "px"; stage.style.height = Math.round(H * k) + "px";
+    }
+    fit(); window.addEventListener("resize", fit);
+    var d = frame.contentDocument; d.open(); d.write(html.replace("</style>", "@media screen{body{padding:9mm;box-sizing:border-box}}</style>")); d.close();
+    function close() {
+      window.removeEventListener("resize", fit); document.removeEventListener("keydown", onKey, true);
+      printing = null;
+      if (window.daylightExit) window.daylightExit(bd); else bd.remove();
+      try { window.focus(); } catch (e) {}
+    }
+    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } }
+    document.addEventListener("keydown", onKey, true);
+    bd.querySelector("[data-x]").addEventListener("click", close);
+    bd.querySelector("[data-close]").addEventListener("click", close);
+    bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
+    bd.querySelector("[data-print]").addEventListener("click", function () {
+      try { frame.contentWindow.focus(); frame.contentWindow.print(); } catch (e) { toast("This browser couldn’t open its print dialog. Use Open in a new tab."); }
+      try { window.focus(); } catch (e) {}   /* focus always returns to the app, so Escape and every control keep working */
+    });
+    bd.querySelector("[data-tab]").addEventListener("click", function () {
+      var url = URL.createObjectURL(new Blob([html], { type: "text/html" }));
+      var w = window.open(url, "_blank"); if (!w) toast("Your browser blocked the new tab. Allow pop-ups for this site.");
+      setTimeout(function () { URL.revokeObjectURL(url); }, 60000);
+    });
+    setTimeout(function () { var pb = bd.querySelector("[data-print]"); if (pb) pb.focus(); }, 0);
   };
   /* test hook / preview: builds the same layout without opening the print dialog */
   window.daylightBuildPrintMonth = function () { cleanup(); var n = build(); document.body.appendChild(n); document.body.classList.add("dl-printing"); return n; };
