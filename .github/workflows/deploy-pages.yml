@@ -1,4 +1,5 @@
 name: Deploy Daylight to GitHub Pages
+# One site: landing (/), /login, /sign-up, /dashboard, shared assets.
 
 on:
   push:
