@@ -3,7 +3,7 @@ on:
   push:
     branches: [main]
     paths:
-      - daylight-oauth.js
+      - dashboard/daylight-oauth.js
       - supabase/functions/mcp/index.ts
       - .github/workflows/verify-oauth.yml
   workflow_dispatch:
@@ -19,10 +19,10 @@ jobs:
           node-version: '22'
       - name: Check new JavaScript
         run: |
-          node --check daylight-enhancements.js
-          node --check daylight-oauth.js
-          node --check daylight-integrations.js
-          node --check daylight-settings.js
+          node --check dashboard/daylight-enhancements.js
+          node --check dashboard/daylight-oauth.js
+          node --check dashboard/daylight-integrations.js
+          node --check dashboard/daylight-settings.js
       - name: Test stateless MCP discovery and permissions
         run: node --test tests/mcp-protocol.test.mjs
       - name: Check OAuth resource metadata and missing-token response

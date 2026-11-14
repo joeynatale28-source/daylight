@@ -95,7 +95,7 @@ var FILES=[
   "sports/wrestling"
 ];
 function key(path){return "dl-banner-"+path.replace(/\//g,"-");}
-function root(){var s=document.querySelector('script[src*="daylight-banners.js"]');try{return new URL(".",s?s.src:document.baseURI).href}catch(e){return document.baseURI}}
+function root(){var s=document.querySelector('script[src*="daylight-banners.js"]');try{return new URL("../",s?s.src:document.baseURI).href}catch(e){return document.baseURI}}
 function register(){if(typeof BANNER_DATA==="undefined"||typeof BANNER_KEYS==="undefined")return;var base=root();FILES.forEach(function(p){var k=key(p);BANNER_DATA[k]=base+"assets/banners/"+p+".webp";if(BANNER_KEYS.indexOf(k)<0)BANNER_KEYS.push(k)})}
 register();document.addEventListener("daylight:workspace-ready",register);document.addEventListener("daylight:workspace-preview-ready",register);
 function val(v){if(Array.isArray(v))return v.map(val).join(" ");if(v&&typeof v==="object")return [v.name,v.label,v.title,v.slug].map(val).join(" ");return v==null?"":String(v)}

@@ -124,7 +124,7 @@
       var c = client(), button = this;
       if (!c || !email) { say("Sign in with an email address to change your password.", true); return; }
       button.disabled = true;
-      var result = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      var result = await c.auth.resetPasswordForEmail(email, { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) });
       button.disabled = false;
       say(result.error ? "Couldn’t send the link: " + result.error.message : "Check " + email + " for a link to set a new password.", !!result.error);
     });
@@ -251,7 +251,7 @@
         c.addEventListener("click", async function () {
           c.disabled = true;
           try {
-            var res = await client().auth.linkIdentity({ provider: p.id, options: { redirectTo: location.origin + location.pathname } });
+            var res = await client().auth.linkIdentity({ provider: p.id, options: { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) } });
             if (res && res.error) throw res.error;
           } catch (e) { c.disabled = false; say(errText(e, p.label + " sign-in"), true); }
         });

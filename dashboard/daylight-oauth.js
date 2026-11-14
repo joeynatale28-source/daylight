@@ -48,7 +48,7 @@ css.textContent=`
 document.head.append(css);
 function client(){return window.daylightCloud?.client}
 function signed(){return window.daylightCloud?.user}
-const markLogo='<div class="dl-oauth-logo daylight" aria-label="Daylight"><img class="daylight-mark daylight-mark-light" src="./assets/daylight-sunarc-light-NOBG.png" alt=""><img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt=""></div>';
+const markLogo='<div class="dl-oauth-logo daylight" aria-label="Daylight"><img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt=""><img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt=""></div>';
 const switchRow=(inputId,label,sub,extra)=>'<div class="set-row switch-row"><span><span class="sw-label">'+label+(extra||'')+'</span><div class="sw-sub">'+sub+'</div></span>'+
   '<label class="switch"><input type="checkbox" id="'+inputId+'" aria-label="'+esc(label.replace(/<[^>]*>/g,''))+'"><span class="track"></span><span class="knob"></span></label></div>';
 async function renderConsent(){
@@ -80,7 +80,7 @@ async function renderConsent(){
   const profileName=String(profile.full_name||profile.name||email.split('@')[0]||'Your account');
   const safeImage=url=>{try{const u=new URL(url);return u.protocol==='https:'?u.href:null}catch{return null}};
   /* the requesting app's logo: its own registered logo, else the real Claude / ChatGPT marks, else its initial */
-  const known=/chatgpt|openai/i.test(name)?{src:"./assets/ChatGPT-Logo.svg.webp",invert:true,pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/claude|anthropic/i.test(name)?{src:"./assets/Claude_AI_symbol.svg",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/gemini|google/i.test(name)?{src:"./assets/Google_Gemini_icon_2025.svg.webp",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:null;
+  const known=/chatgpt|openai/i.test(name)?{src:"../assets/ChatGPT-Logo.svg.webp",invert:true,pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/claude|anthropic/i.test(name)?{src:"../assets/Claude_AI_symbol.svg",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:/gemini|google/i.test(name)?{src:"../assets/Google_Gemini_icon_2025.svg.webp",pad:"19%",bg:"var(--dl-ai-tile-bg)"}:null;
   const clientLogo=safeImage(d.client?.logo_uri||d.client?.logo_url||d.client?.icon_uri)||(known&&known.src);
   const avatar=safeImage(profile.avatar_url||profile.picture);
   /* after approve / deny the screen leads with the CONNECTING app's logo, not Daylight's */
@@ -133,7 +133,7 @@ async function renderConsent(){
   pane.querySelector("#dl-oauth-switch").onclick=async()=>{
     try{
       await client().auth.signOut();
-      location.assign('/daylight/?oauth_consent=1&authorization_id='+encodeURIComponent(id));
+      location.assign(new URL('../dashboard/?oauth_consent=1&authorization_id='+encodeURIComponent(id),location.href).href);
     }catch(error){pane.querySelector('#dl-oauth-error').textContent=error.message||'Could not sign out'}
   };
   const read=pane.querySelector("#dl-can-read"),write=pane.querySelector("#dl-can-write"),del=pane.querySelector("#dl-can-delete");

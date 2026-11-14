@@ -4,23 +4,12 @@ on:
     branches: [main]
     paths:
       - index.html
-      - daylight-cloud.js
-      - daylight-notifications.js
-      - daylight-admin.js
-      - daylight-adminpage.js
-      - daylight-auth.js
-      - daylight-security.js
-      - daylight-ai-access.js
-      - daylight-print.js
-      - daylight-event-tools.js
-      - daylight-sharing.js
-      - daylight-manage.js
-      - daylight-onboarding.js
-      - daylight-integrations.js
-      - daylight-oauth.js
-      - daylight-settings.js
-      - daylight-enhancements.js
-      - tests/daylight-ui-smoke.mjs
+      - site/**
+      - dashboard/**
+      - login/**
+      - sign-up/**
+      - 404.html
+      - tests/**
       - .github/workflows/verify-ui.yml
   workflow_dispatch:
 permissions:

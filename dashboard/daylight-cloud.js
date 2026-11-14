@@ -659,11 +659,13 @@
     teardownSessionUi();
     document.dispatchEvent(new Event('daylight:workspace-signed-out'));
     document.getElementById('app').hidden = true;
-    authState.mode = 'login';
+    authState.mode = window.daylightRoute ? window.daylightRoute.authMode() : 'login';
     authState.password = '';
     authState.newPassword = '';
     authState.confirmPassword = '';
     authState.justReset = false;
+    /* signed out on the app page: the sign-in screen is its own page now */
+    if (window.daylightRoute && window.daylightRoute.goLogin()) return;
     var root = document.getElementById('authRoot');
     root.innerHTML = '';
     renderAuth();
@@ -717,7 +719,7 @@
       return;
     }
     var result = await client.auth.resetPasswordForEmail(email, {
-      redirectTo: location.origin + location.pathname
+      redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname)
     });
     if (result.error) toast('Reset email failed: ' + result.error.message);
     else toast('If the account exists, check its inbox for the password-reset link.');
@@ -952,6 +954,8 @@
       return;
     }
     if (session && session.user && !recovery) {
+      /* already signed in on the sign-in / sign-up page: go straight to the app */
+      if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
       setTimeout(function () { loadForUser(session.user); },0);
     }
   });
@@ -964,6 +968,7 @@
       if (!user) showSignedOut();
       return;
     }
+    if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
     loadForUser(account);
   }).catch(function () {
     if (!user && !recovery) showSignedOut();

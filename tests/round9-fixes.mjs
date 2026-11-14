@@ -146,7 +146,7 @@ for(const theme of ['dark','light']){
 
   // ---- 8. no eye on subscribed rows
   check(T('no eye toggle exists on any calendar row; each keeps its checkbox'),await page.evaluate(()=>!document.querySelector('.cal-visibility-btn')&&[...document.querySelectorAll('.cal-row')].every(r=>!!r.querySelector('.cal-check'))));
-  check(T('the subscribed-row code no longer builds the eye'),!/cal-visibility-btn/.test(fs.readFileSync('daylight-integrations.js','utf8')));
+  check(T('the subscribed-row code no longer builds the eye'),!/cal-visibility-btn/.test(fs.readFileSync('dashboard/daylight-integrations.js','utf8')));
 
   // ---- 9. lines and finish
   const ln=await page.evaluate(()=>{const g=n=>getComputedStyle(document.querySelector(n));const set=getComputedStyle(document.documentElement).getPropertyValue('--line-soft').trim();return {dow:g('.dow-row').borderBottomColor,week:g('.month-week').borderBottomColor,cell:g('.day-cell').borderRightColor,chipR:g('.chip').borderTopLeftRadius,set}});

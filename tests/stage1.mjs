@@ -11,7 +11,7 @@ const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 {
  const british=/colour|behaviour|centre|favourite|organis(e|er|ation)|recognis|licence|customis|personalis|analyse|grey/i;
  const offenders=[];
- const files=['index.html','daylight-settings.js','daylight-integrations.js','daylight-enhancements.js','daylight-cloud.js','daylight-oauth.js','daylight-places.js','404.html'];
+ const files=['dashboard/index.html','dashboard/app.js','dashboard/app.css','dashboard/daylight-settings.js','dashboard/daylight-integrations.js','dashboard/daylight-enhancements.js','dashboard/daylight-cloud.js','dashboard/daylight-oauth.js','dashboard/daylight-places.js','404.html','index.html','site/landing.css','site/landing.js'].filter(f=>fs.existsSync(path.join(process.env.HARNESS_ROOT||process.cwd(),f)));
  for(const file of files){
   const text=fs.readFileSync(path.join(process.env.HARNESS_ROOT||process.cwd(),file),'utf8').replace(/\/\*[\s\S]*?\*\//g,'');
   text.split(String.fromCharCode(10)).filter(l=>!/^\s*\/\//.test(l)).forEach(line=>{if(british.test(line)&&!/--gray|gray-/.test(line))offenders.push(file+': '+line.trim().slice(0,100))});

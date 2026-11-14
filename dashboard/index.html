@@ -1,0 +1,53 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-dark-32.png" media="(prefers-color-scheme: dark)"><link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-light-32.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-dark-16.png" media="(prefers-color-scheme: dark)"><link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-light-16.png" media="(prefers-color-scheme: light)"><link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png"><meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
+    <title>Daylight — Calendar</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./daylight-places.css">
+    <script>window.__DL_ROUTE = "dashboard";</script>
+    <script src="./boot.js?v=__BUILD_ID__"></script>
+    <link rel="stylesheet" href="./app.css?v=__BUILD_ID__">
+  </head>
+  <body class="booting">
+    <div id="authRoot"></div>
+    <div id="app" hidden>
+      <aside id="sidebar" aria-label="Sidebar"></aside>
+      <main id="main">
+        <header id="headerBand"></header>
+        <div id="viewWrap"></div>
+      </main>
+    </div>
+    
+    <script src="./shell.js?v=__BUILD_ID__"></script>
+    <div id="overlayRoot"></div>
+    <div id="toastRoot" aria-live="polite"></div>
+
+    <script src="./app.js?v=__BUILD_ID__"></script>
+    <script src="./route.js?v=__BUILD_ID__"></script>
+    <script src="./daylight-settings.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.118.0/dist/umd/supabase.min.js"></script>
+    <script src="./daylight-cloud.js"></script>
+    <script src="./daylight-auth.js"></script>
+    <script src="./daylight-notifications.js"></script>
+    <script src="./daylight-admin.js"></script>
+    <script src="./daylight-adminpage.js"></script>
+    <script src="./daylight-security.js"></script>
+    <script src="./daylight-sharing.js"></script>
+    <script src="./daylight-manage.js"></script>
+    <script src="./daylight-onboarding.js"></script>
+    <script src="./daylight-integrations.js"></script>
+    <script src="./daylight-places.js"></script>
+    <script src="./daylight-enhancements.js"></script>
+    <script src="./daylight-oauth.js"></script>
+    <script src="./daylight-ai-access.js"></script>
+    <script src="./daylight-print.js"></script>
+    <script src="./daylight-event-tools.js"></script>
+    <script src="./daylight-banners.js"></script>
+  </body>
+</html>

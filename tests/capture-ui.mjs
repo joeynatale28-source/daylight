@@ -28,7 +28,7 @@ try{
     else if(/^https?:/.test(request.url()))request.abort();
     else request.continue();
   });
-  await page.goto('file://'+path.join(process.cwd(),'index.html'),{waitUntil:'load',timeout:30000});
+  await page.goto('file://'+path.join(process.cwd(),'dashboard','index.html'),{waitUntil:'load',timeout:30000});
   await page.evaluate(()=>{
     const cloud=window.daylightCloud;
     if(!cloud)throw Error('Cloud integration did not initialize');

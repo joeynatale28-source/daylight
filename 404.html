@@ -1,11 +1,64 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><title>Daylight — authorizing</title></head><body>
-<p>Opening Daylight authorization…</p>
+<!doctype html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light dark">
+<meta name="robots" content="noindex">
+<title>Page not found · Daylight</title>
 <script>
-(function(){
-  var p=new URLSearchParams(location.search);
-  if(location.pathname.replace(/\/$/,"").endsWith("/oauth/consent")){
-    var id=p.get("authorization_id")||"";
-    location.replace("/daylight/?oauth_consent=1"+(id?"&authorization_id="+encodeURIComponent(id):""));
-  }else{document.body.textContent="This Daylight page does not exist."}
+/* GitHub Pages serves this file for every unknown path, at any depth, so asset and link paths are built from the site's base:
+   /<repo>/ on a github.io project site, / on a domain of its own. */
+(function () {
+  var seg = location.pathname.split("/").filter(Boolean)[0] || "";
+  var base = (/\.github\.io$/.test(location.hostname) || seg === "daylight") && seg ? "/" + seg + "/" : "/";
+  window.__DL_BASE = base;
+  /* The AI-access consent step (/oauth/consent) is a route of the app: hand it, with its parameters, to the app page. */
+  if (/\/oauth\/consent\/?$/.test(location.pathname)) {
+    var id = new URLSearchParams(location.search).get("authorization_id") || "";
+    location.replace(base + "dashboard/?oauth_consent=1" + (id ? "&authorization_id=" + encodeURIComponent(id) : ""));
+    return;
+  }
+  var light = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
+  document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
+  document.write('<link rel="icon" type="image/png" sizes="32x32" href="' + base + 'assets/favicon-' + (light ? "light" : "dark") + '-32.png">');
 })();
-</script></body></html>
+</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#0a0a0a;--text:#fff;--muted:#a1a1a1;--line:rgba(255,255,255,.08);--btn-bg:#fff;--btn-text:#0a0a0a}
+[data-theme="light"]{--bg:#fff;--text:#111;--muted:#555;--line:rgba(0,0,0,.08);--btn-bg:#111;--btn-text:#fff}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:24px}
+main{width:100%;max-width:420px;text-align:center}
+.mark{width:34px;height:34px;display:block;margin:0 auto 28px}
+.mark-dark{display:none}[data-theme="dark"] .mark-light{display:none}[data-theme="dark"] .mark-dark{display:block}
+h1{margin:0 0 12px;font-size:clamp(28px,5vw,36px);line-height:1.1;letter-spacing:-.03em;font-weight:700}
+p{margin:0 0 32px;font-size:17px;line-height:1.6;color:var(--muted)}
+a.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:999px;background:var(--btn-bg);color:var(--btn-text);font-size:15px;font-weight:600;text-decoration:none;transition:transform 160ms ease-out,opacity 160ms ease-out}
+a.btn:hover{transform:translateY(-1px);opacity:.92}a.btn:active{transform:scale(.98)}
+a.btn:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+@media (prefers-reduced-motion:reduce){a.btn{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <img class="mark mark-light" id="mL" alt="" width="34" height="34">
+  <img class="mark mark-dark" id="mD" alt="" width="34" height="34">
+  <h1>This page doesn’t exist.</h1>
+  <p>The link may be old, or the address may have a typo.</p>
+  <a class="btn" id="home" href="/">Go to Daylight</a>
+</main>
+<script>
+(function () {
+  var b = window.__DL_BASE || "/";
+  document.getElementById("mL").src = b + "assets/daylight-sunarc-light-NOBG.png";
+  document.getElementById("mD").src = b + "assets/daylight-sunarc-dark-NOBG.png";
+  document.getElementById("home").href = b;
+})();
+</script>
+</body>
+</html>

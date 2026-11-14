@@ -2,13 +2,21 @@
 
 Daylight is a single-page calendar with Month, Week, Day, Agenda and Tasks views, custom calendars, settings, and a built-in US Holidays calendar.
 
-## Application files
+## Site layout (one site, one repo)
 
-- `index.html`: current app. The visual design is preserved from the standalone preview.
-- `daylight-cloud.js`: real Supabase Auth + cloud workspace synchronization.
+| URL | Source |
+|---|---|
+| `/` | `index.html` + `site/landing.css` + `site/landing.js`: the landing page |
+| `/login`, `/sign-up` | `login/index.html`, `sign-up/index.html`: the sign-in and create-account screens |
+| `/dashboard` | `dashboard/index.html`: the calendar app |
+| `/oauth/consent` | handled by `404.html`, which hands it to `/dashboard/?oauth_consent=1&...` |
+| any other path | `404.html`: the branded not-found page |
+
+`dashboard/` holds all app code: `app.js` and `app.css` (the main app), `boot.js` and `shell.js` (first paint), `route.js` (which page this is and where to go next), and the `daylight-*.js` modules. `/login` and `/sign-up` load the same `app.js`, `app.css` and the auth modules from `dashboard/`, so the sign-in screen is exactly the app's. A signed-out visitor on `/dashboard` goes to `/login`; a signed-in visitor on `/login` or `/sign-up` goes to `/dashboard`. Shared images live in `assets/`. All paths are relative, so the site works under the GitHub Pages project path (`/daylight/`) and on a domain root alike. `DESIGN.md` records the design system.
+
 - `daylight-calendar-ui-preview.html`: archived original UI preview (demo-only, **not** the live authenticated application).
 
-Serve `index.html` over HTTPS (or localhost). Do **not** use `file://`, which cannot be trusted for password reset redirects. The Supabase JavaScript client is loaded from a pinned CDN version. There is no build step.
+Serve over HTTPS (or localhost). Do **not** use `file://`, which cannot be trusted for password reset redirects. The Supabase JavaScript client is loaded from a pinned CDN version. There is no build step; the deploy workflow only substitutes the build id.
 
 ## Supabase configuration
 

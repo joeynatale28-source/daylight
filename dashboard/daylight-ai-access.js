@@ -10,13 +10,13 @@
   "use strict";
   var MCP_URL = window.DAYLIGHT_MCP_URL || "https://usihrcucnreecynewgbd.supabase.co/functions/v1/mcp";
   var AIS = [
-    { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "./assets/Claude_AI_symbol.svg", pad: "19%", tile: "plain",
+    { id: "claude", name: "Claude", re: /claude|anthropic/i, logo: "../assets/Claude_AI_symbol.svg", pad: "19%", tile: "plain",
       steps: ["Open Claude and go to Settings → Connectors.", "Choose Add custom connector.", "Paste the address above.", "Choose “Register automatically”.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
     /* ChatGPT: the owner-uploaded mark (assets/ChatGPT-Logo.svg.webp, black on transparent) shown WHITE on its black rounded-square tile. */
-    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "./assets/ChatGPT-Logo.svg.webp", invert: true, pad: "19%", tile: "plain",
+    { id: "chatgpt", name: "ChatGPT", re: /chatgpt|openai/i, logo: "../assets/ChatGPT-Logo.svg.webp", invert: true, pad: "19%", tile: "plain",
       steps: ["In ChatGPT, create a new plugin or connector.", "Paste the address above.", "Leave Client ID and Client Secret blank.", "Approve access in Daylight."] },
     /* Google Gemini registers itself as "Google" (or "Gemini …"); the owner-uploaded gradient spark is used as-is on the standard tile. */
-    { id: "gemini", name: "Google Gemini", re: /gemini|google/i, logo: "./assets/Google_Gemini_icon_2025.svg.webp", pad: "19%", initial: "G", tile: "plain",
+    { id: "gemini", name: "Google Gemini", re: /gemini|google/i, logo: "../assets/Google_Gemini_icon_2025.svg.webp", pad: "19%", initial: "G", tile: "plain",
       steps: ["Open Gemini CLI.", "Add Daylight as an MCP server, using the address above.", "Leave the client ID and client secret blank if it asks.", "Approve access on the Daylight consent screen."] }
   ];
 

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {JSDOM} from 'jsdom';
 
-const source=readFileSync('daylight-places.js','utf8');
+const source=readFileSync('dashboard/daylight-places.js','utf8');
 function harness(mode='success') {
   const dom=new JSDOM('<!doctype html><body><div class="field"><label>Location</label><input id="loc"></div></body>',{
     url:'https://joeynatale28-source.github.io/daylight/',runScripts:'outside-only'

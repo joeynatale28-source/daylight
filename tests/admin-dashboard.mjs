@@ -122,7 +122,7 @@ for(const theme of ['dark','light']){
    return {logo:imgs.map(i=>i.getAttribute('src')),from:from.firstChild.textContent,fromWeight:getComputedStyle(from).fontWeight,hasBadge:!!badge,tip:badge&&badge.getAttribute('data-tip'),badgeAfterName:!!badge&&badge.parentElement===from,title:r.querySelector('.dl-notif-msg').textContent,msg:r.querySelector('.dl-notif-sub').textContent,time:r.querySelector('.dl-notif-time').textContent,
     footer:!!r.querySelector('.dl-notif-official')&&getComputedStyle(r.querySelector('.dl-notif-official')).display!=='none'||/Official Daylight notification/i.test(r.innerText),avatarBox:(()=>{const a=r.querySelector('.dl-notif-avatar').getBoundingClientRect();return [Math.round(a.width),Math.round(a.height)]})(),
     order:[...r.querySelector('.dl-notif-main').children].map(c=>c.className),unread:r.classList.contains('is-unread')}});
-  const wantLogo=theme==='dark'?'./assets/daylight-sunarc-dark-NOBG.png':'./assets/daylight-sunarc-light-NOBG.png';
+  const wantLogo=theme==='dark'?'../assets/daylight-sunarc-dark-NOBG.png':'../assets/daylight-sunarc-light-NOBG.png';
   check(T('the avatar is the daylight sun-arc for this theme (white in dark, black in light), nothing else'),row.logo.length===1&&row.logo[0]===wantLogo,JSON.stringify(row.logo));
   check(T('sender "Daylight" in bold with the verified badge right after the name, then the title line, the message line and the time'),row.from==='Daylight'&&Number(row.fromWeight)>=600&&row.hasBadge&&row.badgeAfterName&&row.title==='Just for you'&&row.msg==='Hello test account'&&!!row.time,JSON.stringify(row));
   check(T('the tiny footer text is gone: the badge is the only official marker'),!row.footer&&row.tip==='Official Account',JSON.stringify(row));

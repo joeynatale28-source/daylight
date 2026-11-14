@@ -614,7 +614,7 @@
       var button = this;
       if (!client || !email) { securityStatus.textContent = "Sign in with an email address to change your password."; securityStatus.classList.add("is-error"); return; }
       button.disabled = true;
-      var result = await client.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      var result = await client.auth.resetPasswordForEmail(email, { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) });
       button.disabled = false;
       securityStatus.classList.toggle("is-error", !!result.error);
       securityStatus.textContent = result.error ? "Couldn’t send the link: " + result.error.message : "Check " + email + " for a link to set a new password.";

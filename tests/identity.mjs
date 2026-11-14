@@ -83,7 +83,7 @@ for(const theme of ['dark','light']){
   }
  }finally{await app.close()}
 }
-const files=['index.html','daylight-cloud.js','daylight-settings.js','daylight-integrations.js','daylight-enhancements.js','daylight-notifications.js'];
+const files=['dashboard/index.html','dashboard/app.js','dashboard/boot.js','dashboard/daylight-cloud.js','dashboard/daylight-settings.js','dashboard/daylight-integrations.js','dashboard/daylight-enhancements.js','dashboard/daylight-notifications.js'];
 const baked=files.filter(f=>fs.existsSync(f)&&/joeynatale28@|profileName:\s*"Joey|firstName:\s*"Joey/i.test(fs.readFileSync(f,'utf8')));
 check('no account name or email is hard-coded in the app files',baked.length===0,baked.join());
 if(failed){console.log('identity FAILED');process.exit(1)}

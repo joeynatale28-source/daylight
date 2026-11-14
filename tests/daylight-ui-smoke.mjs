@@ -77,6 +77,7 @@ try{
    window.__shareState={enabled:false,public_enabled:false};
    window.supabase={createClient:()=>window.__fakeClient};
  });
+ await page.evaluateOnNewDocument(()=>{window.__DL_NO_ROUTING=true});
  await page.setRequestInterception(true);
  const assetRoot=path.resolve(process.cwd(),'assets')+path.sep;
  page.on('request',request=>{
@@ -101,7 +102,7 @@ try{
  page.on('pageerror',err=>errors.push(err.message));
 page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  page.on('requestfailed',request=>failedRequests.push({url:request.url(),failure:request.failure()?.errorText||'unknown'}));
- await page.goto('file://'+path.join(process.cwd(),'index.html')+'?oauth_consent=1&authorization_id=synthetic',{waitUntil:'load',timeout:30000});
+ await page.goto('file://'+path.join(process.cwd(),'dashboard','index.html')+'?oauth_consent=1&authorization_id=synthetic',{waitUntil:'load',timeout:30000});
  await page.waitForSelector('#authScreen',{timeout:5000});
  for(const theme of ['dark','light']){
    await page.evaluate(theme=>{state.themeMode=theme;applyTheme()},theme);
@@ -115,8 +116,8 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
        displays:[style(light),style(dark)],visibleWidths:[light?.getBoundingClientRect().width||0,dark?.getBoundingClientRect().width||0]};
    },theme);
    assert.ok(mark.present,'sign-in brand mark missing');
-   assert.equal(mark.light,'./assets/daylight-sunarc-light-NOBG.png');
-   assert.equal(mark.dark,'./assets/daylight-sunarc-dark-NOBG.png');
+   assert.equal(mark.light,'../assets/daylight-sunarc-light-NOBG.png');
+   assert.equal(mark.dark,'../assets/daylight-sunarc-dark-NOBG.png');
    assert.deepEqual(mark.loaded,[true,true],'both sign-in logo files must load: '+JSON.stringify({mark,failedRequests}));
    assert.equal(mark.displays[theme==='dark'?0:1],'none','inactive theme mark must be hidden');
    assert.ok(mark.visibleWidths[theme==='dark'?1:0]>0,'active theme mark must render');
@@ -124,7 +125,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
      images:[...document.querySelectorAll('.auth-mark img')].map(img=>({src:img.getAttribute('src'),loaded:img.complete&&img.naturalWidth>0,display:getComputedStyle(img).display})),
      legacySvg:!!document.querySelector('.auth-mark svg')
    }));
-   assert.deepEqual(authMark.images.map(image=>image.src),['./assets/daylight-sunarc-light-NOBG.png','./assets/daylight-sunarc-dark-NOBG.png']);
+   assert.deepEqual(authMark.images.map(image=>image.src),['../assets/daylight-sunarc-light-NOBG.png','../assets/daylight-sunarc-dark-NOBG.png']);
    assert.ok(authMark.images.every(image=>image.loaded),'sign-in illustration marks must load');
    assert.equal(authMark.legacySvg,false,'legacy sunrise/rays sign-in artwork must be gone');
  
@@ -715,7 +716,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
  // Real-page checks (real index.html over HTTP, real boot path): month grid fit at six
  // window heights in both themes, and the cold/warm load path.
  const {spawnSync}=await import('node:child_process');
- for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/round13-events.mjs',{}],['tests/round13-ui.mjs',{}],['tests/round19.mjs',{}],['tests/round20.mjs',{}],['tests/core-flows.mjs',{}]]){
+ for(const [script,env] of [['tests/month-fit.mjs',{HEIGHTS:'1080,998,900,800,700,620'}],['tests/load-path.mjs',{}],['tests/stage1.mjs',{}],['tests/reduce-motion.mjs',{}],['tests/month-switcher.mjs',{}],['tests/event-colors.mjs',{}],['tests/weekdays.mjs',{}],['tests/item6.mjs',{}],['tests/logos.mjs',{}],['tests/sessions-ui.mjs',{}],['tests/account-switch.mjs',{}],['tests/admin-dashboard.mjs',{}],['tests/identity.mjs',{}],['tests/profile-extras.mjs',{}],['tests/unsaved-gate.mjs',{}],['tests/month-clip.mjs',{}],['tests/manage-dialog.mjs',{}],['tests/sharing.mjs',{}],['tests/event-sharing.mjs',{}],['tests/look-unification.mjs',{}],['tests/motion-finish.mjs',{}],['tests/onboarding-and-create.mjs',{}],['tests/sidebar-fit.mjs',{}],['tests/week-time-clip.mjs',{}],['tests/ai-access.mjs',{}],['tests/consent.mjs',{}],['tests/round12-fixes.mjs',{}],['tests/round13-events.mjs',{}],['tests/round13-ui.mjs',{}],['tests/round19.mjs',{}],['tests/round20.mjs',{}],['tests/routes.mjs',{}],['tests/site.mjs',{}],['tests/core-flows.mjs',{}]]){
    const run=spawnSync(process.execPath,[script],{encoding:'utf8',env:{...process.env,...env,CHROME_PATH:chrome},timeout:420000});
    process.stdout.write(run.stdout||'');
    const detail=(run.stdout||'').split(String.fromCharCode(10)).filter(l=>/FAIL|Assertion|Error/.test(l)).slice(0,8).join(String.fromCharCode(10));

@@ -42,7 +42,7 @@
   var busy = false;
 
   function client() { return window.daylightCloud && window.daylightCloud.client; }
-  function mark() { return '<div class="auth-mark"><img class="daylight-mark daylight-mark-light" src="./assets/daylight-sunarc-light-NOBG.png" alt=""><img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt=""></div>'; }
+  function mark() { return '<div class="auth-mark"><img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt=""><img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt=""></div>'; }
   function passkeyAvailable() {
     var c = client();
     return !!(window.PublicKeyCredential && c && c.auth && typeof c.auth.signInWithPasskey === "function");
@@ -159,7 +159,7 @@
     try {
       if (!(await providerOn(name))) { setBusy(root, false); showFlash(root, "error", label + " sign-in isn’t available yet. Use your email and password for now."); return; }
       try { sessionStorage.setItem("dl-oauth-pending", String(Date.now())); } catch (e2) {}
-      var res = await c.auth.signInWithOAuth({ provider: name, options: { redirectTo: location.origin + location.pathname } });
+      var res = await c.auth.signInWithOAuth({ provider: name, options: { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) } });
       if (res && res.error) throw res.error;
       /* the browser is now on its way to the provider: the buttons stay disabled until the page changes (or the person comes back to it) */
       setTimeout(function () { if (busy) setBusy(root, false); }, 6000);
@@ -198,7 +198,7 @@
     if (!name || !validEmail(email) || !password || pwRuleError(password)) return;
     setBusy(root, true, "Creating account…");
     try {
-      var res = await c.auth.signUp({ email: email, password: password, options: { data: { full_name: name }, emailRedirectTo: location.origin + location.pathname } });
+      var res = await c.auth.signUp({ email: email, password: password, options: { data: { full_name: name }, emailRedirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) } });
       if (res.error) throw res.error;
       var u = res.data && res.data.user;
       if (res.data && res.data.session) { setBusy(root, false); return; }      /* confirmations are off: onAuthStateChange signs in */
@@ -230,7 +230,7 @@
     if (!validEmail(email)) return;
     setBusy(root, true, "Sending…");
     try {
-      var res = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname });
+      var res = await c.auth.resetPasswordForEmail(email, { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) });
       /* never reveal whether the account exists: a "user not found" style answer looks the same as success */
       var m = String(res && res.error && res.error.message || "");
       if (res && res.error && /rate|too many|seconds/i.test(m)) { setBusy(root, false); showFlash(root, "error", "Too many requests. Wait a minute and try again."); return; }

@@ -20,16 +20,25 @@ const chrome=process.env.CHROME_PATH||[
 ].find(fs.existsSync);
 const types={'.html':'text/html','.js':'text/javascript','.css':'text/css','.png':'image/png','.webp':'image/webp','.svg':'image/svg+xml'};
 
-export function serve(port=0){
+export function serve(port=0,prefix=''){
+ // prefix: serve the site under a project path (e.g. /daylight/) exactly like GitHub Pages does, with 404.html for unknown paths
  return new Promise(resolve=>{
   const server=http.createServer((req,res)=>{
-   let file=decodeURIComponent(new URL(req.url,'http://x').pathname);
+   const u=new URL(req.url,'http://x');
+   let file=decodeURIComponent(u.pathname);
+   if(prefix){
+    if(!file.startsWith(prefix)&&file+'/'!==prefix){res.writeHead(404);res.end('nf');return}
+    file=file.slice(prefix.length-1)||'/';
+   }
    if(file.endsWith('/'))file+='index.html';
-   const full=path.join(ROOT,file);
-   if(!full.startsWith(ROOT)||!fs.existsSync(full)||fs.statSync(full).isDirectory()){res.writeHead(404);res.end('nf');return}
+   let full=path.join(ROOT,file);
+   if(prefix&&!path.extname(file)&&fs.existsSync(path.join(ROOT,file,'index.html'))){res.writeHead(301,{Location:u.pathname+'/'+u.search});res.end();return}
+   if(!full.startsWith(ROOT)||!fs.existsSync(full)||fs.statSync(full).isDirectory()){
+    if(prefix){res.writeHead(404,{'Content-Type':'text/html','Cache-Control':'no-store'});fs.createReadStream(path.join(ROOT,'404.html')).pipe(res);return}
+    res.writeHead(404);res.end('nf');return}
    res.writeHead(200,{'Content-Type':types[path.extname(full)]||'application/octet-stream','Cache-Control':'no-store'});
    fs.createReadStream(full).pipe(res);
-  }).listen(port,'127.0.0.1',()=>resolve({server,url:'http://127.0.0.1:'+server.address().port+'/'}));
+  }).listen(port,'127.0.0.1',()=>resolve({server,url:'http://127.0.0.1:'+server.address().port+(prefix||'/')}));
  });
 }
 
@@ -214,16 +223,18 @@ export function busyPayload({month=11,spans=4,busyDay=9,avatar=''}={}){
  * a previous launch via userDataDir), month cursor via ?; returns handles.
  */
 export async function launch(opts={}){
- const {width=1919,height=998,theme='dark',payload=busyPayload(),delayMs=0,signedIn=true,userDataDir,port=0,cdnDelayMs=0,baseUrl}=opts;
+ const {width=1919,height=998,theme='dark',payload=busyPayload(),delayMs=0,signedIn=true,userDataDir,port=0,cdnDelayMs=0,baseUrl,prefix=''}=opts;
  // baseUrl: measure a DEPLOYED build (real files, real fonts); only Supabase is stubbed.
- const {server,url}=baseUrl?{server:{close(){}},url:baseUrl}:await serve(port);
+ const served=baseUrl?{server:{close(){}},url:baseUrl}:await serve(port,prefix);
+ // the app lives at /dashboard/ and its sign-in screen at /login/; a test that passes baseUrl gives the page URL itself
+ const server=served.server,url=baseUrl?served.url:served.url+(signedIn===false?'login/':'dashboard/');
  const browser=await puppeteer.launch({executablePath:chrome,headless:'new',userDataDir,args:['--no-sandbox']});
  const page=await browser.newPage();
  await page.setViewport({width,height,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme}]);
- await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;
+ await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;if(!cfg.routing)window.__DL_NO_ROUTING=true;   // most tests drive sign-in / sign-out on one document; tests/routes.mjs turns real routing on
   if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}}}))}catch(e){}}
- },{payload,delayMs,signedIn,seedSession:opts.seedSession});
+ },{payload,delayMs,signedIn,seedSession:opts.seedSession,routing:!!opts.routing});
  await page.setRequestInterception(true);
  page.on('request',r=>{
   const u=r.url();

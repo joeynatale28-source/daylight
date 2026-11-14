@@ -150,8 +150,8 @@
     var span = document.createElement("span");
     span.className = "dl-notif-avatar";
     span.setAttribute("aria-hidden", "true");
-    span.innerHTML = '<img class="daylight-mark daylight-mark-light" src="./assets/daylight-sunarc-light-NOBG.png" alt="" width="20" height="20">' +
-      '<img class="daylight-mark daylight-mark-dark" src="./assets/daylight-sunarc-dark-NOBG.png" alt="" width="20" height="20">';
+    span.innerHTML = '<img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt="" width="20" height="20">' +
+      '<img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt="" width="20" height="20">';
     return span;
   }
   function personAvatar(inv) {
