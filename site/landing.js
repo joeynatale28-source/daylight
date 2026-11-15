@@ -26,6 +26,52 @@
     });
   });
 
+  /* Announcement strip above the nav: the same live banner list the Admin dashboard writes ("Dashboard and landing page" banners,
+     read through the public daylight_landing_banner function). Text, link and color come from the database; nothing is hardcoded.
+     With no active banner the default strip stays. Visitors cannot dismiss it. It refreshes every minute and when the tab returns,
+     so an edited, deactivated or deleted banner never lingers. */
+  var holder = d.getElementById('banners'), dflt = d.getElementById('stripDefault');
+  if (holder && dflt && w.fetch) {
+    var SUPA = 'https://usihrcucnreecynewgbd.supabase.co', KEY = 'sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM';
+    var lastKey = '';
+    var textOn = function (hex) {
+      var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || '');
+      if (!m) return '#ffffff';
+      var lin = function (v) { v = parseInt(v, 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
+      return (0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3])) > 0.4 ? '#111111' : '#ffffff';
+    };
+    var show = function (list) {
+      list = (list || []).filter(function (b) { return b && b.body; });
+      var key = JSON.stringify(list);
+      if (key === lastKey) return;
+      lastKey = key;
+      holder.textContent = '';
+      if (!list.length) { holder.appendChild(dflt); return; }
+      list.forEach(function (b) {
+        var link = /^https?:\/\/\S+$/i.test(b.link || '') ? b.link : null;
+        var row = d.createElement(link ? 'a' : 'div');
+        row.className = 'strip live';
+        if (/^#[0-9a-f]{6}$/i.test(b.color || '')) { row.style.background = b.color; row.style.color = textOn(b.color); }
+        var t = d.createElement('span'); t.textContent = b.body; row.appendChild(t);
+        if (link) {
+          row.href = link; row.target = '_blank'; row.rel = 'noopener noreferrer';
+          var ar = d.createElement('span'); ar.className = 'arrow'; ar.setAttribute('aria-hidden', 'true'); ar.textContent = '\u203a';
+          row.appendChild(ar);
+        }
+        holder.appendChild(row);
+      });
+    };
+    var load = function () {
+      w.fetch(SUPA + '/rest/v1/rpc/daylight_landing_banner', { method: 'POST', headers: { apikey: KEY, 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (rows) { if (rows) show(rows); })
+        .catch(function () {});
+    };
+    load();
+    setInterval(function () { if (!d.hidden) load(); }, 60000);
+    d.addEventListener('visibilitychange', function () { if (!d.hidden) load(); });
+  }
+
   /* Nav: bar at rest, floating pill past 8px. Widths in px so the change animates smoothly. */
   var nav = d.getElementById('nav'), menu = d.getElementById('menu'), panel = d.getElementById('panel');
   if (nav) {
@@ -55,10 +101,10 @@
     }
   }
 
-  /* Rotating word: two stacked spans cross-fade inside a fixed-width slot. Nothing outside the slot can move. */
+  /* Rotating word: the word and its period are one unit. Two stacked units cross-fade inside a fixed-width slot. Nothing outside the slot can move. */
   var a = d.getElementById('w1'), b = d.getElementById('w2');
   if (a && b && !reduce.matches) {
-    var words = ['clutter', 'noise', 'chaos', 'mess'], i = 0, cur = a, next = b;
+    var words = ['clutter.', 'noise.', 'chaos.', 'mess.'], i = 0, cur = a, next = b;
     setInterval(function () {
       i = (i + 1) % words.length;
       next.className = 'word reset';
