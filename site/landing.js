@@ -4,7 +4,6 @@
   "use strict";
   var doc = document.documentElement;
   var nav = document.getElementById("nav");
-  var progress = document.getElementById("progress");
   var burger = document.getElementById("burger");
   var menu = document.getElementById("menu");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -76,10 +75,6 @@
     var bh = bannerHeight();
     nav.style.transform = bh > y ? "translate3d(0," + (bh - y) + "px,0)" : "";
     nav.classList.toggle("is-scrolled", y > bh + 8);
-    if (!phone.matches && progress) {
-      var max = Math.max(1, doc.scrollHeight - window.innerHeight);
-      progress.style.transform = "scaleX(" + Math.min(1, y / max).toFixed(4) + ")";
-    } else if (progress) { progress.style.transform = "scaleX(0)"; }
     }
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", function () { setBannerVar(); onScroll(); if (!phone.matches) closeMenu(); }, { passive: true });
@@ -130,40 +125,22 @@
     document.addEventListener("click", function (e) { if (!dd.contains(e.target)) setDd(false); });
   }
 
-  /* ---- carousels (features, AI access): arrows scroll one card or slide; the next one always peeks in ---- */
-  [].slice.call(document.querySelectorAll(".arrow-btn[data-car]")).forEach(function (btn) {
-    var track = document.getElementById("car-" + btn.getAttribute("data-car"));
-    if (!track) return;
-    var dir = Number(btn.getAttribute("data-dir"));
-    function step() { var first = track.firstElementChild; return first ? first.getBoundingClientRect().width + 20 : 320; }
-    btn.addEventListener("click", function () { track.scrollBy({ left: dir * step(), behavior: motionOk() ? "smooth" : "auto" }); });
-    function sync() {
-      var max = track.scrollWidth - track.clientWidth - 2;
-      btn.disabled = dir < 0 ? track.scrollLeft <= 2 : track.scrollLeft >= max;
-    }
-    track.addEventListener("scroll", sync, { passive: true });
-    window.addEventListener("resize", sync, { passive: true });
-    sync();
-  });
-
-  /* ---- Features: chip selector driving the tabbed window (arrow keys, Home and End work too) ---- */
-  var tabs = [].slice.call(document.querySelectorAll(".chip[role=tab]"));
-  function selectTab(tab, focus) {
-    tabs.forEach(function (t) {
-      var on = t === tab;
-      t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1;
-      var panel = document.getElementById(t.getAttribute("aria-controls"));
-      if (panel) panel.hidden = !on;
+  /* ---- AI access: the list on the left opens one item at a time; the panel's tiles follow ---- */
+  var mcpItems = [].slice.call(document.querySelectorAll(".mcp-item")), panel = document.getElementById("mcpPanel");
+  function pick(btn) {
+    mcpItems.forEach(function (b) { b.setAttribute("aria-selected", String(b === btn)); });
+    if (!panel) return;
+    var labels = [btn.getAttribute("data-a"), btn.getAttribute("data-b")];
+    [].slice.call(panel.querySelectorAll(".window")).forEach(function (w, i) {
+      var l = w.querySelector(".frame-label"); if (l && labels[i]) { l.textContent = labels[i]; w.setAttribute("aria-label", "Placeholder: " + labels[i]); }
     });
-    if (focus) tab.focus();
   }
-  tabs.forEach(function (t, i) {
-    t.addEventListener("click", function () { selectTab(t, false); });
-    t.addEventListener("keydown", function (e) {
+  mcpItems.forEach(function (b, i) {
+    b.addEventListener("click", function () { pick(b); });
+    b.addEventListener("keydown", function (e) {
       var n = -1;
-      if (e.key === "ArrowRight") n = (i + 1) % tabs.length; else if (e.key === "ArrowLeft") n = (i - 1 + tabs.length) % tabs.length;
-      else if (e.key === "Home") n = 0; else if (e.key === "End") n = tabs.length - 1;
-      if (n >= 0) { e.preventDefault(); selectTab(tabs[n], true); }
+      if (e.key === "ArrowDown") n = (i + 1) % mcpItems.length; else if (e.key === "ArrowUp") n = (i - 1 + mcpItems.length) % mcpItems.length;
+      if (n >= 0) { e.preventDefault(); mcpItems[n].focus(); pick(mcpItems[n]); }
     });
   });
 

@@ -62,12 +62,12 @@ for(const theme of ['light','dark']){
  const early=await page.evaluate(()=>({scrolled:document.getElementById('nav').classList.contains('is-scrolled'),top:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().top),bh:document.getElementById('banners').offsetHeight}));
  check(T('scrolled a little: the nav is still a bar under the banner (it moves up with the page)'),!early.scrolled&&early.top>0&&early.top<early.bh+1,J(early));
  await page.evaluate(()=>window.scrollTo({top:300,behavior:'instant'}));await sleep(500);
- const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {scrolled:document.getElementById('nav').classList.contains('is-scrolled'),radius:c.borderTopLeftRadius,bg:c.backgroundColor,borderW:c.borderTopWidth+' '+c.borderRightWidth+' '+c.borderBottomWidth+' '+c.borderLeftWidth,blur:c.backdropFilter||c.webkitBackdropFilter,top:Math.round(n.getBoundingClientRect().top),w:Math.round(n.getBoundingClientRect().width),shadow:c.boxShadow!=='none',wm:getComputedStyle(document.querySelector('.wordmark')).color,prog:document.getElementById('progress').style.transform}});
+ const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {scrolled:document.getElementById('nav').classList.contains('is-scrolled'),radius:c.borderTopLeftRadius,bg:c.backgroundColor,borderW:c.borderTopWidth+' '+c.borderRightWidth+' '+c.borderBottomWidth+' '+c.borderLeftWidth,blur:c.backdropFilter||c.webkitBackdropFilter,top:Math.round(n.getBoundingClientRect().top),w:Math.round(n.getBoundingClientRect().width),shadow:c.boxShadow!=='none',wm:getComputedStyle(document.querySelector('.wordmark')).color}});
  const alpha=(c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');if(!m)return 1;const p=m[1].split(',').map(x=>parseFloat(x));return p.length>3?p[3]:1})(pill.bg);
  const wantText=theme==='dark'?'rgb(224, 224, 224)':'rgb(23, 23, 23)';
  check(T('past the banner: a floating rounded GLASS pill (translucent, strongly blurred, shadowed, no outline), text in the theme colors'),pill.scrolled&&/\d{3,}px/.test(pill.radius)&&alpha>0.4&&alpha<0.85&&/blur\((2\d|3\d)px\)/.test(pill.blur)&&pill.borderW==='0px 0px 0px 0px'&&pill.shadow&&pill.top>=8&&pill.w<1000&&pill.wm===wantText,J([pill,alpha,wantText]));
  const rest=await page.evaluate(()=>{const c=getComputedStyle(document.querySelector('.nav-inner'));return {bg:c.backgroundColor,blur:c.backdropFilter||c.webkitBackdropFilter}});
- check(T('scroll progress hairline responds'),/scaleX\(/.test(pill.prog),J(pill.prog));
+ check(T('there is no scroll progress bar at the top'),await page.evaluate(()=>!document.getElementById('progress')&&!document.querySelector('.progress')));
  await page.screenshot({path:path.join(out,`nav-pill-1440-${theme}.png`)});
  await page.close();
  // ---------------- no banners / live updates
@@ -95,7 +95,7 @@ for(const theme of ['light','dark']){
  const total=await page.evaluate(()=>document.documentElement.scrollHeight);
  for(let y=0;y<total;y+=500){await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),y);await sleep(110)}
  const full=await page.evaluate(()=>{
-  const ids=['features','how','sharing','ai','deep','themes','faq'];
+  const ids=['features','sharing','ai','themes','faq'];
   const hrefs=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));
   const anchors=hrefs.filter(h=>h.startsWith('#')&&h.length>1);
   const f=document.querySelector('.footer'),fc=getComputedStyle(f);
@@ -104,20 +104,20 @@ for(const theme of ['light','dark']){
    fakeSocial:/testimonial|customers|trusted by|rated/i.test(document.body.innerText),
    footerBg:fc.backgroundColor,footerHeads:[...document.querySelectorAll('.foot-cols h3')].map(n=>n.textContent),footerLinks:[...document.querySelectorAll('.foot-cols a')].map(a=>a.textContent),
    copy:document.querySelector('.foot-bar').textContent.trim(),footLine:document.querySelector('.foot-line').textContent,socials:document.querySelectorAll('.footer svg').length,status:/operational/i.test(f.textContent)}});
- check(T('every section anchor resolves (#features #how #sharing #ai #deep #themes #faq) and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
+ check(T('every section anchor resolves (#features #sharing #ai #themes #faq) and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
  check(T('page links point at real pages (login, sign-up, privacy, tos)'),full.pages.length===4,J(full.pages));
  check(T('footer is pure '+(theme==='dark'?'black (#0A0A0A)':'white')+', not gray'),full.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),full.footerBg);
  check(T('footer: Product, Explore, Legal columns with the right links; one-liner; copyright; no socials or status pill'),full.footerHeads.join()==='Product,Explore,Legal'&&full.footerLinks.join()==='Open Daylight,Features,AI access,Sharing,Themes,FAQ,Privacy,Terms'&&full.footLine==='Your calendar, minus the clutter.'&&full.copy==='© 2026 Daylight. All rights reserved.'&&full.socials===0&&!full.status,J(full));
- check(T('placeholder frames only, no social proof, no horizontal scroll'),full.windows>=20&&!full.fakeSocial&&!full.hscroll,J([full.windows,full.fakeSocial,full.hscroll]));
- await page.evaluate(()=>window.scrollTo({top:document.getElementById('features').offsetTop,behavior:'instant'}));await sleep(500);
- const car=await page.evaluate(()=>{const t=document.getElementById('car-features');const peek=[...t.children].some(c=>{const b=c.getBoundingClientRect();return b.left<innerWidth&&b.right>innerWidth});return {peek,prevDisabled:document.querySelector('[data-car=features].prev').disabled,x:t.scrollLeft}});
- await page.click('[data-car=features].next');await sleep(700);
- const car2=await page.evaluate(()=>({x:document.getElementById('car-features').scrollLeft,prevDisabled:document.querySelector('[data-car=features].prev').disabled}));
- check(T('features carousel: the next card peeks at the edge; the arrow scrolls and enables Previous'),car.peek&&car.prevDisabled&&car2.x>car.x+100&&!car2.prevDisabled,J([car,car2]));
- await page.evaluate(()=>window.scrollTo({top:document.getElementById('ai').offsetTop,behavior:'instant'}));await sleep(500);
- const ai=await page.evaluate(()=>({tiles:document.querySelector('.slide').children.length,slides:document.querySelectorAll('.slide').length}));
- await page.click('[data-car=ai].next');await sleep(700);
- check(T('AI access carousel: two tiles per slide, three slides, the arrow moves on'),ai.tiles===2&&ai.slides===3&&await page.evaluate(()=>document.getElementById('car-ai').scrollLeft>200),J(ai));
+ check(T('placeholder frames only, no social proof, no horizontal scroll'),full.windows>=13&&!full.fakeSocial&&!full.hscroll,J([full.windows,full.fakeSocial,full.hscroll]));
+ const lay=await page.evaluate(()=>{const cols=id=>[...document.querySelectorAll('#'+id+' .col')].map(c=>{const b=c.getBoundingClientRect();return Math.round(b.top)});const fr=[...document.querySelectorAll('.fru-card')].map(c=>getComputedStyle(c).transform);return {feat:document.querySelectorAll('#features .col').length,featSameRow:new Set(cols('features')).size===1,themes:document.querySelectorAll('#themes .col').length,cards:fr.length,tilt:fr[0]!=='none'&&fr[2]!=='none',items:document.querySelectorAll('.mcp-item').length,open:[...document.querySelectorAll('.mcp-item')].map(b=>b.getAttribute('aria-selected')).join(),tiles:document.querySelectorAll('#mcpPanel .window').length}});
+ check(T('features: four columns in one row (image tile, one-line caption); themes: four columns'),lay.feat===4&&lay.featSameRow&&lay.themes===4,J(lay));
+ check(T('sharing: three tilted cards with a benefit line under each visual'),lay.cards===3&&lay.tilt,J(lay));
+ check(T('AI access: a list with one item open beside a panel with two product tiles'),lay.items===3&&lay.open==='true,false,false'&&lay.tiles===2,J(lay));
+ await page.evaluate(()=>document.getElementById('ai').scrollIntoView());await sleep(400);
+ await page.click('.mcp-item:nth-child(1)',{}).catch(()=>{});
+ await page.evaluate(()=>document.querySelectorAll('.mcp-item')[1].click());await sleep(300);
+ const mc=await page.evaluate(()=>({open:[...document.querySelectorAll('.mcp-item')].map(b=>b.getAttribute('aria-selected')).join(),labels:[...document.querySelectorAll('#mcpPanel .frame-label')].map(l=>l.textContent).join('|'),descVisible:getComputedStyle(document.querySelectorAll('.mcp-item')[1].querySelector('.mcp-d')).opacity}));
+ check(T('choosing another AI-access item opens it and the tiles follow'),mc.open==='false,true,false'&&/Permissions/.test(mc.labels)&&mc.descVisible==='1',J(mc));
  await page.evaluate(()=>window.scrollTo({top:document.getElementById('faq').offsetTop,behavior:'instant'}));await sleep(500);
  await page.click('.faq-item summary');await sleep(250);
  check(T('FAQ items open'),await page.evaluate(()=>document.querySelector('.faq-item').open));
