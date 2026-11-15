@@ -66,7 +66,7 @@ for(const [rel,expect,label] of [['?code=abc','dashboard/?code=abc','a finished 
 }
 // ---- unknown path
 r=await visit({signedIn:false},'nonsense');
-check('an unknown path is a real 404 with the branded page',r.status===404&&await r.page.evaluate(()=>/doesn.t exist/.test(document.querySelector('h1').textContent)&&!!document.getElementById('mL').naturalWidth),String(r.status));
+check('an unknown path is a real 404 with the branded page',r.status===404&&await r.page.evaluate(()=>/doesn.t exist/.test(document.querySelector('h1').textContent)&&!!document.getElementById('mL').naturalWidth&&document.getElementById('mL').width>=60),String(r.status));
 check('the 404 page uses the site base for its logo and home link',await r.page.evaluate(()=>document.getElementById('home').getAttribute('href')==='/daylight/'),'');
 await r.page.screenshot({path:path.join(out,'404-light.png')});
 await r.app.close();

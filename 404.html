@@ -28,36 +28,51 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#0a0a0a;--text:#fff;--muted:#a1a1a1;--line:rgba(255,255,255,.08);--btn-bg:#fff;--btn-text:#0a0a0a}
-[data-theme="light"]{--bg:#fff;--text:#111;--muted:#555;--line:rgba(0,0,0,.08);--btn-bg:#111;--btn-text:#fff}
+:root{--bg:#121212;--surface:#282828;--text:#e0e0e0;--muted:#a0a0a0;--faint:#757575;--line:#2c2c2c;--btn-bg:#e0e0e0;--btn-text:#121212;--btn-hover:#ffffff}
+[data-theme="light"]{--bg:#ffffff;--surface:#f5f5f5;--text:#171717;--muted:#737373;--faint:#a3a3a3;--line:#e5e5e5;--btn-bg:#171717;--btn-text:#ffffff;--btn-hover:#2e2e2e}
 *{box-sizing:border-box}
-html,body{margin:0;height:100%}
-body{background:var(--bg);color:var(--text);font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;display:grid;place-items:center;padding:24px}
-main{width:100%;max-width:420px;text-align:center}
-.mark{width:34px;height:34px;display:block;margin:0 auto 28px}
+html,body{margin:0;min-height:100%}
+body{min-height:100vh;background:var(--bg);color:var(--text);font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column}
+.top{display:flex;align-items:center;padding:22px 28px}
+.brand{display:inline-flex;align-items:center;gap:9px;color:inherit;text-decoration:none}
+.brand img{width:34px;height:34px}
+.brand span{font-size:16px;font-weight:800;letter-spacing:-.02em}
+main{flex:1;display:grid;place-items:center;padding:24px 24px 96px}
+.card{width:100%;max-width:560px;text-align:center}
+.mark{width:72px;height:72px;display:block;margin:0 auto 28px}
 .mark-dark{display:none}[data-theme="dark"] .mark-light{display:none}[data-theme="dark"] .mark-dark{display:block}
-h1{margin:0 0 12px;font-size:clamp(28px,5vw,36px);line-height:1.1;letter-spacing:-.03em;font-weight:700}
-p{margin:0 0 32px;font-size:17px;line-height:1.6;color:var(--muted)}
-a.btn{display:inline-flex;align-items:center;justify-content:center;height:48px;padding:0 24px;border-radius:999px;background:var(--btn-bg);color:var(--btn-text);font-size:15px;font-weight:600;text-decoration:none;transition:transform 160ms ease-out,opacity 160ms ease-out}
-a.btn:hover{transform:translateY(-1px);opacity:.92}a.btn:active{transform:scale(.98)}
-a.btn:focus-visible{outline:2px solid var(--text);outline-offset:3px}
-@media (prefers-reduced-motion:reduce){a.btn{transition:none}}
+.code{display:inline-block;margin:0 0 20px;padding:5px 14px;border-radius:999px;background:var(--surface);font-size:13px;font-weight:600;letter-spacing:.12em;color:var(--muted)}
+h1{text-wrap:balance;margin:0 0 14px;font-size:clamp(34px,6vw,48px);line-height:1.08;letter-spacing:-.03em;font-weight:600}
+p{margin:0 auto 36px;max-width:26em;font-size:17px;line-height:1.6;color:var(--muted)}
+.actions{display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap}
+.btn{display:inline-flex;align-items:center;justify-content:center;height:50px;padding:0 28px;border-radius:999px;font-size:15px;font-weight:600;text-decoration:none;transition:transform 160ms ease-out,background-color 160ms ease-out,color 160ms ease-out}
+.btn:hover{transform:translateY(-1px)}.btn:active{transform:scale(.98)}
+.btn-solid{background:var(--btn-bg);color:var(--btn-text)}.btn-solid:hover{background:var(--btn-hover)}
+a:focus-visible{outline:2px solid var(--text);outline-offset:3px}
+@media (max-width:480px){.top{padding:18px 20px}.mark{width:60px;height:60px}.btn{width:100%}}
+@media (prefers-reduced-motion:reduce){.btn{transition:none}}
 </style>
 </head>
 <body>
+<header class="top"><a class="brand" id="brand" href="/"><img id="bL" alt="" width="34" height="34"><img id="bD" alt="" width="34" height="34" hidden><span>Daylight</span></a></header>
 <main>
-  <img class="mark mark-light" id="mL" alt="" width="34" height="34">
-  <img class="mark mark-dark" id="mD" alt="" width="34" height="34">
-  <h1>This page doesn’t exist.</h1>
-  <p>The link may be old, or the address may have a typo.</p>
-  <a class="btn" id="home" href="/">Go to Daylight</a>
+  <div class="card">
+    <img class="mark mark-light" id="mL" alt="" width="72" height="72">
+    <img class="mark mark-dark" id="mD" alt="" width="72" height="72">
+    <span class="code">404</span>
+    <h1>This page doesn’t exist.</h1>
+    <p>The link may be old, or the address may have a typo.</p>
+    <div class="actions"><a class="btn btn-solid" id="home" href="/">Back to Daylight</a></div>
+  </div>
 </main>
 <script>
 (function () {
-  var b = window.__DL_BASE || "/";
-  document.getElementById("mL").src = b + "assets/daylight-sunarc-light-NOBG.png";
-  document.getElementById("mD").src = b + "assets/daylight-sunarc-dark-NOBG.png";
-  document.getElementById("home").href = b;
+  var b = window.__DL_BASE || "/", dark = document.documentElement.getAttribute("data-theme") === "dark";
+  var light = b + "assets/daylight-sunarc-light-NOBG.png", darkSrc = b + "assets/daylight-sunarc-dark-NOBG.png";
+  document.getElementById("mL").src = light; document.getElementById("mD").src = darkSrc;
+  var bl = document.getElementById("bL"), bd = document.getElementById("bD");
+  bl.src = light; bd.src = darkSrc; bl.hidden = dark; bd.hidden = !dark;
+  document.getElementById("home").href = b; document.getElementById("brand").href = b;
 })();
 </script>
 </body>

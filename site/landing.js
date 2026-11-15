@@ -7,18 +7,46 @@
   var progress = document.getElementById("progress");
   var burger = document.getElementById("burger");
   var menu = document.getElementById("menu");
-  var frame = document.getElementById("par");
-  var grid = document.getElementById("grid");
-  var glow = document.getElementById("glow");
-  var hero = document.getElementById("top");
   var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-  var fine = window.matchMedia("(pointer: fine)");
   var phone = window.matchMedia("(max-width: 768px)");
   function motionOk() { return !reduce.matches; }
-  function parallaxOk() { return motionOk() && fine.matches && !phone.matches; }
+  
+  /* ---- announcement strip: whatever the owner posts as a banner and marks "Dashboard and landing page" in the admin dashboard.
+     Nothing posted means no strip at all. The entrance waits for the answer (at most 450ms) so the page never jumps. ---- */
+  var strip = document.getElementById("strip"), hero = document.getElementById("top");
+  var SUPA = "https://usihrcucnreecynewgbd.supabase.co", KEY = "sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM", CACHE = "dl-landing-banner";
+  var ARROW = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+  function renderBanner(b) {
+    if (!strip) return;
+    strip.textContent = "";
+    if (!b || !b.body) { strip.hidden = true; hero.classList.remove("has-strip"); return; }
+    var link = /^https?:\/\/\S+$/i.test(b.link || "") ? b.link : null;
+    var el = document.createElement(link ? "a" : "div");
+    el.className = "strip-link";
+    if (link) { el.href = link; el.target = "_blank"; el.rel = "noopener noreferrer"; }
+    var t = document.createElement("span"); t.className = "strip-text"; t.textContent = b.body; el.appendChild(t);
+    if (link) el.insertAdjacentHTML("beforeend", ARROW);
+    strip.appendChild(el); strip.hidden = false; hero.classList.add("has-strip");
+  }
+  function fetchBanner() {
+    return fetch(SUPA + "/rest/v1/rpc/daylight_landing_banner", { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: "{}" })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) { return (rows && rows[0]) || null; })
+      .catch(function () { return null; });
+  }
+  var cached = null;
+  try { cached = JSON.parse(sessionStorage.getItem(CACHE) || "null"); } catch (e) {}
+  if (cached && Date.now() - cached.at < 120000) renderBanner(cached.b);
+  var bannerReady = fetchBanner().then(function (b) {
+    renderBanner(b);
+    try { sessionStorage.setItem(CACHE, JSON.stringify({ at: Date.now(), b: b })); } catch (e) {}
+  });
+  var waited = new Promise(function (res) { setTimeout(res, 450); });
 
-  /* ---- entrance: start after the first frame so the hidden state is painted once ---- */
-  requestAnimationFrame(function () { requestAnimationFrame(function () { doc.classList.add("is-loaded"); }); });
+  /* ---- entrance: start after the first frame, once the banner question is settled ---- */
+  Promise.race([bannerReady, waited]).then(function () {
+    requestAnimationFrame(function () { requestAnimationFrame(function () { doc.classList.add("is-loaded"); }); });
+  });
 
   /* ---- scroll: nav pill, progress hairline, parallax (one rAF per frame, never per event) ---- */
   var ticking = false;
@@ -31,14 +59,7 @@
       var max = Math.max(1, doc.scrollHeight - window.innerHeight);
       progress.style.transform = "scaleX(" + Math.min(1, y / max).toFixed(4) + ")";
     } else if (progress) { progress.style.transform = "scaleX(0)"; }
-    if (parallaxOk()) {
-      if (frame) { frame.style.willChange = "transform"; frame.style.transform = "translate3d(0," + (-Math.min(40, y * 0.3)).toFixed(1) + "px,0)"; }
-      if (grid) { grid.style.willChange = "transform"; grid.style.transform = "translate3d(0," + (y * 0.1).toFixed(1) + "px,0)"; }
-    } else {
-      if (frame) { frame.style.transform = ""; frame.style.willChange = ""; }
-      if (grid) { grid.style.transform = ""; grid.style.willChange = ""; }
     }
-  }
   window.addEventListener("scroll", onScroll, { passive: true });
   window.addEventListener("resize", function () { onScroll(); if (!phone.matches) closeMenu(); }, { passive: true });
   update();
@@ -57,23 +78,16 @@
   document.addEventListener("keydown", function (e) { if (e.key === "Escape" && menuOpen) { closeMenu(); burger.focus(); } });
   document.addEventListener("click", function (e) { if (menuOpen && !nav.contains(e.target)) closeMenu(); });
 
-  /* ---- cursor glow inside the hero (desktop, fine pointer, motion allowed): lerped, never instant ---- */
-  var tx = 0, ty = 0, cx = 0, cy = 0, raf = 0, active = false;
-  function glowOk() { return motionOk() && fine.matches && !phone.matches; }
-  function step() {
-    cx += (tx - cx) * 0.15; cy += (ty - cy) * 0.15;
-    glow.style.transform = "translate3d(" + cx.toFixed(1) + "px," + cy.toFixed(1) + "px,0)";
-    if (Math.abs(tx - cx) > 0.4 || Math.abs(ty - cy) > 0.4) raf = requestAnimationFrame(step); else raf = 0;
-  }
-  if (hero && glow) {
-    hero.addEventListener("pointermove", function (e) {
-      if (!glowOk() || e.pointerType === "touch") return;
-      var r = hero.getBoundingClientRect();
-      tx = e.clientX - r.left; ty = e.clientY - r.top;
-      if (!active) { active = true; cx = tx; cy = ty; glow.classList.add("on"); }
-      if (!raf) raf = requestAnimationFrame(step);
-    }, { passive: true });
-    hero.addEventListener("pointerleave", function () { active = false; glow.classList.remove("on"); });
+  /* ---- the word at the end of the headline rotates (opacity + transform only; still when motion is reduced) ---- */
+  var rot = document.getElementById("rot");
+  if (rot && motionOk()) {
+    var words = [].slice.call(rot.querySelectorAll(".rot-word")), cur = 0;
+    setInterval(function () {
+      if (document.hidden) return;
+      words[cur].classList.remove("is-on");
+      cur = (cur + 1) % words.length;
+      words[cur].classList.add("is-on");
+    }, 2600);
   }
 
   /* ---- Features dropdown (desktop): opens on hover, focus or click; Escape and outside clicks close it ---- */

@@ -216,11 +216,14 @@
     var presets = (window.daylightPresetColors || []).slice(0, 30);
     var picked = hexOf(presets[0] || "#2563EB");
     var ban = make('<div class="set-group"><div class="set-group-title">Banner</div>' +
-      '<p class="dl-ad-lead">A colored strip at the very top of the app. People cannot dismiss it; it stays until you remove it below.</p>' +
+      '<p class="dl-ad-lead">A colored strip at the very top of the app. People cannot dismiss it; it stays until you remove it below. You can also show it on the landing page.</p>' +
       '<div class="dl-ad-field"><label for="adBanner">Banner text</label><input class="text-input" id="adBanner" maxlength="200" autocomplete="off" placeholder="What should it say?"></div>' +
       '<div class="dl-ad-field"><span class="dl-ad-label">Color</span><div data-picker></div></div>' +
       '<div class="dl-ad-field"><label for="adLink">Link (optional)</label><input class="text-input" id="adLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://"><div class="dl-ad-note">If set, clicking the banner text opens it in a new tab.</div></div>' +
       '<div data-aud-host></div>' +
+      '<div class="dl-ad-field"><span class="dl-ad-label">Where to show it</span>' +
+        '<div class="dl-ad-aud" role="radiogroup" aria-label="Where to show it"><button type="button" role="radio" aria-checked="true" data-where="dashboard">Dashboard only</button><button type="button" role="radio" aria-checked="false" data-where="landing">Dashboard and landing page</button></div>' +
+        '<div class="dl-ad-note" data-where-note>Everyone signed in sees it on the dashboard. The landing page is public, so it can only show a banner aimed at everyone, and only the newest one.</div></div>' +
       '<div class="dl-ad-field"><span class="dl-ad-label">Preview</span><div class="dl-ad-preview" data-preview></div></div>' +
       '<div class="dl-ad-status" role="status" aria-live="polite" data-status></div>' +
       '<div class="dl-ad-actions"><button type="button" class="btn-primary" data-post disabled>Post banner</button></div></div>');
@@ -234,19 +237,32 @@
       picker = window.daylightCalendarColorPicker(ban.querySelector("[data-picker]"), { value: presets[0] || picked, onChange: function (key) { picked = hexOf(key).toUpperCase(); drawPreview(); } });
     }
     drawPreview();
+    /* the landing page is public: only a banner aimed at everyone can go there */
+    var landing = false, whereBtns = ban.querySelectorAll("[data-where]"), whereNote = ban.querySelector("[data-where-note]");
+    function syncWhere() {
+      var specific = baud.value() !== null;
+      if (specific) landing = false;
+      whereBtns.forEach(function (b) {
+        b.setAttribute("aria-checked", String((b.dataset.where === "landing") === landing));
+        if (b.dataset.where === "landing") { b.disabled = specific; b.style.opacity = specific ? "var(--dl-disabled-opacity, .55)" : ""; }
+      });
+      whereNote.textContent = specific ? "A banner for specific people stays on the dashboard. Pick Everyone to show it on the landing page." : "Everyone signed in sees it on the dashboard. The landing page is public, so it can only show a banner aimed at everyone, and only the newest one.";
+    }
+    whereBtns.forEach(function (b) { b.addEventListener("click", function () { if (b.disabled) return; landing = b.dataset.where === "landing"; bst.textContent = ""; syncWhere(); }); });
     var syncPost = function () { post.disabled = !btext.value.trim() || !baud.valid(); };
     btext.addEventListener("input", function () { bst.textContent = ""; drawPreview(); syncPost(); });
     blink.addEventListener("input", function () { bst.textContent = ""; });
-    baud._onChange = function () { bst.textContent = ""; syncPost(); };
+    baud._onChange = function () { bst.textContent = ""; syncWhere(); syncPost(); };
+    syncWhere();
     post.addEventListener("click", async function () {
       if (post.disabled) return;
       var link = blink.value.trim();
       if (link && !/^https?:\/\/\S+$/i.test(link)) { bst.className = "dl-ad-status is-warn"; bst.textContent = "The link must start with http:// or https://"; return; }
       post.disabled = true; post.textContent = "Posting…"; bst.textContent = "";
       try {
-        var res = await call("daylight_send_banner", { p_body: btext.value.trim(), p_color: picked, p_link: link || null, p_emails: baud.value() });
+        var res = await call("daylight_send_banner", { p_body: btext.value.trim(), p_color: picked, p_link: link || null, p_emails: baud.value(), p_landing: landing && baud.value() === null });
         report(bst, res, "Banner", "everyone");
-        if (res && res.sent) { btext.value = ""; blink.value = ""; baud.reset(); drawPreview(); if (window.daylightBanners) window.daylightBanners.refresh(); drawManage(); }
+        if (res && res.sent) { btext.value = ""; blink.value = ""; baud.reset(); landing = false; syncWhere(); drawPreview(); if (window.daylightBanners) window.daylightBanners.refresh(); drawManage(); }
       } catch (e) { bst.className = "dl-ad-status is-warn"; bst.textContent = errorText(e, "Couldn’t post that. Check your connection and try again."); }
       post.textContent = "Post banner"; syncPost();
     });
@@ -291,7 +307,7 @@
         var row = make('<div class="dl-ad-item"><span class="dl-ad-dot" aria-hidden="true"></span><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-meta"></div></div><button type="button" class="btn-ghost dl-btn-sm" data-remove>Remove</button></div>');
         row.querySelector(".dl-ad-dot").style.background = b.color;
         row.querySelector(".dl-ad-item-title").textContent = b.body;
-        row.querySelector(".dl-ad-item-meta").textContent = audienceText(b) + (b.link ? " · links to " + b.link : "") + " · " + when(b.created_at);
+        row.querySelector(".dl-ad-item-meta").textContent = audienceText(b) + (b.show_on_landing ? " · Dashboard and landing page" : " · Dashboard only") + (b.link ? " · links to " + b.link : "") + " · " + when(b.created_at);
         var btn = row.querySelector("[data-remove]"); btn.setAttribute("aria-label", "Remove banner " + b.body);
         removeRow(btn, { title: "Remove this banner?", body: "It disappears from everyone’s screen.", confirm: "Remove" }, "daylight_delete_banner", { p_id: b.id }, async function () { await drawManage(); if (window.daylightBanners) window.daylightBanners.refresh(); });
         bans.appendChild(row);

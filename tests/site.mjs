@@ -15,8 +15,11 @@ const check=(n,ok,d)=>{if(!ok)failed=true;console.log((ok?'PASS ':'FAIL ')+n+(ok
 const J=x=>JSON.stringify(x);
 const {server,url}=await serve(0);
 const browser=await puppeteer.launch({executablePath:chrome,headless:'new',args:['--no-sandbox']});
-async function open(theme,w,h,{reduce=false,touch=false}={}){
+const BANNER={body:'Scheduled maintenance tonight at 9 PM Eastern',color:'#111111',link:'https://example.com/status'};
+async function open(theme,w,h,{reduce=false,touch=false,banner=BANNER}={}){
  const page=await browser.newPage();
+ await page.setRequestInterception(true);
+ page.on('request',r=>{if(/rpc\/daylight_landing_banner/.test(r.url())){const h={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};if(r.method()==='OPTIONS')r.respond({status:204,headers:h});else r.respond({status:200,contentType:'application/json',headers:h,body:JSON.stringify(banner?[banner]:[])})}else r.continue()});
  await page.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:touch,hasTouch:touch});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme},{name:'prefers-reduced-motion',value:reduce?'reduce':'no-preference'}]);
  const bad=[];page.on('response',r=>{if(r.status()>=400)bad.push(r.status()+' '+r.url())});page.on('requestfailed',r=>{if(!/fonts\.g/.test(r.url()))bad.push('FAILED '+r.url())});
@@ -33,27 +36,36 @@ for(const theme of ['light','dark']){
  const m=await page.evaluate(()=>{
   const r=s=>{const n=document.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect();return {top:b.top+scrollY,bottom:b.bottom+scrollY,h:b.height,w:b.width,left:b.left}};
   const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];
-  return {nav:r('.nav-inner'),pill:r('.announce'),h1:r('.display'),sub:r('.sub'),ctas:r('.ctas'),trust:r('.trust'),frame:r('.frame'),screen:r('.frame-screen'),
-   h1size:cs('.display','fontSize'),h1w:cs('.display','fontWeight'),h1ls:cs('.display','letterSpacing'),font:cs('body','fontFamily').slice(0,30),btnH:r('.btn-primary').h,
+  return {nav:r('.nav-inner'),strip:r('.strip'),h1:r('.display'),sub:r('.sub'),ctas:r('.ctas'),trust:r('.trust'),frame:r('.frame'),screen:r('.frame-screen'),
+   h1size:cs('.display','fontSize'),h1w:cs('.display','fontWeight'),h1ls:cs('.display','letterSpacing'),font:cs('body','fontFamily').slice(0,30),btnH:r('.btn-hero').h,btnR:cs('.btn-hero','borderRadius'),btnFs:cs('.btn-hero','fontSize'),subFs:cs('.sub','fontSize'),stripH:r('.strip').h,stripText:(document.querySelector('.strip-text')||{}).textContent,stripHref:(document.querySelector('a.strip-link')||{}).getAttribute&&document.querySelector('a.strip-link').getAttribute('href'),stripRel:(document.querySelector('a.strip-link')||{}).rel,hasStrip:document.getElementById('top').classList.contains('has-strip'),
    lines:Math.round(r('.display').h/parseFloat(cs('.display','lineHeight'))),hscroll:document.documentElement.scrollWidth>innerWidth,
    links:[...document.querySelectorAll('.links > a, .links .dd-trigger')].map(a=>a.getAttribute('href')),cta:document.querySelector('.nav-cta').getAttribute('href'),
    hero:[...document.querySelectorAll('.ctas a')].map(a=>a.getAttribute('href')),logo:document.querySelector('.brand').getAttribute('href'),
    navBtns:document.querySelectorAll('.nav-cta').length,loginBtn:/log in/i.test(document.querySelector('.nav').textContent)}});
  check(T('nav is 54px'),Math.round(m.nav.h)===54||Math.round(m.nav.h)===55,J(m.nav));
- check(T('headline is Inter 600, -0.03em, 80px at 1440 and at most 2 lines'),/Inter/.test(m.font)&&m.h1size==='80px'&&m.h1w==='600'&&Math.abs(parseFloat(m.h1ls)+2.4)<0.2&&m.lines<=2,J([m.font,m.h1size,m.h1w,m.h1ls,m.lines]));
- check(T('gaps: pill→headline 24, headline→sub 16, sub→buttons 40, buttons→trust 24, trust→frame 80'),
-  Math.round(m.h1.top-m.pill.bottom)===24&&Math.round(m.sub.top-m.h1.bottom)===16&&Math.round(m.ctas.top-m.sub.bottom)===40&&Math.round(m.trust.top-m.ctas.bottom)===24&&Math.round(m.frame.top-m.trust.bottom)===80,
-  J([m.h1.top-m.pill.bottom,m.sub.top-m.h1.bottom,m.ctas.top-m.sub.bottom,m.trust.top-m.ctas.bottom,m.frame.top-m.trust.bottom]));
+ check(T('headline: Inter 600, -0.03em, 56px at 1440, two lines (the second carries the mark + rotating word)'),/Inter/.test(m.font)&&m.h1size==='56px'&&m.h1w==='600'&&Math.abs(parseFloat(m.h1ls)+1.68)<0.15&&m.lines===2,J([m.font,m.h1size,m.h1w,m.h1ls,m.lines]));
+ check(T('announcement strip shows the banner the owner posted for the landing page (its text and link), as its own 47px band'),m.hasStrip&&m.stripText===BANNER.body&&m.stripHref===BANNER.link&&/noopener/.test(m.stripRel)&&Math.round(m.stripH)>=46&&Math.round(m.stripH)<=48,J([m.stripText,m.stripHref,m.stripRel,m.stripH]));
+ check(T('rhythm: strip→headline 112, headline→sub 16, sub→buttons 32, buttons→trust 28, trust→frame 64'),
+  Math.round(m.h1.top-m.strip.bottom)===112&&Math.round(m.sub.top-m.h1.bottom)===16&&Math.round(m.ctas.top-m.sub.bottom)===32&&Math.round(m.trust.top-m.ctas.bottom)===28&&Math.round(m.frame.top-m.trust.bottom)===64,
+  J([m.h1.top-m.strip.bottom,m.sub.top-m.h1.bottom,m.ctas.top-m.sub.bottom,m.trust.top-m.ctas.bottom,m.frame.top-m.trust.bottom]));
+ check(T('buttons: the sign-in pills (50px tall, full radius, 15px); subcopy 18px'),Math.round(m.btnH)===50&&parseFloat(m.btnR)>=25&&m.btnFs==='15px'&&m.subFs==='18px',J([m.btnH,m.btnR,m.btnFs,m.subFs]));
  check(T('frame screen is exactly 8:5'),Math.abs(m.screen.w/m.screen.h-1.6)<0.005,J([m.screen.w,m.screen.h]));
- check(T('the headline is the biggest type by a wide margin (80px vs 17px body)'),parseFloat(m.h1size)>=4*17);
+ check(T('the headline is the biggest type by a wide margin (56px vs 17px body)'),parseFloat(m.h1size)>=3*17);
  check(T('links: logo /, anchors, ONE Open Daylight button to login/, Get started to sign-up/, See how it works #features, no Log in'),
   m.logo==='./'&&m.links.join()==='#features,#sharing,#ai,#faq'&&m.cta==='login/'&&m.hero.join()==='sign-up/,#features'&&m.navBtns===1&&!m.loginBtn,J(m));
  check(T('no horizontal scroll, no 404s, no page errors'),!m.hscroll&&bad.length===0&&errs.length===0,J([m.hscroll,bad,errs]));
- // scrolled pill over the dark hero
+ {
+  const none=await open(theme,1440,900,{banner:null});await sleep(900);
+  const nb=await none.page.evaluate(()=>({hidden:document.getElementById('strip').hidden,has:document.getElementById('top').classList.contains('has-strip'),h1top:Math.round(document.querySelector('.display').getBoundingClientRect().top),navBottom:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().bottom),visible:getComputedStyle(document.querySelector('.display .line')).opacity}));
+  check(T('no landing banner posted: no strip at all, the headline still sits comfortably under the nav'),nb.hidden&&!nb.has&&nb.h1top-nb.navBottom>=120&&nb.visible==='1',J(nb));
+  await none.page.screenshot({path:path.join(out,`hero-no-banner-1440-${theme}.png`)});
+  await none.page.close();
+ }
+ // scrolled pill over the hero
  await page.evaluate(()=>window.scrollTo({top:140,behavior:'instant'}));await sleep(500);
  const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {radius:c.borderTopLeftRadius,bg:c.backgroundColor,border:c.borderTopWidth+' '+c.borderBottomWidth+' '+c.borderBottomColor,blur:c.backdropFilter||c.webkitBackdropFilter,w:Math.round(n.getBoundingClientRect().width),top:Math.round(n.getBoundingClientRect().top),prog:document.getElementById('progress').style.transform,par:document.getElementById('par').style.transform,fine:matchMedia('(pointer: fine)').matches}});
  check(T('scrolled: floating pill, no outline line, frosted, opaque enough (.88)'),/999|\d{3,}px/.test(pill.radius)&&/0\.9/.test(pill.bg)&&/blur/.test(pill.blur)&&/^0px 0px/.test(pill.border)||/transparent|rgba\(0, 0, 0, 0\)/.test(pill.border),J(pill));
- check(T('scroll progress hairline and parallax respond'),/scaleX\(/.test(pill.prog)&&(!pill.fine||/translate3d\(0px, -/.test(pill.par)),J([pill.prog,pill.par]));
+ check(T('scroll progress hairline responds'),/scaleX\(/.test(pill.prog),J([pill.prog]));
  await page.screenshot({path:path.join(out,`nav-pill-1440-${theme}.png`)});
  await page.close();
  // ---------------- the rest of the page (features, sharing, AI access, FAQ, CTA, footer), desktop
@@ -108,7 +120,7 @@ for(const theme of ['light','dark']){
  // ---------------- phone 390
  ({page,bad,errs}=await open(theme,390,844,{touch:true}));
  await sleep(1500);
- const p=await page.evaluate(()=>{const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];const h=document.querySelector('.display').getBoundingClientRect();return {h:document.documentElement.scrollWidth>innerWidth,lines:Math.round(h.height/parseFloat(cs('.display','lineHeight'))),burger:cs('#burger','display'),links:cs('.links','display'),btn:document.querySelector('.btn-primary').getBoundingClientRect().height,navCta:cs('.nav-cta','display')}});
+ const p=await page.evaluate(()=>{const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];const h=document.querySelector('.display').getBoundingClientRect();return {h:document.documentElement.scrollWidth>innerWidth,lines:Math.round(h.height/parseFloat(cs('.display','lineHeight'))),burger:cs('#burger','display'),links:cs('.links','display'),btn:document.querySelector('.btn-hero').getBoundingClientRect().height,navCta:cs('.nav-cta','display')}});
  check(T('390: hamburger, ≤3 headline lines, tap targets ≥44, no horizontal scroll'),!p.h&&p.lines<=3&&p.burger!=='none'&&p.links==='none'&&p.btn>=44,J(p));
  await page.screenshot({path:path.join(out,`hero-390-${theme}.png`)});
  await page.click('#burger');await sleep(700);
@@ -121,16 +133,14 @@ for(const theme of ['light','dark']){
  // ---------------- reduced motion
  ({page,bad,errs}=await open(theme,1440,900,{reduce:true}));
  await sleep(600);
- const rm=await page.evaluate(()=>({anim:[...document.querySelectorAll('.a')].map(n=>getComputedStyle(n).animationName+'/'+getComputedStyle(n).opacity),glow:getComputedStyle(document.getElementById('glow')).display}));
- check(T('reduced motion: content is visible at once, no animation, no cursor glow'),rm.anim.every(a=>/^none\/1$/.test(a))&&rm.glow==='none',J(rm));
- await page.evaluate(()=>window.scrollTo({top:140,behavior:'instant'}));await sleep(300);
- check(T('reduced motion: no parallax'),await page.evaluate(()=>document.getElementById('par').style.transform===''));
+ const rm=await page.evaluate(()=>({anim:[...document.querySelectorAll('.a')].map(n=>getComputedStyle(n).animationName+'/'+getComputedStyle(n).opacity),rot:[...document.querySelectorAll('.rot-word')].map(n=>getComputedStyle(n).opacity).join()}));
+ check(T('reduced motion: content is visible at once, no animation, the headline word stays put'),rm.anim.every(a=>/^none\/1$/.test(a))&&rm.rot==='1,0,0,0',J(rm));
  await page.close();
 }
 // ---------------- entrance motion: sample opacity of the staggered elements over time
 {
  const {page}=await open('dark',1440,900);
- const samples=await page.evaluate(()=>new Promise(res=>{const els=['.announce','.display .w:nth-child(1)','.display .w:nth-child(5)','.sub','.btn-primary','.trust','.frame'].map(s=>document.querySelector(s));const out=[];const t0=performance.now();(function tick(){out.push([Math.round(performance.now()-t0),els.map(e=>+(+getComputedStyle(e).opacity).toFixed(2))]);if(performance.now()-t0<1200)requestAnimationFrame(tick);else res(out.filter((_,i)=>i%6===0))})()}));
+ const samples=await page.evaluate(()=>new Promise(res=>{const els=['.strip','.display .line:nth-child(1)','.display .line:nth-child(2)','.sub','.ctas','.trust','.frame'].map(s=>document.querySelector(s));const out=[];const t0=performance.now();(function tick(){out.push([Math.round(performance.now()-t0),els.map(e=>+(+getComputedStyle(e).opacity).toFixed(2))]);if(performance.now()-t0<1200)requestAnimationFrame(tick);else res(out.filter((_,i)=>i%6===0))})()}));
  console.log('entrance samples (ms, opacities pill|w1|w5|sub|cta|trust|frame):',J(samples.slice(0,14)));
  const last=samples[samples.length-1][1];
  check('entrance: everything ends fully visible within ~1s',last.every(v=>v===1),J(last));

@@ -55,12 +55,13 @@ Everything else in the brief (type scale clamps, 8px spacing, hero gaps, motion 
 
 ## 3. Landing page tokens (`site/landing.css`)
 
-- Type: Display `clamp(48px, 7vw, 80px)` / 1.05 / -0.03em / 600. H2 (later sections) `clamp(32px, 4vw, 48px)` / 1.1 / -0.02em / 700. H3 20px / 1.3 / 600. Eyebrow 13px / 600 / 0.12em, uppercase. Body 17px / 1.6. Small 15px / 1.5. Buttons 15px / 600.
-- Theme: follows the operating system through `prefers-color-scheme` in CSS only (no script, so no flash). Light: white nav bar, dark hero. Dark: #181818 nav bar, dark hero. The hero is dark in both, using the app's dark tokens. Colors crossfade for 200ms if the OS theme flips while the page is open.
+The whole site now looks like the sign-in screen: it uses the app's tokens in both themes and nothing is forced dark.
+
+- Theme: follows the operating system through `prefers-color-scheme` in CSS only (no script, so no flash). Light is white with #171717 text and #f5f5f5 soft surfaces; dark is #121212 with #e0e0e0 text and #282828 surfaces. Hairlines #e5e5e5 / #2c2c2c. Colors crossfade for 200ms if the OS theme flips while the page is open.
+- Type (the sign-in screen's): Inter, headline weight 600 with -0.03em tracking. Hero headline `clamp(36px, 4.4vw, 56px)`; section H2 `clamp(32px, 4vw, 48px)`, 700, one italic word per headline; eyebrow 13px / 600 / 0.12em; body 17px; buttons 15px / 600.
+- Shapes (the sign-in screen's): everything is a pill. Buttons are 50px tall with full radius; the announcement chip and feature chips are pills; cards (CTA, footer) are 28px rounded and soft; product windows 20px.
 - Container 1120px, 24px side padding (20px at 768px, 16px at 480px). 8px spacing base.
-- Hero rhythm (measured, tested): announcement pill → headline 24px; headline → subcopy 16px; subcopy → buttons 40px; buttons → trust line 24px; trust line → frame 80px.
-- Radii: pills and buttons 999px; product frame 12px. Frame shadow `0 24px 64px rgba(0,0,0,.18)`. No other shadows except the scrolled nav pill.
-- No blue links. No colored icons (all `currentColor`). No gradients except the faint white glow and grid on the dark hero.
+- No blue links. No colored icons (all `currentColor`). No gradients or glows.
 
 ## 4. Nav
 
@@ -70,15 +71,15 @@ Everything else in the brief (type scale clamps, 8px spacing, hero gaps, motion 
 - Links (Features, Sharing, AI access, FAQ) are anchors to `#features`, `#sharing`, `#ai`, `#faq`. Those sections are built in later slices; the anchors are in place and resolve once the sections exist.
 - Under 768px: hamburger that turns into ×, full-width panel with staggered links and the one button.
 
-## 5. Hero
+## 5. Hero (Profound's hero structure, Daylight's content and the sign-in look)
 
-Dark, with a faint grid and a soft white glow (no large sun-arc graphic). Centered announcement pill ("Now with AI access", a real shipped feature), headline "Your calendar, minus the clutter.", one line of subcopy, **Get started** (to `sign-up/`) and **See how it works** (to `#features`), the trust line, then the product frame. The frame is browser chrome around a labeled placeholder; its screen area is exactly 8:5 (1600 × 1000) so a real screenshot drops in without changing layout. The frame fades to the page color at its bottom edge. No screenshots were captured for this slice.
+Top to bottom, as on Profound: the nav bar; an announcement strip as its own full-width band with hairlines above and below (a chip, one line, an arrow); a centered two-line headline whose second line carries an inline mark and a rotating last word ("Your calendar, minus the" / mark + clutter, noise, chaos, mess); one subcopy line; two buttons side by side (solid and soft); a trust line; then the product window directly below, fading out at its bottom edge. The product window is browser chrome around a labeled placeholder whose screen is exactly 8:5 (1600 × 1000). No screenshots were captured. Rhythm: strip to headline 112px, headline to subcopy 16px, subcopy to buttons 32px, buttons to trust line 28px, trust line to window 64px.
 
 ## 6. Motion
 
 - Easing `cubic-bezier(0.16, 1, 0.3, 1)` for entrances; `ease-out` for hovers. No bounce, spring or overshoot. Nothing longer than 400ms. Staggers 40 to 80ms.
 - transform and opacity only (the nav pill also eases its width and radius, by design). `will-change` is set only while parallax is active.
-- Entrance (about 640ms total): pill, then headline words 60ms apart, then subcopy, buttons, trust line, and the frame (fade + rise + scale 0.98 to 1).
+- Entrance (about 600ms total): strip, then the two headline lines, subcopy, buttons, trust line, and the window (fade + rise + scale 0.98 to 1).
 - Hovers lift 1px and brighten; press scales to 0.98.
-- Parallax (frame 0.3x capped at 40px, grid 0.1x) and the cursor glow (400px, 6%, lerped 0.15) run only with a fine pointer, above 768px, and with motion allowed.
+- The headline word rotates every 2.6 seconds with a quick fade and rise (opacity and transform only).
 - Reduced motion: everything is simply visible, nothing moves.
