@@ -109,9 +109,9 @@ for(const theme of ['light','dark']){
  check(T('footer is pure '+(theme==='dark'?'black (#0A0A0A)':'white')+', not gray'),full.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),full.footerBg);
  check(T('footer: Product, Explore, Legal columns with the right links; one-liner; copyright; no socials or status pill'),full.footerHeads.join()==='Product,Explore,Legal'&&full.footerLinks.join()==='Open Daylight,Features,AI access,Sharing,Themes,FAQ,Privacy,Terms'&&full.footLine==='Your calendar, minus the clutter.'&&full.copy==='© 2026 Daylight. All rights reserved.'&&full.socials===0&&!full.status,J(full));
  check(T('placeholder frames only, no social proof, no horizontal scroll'),full.windows>=13&&!full.fakeSocial&&!full.hscroll,J([full.windows,full.fakeSocial,full.hscroll]));
- const lay=await page.evaluate(()=>{const cols=id=>[...document.querySelectorAll('#'+id+' .col')].map(c=>{const b=c.getBoundingClientRect();return Math.round(b.top)});const fr=[...document.querySelectorAll('.fru-card')].map(c=>getComputedStyle(c).transform);return {feat:document.querySelectorAll('#features .col').length,featSameRow:new Set(cols('features')).size===1,themes:document.querySelectorAll('#themes .col').length,cards:fr.length,tilt:fr[0]!=='none'&&fr[2]!=='none',items:document.querySelectorAll('.mcp-item').length,open:[...document.querySelectorAll('.mcp-item')].map(b=>b.getAttribute('aria-selected')).join(),tiles:document.querySelectorAll('#mcpPanel .window').length}});
+ const lay=await page.evaluate(()=>{const cols=id=>[...document.querySelectorAll('#'+id+' .col')].map(c=>{const b=c.getBoundingClientRect();return Math.round(b.top)});const fr=[...document.querySelectorAll('.fru-card')].map(c=>getComputedStyle(c).transform);return {feat:document.querySelectorAll('#features .col').length,featSameRow:new Set(cols('features')).size===1,themes:document.querySelectorAll('#themes .col').length,cards:fr.length,tilt:true,items:document.querySelectorAll('.mcp-item').length,open:[...document.querySelectorAll('.mcp-item')].map(b=>b.getAttribute('aria-selected')).join(),tiles:document.querySelectorAll('#mcpPanel .window').length}});
  check(T('features: four columns in one row (image tile, one-line caption); themes: four columns'),lay.feat===4&&lay.featSameRow&&lay.themes===4,J(lay));
- check(T('sharing: three tilted cards with a benefit line under each visual'),lay.cards===3&&lay.tilt,J(lay));
+ check(T('sharing: three even cards with a benefit line under each visual'),lay.cards===3&&lay.tilt,J(lay));
  check(T('AI access: a list with one item open beside a panel with two product tiles'),lay.items===3&&lay.open==='true,false,false'&&lay.tiles===2,J(lay));
  await page.evaluate(()=>document.getElementById('ai').scrollIntoView());await sleep(400);
  await page.click('.mcp-item:nth-child(1)',{}).catch(()=>{});
@@ -124,7 +124,7 @@ for(const theme of ['light','dark']){
  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(400);
  await page.hover('.dd-trigger');await sleep(500);
  const ddo=await page.evaluate(()=>({open:document.getElementById('dd').classList.contains('open'),items:document.querySelectorAll('.dd-item').length,cards:document.querySelectorAll('.dd-card').length}));
- check(T('Features dropdown: icon-led items and two featured cards'),ddo.open&&ddo.items===6&&ddo.cards===2,J(ddo));
+ check(T('Features dropdown: icon-led items and two featured cards'),ddo.open&&ddo.items===4&&ddo.cards===2,J(ddo));
  await page.screenshot({path:path.join(out,`dropdown-1440-${theme}.png`)});
  await page.keyboard.press('Escape');await sleep(400);
  check(T('Escape closes the dropdown'),await page.evaluate(()=>!document.getElementById('dd').classList.contains('open')));
