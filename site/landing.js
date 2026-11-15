@@ -117,7 +117,7 @@
   if (dd) {
     dd.addEventListener("pointerenter", function (e) { if (e.pointerType === "touch" || phone.matches) return; ddTimer = setTimeout(function () { setDd(true); }, 60); });
     dd.addEventListener("pointerleave", function () { clearTimeout(ddTimer); ddTimer = setTimeout(function () { setDd(false); }, 140); });
-    ddTrigger.addEventListener("click", function (e) { if (phone.matches) return; e.preventDefault(); setDd(!dd.classList.contains("open")); });
+    ddTrigger.addEventListener("click", function (e) { if (phone.matches) return; e.preventDefault(); setDd(true); });
     dd.addEventListener("focusin", function () { if (!phone.matches && !escaped) setDd(true); });
     dd.addEventListener("focusout", function (e) { if (!dd.contains(e.relatedTarget)) setDd(false); });
     dd.addEventListener("click", function (e) { if (e.target.closest(".dd-item, .dd-card")) setDd(false); });

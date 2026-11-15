@@ -33,6 +33,8 @@ for(const theme of ['light','dark']){
  const T=s=>`${theme}: ${s}`;
  // ---------------- desktop 1440, with two banners posted
  let {page,bad,errs}=await open(theme,1440,900);
+ const first=await page.evaluate(()=>({h1:getComputedStyle(document.querySelector('.display .w')).opacity,sub:getComputedStyle(document.querySelector('.sub')).opacity,btn:getComputedStyle(document.querySelector('.hero .ctas')).opacity,app:getComputedStyle(document.querySelector('.hero-visual')).opacity,t:Math.round(performance.now())}));
+ check(T('hero is visible at first paint (headline, subcopy, buttons, app all opaque on the first frame)'),first.h1==='1'&&first.sub==='1'&&first.btn==='1'&&first.app==='1',J(first));
  await sleep(2200);
  await page.screenshot({path:path.join(out,`hero-1440-${theme}.png`)});
  const m=await page.evaluate(()=>{
@@ -41,7 +43,7 @@ for(const theme of ['light','dark']){
   const h1=document.querySelector('.display');
   return {banners:r('.banners'),nav:r('.nav-inner'),rows,h1:r('.display'),h1text:h1.getAttribute('aria-label'),h1font:getComputedStyle(h1).fontFamily.slice(0,20),h1op:getComputedStyle(h1.querySelector('.w')).opacity,
    hscroll:document.documentElement.scrollWidth>innerWidth,links:[...document.querySelectorAll('.links > a, .links .dd-trigger')].map(a=>a.getAttribute('href')),
-   login:document.querySelector('.nav-login').getAttribute('href'),start:document.querySelector('.btn-nav').getAttribute('href'),
+   cta:document.querySelector('.nav-cta').getAttribute('href'),ctaText:document.querySelector('.nav-cta').textContent.trim(),navBtns:[...document.querySelectorAll('.nav .btn')].filter(b=>b.getClientRects().length&&getComputedStyle(b).visibility!=='hidden'&&b.getBoundingClientRect().height>0&&!b.closest('.menu')).length,loginLink:/log in/i.test(document.querySelector('.nav').textContent)||/get started/i.test(document.querySelector('.nav').textContent),
    heroBtns:[...document.querySelectorAll('.hero .ctas a')].map(a=>a.getAttribute('href')),logo:document.querySelector('.brand').getAttribute('href'),
    cells:document.querySelectorAll('#heroApp .cal .d').length,today:document.querySelectorAll('#heroApp .n.today').length,evs:document.querySelectorAll('#heroApp .ev').length,
    visual:r('.hero-visual'),copy:r('.hero-copy')}});
@@ -50,7 +52,7 @@ for(const theme of ['light','dark']){
  check(T('nav is a 64px bar sitting right under the banners'),Math.round(m.nav.h)>=64&&Math.round(m.nav.h)<=65&&Math.abs(m.nav.top-m.banners.bottom)<=1,J([m.nav,m.banners]));
  check(T('hero: the Daylight headline in Inter like the rest of the app, words revealed; headline left, the app drawn on the right'),m.h1text==='Your calendar, minus the clutter.'&&/Inter/.test(m.h1font)&&m.h1op==='1'&&m.visual.left>m.copy.left+300,J([m.h1text,m.h1font,m.h1op,m.visual,m.copy]));
  check(T('hero app: a real month grid for this month with today marked and events in it'),m.cells>=28&&m.today===1&&m.evs>=10,J([m.cells,m.today,m.evs]));
- check(T('nav: logo to /, Features Sharing AI access FAQ, Log in to login/, Get started to sign-up/'),m.logo==='./'&&m.links.join()==='#features,#sharing,#ai,#faq'&&m.login==='login/'&&m.start==='sign-up/'&&m.heroBtns.join()==='sign-up/,login/',J(m));
+ check(T('nav: logo to /, Features Sharing AI access FAQ, and exactly ONE button: Open Daylight to login/ (no Log in, no Get started)'),m.logo==='./'&&m.links.join()==='#features,#sharing,#ai,#faq'&&m.cta==='login/'&&m.ctaText==='Open Daylight'&&m.navBtns===1&&!m.loginLink,J(m));
  check(T('no horizontal scroll, no 404s, no page errors'),!m.hscroll&&bad.length===0&&errs.length===0,J([m.hscroll,bad,errs]));
  await page.evaluate(()=>window.scrollTo({top:20,behavior:'instant'}));await sleep(450);
  const early=await page.evaluate(()=>({scrolled:document.getElementById('nav').classList.contains('is-scrolled'),top:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().top),bh:document.getElementById('banners').offsetHeight}));
@@ -60,6 +62,12 @@ for(const theme of ['light','dark']){
  const alpha=(c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');if(!m)return 1;const p=m[1].split(',').map(x=>parseFloat(x));return p.length>3?p[3]:1})(pill.bg);
  const wantText=theme==='dark'?'rgb(224, 224, 224)':'rgb(23, 23, 23)';
  check(T('past the banner: a floating rounded glass pill (blurred, shadowed, no outline), text in the theme colors'),pill.scrolled&&/\d{3,}px/.test(pill.radius)&&alpha>0.4&&alpha<0.9&&/blur\((2\d|3\d)px\)/.test(pill.blur)&&pill.borderW==='0px 0px 0px 0px'&&pill.shadow&&pill.top>=8&&pill.w<1000&&pill.wm===wantText,J([pill,alpha,wantText]));
+ {
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(300);
+  const ch=[];
+  for(const y of [0,40,90,120,160,200,260]){await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),y);await sleep(380);ch.push(await page.evaluate(()=>{const c=document.querySelector('.pill-chip').getBoundingClientRect(),n=document.querySelector('.nav-inner').getBoundingClientRect();const overlap=c.top<n.bottom&&c.bottom>n.top;return {overlap,op:parseFloat(getComputedStyle(document.querySelector('.pill-chip')).opacity)}}))}
+  check(T('the announcement chip never sits half-covered by the nav: whenever they overlap it has faded out'),ch.every(c=>!c.overlap||c.op<0.05),J(ch));
+ }
  check(T('there is no scroll progress bar at the top'),await page.evaluate(()=>!document.getElementById('progress')&&!document.querySelector('.progress')));
  await page.screenshot({path:path.join(out,`nav-pill-1440-${theme}.png`)});
  await page.close();
@@ -96,7 +104,8 @@ for(const theme of ['light','dark']){
    footerBg:fc.backgroundColor,footerHeads:[...document.querySelectorAll('.foot-cols h3')].map(n=>n.textContent),footerLinks:[...document.querySelectorAll('.foot-cols a')].map(a=>a.textContent),
    copy:document.querySelector('.foot-bar').textContent.trim(),footLine:document.querySelector('.foot-line').textContent,socials:document.querySelectorAll('.footer svg').length,status:/operational/i.test(f.textContent),
    grid:document.querySelectorAll('.fgi').length,tiles:document.querySelectorAll('.tile').length,marq:document.querySelectorAll('.mq').length,faq:document.querySelectorAll('.faq-item').length,
-   reveal:[...document.querySelectorAll('.reveal')].every(n=>n.classList.contains('in'))}});
+   reveal:[...document.querySelectorAll('.reveal')].every(n=>n.classList.contains('in')),watermark:!!document.querySelector('.watermark'),pills:document.querySelectorAll('.pl,.pills').length,rows:[...document.querySelectorAll('.cal')].map(c=>{const last=[...c.querySelectorAll('.d')].pop().getBoundingClientRect();let n=c.parentElement;while(n&&!/hidden|clip/.test(getComputedStyle(n).overflowY))n=n.parentElement;return Math.round(n.getBoundingClientRect().bottom-last.bottom)})}});
+ check(T('no half-cut watermark; the themes line is plain text, not a control; every month grid has room under its last week row'),!full.watermark&&full.pills===0&&full.rows.length>=4&&full.rows.every(g=>g>=8),J([full.watermark,full.pills,full.rows]));
  check(T('every section anchor resolves (#features #sharing #ai #themes #faq) and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
  check(T('page links point at real pages (login, sign-up, privacy, tos)'),full.pages.length===4,J(full.pages));
  check(T('footer is unchanged: '+(theme==='dark'?'black (#0A0A0A)':'white')),full.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),full.footerBg);
@@ -126,6 +135,8 @@ for(const theme of ['light','dark']){
  await page.hover('.dd-trigger');await sleep(500);
  const ddo=await page.evaluate(()=>{const p=getComputedStyle(document.getElementById('ddPanel'));const m=/rgba?\(([^)]+)\)/.exec(p.backgroundColor);const a=m?(m[1].split(',').length>3?parseFloat(m[1].split(',')[3]):1):1;return {open:document.getElementById('dd').classList.contains('open'),items:document.querySelectorAll('.dd-item').length,cards:document.querySelectorAll('.dd-card').length,alpha:a}});
  check(T('Features dropdown: solid panel, four items and two featured cards'),ddo.open&&ddo.items===4&&ddo.cards===2&&ddo.alpha===1,J(ddo));
+ await page.click('.dd-trigger');await sleep(300);
+ check(T('clicking Features keeps the menu open (it does not close the menu that hover just opened)'),await page.evaluate(()=>document.getElementById('dd').classList.contains('open')));
  await page.screenshot({path:path.join(out,`dropdown-1440-${theme}.png`)});
  await page.keyboard.press('Escape');await sleep(400);
  check(T('Escape closes the dropdown'),await page.evaluate(()=>!document.getElementById('dd').classList.contains('open')));
@@ -155,9 +166,9 @@ for(const theme of ['light','dark']){
  // ---------------- legal pages
  for(const [rel,count,title] of [['privacy/',11,'Privacy Policy'],['tos/',17,'Terms of Service']]){
   ({page,bad,errs}=await open(theme,1440,900,{rel}));await sleep(700);
-  const lg=await page.evaluate(()=>({h1:document.querySelector('h1').textContent,eff:document.querySelector('.eff').textContent,secs:[...document.querySelectorAll('.legal section')].map(s=>s.querySelector('h2').textContent+'|'+s.querySelector('p').textContent),intro:!!document.querySelector('.intro'),login:(document.querySelector('.nav-login')||{getAttribute:()=>null}).getAttribute('href'),start:(document.querySelector('.btn-nav')||{getAttribute:()=>null}).getAttribute('href'),footer:!!document.querySelector('.footer'),print:[...document.styleSheets].some(ss=>{try{return [...ss.cssRules].some(r=>r.type===CSSRule.MEDIA_RULE&&/print/.test(r.conditionText||r.media.mediaText))}catch(e){return false}}),hscroll:document.documentElement.scrollWidth>innerWidth,footerBg:getComputedStyle(document.querySelector('.footer')).backgroundColor}));
+  const lg=await page.evaluate(()=>({h1:document.querySelector('h1').textContent,eff:document.querySelector('.eff').textContent,secs:[...document.querySelectorAll('.legal section')].map(s=>s.querySelector('h2').textContent+'|'+s.querySelector('p').textContent),intro:!!document.querySelector('.intro'),cta:(document.querySelector('.nav-cta')||{getAttribute:()=>null}).getAttribute('href'),navBtns:[...document.querySelectorAll('.nav .btn')].filter(b=>b.getClientRects().length&&getComputedStyle(b).visibility!=='hidden'&&b.getBoundingClientRect().height>0&&!b.closest('.menu')).length,footer:!!document.querySelector('.footer'),print:[...document.styleSheets].some(ss=>{try{return [...ss.cssRules].some(r=>r.type===CSSRule.MEDIA_RULE&&/print/.test(r.conditionText||r.media.mediaText))}catch(e){return false}}),hscroll:document.documentElement.scrollWidth>innerWidth,footerBg:getComputedStyle(document.querySelector('.footer')).backgroundColor}));
   check(T(`/${rel}: title, effective placeholder, intro, ${count} numbered sections each with only the shell line`),lg.h1===title&&lg.eff==='Effective: [EFFECTIVE DATE]'&&lg.intro&&lg.secs.length===count&&lg.secs.every((s,i)=>s.startsWith((i+1)+'. ')&&s.endsWith('|Content for this section will be added in the legal pages job.')),J([lg.h1,lg.eff,lg.secs.length]));
-  check(T(`/${rel}: same nav (Log in, Get started) and footer, a print stylesheet, no horizontal scroll, no errors`),lg.login==='../login/'&&lg.start==='../sign-up/'&&lg.footer&&lg.print&&!lg.hscroll&&bad.length===0&&errs.length===0&&lg.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),J([lg.login,lg.start,lg.footer,lg.print,lg.hscroll,bad,errs,lg.footerBg]));
+  check(T(`/${rel}: same nav (one Open Daylight button) and footer, a print stylesheet, no horizontal scroll, no errors`),lg.cta==='../login/'&&lg.navBtns===1&&lg.footer&&lg.print&&!lg.hscroll&&bad.length===0&&errs.length===0&&lg.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),J([lg.cta,lg.navBtns,lg.footer,lg.print,lg.hscroll,bad,errs,lg.footerBg]));
   await page.screenshot({path:path.join(out,`${rel.replace('/','')}-1440-${theme}.png`),fullPage:false});
   await page.close();
  }
@@ -171,7 +182,7 @@ for(const theme of ['light','dark']){
  check(T('390: hamburger, banners on top, tap targets ≥44, no horizontal scroll'),!p.h&&p.burger!=='none'&&p.links==='none'&&p.btn>=44&&p.banners===2,J(p));
  await page.screenshot({path:path.join(out,`hero-390-${theme}.png`)});
  await page.click('#burger');await sleep(700);
- check(T('390: the menu opens with the links, Log in and Get started, and the icon becomes ×'),await page.evaluate(()=>document.getElementById('menu').classList.contains('open')&&document.getElementById('burger').getAttribute('aria-expanded')==='true'&&document.querySelectorAll('#menu a').length===6));
+ check(T('390: the menu opens with the links and the one Open Daylight button, and the icon becomes ×'),await page.evaluate(()=>document.getElementById('menu').classList.contains('open')&&document.getElementById('burger').getAttribute('aria-expanded')==='true'&&document.querySelectorAll('#menu a').length===5));
  await page.screenshot({path:path.join(out,`menu-390-${theme}.png`)});
  await page.evaluate(()=>window.scrollTo({top:200,behavior:'instant'}));await sleep(500);
  await page.screenshot({path:path.join(out,`menu-scrolled-390-${theme}.png`)});

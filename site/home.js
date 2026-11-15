@@ -185,4 +185,14 @@
       c.style.setProperty("--mx", e.clientX - r.left + "px"); c.style.setProperty("--my", e.clientY - r.top + "px");
     });
   });
+
+  /* ---- the announcement chip fades out as it nears the nav, so the pill never slices it ---- */
+  var chip = $(".pill-chip"), navBar = $(".nav-inner"), chipTick = false;
+  function chipCheck() {
+    chipTick = false;
+    if (!chip || !navBar) return;
+    var nb = navBar.getBoundingClientRect().bottom, cb = chip.getBoundingClientRect();
+    chip.classList.toggle("under", cb.top < nb + 14);
+  }
+  if (chip) { window.addEventListener("scroll", function () { if (!chipTick) { chipTick = true; requestAnimationFrame(chipCheck); } }, { passive: true }); chipCheck(); }
 })();

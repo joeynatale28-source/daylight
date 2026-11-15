@@ -215,12 +215,6 @@ a.strip-link:hover svg { transform: translateX(2px); }
 
 /* ============================ entrance (transform + opacity only) ============================ */
 html.theme-fade, html.theme-fade * { transition: background-color 200ms ease, color 200ms ease, border-color 200ms ease !important; }
-html.js .a { opacity: 0; transform: translateY(16px); }
-html.js.is-loaded .a { animation: rise 220ms var(--ease) both; animation-delay: var(--d, 0ms); }
-html.js .a-frame { transform: translateY(16px) scale(0.98); transform-origin: 50% 0; }
-html.js.is-loaded .a-frame { animation-name: rise-frame; animation-duration: 320ms; }
-@keyframes rise { from { opacity: 0; transform: translateY(var(--y, 16px)); } to { opacity: 1; transform: none; } }
-@keyframes rise-frame { from { opacity: 0; transform: translateY(16px) scale(0.98); } to { opacity: 1; transform: none; } }
 
 /* ============================ responsive ============================ */
 @media (max-width: 1024px) {
@@ -250,8 +244,6 @@ html.js.is-loaded .a-frame { animation-name: rise-frame; animation-duration: 320
 /* ============================ reduced motion: nothing moves ============================ */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  html.js .a { opacity: 1; transform: none; }
-  html.js.is-loaded .a { animation: none; }
   .nav-inner, .btn, .btn svg, .links a, .announce, .announce svg, .burger span, .menu, .menu > * { transition-duration: 0.01ms !important; transition-delay: 0s !important; }
   .cursor-glow { display: none; }
 }
@@ -527,9 +519,3 @@ html.js .fru.in .fru-card:hover { transition-delay: 0ms; transition-duration: 32
 
 #faq.section { padding-bottom: 56px; }
 
-/* ---------- nav additions ---------- */
-.nav-login { margin-left: auto; font-size: 16px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 8px 4px; margin-right: 18px; transition: color 160ms ease-out; }
-.nav-login:hover { color: var(--text); }
-.nav-login + .btn-nav { margin-left: 0; }
-
-@media (max-width: 768px) { .nav-login { display: none; } }
