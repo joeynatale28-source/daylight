@@ -48,7 +48,7 @@ for(const theme of ['light','dark']){
    imgInH1:document.querySelectorAll('.display img').length,line2Rot:!!document.querySelector('.line2 .rot'),rotCx:words,line2Cx:(()=>{const b=document.querySelector('.line2').getBoundingClientRect();return Math.round(b.left+b.width/2)})()}});
  check(T('banners render ABOVE the nav, in order, with the colors, text and link the owner chose'),m.rows.length===2&&m.banners.bottom<=m.nav.top+1&&m.rows[0].text===BANNERS[0].body&&m.rows[0].bg==='rgb(240, 43, 43)'&&m.rows[0].href===BANNERS[0].link&&/noopener/.test(m.rows[0].rel)&&m.rows[1].bg==='rgb(43, 240, 240)'&&m.rows[1].href===null,J([m.rows,m.banners,m.nav.top]));
  check(T('banner text stays readable on its color (light text on red, dark on cyan)'),m.rows[0].color==='rgb(255, 255, 255)'&&m.rows[1].color==='rgb(17, 17, 17)',J(m.rows.map(r=>r.color)));
- check(T('nav is a 54px bar sitting right under the banners'),Math.round(m.nav.h)>=54&&Math.round(m.nav.h)<=55&&Math.abs(m.nav.top-m.banners.bottom)<=1,J([m.nav,m.banners]));
+ check(T('nav is a 64px bar sitting right under the banners'),Math.round(m.nav.h)>=64&&Math.round(m.nav.h)<=65&&Math.abs(m.nav.top-m.banners.bottom)<=1,J([m.nav,m.banners]));
  check(T('hero headline: no logo in it; the rotating word sits on the second line and its center is the line center for every word'),m.imgInH1===0&&m.line2Rot&&m.rotCx.every(c=>Math.abs(c-m.line2Cx)<=2),J([m.imgInH1,m.line2Rot,m.rotCx,m.line2Cx]));
  check(T('headline: Inter 600, -0.03em, 56px at 1440, two lines'),/Inter/.test(m.font)&&m.h1size==='56px'&&m.h1w==='600'&&Math.abs(parseFloat(m.h1ls)+1.68)<0.15&&m.lines===2,J([m.font,m.h1size,m.h1w,m.h1ls,m.lines]));
  check(T('rhythm: nav→headline 136, headline→sub 16, sub→buttons 32, buttons→trust 28, trust→frame 64'),
