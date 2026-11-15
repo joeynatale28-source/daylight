@@ -1,182 +1,120 @@
-/* Daylight landing page motion. One small file, no libraries. Everything animates transform / opacity only (the nav pill also eases its
-   width and radius, as asked). Reduced motion: nothing moves. Touch devices: no parallax and no cursor glow. */
+/* Daylight website — shared behavior for the landing page and the legal pages.
+   Enhancements only: every page is complete and fully visible without this file. */
 (function () {
-  "use strict";
-  var doc = document.documentElement;
-  var nav = document.getElementById("nav");
-  var burger = document.getElementById("burger");
-  var menu = document.getElementById("menu");
-  var reduce = window.matchMedia("(prefers-reduced-motion: reduce)");
-  var phone = window.matchMedia("(max-width: 768px)");
-  function motionOk() { return !reduce.matches; }
-  
-  /* ---- banners above the nav: exactly what the owner posted in Admin and marked "Dashboard and landing page".
-     Colors, text and link all come from the database; nothing is hardcoded here. Visitors cannot dismiss them. The list is refreshed
-     every minute and when the tab comes back, so a deleted or edited banner never lingers. The entrance waits for the first answer
-     (at most 450ms) so the page never jumps. ---- */
-  var banners = document.getElementById("banners");
-  var SUPA = "https://usihrcucnreecynewgbd.supabase.co", KEY = "sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM";
-  var ARROW = '<svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  /* readable text for any banner color: the same luminance rule the dashboard uses */
-  function textOn(hex) {
-    var m = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex || "");
-    if (!m) return "#ffffff";
-    var lin = function (v) { v = parseInt(v, 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
-    var L = 0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3]);
-    return L > 0.4 ? "#111111" : "#ffffff";
-  }
-  var lastBanners = null;
-  function bannerHeight() { return banners ? banners.offsetHeight : 0; }
-  function setBannerVar() { doc.style.setProperty("--banner-h", bannerHeight() + "px"); }
-  function renderBanners(list) {
-    if (!banners) return;
-    var key = JSON.stringify(list || []);
-    if (key === lastBanners) return;
-    lastBanners = key;
-    banners.textContent = "";
-    (list || []).forEach(function (b) {
-      if (!b || !b.body) return;
-      var row = document.createElement("div");
-      row.className = "banner";
-      if (/^#[0-9a-f]{6}$/i.test(b.color || "")) { row.style.background = b.color; row.style.color = textOn(b.color); }
-      var link = /^https?:\/\/\S+$/i.test(b.link || "") ? b.link : null;
-      if (link) {
-        var a = document.createElement("a"); a.href = link; a.target = "_blank"; a.rel = "noopener noreferrer"; a.textContent = b.body;
-        row.appendChild(a); row.insertAdjacentHTML("beforeend", ARROW);
-      } else row.textContent = b.body;
-      banners.appendChild(row);
-    });
-    setBannerVar(); update();
-  }
-  function fetchBanners() {
-    return fetch(SUPA + "/rest/v1/rpc/daylight_landing_banner", { method: "POST", headers: { apikey: KEY, "Content-Type": "application/json" }, body: "{}", cache: "no-store" })
-      .then(function (r) { return r.ok ? r.json() : null; })
-      .then(function (rows) { if (rows) renderBanners(rows); })
-      .catch(function () {});
-  }
-  var bannerReady = banners ? fetchBanners() : Promise.resolve();
-  if (banners) {
-    setInterval(function () { if (!document.hidden) fetchBanners(); }, 60000);
-    document.addEventListener("visibilitychange", function () { if (!document.hidden) fetchBanners(); });
-  }
-  var waited = new Promise(function (res) { setTimeout(res, 450); });
+  var d = document, w = window, root = d.documentElement;
+  var reduce = w.matchMedia ? w.matchMedia('(prefers-reduced-motion: reduce)') : { matches: false };
+  var EASE = 'cubic-bezier(0.16, 1, 0.3, 1)';
 
-  /* ---- entrance: start after the first frame, once the banner question is settled ---- */
-  Promise.race([bannerReady, waited]).then(function () {
-    requestAnimationFrame(function () { requestAnimationFrame(function () { doc.classList.add("is-loaded"); }); });
+  /* Reload lands at the very top, unless the URL carries a #hash: then the anchor wins. */
+  try { if ('scrollRestoration' in history) history.scrollRestoration = 'manual'; } catch (e) {}
+  function toStart() {
+    var id = '';
+    try { id = decodeURIComponent((location.hash || '').slice(1)); } catch (e) {}
+    var target = id && d.getElementById(id);
+    if (target) target.scrollIntoView();
+    else if (!location.hash) w.scrollTo(0, 0);
+  }
+  toStart();
+  w.addEventListener('load', toStart);
+  w.addEventListener('pageshow', function (e) { if (e.persisted) toStart(); });
+
+  [].forEach.call(d.querySelectorAll('[data-top]'), function (a) {
+    a.addEventListener('click', function (e) {
+      e.preventDefault();
+      w.scrollTo(0, 0);
+      try { history.replaceState(null, '', location.pathname + location.search); } catch (err) {}
+    });
   });
 
-  /* ---- scroll: nav pill, progress hairline, parallax (one rAF per frame, never per event) ---- */
-  var ticking = false;
-  function onScroll() { if (!ticking) { ticking = true; requestAnimationFrame(update); } }
-  function update() {
-    ticking = false;
-    var y = window.pageYOffset || doc.scrollTop || 0;
-    var bh = bannerHeight();
-    nav.style.transform = bh > y ? "translate3d(0," + (bh - y) + "px,0)" : "";
-    nav.classList.toggle("is-scrolled", y > bh + 8);
+  /* Nav: bar at rest, floating pill past 8px. Widths in px so the change animates smoothly. */
+  var nav = d.getElementById('nav'), menu = d.getElementById('menu'), panel = d.getElementById('panel');
+  if (nav) {
+    var size = function () {
+      var cw = nav.clientWidth;
+      nav.style.setProperty('--w-rest', cw + 'px');
+      nav.style.setProperty('--w-pill', Math.max(0, Math.min(760, cw - 32)) + 'px');
+    };
+    size();
+    if ('ResizeObserver' in w) new ResizeObserver(size).observe(nav); else w.addEventListener('resize', size);
+    var onScroll = function () {
+      nav.classList.toggle('is-pill', (w.pageYOffset || root.scrollTop || 0) > 8);
+    };
+    w.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+
+    if (menu && panel) {
+      var setOpen = function (o) {
+        nav.classList.toggle('open', o);
+        menu.setAttribute('aria-expanded', o ? 'true' : 'false');
+        menu.setAttribute('aria-label', o ? 'Close menu' : 'Open menu');
+      };
+      menu.addEventListener('click', function () { setOpen(!nav.classList.contains('open')); });
+      panel.addEventListener('click', function (e) { if (e.target.closest('a')) setOpen(false); });
+      d.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
+      w.addEventListener('resize', function () { if (w.innerWidth >= 768) setOpen(false); });
     }
-  window.addEventListener("scroll", onScroll, { passive: true });
-  window.addEventListener("resize", function () { setBannerVar(); onScroll(); if (!phone.matches) closeMenu(); }, { passive: true });
-  update();
-
-  /* ---- mobile menu ---- */
-  var menuOpen = false;
-  function setMenu(open) {
-    menuOpen = open;
-    menu.classList.toggle("open", open);
-    burger.setAttribute("aria-expanded", String(open));
-    burger.setAttribute("aria-label", open ? "Close menu" : "Open menu");
   }
-  function closeMenu() { if (menuOpen) setMenu(false); }
-  burger.addEventListener("click", function () { setMenu(!menuOpen); });
-  menu.addEventListener("click", function (e) { if (e.target.closest("a")) closeMenu(); });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && menuOpen) { closeMenu(); burger.focus(); } });
-  document.addEventListener("click", function (e) { if (menuOpen && !nav.contains(e.target)) closeMenu(); });
 
-  /* ---- the word at the end of the headline rotates (opacity + transform only; still when motion is reduced) ---- */
-  var rot = document.getElementById("rot");
-  if (rot && motionOk()) {
-    var words = [].slice.call(rot.querySelectorAll(".rot-word")), cur = 0;
+  /* Rotating word: two stacked spans cross-fade inside a fixed-width slot. Nothing outside the slot can move. */
+  var a = d.getElementById('w1'), b = d.getElementById('w2');
+  if (a && b && !reduce.matches) {
+    var words = ['clutter', 'noise', 'chaos', 'mess'], i = 0, cur = a, next = b;
     setInterval(function () {
-      if (document.hidden) return;
-      words[cur].classList.remove("is-on");
-      cur = (cur + 1) % words.length;
-      words[cur].classList.add("is-on");
+      i = (i + 1) % words.length;
+      next.className = 'word reset';
+      next.textContent = words[i];
+      void next.offsetWidth;
+      next.className = 'word on';
+      cur.className = 'word up';
+      var t = cur; cur = next; next = t;
     }, 2600);
   }
 
-  /* ---- Features dropdown (desktop): opens on hover, focus or click; Escape and outside clicks close it ---- */
-  var dd = document.getElementById("dd"), ddTrigger = document.getElementById("ddTrigger"), ddTimer = 0, escaped = false;
-  function setDd(open) {
-    if (!dd) return;
-    clearTimeout(ddTimer);
-    dd.classList.toggle("open", open);
-    ddTrigger.setAttribute("aria-expanded", String(open));
-  }
-  if (dd) {
-    dd.addEventListener("pointerenter", function (e) { if (e.pointerType === "touch" || phone.matches) return; ddTimer = setTimeout(function () { setDd(true); }, 60); });
-    dd.addEventListener("pointerleave", function () { clearTimeout(ddTimer); ddTimer = setTimeout(function () { setDd(false); }, 140); });
-    ddTrigger.addEventListener("click", function (e) { if (phone.matches) return; e.preventDefault(); setDd(true); });
-    dd.addEventListener("focusin", function () { if (!phone.matches && !escaped) setDd(true); });
-    dd.addEventListener("focusout", function (e) { if (!dd.contains(e.relatedTarget)) setDd(false); });
-    dd.addEventListener("click", function (e) { if (e.target.closest(".dd-item, .dd-card")) setDd(false); });
-    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && dd.classList.contains("open")) { escaped = true; setDd(false); ddTrigger.focus(); setTimeout(function () { escaped = false; }, 400); } });
-    document.addEventListener("click", function (e) { if (!dd.contains(e.target)) setDd(false); });
-  }
-
-  /* ---- AI access: the list on the left opens one item at a time; the panel's tiles follow ---- */
-  var mcpItems = [].slice.call(document.querySelectorAll(".mcp-item")), panel = document.getElementById("mcpPanel");
-  function pick(btn) {
-    mcpItems.forEach(function (b) { b.setAttribute("aria-selected", String(b === btn)); });
-    if (!panel) return;
-    var labels = [btn.getAttribute("data-a"), btn.getAttribute("data-b")];
-    [].slice.call(panel.querySelectorAll(".window")).forEach(function (w, i) {
-      var l = w.querySelector(".frame-label"); if (l && labels[i]) { l.textContent = labels[i]; w.setAttribute("aria-label", "Placeholder: " + labels[i]); }
+  /* Accordions. Without this script every row stays expanded. Toggling never scrolls the page. */
+  [].forEach.call(d.querySelectorAll('[data-acc]'), function (rootEl) {
+    var keepOne = rootEl.getAttribute('data-acc') === 'one';
+    var items = [].slice.call(rootEl.querySelectorAll('.acc-item'));
+    var set = function (item, open) {
+      item.classList.toggle('open', open);
+      var btn = item.querySelector('button');
+      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
+    };
+    items.forEach(function (item, n) {
+      set(item, keepOne && n === 0);
+      var btn = item.querySelector('button');
+      if (btn) btn.addEventListener('click', function () {
+        var isOpen = item.classList.contains('open');
+        if (keepOne && isOpen) return;
+        items.forEach(function (other) { set(other, false); });
+        set(item, !isOpen);
+      });
     });
-  }
-  mcpItems.forEach(function (b, i) {
-    b.addEventListener("click", function () { pick(b); });
-    b.addEventListener("keydown", function (e) {
-      var n = -1;
-      if (e.key === "ArrowDown") n = (i + 1) % mcpItems.length; else if (e.key === "ArrowUp") n = (i - 1 + mcpItems.length) % mcpItems.length;
-      if (n >= 0) { e.preventDefault(); mcpItems[n].focus(); pick(mcpItems[n]); }
-    });
+    rootEl.classList.add('js-acc');
   });
 
-  /* ---- scroll reveal: each block rises in once as it enters the viewport ---- */
-  var reveals = [].slice.call(document.querySelectorAll(".reveal"));
-  [].slice.call(document.querySelectorAll(".cols4")).forEach(function (g) { [].slice.call(g.querySelectorAll(".col")).forEach(function (c, i) { c.style.setProperty("--d", i * 90 + "ms"); }); });
-  [].slice.call(document.querySelectorAll(".mcp-left, .mcp-panel")).forEach(function (c, i) { c.style.setProperty("--d", i * 140 + "ms"); });
-  if ("IntersectionObserver" in window && motionOk()) {
+  /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden
+     in CSS, anything on screen at load is left alone, and a timer always forces the finished state. */
+  if (!reduce.matches && 'IntersectionObserver' in w && typeof Element.prototype.animate === 'function') {
+    var first = true;
     var io = new IntersectionObserver(function (entries) {
-      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
-    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
-    reveals.forEach(function (n) { io.observe(n); });
-  } else { reveals.forEach(function (n) { n.classList.add("in"); }); }
-
-  /* ---- the Daylight logo: the homepage when signed out; the dashboard when signed in ---- */
-  function signedIn() {
-    try {
-      var raw = localStorage.getItem("sb-usihrcucnreecynewgbd-auth-token");
-      var s = raw && JSON.parse(raw);
-      return !!(s && s.access_token && s.user);
-    } catch (e) { return false; }
+      var initial = first; first = false;
+      entries.forEach(function (en) {
+        if (!en.isIntersecting) return;
+        io.unobserve(en.target);
+        if (initial) return;
+        var group = en.target;
+        var els = group.hasAttribute('data-stagger') ? [].slice.call(group.children) : [group];
+        var anims = els.map(function (el, n) {
+          try {
+            return el.animate([{ offset: 0, opacity: 0, translate: '0 8px' }],
+              { duration: 250, delay: Math.min(n, 5) * 40, easing: EASE, fill: 'backwards' });
+          } catch (e) { return null; }
+        });
+        setTimeout(function () {
+          anims.forEach(function (an) { try { if (an && an.playState !== 'finished') an.finish(); } catch (e) {} });
+        }, 700);
+      });
+    }, { threshold: 0.1 });
+    [].forEach.call(d.querySelectorAll('[data-reveal]'), function (el) { io.observe(el); });
   }
-  [].slice.call(document.querySelectorAll("a.brand")).forEach(function (a) {
-    a.addEventListener("click", function (e) {
-      if (!signedIn()) return;
-      e.preventDefault();
-      location.href = new URL("dashboard/", a.href).href;
-    });
-  });
-
-  /* ---- the OS theme can flip while the page is open: colors crossfade (the CSS reads prefers-color-scheme directly) ---- */
-  var scheme = window.matchMedia("(prefers-color-scheme: dark)");
-  function fade() {
-    if (!motionOk()) return;
-    doc.classList.add("theme-fade");
-    setTimeout(function () { doc.classList.remove("theme-fade"); }, 260);
-  }
-  if (scheme.addEventListener) scheme.addEventListener("change", fade); else if (scheme.addListener) scheme.addListener(fade);
 })();

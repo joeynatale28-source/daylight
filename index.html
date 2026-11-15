@@ -1,318 +1,179 @@
 <!doctype html>
 <html lang="en">
 <head>
-<style>html{background:#fff}@media(prefers-color-scheme:dark){html{background:#0a0a0a}}</style>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="color-scheme" content="light dark">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Daylight: your calendar, minus the clutter</title>
-<meta name="description" content="Daylight is a clean, fast web calendar for your events and tasks. Free.">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-dark-32.png" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-light-32.png" media="(prefers-color-scheme: light)">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-dark-16.png" media="(prefers-color-scheme: dark)">
-<link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-light-16.png" media="(prefers-color-scheme: light)">
-<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png">
-<meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)">
-<meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+<meta name="description" content="The calendar for the things you actually do. Events, tasks and reminders in one calm, fast place, without the noise.">
+<meta name="color-scheme" content="light dark">
 <script>
-/* Runs before first paint.
-   1) A provider or email link (Google sign-in, sign-up confirmation, password reset) returns to the site root: hand it to the page that
-      finishes it. A password reset goes to /login; a failed provider sign-in goes to /login (it explains softly); a finished one goes to /dashboard.
-   2) Marks the page as scripted so the entrance animation can start from its hidden state without a flash. */
+/* Runs before first paint. A provider or email link (Google sign-in, sign-up confirmation, password reset) returns to the site root:
+   hand it to the page that finishes it. A password reset goes to /login; a failed provider sign-in goes to /login (it explains softly);
+   a finished one goes to /dashboard. */
 (function () {
-  var d = document.documentElement, q = location.search + location.hash;
+  var q = location.search + location.hash;
   if (/(^|[?&#])type=recovery(&|$)/.test(q)) { location.replace("login/" + q); return; }
   if (/(^|[?&#])(error|error_code|error_description)=/.test(q)) { location.replace("login/" + q); return; }
   if (/(^|[?&#])(code|access_token)=/.test(q)) { location.replace("dashboard/" + q); return; }
-  d.classList.add("js");
 })();
 </script>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,400..800;1,14..32,400..800&display=swap" rel="stylesheet">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 498 498'%3E%3Cstyle%3Epath%7Bfill:%23171717%7D@media(prefers-color-scheme:dark)%7Bpath%7Bfill:%23e0e0e0%7D%7D%3C/style%3E%3Cpath d='M100 326a149 149 0 0 1 298 0z'/%3E%3Cpath d='M36 339h426v12H36z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap">
 <link rel="stylesheet" href="site/landing.css?v=__BUILD_ID__">
-<link rel="stylesheet" href="site/home.css?v=__BUILD_ID__">
 </head>
 <body>
-<div class="banners" id="banners" role="region" aria-label="Announcements"></div>
+
+<a class="strip" href="#ai"><span class="chip">New:</span><span>connect your AI to your calendar</span><span class="arrow" aria-hidden="true">›</span></a>
+
 <header class="nav" id="nav">
-  <div class="nav-inner">
-    <a class="brand" href="./" aria-label="Daylight home">
-      <img class="brand-mark mark-light" src="assets/daylight-sunarc-light-NOBG.png" alt="" width="34" height="34">
-      <img class="brand-mark mark-dark" src="assets/daylight-sunarc-dark-NOBG.png" alt="" width="34" height="34">
-      <span class="wordmark">Daylight</span>
-    </a>
-    <nav class="links" aria-label="Primary">
-      <div class="dd" id="dd"><a class="dd-trigger" href="#features" id="ddTrigger" aria-haspopup="true" aria-expanded="false" aria-controls="ddPanel">Features <svg class="i" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg></a><div class="dd-panel" id="ddPanel" role="menu" aria-label="Features"><div class="dd-grid"><a class="dd-item" href="#features" role="menuitem"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg><span><b>Four views</b><small>Month, week, day and agenda.</small></span></a><a class="dd-item" href="#features" role="menuitem"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3 6 1.5 1.5L7 5M3 12l1.5 1.5L7 11M3 18l1.5 1.5L7 17"/></svg><span><b>Tasks</b><small>A simple list beside your calendar.</small></span></a><a class="dd-item" href="#features" role="menuitem"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.7 21a2 2 0 0 1-3.4 0"/></svg><span><b>Reminders</b><small>Defaults per calendar, quiet hours.</small></span></a><a class="dd-item" href="#features" role="menuitem"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg><span><b>Search</b><small>Find any event, fast.</small></span></a></div><div class="dd-cards"><a class="dd-card" href="#sharing" role="menuitem"><span class="dd-card-t">Sharing</span><span class="dd-card-d">Invite people and choose what each one can do.</span><span class="dd-card-a"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a><a class="dd-card" href="#ai" role="menuitem"><span class="dd-card-t">AI access</span><span class="dd-card-d">You decide what each AI may read, write or delete.</span><span class="dd-card-a"><svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a></div></div></div>
-      <a href="#sharing">Sharing</a>
-      <a href="#ai">AI access</a>
-      <a href="#faq">FAQ</a>
-    </nav>
-    <a class="btn btn-nav nav-cta" href="login/">Open Daylight <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-    <button class="burger" id="burger" type="button" aria-expanded="false" aria-controls="menu" aria-label="Open menu"><span></span><span></span></button>
-    <div class="menu" id="menu">
-      <a href="#features">Features</a>
-      <a href="#sharing">Sharing</a>
-      <a href="#ai">AI access</a>
-      <a href="#faq">FAQ</a>
-      <a class="btn" href="login/">Open Daylight <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+  <div class="bar"><div class="bar-in">
+    <a class="brand" href="./" aria-label="Daylight home"><svg class="mark" viewBox="0 0 498 498" aria-hidden="true"><path fill="currentColor" d="M100 326a149 149 0 0 1 298 0z"/><path fill="currentColor" d="M36 339h426v12H36z"/></svg><span>Daylight</span></a>
+    <nav class="links" aria-label="Primary"><a href="#features">Features</a><a href="#sharing">Sharing</a><a href="#ai">AI access</a><a href="#faq">FAQ</a></nav>
+    <div class="right">
+      <a class="btn btn-p btn-nav" href="login/">Open Daylight</a>
+      <button class="menu" id="menu" type="button" aria-expanded="false" aria-controls="panel" aria-label="Open menu"><i></i><i></i></button>
     </div>
+  </div></div>
+  <div class="panel" id="panel">
+    <a class="pl" style="--i:0" href="#features">Features</a>
+    <a class="pl" style="--i:1" href="#sharing">Sharing</a>
+    <a class="pl" style="--i:2" href="#ai">AI access</a>
+    <a class="pl" style="--i:3" href="#faq">FAQ</a>
+    <a class="btn btn-p" style="--i:4" href="login/">Open Daylight</a>
   </div>
 </header>
 
-<main class="home">
-
-  <!-- ============ hero: headline on the left, the app on the right ============ -->
-  <section class="hero" id="top" aria-labelledby="hero-title">
-    <div class="hero-glow" aria-hidden="true"></div>
-    <div class="container hero-grid">
-      <div class="hero-copy">
-        <a class="pill-chip a" style="--d:0ms" href="#ai"><span class="chip-dot"></span>New: connect your AI to your calendar <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-        <h1 class="display serif grad" id="hero-title" aria-label="Your calendar, minus the clutter.">
-          <span class="w" style="--i:0" aria-hidden="true">Your</span> <span class="w" style="--i:1" aria-hidden="true">calendar,</span><br>
-          <span class="w" style="--i:2" aria-hidden="true">minus</span> <span class="w" style="--i:3" aria-hidden="true">the</span> <span class="w" style="--i:4" aria-hidden="true">clutter.</span>
-        </h1>
-        <p class="sub a" style="--d:420ms">The calendar for the things you actually do. Events, tasks and reminders in one calm, fast place, with sharing and AI access you control.</p>
-        <div class="ctas a" style="--d:520ms">
-          <a class="btn btn-solid" href="sign-up/">Get started</a>
-          <a class="btn btn-ghost" href="login/">Open Daylight</a>
-        </div>
-        <p class="fine a" style="--d:600ms">Free. No install. Your data stays yours.</p>
-      </div>
-
-      <div class="hero-visual a a-vis" style="--d:300ms">
-        <div class="mock app" id="heroApp" role="img" aria-label="The Daylight month view with events and tasks">
-          <div class="app-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="app-title" data-month></span><span class="app-tabs" aria-hidden="true"><b class="on">Month</b><b>Week</b><b>Day</b></span></div>
-          <div class="app-body">
-            <div class="cal" data-grid="hero"></div>
-          </div>
-        </div>
-        <div class="float f1" aria-hidden="true">
-          <span class="f-ic"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span>
-          <span><b>Dentist in 1 hour</b><small>9:30 AM · Smile Dental</small></span>
-        </div>
-        <div class="float f2" aria-hidden="true">
-          <b class="f-h">Today</b>
-          <label class="f-task"><i class="box done"></i>Reply to booster club</label>
-          <label class="f-task"><i class="box"></i>Post meet schedule</label>
-          <label class="f-task"><i class="box"></i>Order new caps</label>
-        </div>
-      </div>
+<main>
+<div class="hero">
+  <div class="wrap">
+    <h1 aria-label="Your calendar, minus the clutter.">
+      <span class="l1" aria-hidden="true">Your calendar,</span>
+      <span class="l2" aria-hidden="true"><span class="mut">minus the</span> <span class="slot"><span class="sizer">clutter</span><span class="word on" id="w1">clutter</span><span class="word" id="w2"></span></span>.</span>
+    </h1>
+    <p class="sub">The calendar for the things you actually do. Events, tasks and reminders in one calm, fast place, without the noise.</p>
+    <div class="ctas">
+      <a class="btn btn-p" href="login/">Open Daylight</a>
+      <a class="btn btn-soft" href="#features">Explore features</a>
     </div>
-  </section>
-
-  <!-- ============ the logo grid, as the things Daylight does ============ -->
-  <section class="strip-sec" aria-label="What Daylight does">
-    <div class="glow-line" aria-hidden="true"></div>
-    <p class="strip-t">Everything you need. Nothing you don’t.</p>
-    <div class="names"><span>Month</span><span>Week</span><span>Day</span><span>Agenda</span><span>Tasks</span><span>Reminders</span><span>Quiet hours</span><span>Search</span><span>Sharing</span><span>AI access</span><span>Print</span><span>Shortcuts</span></div>
-    <a class="more c" href="#features">See all features <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-  </section>
-
-  <!-- ============ plan your week in minutes (views) ============ -->
-  <section class="sec" id="features" aria-labelledby="views-title">
-    <div class="container">
-      <div class="sec-head c reveal">
-        <span class="tile" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="3"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span>
-        <h2 class="h2 grad" id="views-title">Plan your week <em>in minutes</em></h2>
-        <p class="lead">Four views and a task list that fit right into your day. Open it, and everything you need is already there, with US holidays built in.</p>
-      </div>
-      <div class="tabs c reveal" role="tablist" aria-label="Views">
-        <button class="tab" role="tab" aria-selected="true" data-v="month">Month</button>
-        <button class="tab" role="tab" aria-selected="false" data-v="week">Week</button>
-        <button class="tab" role="tab" aria-selected="false" data-v="day">Day</button>
-        <button class="tab" role="tab" aria-selected="false" data-v="agenda">Agenda</button>
-        <button class="tab" role="tab" aria-selected="false" data-v="tasks">Tasks</button>
-      </div>
-      <div class="card big reveal" id="viewPanel" style="--d:80ms">
-        <div class="panel-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="panel-name" id="viewName">Month</span><a class="panel-link" href="sign-up/">Try it free <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-        <div class="panel-body mock" id="viewBody"></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ first-class experience: two cells ============ -->
-  <section class="sec" aria-labelledby="exp-title">
-    <div class="container">
-      <div class="sec-head reveal">
-        <h2 class="h2 grad" id="exp-title">First-class<br>calendar experience</h2>
-        <p class="lead">We love a quick, quiet tool. Daylight is built to get out of your way: type, press enter, and get on with your day.</p>
-      </div>
-      <div class="cells">
-        <article class="card cell spot reveal">
-          <div class="cell-vis mock">
-            <div class="qa"><span class="qa-k">N</span><span class="qa-in" id="qaText"></span><i class="caret"></i></div>
-            <ul class="stream" id="stream" aria-hidden="true"></ul>
-          </div>
-          <div class="cell-t"><h3>Quick add</h3><p>Press N, type the title and the time, and it is on your calendar. Keyboard shortcuts cover everything else: T for today, Ctrl or ⌘ and K to search.</p><a class="more" href="sign-up/">Get started <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-        </article>
-        <article class="card cell spot reveal" style="--d:100ms">
-          <div class="cell-vis mock">
-            <ul class="feed" id="feed" aria-hidden="true"></ul>
-          </div>
-          <div class="cell-t"><h3>Reminders and quiet hours</h3><p>Set a default reminder for each calendar, and hold notifications with quiet hours when you need to focus. Nothing nags you at midnight.</p><a class="more" href="sign-up/">Get started <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ write events (centered editor window) ============ -->
-  <section class="sec" aria-labelledby="edit-title">
-    <div class="container">
-      <div class="sec-head c reveal">
-        <span class="tile" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></svg></span>
-        <h2 class="h2 grad" id="edit-title">Write events using a <em>delightful editor</em></h2>
-        <p class="lead">Add a place, a note, guests and a repeat in one small window. Search every event later, then move or delete several at once.</p>
-      </div>
-      <div class="card win reveal" style="--d:100ms">
-        <div class="panel-bar"><span class="dots color" aria-hidden="true"><i></i><i></i><i></i></span><span class="panel-name center">New event</span><span class="mini solid sm">Save</span></div>
-        <div class="panel-body mock form">
-          <div class="fld"><small>Title</small><span class="typed" id="evTitle"></span></div>
-          <div class="fld-row">
-            <div class="fld"><small>When</small><span>Tue, 9:30 – 10:30 AM</span></div>
-            <div class="fld"><small>Repeat</small><span>Every week</span></div>
-          </div>
-          <div class="fld"><small>Where</small><span>Smile Dental</span></div>
-          <div class="fld-row">
-            <div class="fld"><small>Calendar</small><span><i class="dot g"></i>Personal</span></div>
-            <div class="fld"><small>Reminder</small><span>1 hour before</span></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ go beyond: sharing and tasks ============ -->
-  <section class="sec" id="sharing" aria-labelledby="share-title">
-    <div class="container">
-      <div class="sec-head reveal">
-        <h2 class="h2 grad" id="share-title">Share the plan,<br>not your whole life</h2>
-        <p class="lead">Invite people to a calendar and choose what each person can do. Share one event without sharing the calendar around it. Stop any time.</p>
-      </div>
-      <div class="cells">
-        <article class="card cell spot reveal">
-          <div class="cell-vis mock">
-            <ul class="people" id="people" aria-hidden="true">
-              <li><span class="av a1">MC</span><span class="pn"><b>Maya Chen</b><small>maya@example.com</small></span><em>Can edit</em></li>
-              <li><span class="av a2">DO</span><span class="pn"><b>Daniel Okafor</b><small>daniel@example.com</small></span><em>Can view</em></li>
-              <li><span class="av a3">PR</span><span class="pn"><b>Priya Raman</b><small>priya@example.com</small></span><em>Can view</em></li>
-            </ul>
-          </div>
-          <div class="cell-t"><h3>Calendars</h3><p>Pick who can view and who can edit, per person. Remove someone and their access ends right away.</p></div>
-        </article>
-        <article class="card cell spot reveal" style="--d:100ms">
-          <div class="cell-vis mock">
-            <ul class="tasks" id="tasks" aria-hidden="true">
-              <li><i class="box"></i><span>Send Fernwood concepts</span><em>Today</em></li>
-              <li><i class="box"></i><span>Renew font licenses</span><em>Fri</em></li>
-              <li><i class="box"></i><span>Update rates sheet</span><em>Mon</em></li>
-              <li><i class="box"></i><span>Back up project files</span><em>Tue</em></li>
-            </ul>
-          </div>
-          <div class="cell-t"><h3>Tasks, beside your calendar</h3><p>Due dates, a tick when it is done, and everything in the same place as your events.</p></div>
-        </article>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ AI access (centered, with the file-list window) ============ -->
-  <section class="sec" id="ai" aria-labelledby="ai-title">
-    <div class="container">
-      <div class="sec-head c reveal">
-        <span class="tile" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 16l.8 2.2L22 19l-2.2.8L19 22l-.8-2.2L16 19l2.2-.8z"/></svg></span>
-        <h2 class="h2 grad" id="ai-title">Your AI can use <em>your calendar</em></h2>
-        <p class="lead">Connect Claude, ChatGPT or Gemini with a link from Settings, and decide what each one may do: read, write or delete. You keep the controls.</p>
-        <div class="ctas c"><a class="btn btn-solid" href="sign-up/">Get started <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a><a class="more" href="login/">Open Daylight <svg width="12" height="12" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M6 3l5 5-5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></div>
-      </div>
-      <div class="card win ide reveal" style="--d:100ms">
-        <div class="panel-bar"><span class="dots color" aria-hidden="true"><i></i><i></i><i></i></span></div>
-        <div class="ide-body">
-          <div class="ide-files" role="tablist" aria-label="AI access">
-            <button class="ftab" role="tab" aria-selected="true" data-a="connect">connect</button>
-            <button class="ftab" role="tab" aria-selected="false" data-a="permissions">permissions</button>
-            <button class="ftab" role="tab" aria-selected="false" data-a="activity">activity</button>
-          </div>
-          <div class="panel-body code" id="aiBody"></div>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ the 3x3 grid ============ -->
-  <section class="sec" aria-labelledby="grid-title">
-    <div class="container">
-      <div class="card pgrid reveal">
-        <div class="pg-arc" aria-hidden="true"></div>
-        <h2 class="h2 grad" id="grid-title">Plan the day,<br>not the tool</h2>
-        <div class="fgrid"><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg></span><h3>Four views</h3><p>Month, week, day and agenda, with US holidays built in.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V7a2 2 0 0 1 2-2h9"/></svg></span><h3>Tasks with due dates</h3><p>A simple list right beside your calendar.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 0 0 3.4 0"/></svg></span><h3>Default reminders</h3><p>Set one per calendar, then change any event when you need to.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg></span><h3>Quiet hours</h3><p>Hold notifications while you sleep or focus.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg></span><h3>Search everything</h3><p>Find any event fast, then move or delete several at once.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3 20c0-3.3 2.7-6 6-6s6 2.7 6 6M16 5a3.2 3.2 0 0 1 0 6M21 20c0-2.5-1.5-4.6-3.6-5.5"/></svg></span><h3>Share with people</h3><p>A whole calendar or a single event, with the access you pick.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="7"/></svg></span><h3>Print a month</h3><p>One tidy page, ready for the fridge.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="6" width="20" height="12" rx="2"/><path d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></svg></span><h3>Keyboard shortcuts</h3><p>N for new, T for today, Ctrl or ⌘ and K to search.</p></div><div class="fgi"><span class="gi"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span><h3>Light and dark</h3><p>Follows your device, or stays in the theme you like.</p></div></div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ themes ============ -->
-  <section class="sec" id="themes" aria-labelledby="themes-title">
-    <div class="container">
-      <div class="sec-head c reveal">
-        <span class="tile" aria-hidden="true"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></span>
-        <h2 class="h2 grad" id="themes-title">Everything in <em>your control</em></h2>
-        <p class="lead">Light, dark or your system. Daylight follows your device, and the small details are covered too.</p>
-        <p class="note">Light, dark or your system.</p>
-      </div>
-      <div class="duo reveal">
-        <div class="mock app light"><div class="app-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="app-title">Light</span></div><div class="app-body"><div class="cal small" data-grid="mini"></div></div></div>
-        <div class="mock app dark"><div class="app-bar"><span class="dots" aria-hidden="true"><i></i><i></i><i></i></span><span class="app-title">Dark</span></div><div class="app-body"><div class="cal small" data-grid="mini"></div></div></div>
-      </div>
-      <ul class="keys reveal" aria-label="Shortcuts"><li><kbd>N</kbd> New event</li><li><kbd>T</kbd> Today</li><li><kbd>Ctrl</kbd><kbd>K</kbd> Search</li><li><kbd>P</kbd> Print month</li></ul>
-    </div>
-  </section>
-
-  <!-- ============ small details (a slow marquee of cards, no quotes) ============ -->
-  <section class="sec mqsec" aria-labelledby="mq-title">
-    <div class="container"><div class="sec-head c reveal"><h2 class="h2 grad" id="mq-title">Small details,<br>done right</h2><p class="lead">The little things that make a calendar feel calm instead of busy.</p></div></div>
-    <div class="marquee wide" aria-hidden="true"><div class="track slow"><article class="mq"><h3>Holidays built in</h3><p>US holidays appear on your calendar from the first day.</p></article><article class="mq"><h3>Move many at once</h3><p>Select several events and move or delete them together.</p></article><article class="mq"><h3>Quiet by design</h3><p>No sounds, badges or nags you did not ask for.</p></article><article class="mq"><h3>Works on your phone</h3><p>Open it in any browser, on a computer or a phone.</p></article><article class="mq"><h3>Search that is instant</h3><p>Press Ctrl or ⌘ and K, type, and jump to the event.</p></article><article class="mq"><h3>Access ends right away</h3><p>Stop sharing and the other person loses access at once.</p></article><article class="mq"><h3>Holidays built in</h3><p>US holidays appear on your calendar from the first day.</p></article><article class="mq"><h3>Move many at once</h3><p>Select several events and move or delete them together.</p></article><article class="mq"><h3>Quiet by design</h3><p>No sounds, badges or nags you did not ask for.</p></article><article class="mq"><h3>Works on your phone</h3><p>Open it in any browser, on a computer or a phone.</p></article><article class="mq"><h3>Search that is instant</h3><p>Press Ctrl or ⌘ and K, type, and jump to the event.</p></article><article class="mq"><h3>Access ends right away</h3><p>Stop sharing and the other person loses access at once.</p></article></div></div>
-  </section>
-
-  <!-- ============ FAQ ============ -->
-  <section class="sec" id="faq" aria-labelledby="faq-title">
-    <div class="container narrow">
-      <div class="sec-head reveal"><h2 class="h2 grad" id="faq-title">Questions,<br>answered</h2></div>
-      <div class="faq reveal">
-        <details class="faq-item"><summary><span>Is Daylight free?</span><span class="faq-plus"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></summary><div class="faq-a"><p>Yes. Daylight is free to use, with no trial and no card needed. Create an account and everything on this page is yours.</p></div></details>
-        <details class="faq-item"><summary><span>Do I need to install anything?</span><span class="faq-plus"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></summary><div class="faq-a"><p>No. Daylight runs in your browser, on a computer or a phone, so there is nothing to download or update. Open it, sign in, and your calendar is there.</p></div></details>
-        <details class="faq-item"><summary><span>Who can see my calendars and tasks?</span><span class="faq-plus"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></summary><div class="faq-a"><p>Only you, unless you choose to share a calendar or an event. Everything is saved to your own Daylight account, and when you do share, you pick what each person can do and can stop sharing at any time.</p></div></details>
-        <details class="faq-item"><summary><span>How do I sign in?</span><span class="faq-plus"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></summary><div class="faq-a"><p>With an email and password, with Google, or with a passkey. You can add or change a sign-in method later in Settings.</p></div></details>
-        <details class="faq-item"><summary><span>How does AI access work?</span><span class="faq-plus"><svg class="i" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></summary><div class="faq-a"><p>In Settings, open AI access, connect Claude, ChatGPT or Gemini with the link shown there, and pick what it may do: read, write or delete. You can disconnect it at any time.</p></div></details>
-      </div>
-    </div>
-  </section>
-
-  <!-- ============ closing ============ -->
-  <section class="cta" aria-labelledby="cta-title">
-    <div class="container">
-      <div class="cta-card reveal">
-        <div class="cta-glow" aria-hidden="true"></div>
-        <h2 class="cta-title serif grad" id="cta-title">Less clutter.<br>More daylight.</h2>
-        <div class="cta-actions"><a class="btn btn-solid" href="sign-up/">Get started <svg width="14" height="14" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M9 4l4 4-4 4" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a><a class="cta-link" href="login/">Open Daylight</a></div>
-      </div>
-    </div>
-  </section>
-</main>
-<footer class="footer"><div class="container">
-  <div class="foot-top">
-    <div class="foot-left"><a class="brand" href="./" aria-label="Daylight home">
-      <img class="brand-mark mark-light" src="assets/daylight-sunarc-light-NOBG.png" alt="" width="34" height="34">
-      <img class="brand-mark mark-dark" src="assets/daylight-sunarc-dark-NOBG.png" alt="" width="34" height="34"><span class="wordmark">Daylight</span></a>
-      <p class="foot-line">Your calendar, minus the clutter.</p></div>
-    <nav class="foot-cols" aria-label="Footer">
-      <div><h3>Product</h3><a href="login/">Open Daylight</a><a href="#features">Features</a><a href="#ai">AI access</a></div>
-      <div><h3>Explore</h3><a href="#sharing">Sharing</a><a href="#themes">Themes</a><a href="#faq">FAQ</a></div>
-      <div><h3>Legal</h3><a href="privacy/">Privacy</a><a href="tos/">Terms</a></div>
-    </nav>
+    <p class="trust">Free. No install. Your data stays yours.</p>
+    <figure class="win">
+      <div class="win-bar"><span class="dots"><i></i><i></i><i></i></span><span class="url">daylightcal.com/dashboard</span><span></span></div>
+      <div class="shot has-shot screen"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M22.86 0V100"/><path class="g" d="M45.71 0V100"/><path class="g" d="M68.57 0V100"/><path class="g" d="M91.43 0V100"/><path class="g" d="M114.29 0V100"/><path class="g" d="M137.14 0V100"/><path class="g" d="M0 20H160"/><path class="g" d="M0 40H160"/><path class="g" d="M0 60H160"/><path class="g" d="M0 80H160"/><rect class="b" x="25.86" y="9" width="16.5" height="3" rx="1.5"/><rect class="c1" x="71.57" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="94.43" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="3.00" y="29" width="16.5" height="3" rx="1.5"/><rect class="c2" x="48.71" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="71.57" y="49" width="16.5" height="3" rx="1.5"/><rect class="c3" x="94.43" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="140.14" y="49" width="16.5" height="3" rx="1.5"/><rect class="c1" x="3.00" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="48.71" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="89" width="16.5" height="3" rx="1.5"/><rect class="c4" x="94.43" y="89" width="16.5" height="3" rx="1.5"/><rect class="f" x="71.57" y="14" width="11" height="3" rx="1.5"/><rect class="f" x="25.86" y="54" width="11" height="3" rx="1.5"/><rect class="f" x="117.29" y="74" width="11" height="3" rx="1.5"/></svg><span class="shot-label">Month view — screenshot goes here</span><picture><source srcset="assets/screenshots/theme-dark.png" media="(prefers-color-scheme: dark)"><img src="assets/screenshots/month.png" alt="Month view in Daylight" width="1600" height="1000" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></picture></div>
+    </figure>
   </div>
-  <div class="foot-bar">© 2026 Daylight. All rights reserved.</div>
-</div></footer>
+</div>
 
+<section class="sec" id="features"><div class="wrap">
+  <div class="sec-head" data-reveal><h2>Plan the day, not the <em>tool</em></h2></div>
+  <div class="fan" data-reveal data-stagger>
+    <article class="fc lift"><div class="shot has-shot fc-shot" style="--px:31%;--py:64%;--z:2"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect class="card" x="34" y="12" width="92" height="76" rx="7"/><circle class="c1" cx="44" cy="24" r="2.4"/><rect class="b" x="50" y="21.5" width="52" height="5" rx="2"/><rect class="f" x="42" y="36" width="4.5" height="4.5" rx="1.2"/><rect class="b" x="52" y="37" width="56" height="2.6" rx="1.5"/><rect class="f" x="42" y="45.5" width="4.5" height="4.5" rx="1.2"/><rect class="b" x="52" y="46.5" width="40" height="2.6" rx="1.5"/><rect class="f" x="42" y="55" width="4.5" height="4.5" rx="1.2"/><rect class="b" x="52" y="56" width="62" height="2.6" rx="1.5"/><rect class="f" x="42" y="64.5" width="4.5" height="4.5" rx="1.2"/><rect class="b" x="52" y="65.5" width="34" height="2.6" rx="1.5"/><rect class="b" x="98" y="75" width="20" height="7" rx="3.5"/><rect class="f" x="74" y="75" width="20" height="7" rx="3.5"/></svg><span class="shot-label">Events — screenshot goes here</span><img src="assets/screenshots/event.png" alt="Events in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Events</h3><p>Add anything in seconds — title, time, place, and a note. Repeating events let you change one day, this and following, or the whole series.</p></article>
+    <article class="fc lift"><div class="shot has-shot fc-shot" style="--px:72%;--py:19%;--z:1.45"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><circle class="o" cx="18" cy="11" r="3"/><rect class="b" x="28" y="9.5" width="82" height="3" rx="1.5"/><rect class="f" x="132" y="9.5" width="14" height="3" rx="1.5"/><path class="g" d="M12 19.0H148"/><circle class="c2" cx="18" cy="26.5" r="3"/><rect class="b" x="28" y="25" width="60" height="3" rx="1.5"/><rect class="f" x="132" y="25" width="14" height="3" rx="1.5"/><path class="g" d="M12 34.5H148"/><circle class="o" cx="18" cy="42" r="3"/><rect class="b" x="28" y="40.5" width="94" height="3" rx="1.5"/><rect class="f" x="132" y="40.5" width="14" height="3" rx="1.5"/><path class="g" d="M12 50.0H148"/><circle class="o" cx="18" cy="57.5" r="3"/><rect class="b" x="28" y="56" width="54" height="3" rx="1.5"/><rect class="f" x="132" y="56" width="14" height="3" rx="1.5"/><path class="g" d="M12 65.5H148"/><circle class="o" cx="18" cy="73" r="3"/><rect class="b" x="28" y="71.5" width="76" height="3" rx="1.5"/><rect class="f" x="132" y="71.5" width="14" height="3" rx="1.5"/><path class="g" d="M12 81.0H148"/><circle class="o" cx="18" cy="88.5" r="3"/><rect class="b" x="28" y="87" width="66" height="3" rx="1.5"/><rect class="f" x="132" y="87" width="14" height="3" rx="1.5"/></svg><span class="shot-label">Tasks — screenshot goes here</span><img src="assets/screenshots/tasks.png" alt="Tasks in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Tasks</h3><p>Tasks live inside Daylight, not in another app. Add one, check it off, move on.</p></article>
+    <article class="fc lift"><div class="shot has-shot fc-shot" style="--px:72%;--py:39%;--z:1.45"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><circle class="c1" cx="18" cy="11" r="2.2"/><rect class="b" x="28" y="7.8" width="74" height="3" rx="1.5"/><rect class="f" x="28" y="12.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 19.0H148"/><circle class="c2" cx="18" cy="26.5" r="2.2"/><rect class="b" x="28" y="23.3" width="52" height="3" rx="1.5"/><rect class="f" x="28" y="28.3" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 34.5H148"/><circle class="b" cx="18" cy="42" r="2.2"/><rect class="b" x="28" y="38.8" width="88" height="3" rx="1.5"/><rect class="f" x="28" y="43.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 50.0H148"/><circle class="c3" cx="18" cy="57.5" r="2.2"/><rect class="b" x="28" y="54.3" width="60" height="3" rx="1.5"/><rect class="f" x="28" y="59.3" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 65.5H148"/><circle class="c1" cx="18" cy="73" r="2.2"/><rect class="b" x="28" y="69.8" width="80" height="3" rx="1.5"/><rect class="f" x="28" y="74.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 81.0H148"/><circle class="c4" cx="18" cy="88.5" r="2.2"/><rect class="b" x="28" y="85.3" width="46" height="3" rx="1.5"/><rect class="f" x="28" y="90.3" width="30" height="2.4" rx="1.5"/></svg><span class="shot-label">Reminders — screenshot goes here</span><img src="assets/screenshots/agenda.png" alt="Reminders in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Reminders</h3><p>Set a default reminder for each calendar, so the important things never slip past. Reminders ride along with the event.</p></article>
+  </div>
+</div></section>
+
+<section class="sec" id="views"><div class="wrap">
+  <div class="sec-head" data-reveal>
+    <p class="eyebrow"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><rect x="1.75" y="1.75" width="5" height="5" rx="1.25"/><rect x="9.25" y="1.75" width="5" height="5" rx="1.25"/><rect x="1.75" y="9.25" width="5" height="5" rx="1.25"/><rect x="9.25" y="9.25" width="5" height="5" rx="1.25"/></svg>Views</p>
+    <h2>See your week <em>your</em> way.</h2>
+    <p class="sec-sub">Four ways to look at the same calendar. Pick the one that fits the moment.</p>
+  </div>
+  <div class="cols4" data-reveal data-stagger>
+    <div class="col"><div class="shot has-shot col-shot" style="--px:35%"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M22.86 0V100"/><path class="g" d="M45.71 0V100"/><path class="g" d="M68.57 0V100"/><path class="g" d="M91.43 0V100"/><path class="g" d="M114.29 0V100"/><path class="g" d="M137.14 0V100"/><path class="g" d="M0 20H160"/><path class="g" d="M0 40H160"/><path class="g" d="M0 60H160"/><path class="g" d="M0 80H160"/><rect class="b" x="25.86" y="9" width="16.5" height="3" rx="1.5"/><rect class="c1" x="71.57" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="94.43" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="3.00" y="29" width="16.5" height="3" rx="1.5"/><rect class="c2" x="48.71" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="71.57" y="49" width="16.5" height="3" rx="1.5"/><rect class="c3" x="94.43" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="140.14" y="49" width="16.5" height="3" rx="1.5"/><rect class="c1" x="3.00" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="48.71" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="89" width="16.5" height="3" rx="1.5"/><rect class="c4" x="94.43" y="89" width="16.5" height="3" rx="1.5"/><rect class="f" x="71.57" y="14" width="11" height="3" rx="1.5"/><rect class="f" x="25.86" y="54" width="11" height="3" rx="1.5"/><rect class="f" x="117.29" y="74" width="11" height="3" rx="1.5"/></svg><span class="shot-label">Month view — screenshot goes here</span><img src="assets/screenshots/month.png" alt="Month view in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Month</h3><p>The whole month at a glance — click a date to open that day.</p></div>
+    <div class="col"><div class="shot has-shot col-shot" style="--px:35%"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M0 12H160"/><path class="g" d="M22.86 0V100"/><path class="g" d="M45.71 0V100"/><path class="g" d="M68.57 0V100"/><path class="g" d="M91.43 0V100"/><path class="g" d="M114.29 0V100"/><path class="g" d="M137.14 0V100"/><path class="g" d="M0 34H160"/><path class="g" d="M0 56H160"/><path class="g" d="M0 78H160"/><rect class="b" x="2.00" y="20" width="18.8" height="14" rx="2"/><rect class="c1" x="24.86" y="30" width="18.8" height="22" rx="2"/><rect class="b" x="47.71" y="18" width="18.8" height="10" rx="2"/><rect class="c2" x="47.71" y="52" width="18.8" height="18" rx="2"/><rect class="b" x="70.57" y="38" width="18.8" height="14" rx="2"/><rect class="c3" x="93.43" y="22" width="18.8" height="26" rx="2"/><rect class="b" x="116.29" y="46" width="18.8" height="12" rx="2"/><rect class="b" x="139.14" y="28" width="18.8" height="16" rx="2"/><rect class="b" x="24.86" y="64" width="18.8" height="12" rx="2"/><rect class="c4" x="116.29" y="70" width="18.8" height="16" rx="2"/><rect class="f" x="7.00" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="29.86" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="52.71" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="75.57" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="98.43" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="121.29" y="5" width="9" height="2.5" rx="1.5"/><rect class="f" x="144.14" y="5" width="9" height="2.5" rx="1.5"/></svg><span class="shot-label">Week view — screenshot goes here</span><img src="assets/screenshots/week.png" alt="Week view in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Week</h3><p>Seven days, side by side, with room to breathe.</p></div>
+    <div class="col"><div class="shot has-shot col-shot" style="--px:35%"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M24 0V100"/><path class="g" d="M0 16H160"/><path class="g" d="M0 30H160"/><path class="g" d="M0 44H160"/><path class="g" d="M0 58H160"/><path class="g" d="M0 72H160"/><path class="g" d="M0 86H160"/><rect class="c1" x="28" y="5" width="126" height="6" rx="2"/><rect class="b" x="28" y="20" width="126" height="20" rx="2.5"/><rect class="c2" x="28" y="47" width="80" height="9" rx="2.5"/><rect class="b" x="28" y="62" width="126" height="22" rx="2.5"/><rect class="f" x="8" y="14.75" width="9" height="2.5" rx="1.5"/><rect class="f" x="8" y="28.75" width="9" height="2.5" rx="1.5"/><rect class="f" x="8" y="42.75" width="9" height="2.5" rx="1.5"/><rect class="f" x="8" y="56.75" width="9" height="2.5" rx="1.5"/><rect class="f" x="8" y="70.75" width="9" height="2.5" rx="1.5"/><rect class="f" x="8" y="84.75" width="9" height="2.5" rx="1.5"/></svg><span class="shot-label">Day view — screenshot goes here</span><img src="assets/screenshots/day.png" alt="Day view in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Day</h3><p>One day, hour by hour, all-day events on top.</p></div>
+    <div class="col"><div class="shot has-shot col-shot" style="--px:56%"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><circle class="c1" cx="18" cy="11" r="2.2"/><rect class="b" x="28" y="7.8" width="74" height="3" rx="1.5"/><rect class="f" x="28" y="12.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 19.0H148"/><circle class="c2" cx="18" cy="26.5" r="2.2"/><rect class="b" x="28" y="23.3" width="52" height="3" rx="1.5"/><rect class="f" x="28" y="28.3" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 34.5H148"/><circle class="b" cx="18" cy="42" r="2.2"/><rect class="b" x="28" y="38.8" width="88" height="3" rx="1.5"/><rect class="f" x="28" y="43.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 50.0H148"/><circle class="c3" cx="18" cy="57.5" r="2.2"/><rect class="b" x="28" y="54.3" width="60" height="3" rx="1.5"/><rect class="f" x="28" y="59.3" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 65.5H148"/><circle class="c1" cx="18" cy="73" r="2.2"/><rect class="b" x="28" y="69.8" width="80" height="3" rx="1.5"/><rect class="f" x="28" y="74.8" width="30" height="2.4" rx="1.5"/><path class="g" d="M12 81.0H148"/><circle class="c4" cx="18" cy="88.5" r="2.2"/><rect class="b" x="28" y="85.3" width="46" height="3" rx="1.5"/><rect class="f" x="28" y="90.3" width="30" height="2.4" rx="1.5"/></svg><span class="shot-label">Agenda view — screenshot goes here</span><img src="assets/screenshots/agenda.png" alt="Agenda view in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div><h3>Agenda</h3><p>What’s next, in a simple list.</p></div>
+  </div>
+</div></section>
+
+<section class="sec" id="ai"><div class="wrap">
+  <div class="split" data-reveal data-stagger>
+    <div class="split-l">
+      <h2>Your AI can use <em>your</em> calendar</h2>
+      <div class="ai-list" data-acc="one">
+        <div class="ai-row acc-item"><button class="ai-head" type="button" aria-expanded="true"><svg class="ai-logo logo-claude" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M4.709 15.955l4.72-2.647.08-.23-.08-.128H9.2l-.79-.048-2.698-.073-2.339-.097-2.266-.122-.571-.121L0 11.784l.055-.352.48-.321.686.06 1.52.103 2.278.158 1.652.097 2.449.255h.389l.055-.157-.134-.098-.103-.097-2.358-1.596-2.552-1.688-1.336-.972-.724-.491-.364-.462-.158-1.008.656-.722.881.06.225.061.893.686 1.908 1.476 2.491 1.833.365.304.145-.103.019-.073-.164-.274-1.355-2.446-1.446-2.49-.644-1.032-.17-.619a2.97 2.97 0 01-.104-.729L6.283.134 6.696 0l.996.134.42.364.62 1.414 1.002 2.229 1.555 3.03.456.898.243.832.091.255h.158V9.01l.128-1.706.237-2.095.23-2.695.08-.76.376-.91.747-.492.584.28.48.685-.067.444-.286 1.851-.559 2.903-.364 1.942h.212l.243-.242.985-1.306 1.652-2.064.73-.82.85-.904.547-.431h1.033l.76 1.129-.34 1.166-1.064 1.347-.881 1.142-1.264 1.7-.79 1.36.073.11.188-.02 2.856-.606 1.543-.28 1.841-.315.833.388.091.395-.328.807-1.969.486-2.309.462-3.439.813-.042.03.049.061 1.549.146.662.036h1.622l3.02.225.79.522.474.638-.079.485-1.215.62-1.64-.389-3.829-.91-1.312-.329h-.182v.11l1.093 1.068 2.006 1.81 2.509 2.33.127.578-.322.455-.34-.049-2.205-1.657-.851-.747-1.926-1.62h-.128v.17l.444.649 2.345 3.521.122 1.08-.17.353-.608.213-.668-.122-1.374-1.925-1.415-2.167-1.143-1.943-.14.08-.674 7.254-.316.37-.729.28-.607-.461-.322-.747.322-1.476.389-1.924.315-1.53.286-1.9.17-.632-.012-.042-.14.018-1.434 1.967-2.18 2.945-1.726 1.845-.414.164-.717-.37.067-.662.401-.589 2.388-3.036 1.44-1.882.93-1.086-.006-.158h-.055L4.132 18.56l-1.13.146-.487-.456.061-.746.231-.243 1.908-1.312-.006.006z"/></svg><span class="ai-name">Claude</span><span class="chev" aria-hidden="true"></span></button><div class="acc-body"><div><p>Ask Claude what’s on your day, or tell it to add an event.</p></div></div></div>
+        <div class="ai-row acc-item"><button class="ai-head" type="button" aria-expanded="true"><svg class="ai-logo" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M22.2819 9.8211a5.9847 5.9847 0 0 0-.5157-4.9108 6.0462 6.0462 0 0 0-6.5098-2.9A6.0651 6.0651 0 0 0 4.9807 4.1818a5.9847 5.9847 0 0 0-3.9977 2.9 6.0462 6.0462 0 0 0 .7427 7.0966 5.98 5.98 0 0 0 .511 4.9107 6.051 6.051 0 0 0 6.5146 2.9001A5.9847 5.9847 0 0 0 13.2599 24a6.0557 6.0557 0 0 0 5.7718-4.2058 5.9894 5.9894 0 0 0 3.9977-2.9001 6.0557 6.0557 0 0 0-.7475-7.0729zm-9.022 12.6081a4.4755 4.4755 0 0 1-2.8764-1.0408l.1419-.0804 4.7783-2.7582a.7948.7948 0 0 0 .3927-.6813v-6.7369l2.02 1.1686a.071.071 0 0 1 .038.052v5.5826a4.504 4.504 0 0 1-4.4945 4.4944zm-9.6607-4.1254a4.4708 4.4708 0 0 1-.5346-3.0137l.142.0852 4.783 2.7582a.7712.7712 0 0 0 .7806 0l5.8428-3.3685v2.3324a.0804.0804 0 0 1-.0332.0615L9.74 19.9502a4.4992 4.4992 0 0 1-6.1408-1.6464zM2.3408 7.8956a4.485 4.485 0 0 1 2.3655-1.9728V11.6a.7664.7664 0 0 0 .3879.6765l5.8144 3.3543-2.0201 1.1685a.0757.0757 0 0 1-.071 0l-4.8303-2.7865A4.504 4.504 0 0 1 2.3408 7.872zm16.5963 3.8558L13.1038 8.364 15.1192 7.2a.0757.0757 0 0 1 .071 0l4.8303 2.7913a4.4944 4.4944 0 0 1-.6765 8.1042v-5.6772a.79.79 0 0 0-.407-.667zm2.0107-3.0231l-.142-.0852-4.7735-2.7818a.7759.7759 0 0 0-.7854 0L9.409 9.2297V6.8974a.0662.0662 0 0 1 .0284-.0615l4.8303-2.7866a4.4992 4.4992 0 0 1 6.6802 4.66zM8.3065 12.863l-2.02-1.1638a.0804.0804 0 0 1-.038-.0567V6.0742a4.4992 4.4992 0 0 1 7.3757-3.4537l-.142.0805L8.704 5.459a.7948.7948 0 0 0-.3927.6813zm1.0976-2.3654l2.602-1.4998 2.6069 1.4998v2.9994l-2.5974 1.4997-2.6067-1.4997Z"/></svg><span class="ai-name">ChatGPT</span><span class="chev" aria-hidden="true"></span></button><div class="acc-body"><div><p>Same for ChatGPT — your calendar, in conversation.</p></div></div></div>
+        <div class="ai-row acc-item"><button class="ai-head" type="button" aria-expanded="true"><svg class="ai-logo logo-gemini" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 0c.3 6.4 5.3 11.7 12 12-6.7.3-11.7 5.6-12 12-.3-6.4-5.3-11.7-12-12C6.7 11.7 11.7 6.4 12 0z"/></svg><span class="ai-name">Gemini</span><span class="chev" aria-hidden="true"></span></button><div class="acc-body"><div><p>Gemini connects the same way.</p></div></div></div>
+      </div>
+    </div>
+    <div class="shot has-shot ai-shot" style="--px:64%;--py:36%;--z:1.7"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect class="card" x="18" y="13" width="124" height="20" rx="6"/><circle class="ca" cx="29" cy="23" r="3"/><rect class="b" x="37" y="19" width="40" height="3" rx="1.5"/><rect class="f" x="37" y="24.5" width="24" height="2.4" rx="1.5"/><rect class="b" x="98" y="20" width="10" height="6" rx="3"/><rect class="b" x="111" y="20" width="10" height="6" rx="3"/><rect class="f" x="124" y="20" width="10" height="6" rx="3"/><rect class="card" x="18" y="39" width="124" height="20" rx="6"/><circle class="b" cx="29" cy="49" r="3"/><rect class="b" x="37" y="45" width="46" height="3" rx="1.5"/><rect class="f" x="37" y="50.5" width="24" height="2.4" rx="1.5"/><rect class="b" x="98" y="46" width="10" height="6" rx="3"/><rect class="b" x="111" y="46" width="10" height="6" rx="3"/><rect class="f" x="124" y="46" width="10" height="6" rx="3"/><rect class="card" x="18" y="65" width="124" height="20" rx="6"/><circle class="cg" cx="29" cy="75" r="3"/><rect class="b" x="37" y="71" width="36" height="3" rx="1.5"/><rect class="f" x="37" y="76.5" width="24" height="2.4" rx="1.5"/><rect class="b" x="98" y="72" width="10" height="6" rx="3"/><rect class="f" x="111" y="72" width="10" height="6" rx="3"/><rect class="f" x="124" y="72" width="10" height="6" rx="3"/></svg><span class="shot-label">AI access — screenshot goes here</span><img src="assets/screenshots/ai-access.png" alt="AI access in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div>
+  </div>
+  <ol class="steps" data-reveal data-stagger>
+    <li class="step"><span class="num">1</span><p><b>Connect</b> — link Claude, ChatGPT, or Gemini from Settings → AI access.</p></li>
+    <li class="step"><span class="num">2</span><p><b>Choose what it can do</b> — read, write, or delete. Your call, changeable anytime.</p></li>
+    <li class="step"><span class="num">3</span><p><b>Just ask</b> — what’s on my day, move lunch to 1, add a dentist appointment.</p></li>
+  </ol>
+  <p class="assure" data-reveal>Every action your AI takes shows up in Recent AI activity. Disconnect anytime.</p>
+</div></section>
+
+<section class="sec" id="sharing"><div class="wrap">
+  <div class="sec-head" data-reveal>
+    <h2>Share the plan, not your <em>whole</em> life</h2>
+    <p class="sec-sub">Share a whole calendar with family, or a single event with anyone. They see what you share — nothing else.</p>
+  </div>
+  <div data-reveal><div class="shot has-shot share-shot" style="--px:50%;--py:16%;--z:1.6"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><rect class="card" x="22" y="10" width="116" height="80" rx="7"/><circle class="f" cx="38" cy="27" r="5"/><circle class="c4" cx="42" cy="31" r="1.8"/><rect class="b" x="48" y="23.5" width="44" height="3" rx="1.5"/><rect class="f" x="48" y="28.5" width="30" height="2.4" rx="1.5"/><rect class="o" x="108" y="23.5" width="20" height="7" rx="3.5"/><path class="g" d="M30 38H130"/><circle class="f" cx="38" cy="49" r="5"/><circle class="c2" cx="42" cy="53" r="1.8"/><rect class="b" x="48" y="45.5" width="36" height="3" rx="1.5"/><rect class="f" x="48" y="50.5" width="30" height="2.4" rx="1.5"/><rect class="o" x="108" y="45.5" width="20" height="7" rx="3.5"/><path class="g" d="M30 60H130"/><circle class="f" cx="38" cy="71" r="5"/><circle class="c1" cx="42" cy="75" r="1.8"/><rect class="b" x="48" y="67.5" width="50" height="3" rx="1.5"/><rect class="f" x="48" y="72.5" width="30" height="2.4" rx="1.5"/><rect class="o" x="108" y="67.5" width="20" height="7" rx="3.5"/></svg><span class="shot-label">Sharing — screenshot goes here</span><img src="assets/screenshots/sharing.png" alt="Sharing in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div></div>
+</div></section>
+
+<section class="sec" id="themes"><div class="wrap">
+  <div class="sec-head" data-reveal>
+    <h2>Everything in <em>your</em> control</h2>
+    <p class="sec-sub">Light or dark, following your system. Daylight looks right either way.</p>
+  </div>
+  <div class="pair" data-reveal data-stagger>
+    <figure class="theme t-light"><figcaption>Light</figcaption><div class="shot has-shot theme-shot"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M22.86 0V100"/><path class="g" d="M45.71 0V100"/><path class="g" d="M68.57 0V100"/><path class="g" d="M91.43 0V100"/><path class="g" d="M114.29 0V100"/><path class="g" d="M137.14 0V100"/><path class="g" d="M0 20H160"/><path class="g" d="M0 40H160"/><path class="g" d="M0 60H160"/><path class="g" d="M0 80H160"/><rect class="b" x="25.86" y="9" width="16.5" height="3" rx="1.5"/><rect class="c1" x="71.57" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="94.43" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="3.00" y="29" width="16.5" height="3" rx="1.5"/><rect class="c2" x="48.71" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="71.57" y="49" width="16.5" height="3" rx="1.5"/><rect class="c3" x="94.43" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="140.14" y="49" width="16.5" height="3" rx="1.5"/><rect class="c1" x="3.00" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="48.71" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="89" width="16.5" height="3" rx="1.5"/><rect class="c4" x="94.43" y="89" width="16.5" height="3" rx="1.5"/><rect class="f" x="71.57" y="14" width="11" height="3" rx="1.5"/><rect class="f" x="25.86" y="54" width="11" height="3" rx="1.5"/><rect class="f" x="117.29" y="74" width="11" height="3" rx="1.5"/></svg><span class="shot-label">Light theme — screenshot goes here</span><img src="assets/screenshots/theme-light.png" alt="Light theme in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div></figure>
+    <figure class="theme t-dark"><figcaption>Dark</figcaption><div class="shot has-shot theme-shot"><svg class="sk" viewBox="0 0 160 100" preserveAspectRatio="xMidYMid slice" aria-hidden="true" focusable="false"><path class="g" d="M22.86 0V100"/><path class="g" d="M45.71 0V100"/><path class="g" d="M68.57 0V100"/><path class="g" d="M91.43 0V100"/><path class="g" d="M114.29 0V100"/><path class="g" d="M137.14 0V100"/><path class="g" d="M0 20H160"/><path class="g" d="M0 40H160"/><path class="g" d="M0 60H160"/><path class="g" d="M0 80H160"/><rect class="b" x="25.86" y="9" width="16.5" height="3" rx="1.5"/><rect class="c1" x="71.57" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="94.43" y="9" width="16.5" height="3" rx="1.5"/><rect class="b" x="3.00" y="29" width="16.5" height="3" rx="1.5"/><rect class="c2" x="48.71" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="29" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="71.57" y="49" width="16.5" height="3" rx="1.5"/><rect class="c3" x="94.43" y="49" width="16.5" height="3" rx="1.5"/><rect class="b" x="140.14" y="49" width="16.5" height="3" rx="1.5"/><rect class="c1" x="3.00" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="48.71" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="117.29" y="69" width="16.5" height="3" rx="1.5"/><rect class="b" x="25.86" y="89" width="16.5" height="3" rx="1.5"/><rect class="c4" x="94.43" y="89" width="16.5" height="3" rx="1.5"/><rect class="f" x="71.57" y="14" width="11" height="3" rx="1.5"/><rect class="f" x="25.86" y="54" width="11" height="3" rx="1.5"/><rect class="f" x="117.29" y="74" width="11" height="3" rx="1.5"/></svg><span class="shot-label">Dark theme — screenshot goes here</span><img src="assets/screenshots/theme-dark.png" alt="Dark theme in Daylight" width="1600" height="1000" loading="lazy" decoding="async" onerror="var s=this.closest('.shot');s.classList.remove('has-shot');(this.closest('picture')||this).remove()"></div></figure>
+  </div>
+</div></section>
+
+<section class="sec" id="details"><div class="wrap">
+  <div class="sec-head" data-reveal><h2>Small details, done <em>right</em></h2></div>
+  <ul class="details" data-reveal data-stagger>
+    <li><b>Search</b><span>Find any event in seconds.</span></li>
+    <li><b>Drag and drop</b><span>Drag an event to move it.</span></li>
+    <li><b>Undo</b><span>Bring back something you deleted by mistake.</span></li>
+    <li><b>Duplicate</b><span>Duplicate an event instead of retyping it.</span></li>
+    <li><b>Multi-day events</b><span>Long events show as one bar across the days.</span></li>
+    <li><b>Calendars</b><span>As many calendars as you need, each with its own color.</span></li>
+    <li><b>Subscriptions</b><span>Add any calendar with an iCal link or an ICS file.</span></li>
+    <li><b>US holidays</b><span>US holidays built in, through 2030.</span></li>
+    <li><b>Places</b><span>Search for a place when you add a location.</span></li>
+    <li><b>Notifications</b><span>Notifications for shares and updates, right in the app.</span></li>
+    <li><b>Sign-in</b><span>Sign in with email, Google, or a passkey.</span></li>
+    <li><b>Birthdays</b><span>Birthdays show the age they’ll turn.</span></li>
+    <li><b>Time</b><span>12-hour or 24-hour time, your choice.</span></li>
+    <li><b>Shortcuts</b><span>Keyboard shortcuts for the things you do most.</span></li>
+  </ul>
+</div></section>
+
+<section class="sec" id="faq"><div class="wrap">
+  <div class="sec-head" data-reveal><h2>Questions, <em>answered</em></h2></div>
+  <div class="faq" data-acc data-reveal>
+    <div class="faq-item acc-item"><h3><button class="faq-q" type="button" aria-expanded="true"><span>Is Daylight free?</span><span class="chev" aria-hidden="true"></span></button></h3><div class="acc-body"><div><p>Yes. Daylight is free to use, with no trial and no card needed. Create an account and everything on this page is yours.</p></div></div></div>
+    <div class="faq-item acc-item"><h3><button class="faq-q" type="button" aria-expanded="true"><span>Do I need to install anything?</span><span class="chev" aria-hidden="true"></span></button></h3><div class="acc-body"><div><p>No. Daylight runs in your browser, on a computer or a phone, so there is nothing to download or update. Open it, sign in, and your calendar is there.</p></div></div></div>
+    <div class="faq-item acc-item"><h3><button class="faq-q" type="button" aria-expanded="true"><span>Who can see my calendars and tasks?</span><span class="chev" aria-hidden="true"></span></button></h3><div class="acc-body"><div><p>Only you, unless you choose to share a calendar or an event. Everything is saved to your own Daylight account, and when you do share, you pick what each person can do and can stop sharing at any time.</p></div></div></div>
+    <div class="faq-item acc-item"><h3><button class="faq-q" type="button" aria-expanded="true"><span>How do I sign in?</span><span class="chev" aria-hidden="true"></span></button></h3><div class="acc-body"><div><p>With an email and password, with Google, or with a passkey. You can add or change a sign-in method later in Settings.</p></div></div></div>
+    <div class="faq-item acc-item"><h3><button class="faq-q" type="button" aria-expanded="true"><span>How does AI access work?</span><span class="chev" aria-hidden="true"></span></button></h3><div class="acc-body"><div><p>In Settings, open AI access, connect Claude, ChatGPT or Gemini with the link shown there, and pick what it may do: read, write or delete. You can disconnect it at any time.</p></div></div></div>
+  </div>
+</div></section>
+
+<section class="sec cta" id="start"><div class="wrap" data-reveal>
+  <h2>Less clutter. More <em>daylight</em>.</h2>
+  <a class="btn btn-p" href="login/">Open Daylight</a>
+</div></section>
+</main>
+
+<footer class="foot">
+  <div class="wrap">
+    <div class="foot-top">
+      <div class="foot-brand"><a class="brand" href="./"><svg class="mark" viewBox="0 0 498 498" aria-hidden="true"><path fill="currentColor" d="M100 326a149 149 0 0 1 298 0z"/><path fill="currentColor" d="M36 339h426v12H36z"/></svg><span>Daylight</span></a><p class="foot-tag">Your calendar, minus the clutter.</p></div>
+      <div><h3>Product</h3><ul><li><a href="login/">Open Daylight</a></li><li><a href="#features">Features</a></li><li><a href="#ai">AI access</a></li></ul></div>
+      <div><h3>Explore</h3><ul><li><a href="#sharing">Sharing</a></li><li><a href="#themes">Themes</a></li><li><a href="#faq">FAQ</a></li></ul></div>
+      <div><h3>Legal</h3><ul><li><a href="privacy/">Privacy</a></li><li><a href="tos/">Terms</a></li></ul></div>
+    </div>
+    <div class="foot-bar"><span>© 2026 Daylight. All rights reserved.</span><a href="#top" data-top>Back to top ↑</a></div>
+  </div>
+</footer>
 <script src="site/landing.js?v=__BUILD_ID__"></script>
-<script src="site/home.js?v=__BUILD_ID__"></script>
 </body>
 </html>

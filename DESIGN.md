@@ -1,6 +1,6 @@
 # Daylight design system
 
-One site, one repo. The landing page (`/`), sign-in (`/login`), create account (`/sign-up`) and the app (`/dashboard`) share one design language, and the landing page is built from the app's sign-in screen. This file records that study and the tokens. Source of truth for the app's own tokens: `dashboard/app.css` (`--auth-*` for the sign-in screen). Source of truth for the landing page: `site/landing.css`.
+One site, one repo. The landing page (`/`), sign-in (`/login`), create account (`/sign-up`) and the app (`/dashboard`) share one design language, and the landing page is built from the app's sign-in screen and uses real screenshots of the app. This file records that study and the tokens. Source of truth for the app's own tokens: `dashboard/app.css` (`--auth-*` for the sign-in screen). Source of truth for the landing page: `site/landing.css`.
 
 ## 1. The reference: the sign-in screen (measured, not remembered)
 
@@ -53,33 +53,25 @@ Measured on the real page at 1440 × 900 (`/login`, both themes).
 
 Everything else in the brief (type scale clamps, 8px spacing, hero gaps, motion system) is used as written.
 
-## 3. Landing page tokens (`site/landing.css`)
+## 3. Landing page (`index.html` + `site/landing.css` + `site/landing.js`)
 
-The whole site now looks like the sign-in screen: it uses the app's tokens in both themes and nothing is forced dark.
+The landing page and the legal pages (`privacy/`, `tos/`) share one stylesheet and one script. They were built on the sign-in screen's system and merged from the separate website build on November 15, 2026. The older Resend-structure build (November 14) is in git history. `site/landing.css` and `site/landing.js` must exist: the deploy workflow's preflight fails without them.
 
-- Theme: follows the operating system through `prefers-color-scheme` in CSS only (no script, so no flash). Light is white with #171717 text and #f5f5f5 soft surfaces; dark is #121212 with #e0e0e0 text and #282828 surfaces. Hairlines #e5e5e5 / #2c2c2c. Colors crossfade for 200ms if the OS theme flips while the page is open.
-- Type (the sign-in screen's): Inter, headline weight 600 with -0.03em tracking. Hero headline `clamp(36px, 4.4vw, 56px)`; section H2 `clamp(32px, 4vw, 48px)`, 700, one italic word per headline; eyebrow 13px / 600 / 0.12em; body 17px; buttons 15px / 600.
-- Shapes (the sign-in screen's): everything is a pill. Buttons are 50px tall with full radius; the announcement chip and feature chips are pills; cards (CTA, footer) are 28px rounded and soft; product windows 20px.
-- Container 1120px, 24px side padding (20px at 768px, 16px at 480px). 8px spacing base.
-- No blue links. No colored icons (all `currentColor`). No gradients or glows.
+**Files**
+- `index.html`: nav, hero, nine sections, footer. `privacy/index.html` and `tos/index.html`: same chrome, a contents list and one plain-language summary per section.
+- `site/landing.css`: all landing and legal styles. `site/landing.js`: nav pill, mobile menu, rotating headline word, accordions, scroll reveals, back to top, reload-to-top.
+- `assets/screenshots/`: 10 real screenshots of the app (`month`, `week`, `day`, `agenda`, `tasks`, `event`, `ai-access`, `sharing`, `theme-light`, `theme-dark`), used for every product visual. A schematic drawing sits behind each image as an on-error fallback.
+- Every path is relative, because the site is served from a project subpath (`/daylight/`). "Open Daylight" links go to `login/`; the app decides signed in or out.
 
-## 4. Nav
+**Tokens**
+- Theme follows the operating system through `prefers-color-scheme` in CSS only. Light: #ffffff, text #171717, soft surface #f5f5f5, hairline #e5e5e5. Dark: #121212, text #e0e0e0, surface #282828, hairline #2c2c2c. The two theme pictures always show their own theme.
+- Type: Inter. Hero headline `clamp(36px, 4.4vw, 56px)` / 600; section H2 `clamp(32px, 4vw, 48px)` / 700 with one italic word; body 17px; buttons 15px / 600, 50px tall pills.
+- Rhythm: one `--gap` of 96px between sections (64px under 768px). Container 1120px, 24px side padding.
+- Shapes: pills for buttons and chips; 28px cards; 20px product frames. No gradients, glows or colored backgrounds.
 
-- 54px tall, same as the app's header. Fixed. At rest it is a real bar: its own background plus a 1px hairline.
-- Past 8px of scroll it condenses into a floating frosted pill: `rgba(24,24,24,.88)`, `blur(12px) saturate(180%)`, full radius, soft shadow, no outline.
-- One button, "Open Daylight", linking to `login/`. No "Log in", no divider, no login detection.
-- Links (Features, Sharing, AI access, FAQ) are anchors to `#features`, `#sharing`, `#ai`, `#faq`. Those sections are built in later slices; the anchors are in place and resolve once the sections exist.
-- Under 768px: hamburger that turns into ×, full-width panel with staggered links and the one button.
+**Nav and strip**
+- A 42px announcement strip sits above the nav and scrolls away. The nav is a 54px bar at rest and a floating opaque-tinted pill past 8px of scroll.
+- One button, "Open Daylight". Under 768px: a menu button and a full-width panel.
 
-## 5. Hero (Profound's hero structure, Daylight's content and the sign-in look)
-
-Top to bottom, as on Profound: the nav bar; an announcement strip as its own full-width band with hairlines above and below (a chip, one line, an arrow); a centered two-line headline whose second line carries an inline mark and a rotating last word ("Your calendar, minus the" / mark + clutter, noise, chaos, mess); one subcopy line; two buttons side by side (solid and soft); a trust line; then the product window directly below, fading out at its bottom edge. The product window is browser chrome around a labeled placeholder whose screen is exactly 8:5 (1600 × 1000). No screenshots were captured. Rhythm: strip to headline 112px, headline to subcopy 16px, subcopy to buttons 32px, buttons to trust line 28px, trust line to window 64px.
-
-## 6. Motion
-
-- Easing `cubic-bezier(0.16, 1, 0.3, 1)` for entrances; `ease-out` for hovers. No bounce, spring or overshoot. Nothing longer than 400ms. Staggers 40 to 80ms.
-- transform and opacity only (the nav pill also eases its width and radius, by design). `will-change` is set only while parallax is active.
-- Entrance (about 600ms total): strip, then the two headline lines, subcopy, buttons, trust line, and the window (fade + rise + scale 0.98 to 1).
-- Hovers lift 1px and brighten; press scales to 0.98.
-- The headline word rotates every 2.6 seconds with a quick fade and rise (opacity and transform only).
-- Reduced motion: everything is simply visible, nothing moves.
+**Motion**
+- Easing `cubic-bezier(0.16, 1, 0.3, 1)`. Reveals rise 8px over 250ms with a 40ms stagger, and content is visible by default. The headline word rotates every 2.6 seconds with a cross-fade. Reduced motion: nothing moves.
