@@ -90,7 +90,7 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
   background: var(--nav-bg);
   -webkit-backdrop-filter: blur(16px) saturate(180%);
   backdrop-filter: blur(16px) saturate(180%);
-  border-bottom: 1px solid var(--line);
+  border-bottom: 0;
   border-radius: 0;
   transition: max-width 160ms var(--ease), margin 160ms var(--ease), padding 160ms var(--ease), border-radius 160ms var(--ease), background-color 160ms var(--ease), box-shadow 160ms var(--ease), border-color 160ms var(--ease);
 }
@@ -100,8 +100,10 @@ button { font: inherit; color: inherit; background: none; border: 0; padding: 0;
 @media (prefers-color-scheme: dark) { .mark-light { display: none; } .mark-dark { display: block; } }
 .wordmark { font-size: 18px; font-weight: 800; letter-spacing: -0.02em; line-height: 1; }
 .links { display: flex; align-items: center; gap: 30px; margin-left: 36px; }
-.links a { font-size: 17px; font-weight: 500; color: var(--text); text-decoration: none; text-underline-offset: 5px; text-decoration-thickness: 1px; transition: color 160ms ease-out; }
-.links a:hover { color: var(--muted); text-decoration: none; }
+.links a { position: relative; font-size: 17px; font-weight: 500; color: var(--text); text-decoration: none; padding: 6px 0; transition: color 160ms ease-out; }
+.links a::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1.5px; background: currentColor; transform: scaleX(0); transform-origin: left; transition: transform 280ms var(--ease); }
+.links a:hover::after, .links a:focus-visible::after { transform: scaleX(1); }
+.links a:hover { color: var(--text); text-decoration: none; }
 .nav-cta { margin-left: auto; }
 
 /* buttons: the login screen's pills */
@@ -166,7 +168,7 @@ main { padding-top: var(--nav-h); }
 .hero { position: relative; background: var(--bg); color: var(--text); overflow: hidden; }
 
 /* announcement strip: its own full-width band directly under the nav, hairlines above and below, chip + one line + arrow */
-.strip { border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.strip { border: 0; }
 .strip[hidden] { display: none; }
 .strip-link { display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 45px; padding: 8px 16px; font-size: 14px; line-height: 20px; color: var(--text); text-decoration: none; text-align: center; }
 a.strip-link:hover .strip-text { text-decoration: underline; text-underline-offset: 4px; text-decoration-thickness: 1px; }
@@ -284,7 +286,7 @@ html.js.is-loaded .a-frame { animation-name: rise-frame; animation-duration: 320
 :root { --surface-soft: #fafafa; }
 @media (prefers-color-scheme: dark) { :root { --surface-soft: #161616; } }
 .section { padding: 120px 0; background: var(--bg); color: var(--text); transition: background-color 200ms ease, color 200ms ease; }
-.section.alt { background: var(--surface-soft); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.section.alt { background: var(--bg); }
 .container.narrow { max-width: calc(760px + var(--gutter) * 2); }
 .eyebrow { margin: 0 0 16px; font-size: 13px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
 .h2 { margin: 0; font-size: clamp(32px, 4vw, 48px); line-height: 1.1; letter-spacing: -0.02em; font-weight: 700; text-wrap: balance; }
@@ -336,7 +338,7 @@ html.js.is-loaded .a-frame { animation-name: rise-frame; animation-duration: 320
 .faq-a p { margin: 0; font-size: 17px; line-height: 1.6; color: var(--muted); }
 
 /* closing CTA: one headline, one action, one link, on a soft rounded card */
-.cta { background: var(--bg); padding: 24px 0 0; text-align: center; }
+.cta { background: var(--bg); padding: 24px 0 88px; text-align: center; }
 .cta-card { background: var(--surface); border-radius: 28px; padding: 120px 24px; }
 .cta-title { margin: 0; font-size: clamp(44px, 7vw, 88px); line-height: 1.04; letter-spacing: -0.03em; font-weight: 600; color: var(--text); }
 .cta-actions { display: flex; align-items: center; justify-content: center; gap: 28px; margin-top: 44px; flex-wrap: wrap; }
@@ -344,8 +346,31 @@ html.js.is-loaded .a-frame { animation-name: rise-frame; animation-duration: 320
 .cta-link:hover { color: var(--text); }
 
 /* scroll reveal (transform + opacity only) */
-html.js .reveal { opacity: 0; transform: translateY(16px); }
-html.js .reveal.in { opacity: 1; transform: none; transition: opacity 320ms var(--ease), transform 320ms var(--ease); }
+html.js .reveal { opacity: 0; transform: translateY(28px) scale(0.985); }
+html.js .reveal.in { opacity: 1; transform: none; transition: opacity 700ms var(--ease), transform 800ms var(--ease); transition-delay: var(--d, 0ms); }
+html.js .cta-card.reveal { transform: translateY(40px) scale(0.97); }
+html.js .cta-card.reveal.in { transition-duration: 900ms, 1000ms; }
+/* sharing cards fly up into their tilt one after another */
+html.js .fru.reveal { opacity: 1; transform: none; }
+html.js .fru:not(.in) .fru-card { opacity: 0; transform: translateY(70px) rotate(0) scale(0.96); }
+html.js .fru.in .fru-card { transition: transform 900ms var(--ease), opacity 700ms var(--ease); }
+html.js .fru.in .fru-card:nth-child(2) { transition-delay: 120ms; }
+html.js .fru.in .fru-card:nth-child(3) { transition-delay: 240ms; }
+html.js .fru.in .fru-card:hover { transition-delay: 0ms; transition-duration: 320ms; }
+/* hover life */
+.col .col-img { transition: transform 360ms var(--ease), box-shadow 360ms var(--ease); }
+.col:hover .col-img { transform: translateY(-6px); box-shadow: 0 20px 44px rgba(0, 0, 0, 0.12); }
+.col .col-img .window { transition: transform 420ms var(--ease); }
+.col:hover .col-img .window { transform: scale(1.03); }
+.mcp-panel .window { transition: transform 420ms var(--ease); }
+.mcp-panel:hover .window:nth-child(1) { transform: translateY(-6px); }
+.mcp-panel:hover .window:nth-child(2) { transform: translateY(-12px); }
+.faq-item summary { transition: padding-left 240ms var(--ease); }
+.faq-item summary:hover { padding-left: 8px; }
+.cta-card { transition: background-color 200ms ease; }
+.mark-light, .mark-dark { transition: transform 500ms var(--ease); }
+.brand:hover .brand-mark { transform: rotate(-14deg) scale(1.06); }
+.sec-head .eyebrow, .label { letter-spacing: 0.01em; }
 
 @media (max-width: 1024px) {
   .split, .split.flip { gap: 48px; }
@@ -364,7 +389,8 @@ html.js .reveal.in { opacity: 1; transform: none; transition: opacity 320ms var(
   .chip { padding: 0 14px 0 10px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  html.js .reveal { opacity: 1; transform: none; }
+  html.js .reveal, html.js .cta-card.reveal, html.js .fru:not(.in) .fru-card { opacity: 1; transform: none; }
+  .col:hover .col-img, .col:hover .col-img .window, .brand:hover .brand-mark, .mcp-panel:hover .window { transform: none !important; }
   html.js .reveal.in { transition: none; }
   .tabpanel { animation: none; }
   .dd-panel, .dd-trigger .i, .chip, .faq-plus { transition-duration: 0.01ms !important; transition-delay: 0s !important; }
@@ -395,7 +421,7 @@ html.js .reveal.in { opacity: 1; transform: none; transition: opacity 320ms var(
 /* ============================ footer (the haunt.gg structure): pure black in dark, pure white in light ============================ */
 :root { --footer-bg: #ffffff; }
 @media (prefers-color-scheme: dark) { :root { --footer-bg: #0a0a0a; } }
-.footer { background: var(--footer-bg); color: var(--text); padding: 72px 0 0; border-top: 1px solid var(--line); transition: background-color 200ms ease, color 200ms ease; }
+.footer { background: var(--footer-bg); color: var(--text); padding: 72px 0 0; border-top: 0; transition: background-color 200ms ease, color 200ms ease; }
 .foot-top { display: grid; grid-template-columns: 1.3fr 2fr; gap: 48px; align-items: start; }
 .foot-left .brand { margin-bottom: 14px; }
 .foot-line { margin: 0; max-width: 20em; font-size: 14px; line-height: 1.55; color: var(--muted); }
@@ -403,7 +429,7 @@ html.js .reveal.in { opacity: 1; transform: none; transition: opacity 320ms var(
 .foot-cols h3 { margin: 0 0 14px; font-size: 12px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text); }
 .foot-cols a { display: block; padding: 5px 0; font-size: 14px; color: var(--muted); text-decoration: none; transition: color 160ms ease-out; }
 .foot-cols a:hover { color: var(--text); }
-.foot-bar { margin-top: 56px; border-top: 1px solid var(--line); padding: 22px 0 30px; font-size: 13px; color: var(--muted); }
+.foot-bar { margin-top: 56px; border-top: 0; padding: 22px 0 30px; font-size: 13px; color: var(--muted); }
 
 /* ============================ shared section pieces ============================ */
 .cols-head { text-align: center; display: flex; flex-direction: column; align-items: center; }
@@ -420,7 +446,7 @@ html.js .reveal.in { opacity: 1; transform: none; transition: opacity 320ms var(
 .col p { margin: 22px 0 0; font-size: 18px; line-height: 1.45; color: var(--text); max-width: 16em; }
 
 /* ============================ sharing: three tilted cards with a benefit line (the Fruitful layout) ============================ */
-.section.soft { background: var(--surface-soft); }
+.section.soft { background: var(--bg); }
 .fru-head { text-align: center; }
 .fru { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 40px; margin-top: 88px; align-items: start; max-width: 1040px; margin-left: auto; margin-right: auto; }
 .fru-card { background: var(--bg); border-radius: 28px; padding: 22px 22px 34px; box-shadow: 0 18px 48px rgba(0, 0, 0, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04); transition: transform 320ms var(--ease); }

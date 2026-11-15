@@ -146,6 +146,8 @@
 
   /* ---- scroll reveal: each block rises in once as it enters the viewport ---- */
   var reveals = [].slice.call(document.querySelectorAll(".reveal"));
+  [].slice.call(document.querySelectorAll(".cols4")).forEach(function (g) { [].slice.call(g.querySelectorAll(".col")).forEach(function (c, i) { c.style.setProperty("--d", i * 90 + "ms"); }); });
+  [].slice.call(document.querySelectorAll(".mcp-left, .mcp-panel")).forEach(function (c, i) { c.style.setProperty("--d", i * 140 + "ms"); });
   if ("IntersectionObserver" in window && motionOk()) {
     var io = new IntersectionObserver(function (entries) {
       entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
