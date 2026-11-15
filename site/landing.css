@@ -38,13 +38,13 @@
 }
 @media (prefers-color-scheme: dark) {
   :root {
-    --bg: #121212;
-    --surface: #282828;
-    --surface-hover: #2e2e2e;
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface-hover: #1b1b1b;
     --text: #e0e0e0;
     --muted: #a0a0a0;
     --faint: #757575;
-    --line: #2c2c2c;
+    --line: #232323;
     --ghost: #333333;
     --btn-bg: #e0e0e0;
     --btn-text: #121212;
@@ -526,3 +526,10 @@ html.js .fru.in .fru-card:hover { transition-delay: 0ms; transition-duration: 32
 }
 
 #faq.section { padding-bottom: 56px; }
+
+/* ---------- nav additions ---------- */
+.nav-login { margin-left: auto; font-size: 16px; font-weight: 500; color: var(--muted); text-decoration: none; padding: 8px 4px; margin-right: 18px; transition: color 160ms ease-out; }
+.nav-login:hover { color: var(--text); }
+.nav-login + .btn-nav { margin-left: 0; }
+
+@media (max-width: 768px) { .nav-login { display: none; } }
