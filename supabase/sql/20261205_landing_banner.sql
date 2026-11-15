@@ -72,7 +72,7 @@ begin
   if not public.daylight_is_owner() then raise exception 'Only the owner can do this'; end if;
   return query
     select b.id, b.body, b.color, b.link, b.audience,
-           coalesce((select array_agg(u.email order by u.email) from public.daylight_banner_recipients p join auth.users u on u.id = p.user_id where p.banner_id = b.id), '{}'::text[]),
+           coalesce((select array_agg(u.email::text order by u.email::text) from public.daylight_banner_recipients p join auth.users u on u.id = p.user_id where p.banner_id = b.id), '{}'::text[]),
            b.created_at, b.show_on_landing
     from public.daylight_banners b
     order by b.created_at desc
@@ -83,18 +83,19 @@ $$;
 -- ---------------------------------------------------------------------------------------------------------------------
 -- The landing page (signed out, public): the newest banner that is for everyone AND flagged for the landing page. Text and link only.
 -- ---------------------------------------------------------------------------------------------------------------------
+drop function if exists public.daylight_landing_banner();
 create or replace function public.daylight_landing_banner()
-returns table(body text, color text, link text)
+returns table(id uuid, body text, color text, link text)
 language sql
 security definer
 set search_path = ''
 stable
 as $$
-  select b.body, b.color, b.link
+  select b.id, b.body, b.color, b.link
   from public.daylight_banners b
   where b.audience = 'everyone' and b.show_on_landing
   order by b.created_at desc
-  limit 1
+  limit 5
 $$;
 
 revoke all on function public.daylight_send_banner(text, text, text, text[], boolean) from public, anon;
@@ -103,3 +104,34 @@ revoke all on function public.daylight_landing_banner() from public;
 grant execute on function public.daylight_send_banner(text, text, text, text[], boolean) to authenticated;
 grant execute on function public.daylight_admin_list_banners() to authenticated;
 grant execute on function public.daylight_landing_banner() to anon, authenticated;
+
+-- ---------------------------------------------------------------------------------------------------------------------
+-- Edit a banner (owner only): text, color, link and whether it also shows on the landing page.
+-- ---------------------------------------------------------------------------------------------------------------------
+create or replace function public.daylight_update_banner(p_id uuid, p_body text, p_color text, p_link text default null, p_landing boolean default false)
+returns jsonb
+language plpgsql
+security definer
+set search_path = ''
+as $$
+declare
+  v_body text := btrim(coalesce(p_body, ''));
+  v_color text := btrim(coalesce(p_color, ''));
+  v_link text := nullif(btrim(coalesce(p_link, '')), '');
+  v_landing boolean := coalesce(p_landing, false);
+  v_aud text;
+begin
+  if auth.uid() is null then raise exception 'Authenticated session required'; end if;
+  if not public.daylight_is_owner() then raise exception 'Only the owner can edit banners'; end if;
+  if char_length(v_body) < 1 or char_length(v_body) > 200 then raise exception 'Banner text must be 1 to 200 characters'; end if;
+  if v_color !~ '^#[0-9A-Fa-f]{6}$' then raise exception 'Pick a banner color'; end if;
+  if v_link is not null and (char_length(v_link) > 500 or v_link !~* '^https?://[^[:space:]]+$') then raise exception 'The link must start with http:// or https://'; end if;
+  select audience into v_aud from public.daylight_banners where id = p_id;
+  if v_aud is null then return jsonb_build_object('updated', false); end if;
+  if v_landing and v_aud <> 'everyone' then raise exception 'Only a banner for everyone can be shown on the landing page'; end if;
+  update public.daylight_banners set body = v_body, color = upper(v_color), link = v_link, show_on_landing = v_landing where id = p_id;
+  return jsonb_build_object('updated', true);
+end
+$$;
+revoke all on function public.daylight_update_banner(uuid, text, text, text, boolean) from public, anon;
+grant execute on function public.daylight_update_banner(uuid, text, text, text, boolean) to authenticated;

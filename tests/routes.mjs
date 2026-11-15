@@ -33,6 +33,7 @@ await r.app.close();
 for(const [route,head] of [['login/','Sign in'],['sign-up/','Create account']]){
  r=await visit({signedIn:false},route,'#authScreen .auth-primary');
  check(`/${route} renders its form`,r.where===P+route&&await r.page.evaluate(h=>document.querySelector('.auth-headline').textContent===h,head),r.where);
+ check(`/${route}: the Daylight logo links to the homepage`,await r.page.evaluate(()=>{const a=document.querySelector('.auth-brand');return !!a&&a.tagName==='A'&&new URL(a.href).pathname==='/daylight/'}),'');
  check(`/${route} has no broken assets or errors`,r.bad.length===0&&r.errs.length===0,J([r.bad,r.errs]));
  await r.page.screenshot({path:path.join(out,route.replace('/','')+'.png')});
  await r.app.close();
@@ -62,6 +63,12 @@ await r.app.close();
 for(const [rel,expect,label] of [['?code=abc','dashboard/?code=abc','a finished Google / email-confirm return goes to /dashboard'],['#type=recovery&access_token=x','login/#type=recovery&access_token=x','a password-reset link goes to /login'],['?error=access_denied&error_code=bad','login/?error=access_denied&error_code=bad','a failed provider return goes to /login']]){
  r=await visit({signedIn:rel.startsWith('?code')},rel);
  check(label,r.where.startsWith(P+expect.split('?')[0].split('#')[0]),r.where);
+ await r.app.close();
+}
+// ---- legal pages
+for(const [rel,h] of [['privacy/','Privacy Policy'],['tos/','Terms of Service']]){
+ r=await visit({signedIn:false},rel,'.legal h1');
+ check(`/${rel} renders its page under the project path with no broken assets`,r.where===P+rel&&await r.page.evaluate(h=>document.querySelector('h1').textContent===h,h)&&r.bad.length===0&&r.errs.length===0,J([r.where,r.bad,r.errs]));
  await r.app.close();
 }
 // ---- unknown path

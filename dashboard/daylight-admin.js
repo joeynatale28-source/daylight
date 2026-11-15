@@ -283,6 +283,55 @@
         } });
       });
     }
+    /* Edit a banner: text, color, link, and where it shows. Saved by the owner-only database function. */
+    function openBannerEditor(b, done) {
+      var color = hexOf(b.color), landing = !!b.show_on_landing, everyone = b.audience === "everyone";
+      var bd = make('<div class="backdrop"><div class="dialog dl-std dl-look dl-ad-edit" role="dialog" aria-modal="true" aria-label="Edit banner">' +
+        '<div class="dialog-head"><span class="dialog-title">Edit banner</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
+        '<div class="dialog-body">' +
+          '<div class="dl-ad-field"><label for="adEdText">Banner text</label><input class="text-input" id="adEdText" maxlength="200" autocomplete="off"></div>' +
+          '<div class="dl-ad-field"><span class="dl-ad-label">Color</span><div data-picker></div></div>' +
+          '<div class="dl-ad-field"><label for="adEdLink">Link (optional)</label><input class="text-input" id="adEdLink" type="url" autocomplete="off" spellcheck="false" placeholder="https://"></div>' +
+          '<div class="dl-ad-field"><span class="dl-ad-label">Where to show it</span><div class="dl-ad-aud" role="radiogroup" aria-label="Where to show it"><button type="button" role="radio" data-where="dashboard">Dashboard only</button><button type="button" role="radio" data-where="landing">Dashboard and landing page</button></div></div>' +
+          '<div class="dl-ad-field"><span class="dl-ad-label">Preview</span><div class="dl-ad-preview" data-preview></div></div>' +
+          '<div class="dl-ad-status" role="status" aria-live="polite" data-status></div>' +
+        '</div>' +
+        '<div class="dialog-foot"><button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-primary" style="margin-left:0" data-save>Save changes</button></div></div></div>');
+      overlayRoot.appendChild(bd);
+      var text = bd.querySelector("#adEdText"), link = bd.querySelector("#adEdLink"), prev = bd.querySelector("[data-preview]"), st = bd.querySelector("[data-status]"), save = bd.querySelector("[data-save]");
+      text.value = b.body; link.value = b.link || "";
+      function drawPrev() { prev.innerHTML = ""; prev.appendChild(bannerNode({ body: text.value.trim() || "Your banner text", color: color, link: null })); }
+      function syncWhere() {
+        bd.querySelectorAll("[data-where]").forEach(function (x) {
+          var on = (x.dataset.where === "landing") === landing;
+          x.setAttribute("aria-checked", String(on));
+          if (x.dataset.where === "landing") { x.disabled = !everyone; x.style.opacity = everyone ? "" : "var(--dl-disabled-opacity, .55)"; }
+        });
+      }
+      bd.querySelectorAll("[data-where]").forEach(function (x) { x.addEventListener("click", function () { if (x.disabled) return; landing = x.dataset.where === "landing"; syncWhere(); }); });
+      if (window.daylightCalendarColorPicker) window.daylightCalendarColorPicker(bd.querySelector("[data-picker]"), { value: color, onChange: function (key) { color = hexOf(key).toUpperCase(); drawPrev(); } });
+      text.addEventListener("input", function () { st.textContent = ""; drawPrev(); });
+      drawPrev(); syncWhere();
+      function close() { document.removeEventListener("keydown", onKey, true); if (window.daylightExit) window.daylightExit(bd); else bd.remove(); }
+      function onKey(e) { if (e.key === "Escape" && overlayRoot.lastElementChild === bd) { e.preventDefault(); e.stopPropagation(); close(); } }
+      document.addEventListener("keydown", onKey, true);
+      bd.querySelector("[data-x]").addEventListener("click", close);
+      bd.querySelector("[data-cancel]").addEventListener("click", close);
+      bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
+      save.addEventListener("click", async function () {
+        var l = link.value.trim();
+        if (!text.value.trim()) { st.className = "dl-ad-status is-warn"; st.textContent = "Enter the banner text."; return; }
+        if (l && !/^https?:\/\/\S+$/i.test(l)) { st.className = "dl-ad-status is-warn"; st.textContent = "The link must start with http:// or https://"; return; }
+        save.disabled = true; save.textContent = "Saving…";
+        try {
+          var res = await call("daylight_update_banner", { p_id: b.id, p_body: text.value.trim(), p_color: color, p_link: l || null, p_landing: landing && everyone });
+          if (res && res.updated === false) { st.className = "dl-ad-status is-warn"; st.textContent = "That banner no longer exists."; }
+          else { close(); await done(); return; }
+        } catch (e) { st.className = "dl-ad-status is-warn"; st.textContent = errorText(e, "Couldn’t save that. Check your connection and try again."); }
+        save.disabled = false; save.textContent = "Save changes";
+      });
+      setTimeout(function () { text.focus(); }, 0);
+    }
     async function drawManage() {
       var notes = manage.querySelector("[data-notes]"), bans = manageB.querySelector("[data-banners]");
       var list = [], blist = [];
@@ -304,10 +353,12 @@
       if (blist === null) bans.appendChild(make('<div class="dl-ad-list-empty">Couldn’t load this list.</div>'));
       else if (!blist.length) bans.appendChild(make('<div class="dl-ad-list-empty">No banners are showing.</div>'));
       else blist.forEach(function (b) {
-        var row = make('<div class="dl-ad-item"><span class="dl-ad-dot" aria-hidden="true"></span><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-meta"></div></div><button type="button" class="btn-ghost dl-btn-sm" data-remove>Remove</button></div>');
+        var row = make('<div class="dl-ad-item"><span class="dl-ad-dot" aria-hidden="true"></span><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-meta"></div></div><button type="button" class="btn-ghost dl-btn-sm" data-edit>Edit</button><button type="button" class="btn-ghost dl-btn-sm" data-remove>Remove</button></div>');
         row.querySelector(".dl-ad-dot").style.background = b.color;
         row.querySelector(".dl-ad-item-title").textContent = b.body;
         row.querySelector(".dl-ad-item-meta").textContent = audienceText(b) + (b.show_on_landing ? " · Dashboard and landing page" : " · Dashboard only") + (b.link ? " · links to " + b.link : "") + " · " + when(b.created_at);
+        var eb = row.querySelector("[data-edit]"); eb.setAttribute("aria-label", "Edit banner " + b.body);
+        eb.addEventListener("click", function () { openBannerEditor(b, async function () { await drawManage(); if (window.daylightBanners) window.daylightBanners.refresh(); }); });
         var btn = row.querySelector("[data-remove]"); btn.setAttribute("aria-label", "Remove banner " + b.body);
         removeRow(btn, { title: "Remove this banner?", body: "It disappears from everyone’s screen.", confirm: "Remove" }, "daylight_delete_banner", { p_id: b.id }, async function () { await drawManage(); if (window.daylightBanners) window.daylightBanners.refresh(); });
         bans.appendChild(row);

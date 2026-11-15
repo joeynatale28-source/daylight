@@ -194,11 +194,11 @@
     var c = client();
     if (!c) { showFlash(root, "error", "Sign-up isn’t available right now. Check your connection and reload."); return; }
     captureAuthInputs(root);
-    var name = (authState.name || "").replace(/\s+/g, " ").trim(), email = (authState.email || "").trim(), password = authState.password || "";
-    if (!name || !validEmail(email) || !password || pwRuleError(password)) return;
+    var email = (authState.email || "").trim(), password = authState.password || "";
+    if (!validEmail(email) || !password || pwRuleError(password)) return;
     setBusy(root, true, "Creating account…");
     try {
-      var res = await c.auth.signUp({ email: email, password: password, options: { data: { full_name: name }, emailRedirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) } });
+      var res = await c.auth.signUp({ email: email, password: password, options: { emailRedirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) } });
       if (res.error) throw res.error;
       var u = res.data && res.data.user;
       if (res.data && res.data.session) { setBusy(root, false); return; }      /* confirmations are off: onAuthStateChange signs in */

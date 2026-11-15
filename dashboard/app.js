@@ -3796,9 +3796,7 @@
         }
         var isLogin = authIsLogin();
         var pw = authState.password || "";
-        var nameField = isLogin ? "" : authPillHtml("authName", "Name",
-          '<input class="auth-pill-input" id="authName" type="text" autocomplete="name" placeholder="Your name" value="' + esc(authState.name) + '" aria-invalid="false" aria-describedby="authNameErr">',
-          "authNameErr", "authNameTip");
+        var nameField = "";   /* sign-up no longer asks for a name: the welcome step after the first sign-in does */
         var emailField = authPillHtml("authEmail", "Email",
           '<input class="auth-pill-input" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com" value="' + esc(authState.email) + '" aria-invalid="false" aria-describedby="authEmailErr">',
           "authEmailErr", "authEmailTip");
@@ -4189,7 +4187,7 @@
         root.innerHTML =
           '<div id="authScreen"' + (firstLoad ? ' class="is-enter"' : "") + ">" +
             '<section class="auth-form-panel" aria-label="' + authPanelLabel() + '">' +
-              '<div class="auth-topbar"><span class="auth-brand"><span class="auth-brand-mark"><img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt="" width="34" height="34"><img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt="" width="34" height="34"></span><span class="auth-wordmark">Daylight</span></span>' +
+              '<div class="auth-topbar"><a class="auth-brand" href="../" aria-label="Daylight home"><span class="auth-brand-mark"><img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt="" width="34" height="34"><img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt="" width="34" height="34"></span><span class="auth-wordmark">Daylight</span></a>' +
               '<button class="auth-theme-btn" id="authThemeBtn" title="' + (isDark ? "Switch to light theme" : "Switch to dark theme") + '" aria-label="' + (isDark ? "Switch to light theme" : "Switch to dark theme") + '">' + icon(isDark ? "sun" : "moon", 17) + "</button></div>" +
               '<form class="auth-form-wrap' + (firstLoad ? " is-enter" : "") + '" id="authForm" novalidate>' +
                 '<div class="auth-form-inner" id="authFormInner"></div>' +

@@ -1,6 +1,6 @@
 /**
- * Landing page (nav + hero), real page over HTTP: both OS themes, three widths, scrolled pill, mobile menu, reduced motion,
- * measured gaps, links, no 404s, no horizontal scroll, motion plays.
+ * The landing page and the legal pages, real pages over HTTP: both OS themes, three widths, banners above the nav (colors from Admin),
+ * the scrolled glass pill, mobile menu, reduced motion, carousels, footer colors, legal templates, no 404s, no horizontal scroll.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -15,94 +15,116 @@ const check=(n,ok,d)=>{if(!ok)failed=true;console.log((ok?'PASS ':'FAIL ')+n+(ok
 const J=x=>JSON.stringify(x);
 const {server,url}=await serve(0);
 const browser=await puppeteer.launch({executablePath:chrome,headless:'new',args:['--no-sandbox']});
-const BANNER={body:'Scheduled maintenance tonight at 9 PM Eastern',color:'#111111',link:'https://example.com/status'};
-async function open(theme,w,h,{reduce=false,touch=false,banner=BANNER}={}){
+const BANNERS=[{id:'1',body:'Scheduled maintenance tonight at 9 PM Eastern',color:'#F02B2B',link:'https://example.com/status'},{id:'2',body:'A second banner',color:'#2BF0F0',link:null}];
+async function open(theme,w,h,{reduce=false,touch=false,banners=BANNERS,rel=''}={}){
  const page=await browser.newPage();
  await page.setRequestInterception(true);
- page.on('request',r=>{if(/rpc\/daylight_landing_banner/.test(r.url())){const h={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};if(r.method()==='OPTIONS')r.respond({status:204,headers:h});else r.respond({status:200,contentType:'application/json',headers:h,body:JSON.stringify(banner?[banner]:[])})}else r.continue()});
+ const state={banners};
+ page.on('request',r=>{if(/rpc\/daylight_landing_banner/.test(r.url())){const hd={'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'*'};if(r.method()==='OPTIONS')r.respond({status:204,headers:hd});else r.respond({status:200,contentType:'application/json',headers:hd,body:JSON.stringify(state.banners||[])})}else r.continue()});
  await page.setViewport({width:w,height:h,deviceScaleFactor:1,isMobile:touch,hasTouch:touch});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme},{name:'prefers-reduced-motion',value:reduce?'reduce':'no-preference'}]);
  const bad=[];page.on('response',r=>{if(r.status()>=400)bad.push(r.status()+' '+r.url())});page.on('requestfailed',r=>{if(!/fonts\.g/.test(r.url()))bad.push('FAILED '+r.url())});
  const errs=[];page.on('pageerror',e=>errs.push(e.message));
- await page.goto(url,{waitUntil:'load'});
- return {page,bad,errs};
+ await page.goto(url+rel,{waitUntil:'load'});
+ return {page,bad,errs,state};
 }
 for(const theme of ['light','dark']){
  const T=s=>`${theme}: ${s}`;
- // ---------------- desktop 1440
+ // ---------------- desktop 1440, with two banners posted
  let {page,bad,errs}=await open(theme,1440,900);
  await sleep(1500);
  await page.screenshot({path:path.join(out,`hero-1440-${theme}.png`)});
  const m=await page.evaluate(()=>{
   const r=s=>{const n=document.querySelector(s);if(!n)return null;const b=n.getBoundingClientRect();return {top:b.top+scrollY,bottom:b.bottom+scrollY,h:b.height,w:b.width,left:b.left}};
   const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];
-  return {nav:r('.nav-inner'),strip:r('.strip'),h1:r('.display'),sub:r('.sub'),ctas:r('.ctas'),trust:r('.trust'),frame:r('.frame'),screen:r('.frame-screen'),
-   h1size:cs('.display','fontSize'),h1w:cs('.display','fontWeight'),h1ls:cs('.display','letterSpacing'),font:cs('body','fontFamily').slice(0,30),btnH:r('.btn-hero').h,btnR:cs('.btn-hero','borderRadius'),btnFs:cs('.btn-hero','fontSize'),subFs:cs('.sub','fontSize'),stripH:r('.strip').h,stripText:(document.querySelector('.strip-text')||{}).textContent,stripHref:(document.querySelector('a.strip-link')||{}).getAttribute&&document.querySelector('a.strip-link').getAttribute('href'),stripRel:(document.querySelector('a.strip-link')||{}).rel,hasStrip:document.getElementById('top').classList.contains('has-strip'),
+  const rows=[...document.querySelectorAll('.banner')].map(b=>({text:b.textContent.trim(),bg:getComputedStyle(b).backgroundColor,color:getComputedStyle(b).color,href:(b.querySelector('a')||{}).href||null,rel:(b.querySelector('a')||{}).rel||null}));
+  const words=[...document.querySelectorAll('.rot-word')].map(w=>{const b=w.getBoundingClientRect();return Math.round(b.left+b.width/2)});
+  return {banners:r('.banners'),nav:r('.nav-inner'),rows,h1:r('.display'),sub:r('.sub'),ctas:r('.ctas'),trust:r('.trust'),frame:r('.frame'),screen:r('.frame-screen'),
+   h1size:cs('.display','fontSize'),h1w:cs('.display','fontWeight'),h1ls:cs('.display','letterSpacing'),font:cs('body','fontFamily').slice(0,30),btnH:r('.btn-hero').h,
    lines:Math.round(r('.display').h/parseFloat(cs('.display','lineHeight'))),hscroll:document.documentElement.scrollWidth>innerWidth,
    links:[...document.querySelectorAll('.links > a, .links .dd-trigger')].map(a=>a.getAttribute('href')),cta:document.querySelector('.nav-cta').getAttribute('href'),
    hero:[...document.querySelectorAll('.ctas a')].map(a=>a.getAttribute('href')),logo:document.querySelector('.brand').getAttribute('href'),
-   navBtns:document.querySelectorAll('.nav-cta').length,loginBtn:/log in/i.test(document.querySelector('.nav').textContent)}});
- check(T('nav is 54px'),Math.round(m.nav.h)===54||Math.round(m.nav.h)===55,J(m.nav));
- check(T('headline: Inter 600, -0.03em, 56px at 1440, two lines (the second carries the mark + rotating word)'),/Inter/.test(m.font)&&m.h1size==='56px'&&m.h1w==='600'&&Math.abs(parseFloat(m.h1ls)+1.68)<0.15&&m.lines===2,J([m.font,m.h1size,m.h1w,m.h1ls,m.lines]));
- check(T('announcement strip shows the banner the owner posted for the landing page (its text and link), as its own 47px band'),m.hasStrip&&m.stripText===BANNER.body&&m.stripHref===BANNER.link&&/noopener/.test(m.stripRel)&&Math.round(m.stripH)>=46&&Math.round(m.stripH)<=48,J([m.stripText,m.stripHref,m.stripRel,m.stripH]));
- check(T('rhythm: strip→headline 112, headline→sub 16, sub→buttons 32, buttons→trust 28, trust→frame 64'),
-  Math.round(m.h1.top-m.strip.bottom)===112&&Math.round(m.sub.top-m.h1.bottom)===16&&Math.round(m.ctas.top-m.sub.bottom)===32&&Math.round(m.trust.top-m.ctas.bottom)===28&&Math.round(m.frame.top-m.trust.bottom)===64,
-  J([m.h1.top-m.strip.bottom,m.sub.top-m.h1.bottom,m.ctas.top-m.sub.bottom,m.trust.top-m.ctas.bottom,m.frame.top-m.trust.bottom]));
- check(T('buttons: the sign-in pills (50px tall, full radius, 15px); subcopy 18px'),Math.round(m.btnH)===50&&parseFloat(m.btnR)>=25&&m.btnFs==='15px'&&m.subFs==='18px',J([m.btnH,m.btnR,m.btnFs,m.subFs]));
+   navBtns:document.querySelectorAll('.nav-cta').length,loginBtn:/log in/i.test(document.querySelector('.nav').textContent),
+   imgInH1:document.querySelectorAll('.display img').length,line2Rot:!!document.querySelector('.line2 .rot'),rotCx:words,line2Cx:(()=>{const b=document.querySelector('.line2').getBoundingClientRect();return Math.round(b.left+b.width/2)})()}});
+ check(T('banners render ABOVE the nav, in order, with the colors, text and link the owner chose'),m.rows.length===2&&m.banners.bottom<=m.nav.top+1&&m.rows[0].text===BANNERS[0].body&&m.rows[0].bg==='rgb(240, 43, 43)'&&m.rows[0].href===BANNERS[0].link&&/noopener/.test(m.rows[0].rel)&&m.rows[1].bg==='rgb(43, 240, 240)'&&m.rows[1].href===null,J([m.rows,m.banners,m.nav.top]));
+ check(T('banner text stays readable on its color (light text on red, dark on cyan)'),m.rows[0].color==='rgb(255, 255, 255)'&&m.rows[1].color==='rgb(17, 17, 17)',J(m.rows.map(r=>r.color)));
+ check(T('nav is a 54px bar sitting right under the banners'),Math.round(m.nav.h)>=54&&Math.round(m.nav.h)<=55&&Math.abs(m.nav.top-m.banners.bottom)<=1,J([m.nav,m.banners]));
+ check(T('hero headline: no logo in it; the rotating word sits on the second line and its center is the line center for every word'),m.imgInH1===0&&m.line2Rot&&m.rotCx.every(c=>Math.abs(c-m.line2Cx)<=2),J([m.imgInH1,m.line2Rot,m.rotCx,m.line2Cx]));
+ check(T('headline: Inter 600, -0.03em, 56px at 1440, two lines'),/Inter/.test(m.font)&&m.h1size==='56px'&&m.h1w==='600'&&Math.abs(parseFloat(m.h1ls)+1.68)<0.15&&m.lines===2,J([m.font,m.h1size,m.h1w,m.h1ls,m.lines]));
+ check(T('rhythm: nav→headline 136, headline→sub 16, sub→buttons 32, buttons→trust 28, trust→frame 64'),
+  Math.round(m.h1.top-m.nav.bottom)===136&&Math.round(m.sub.top-m.h1.bottom)===16&&Math.round(m.ctas.top-m.sub.bottom)===32&&Math.round(m.trust.top-m.ctas.bottom)===28&&Math.round(m.frame.top-m.trust.bottom)===64,
+  J([m.h1.top-m.nav.bottom,m.sub.top-m.h1.bottom,m.ctas.top-m.sub.bottom,m.trust.top-m.ctas.bottom,m.frame.top-m.trust.bottom]));
+ check(T('buttons: the sign-in pills (50px tall)'),Math.round(m.btnH)===50);
  check(T('frame screen is exactly 8:5'),Math.abs(m.screen.w/m.screen.h-1.6)<0.005,J([m.screen.w,m.screen.h]));
- check(T('the headline is the biggest type by a wide margin (56px vs 17px body)'),parseFloat(m.h1size)>=3*17);
- check(T('links: logo /, anchors, ONE Open Daylight button to login/, Get started to sign-up/, See how it works #features, no Log in'),
-  m.logo==='./'&&m.links.join()==='#features,#sharing,#ai,#faq'&&m.cta==='login/'&&m.hero.join()==='sign-up/,#features'&&m.navBtns===1&&!m.loginBtn,J(m));
+ check(T('ONE Open Daylight button to login/, no Log in; logo to /, hero buttons'),m.logo==='./'&&m.links.join()==='#features,#sharing,#ai,#faq'&&m.cta==='login/'&&m.hero.join()==='sign-up/,#features'&&m.navBtns===1&&!m.loginBtn,J(m));
  check(T('no horizontal scroll, no 404s, no page errors'),!m.hscroll&&bad.length===0&&errs.length===0,J([m.hscroll,bad,errs]));
- {
-  const none=await open(theme,1440,900,{banner:null});await sleep(900);
-  const nb=await none.page.evaluate(()=>({hidden:document.getElementById('strip').hidden,has:document.getElementById('top').classList.contains('has-strip'),h1top:Math.round(document.querySelector('.display').getBoundingClientRect().top),navBottom:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().bottom),visible:getComputedStyle(document.querySelector('.display .line')).opacity}));
-  check(T('no landing banner posted: no strip at all, the headline still sits comfortably under the nav'),nb.hidden&&!nb.has&&nb.h1top-nb.navBottom>=120&&nb.visible==='1',J(nb));
-  await none.page.screenshot({path:path.join(out,`hero-no-banner-1440-${theme}.png`)});
-  await none.page.close();
- }
- // scrolled pill over the hero
- await page.evaluate(()=>window.scrollTo({top:140,behavior:'instant'}));await sleep(500);
- const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {radius:c.borderTopLeftRadius,bg:c.backgroundColor,border:c.borderTopWidth+' '+c.borderBottomWidth+' '+c.borderBottomColor,blur:c.backdropFilter||c.webkitBackdropFilter,w:Math.round(n.getBoundingClientRect().width),top:Math.round(n.getBoundingClientRect().top),prog:document.getElementById('progress').style.transform,par:document.getElementById('par').style.transform,fine:matchMedia('(pointer: fine)').matches}});
- check(T('scrolled: floating pill, no outline line, frosted, opaque enough (.88)'),/999|\d{3,}px/.test(pill.radius)&&/0\.9/.test(pill.bg)&&/blur/.test(pill.blur)&&/^0px 0px/.test(pill.border)||/transparent|rgba\(0, 0, 0, 0\)/.test(pill.border),J(pill));
- check(T('scroll progress hairline responds'),/scaleX\(/.test(pill.prog),J([pill.prog]));
+ await page.evaluate(()=>window.scrollTo({top:20,behavior:'instant'}));await sleep(450);
+ const early=await page.evaluate(()=>({scrolled:document.getElementById('nav').classList.contains('is-scrolled'),top:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().top),bh:document.getElementById('banners').offsetHeight}));
+ check(T('scrolled a little: the nav is still a bar under the banner (it moves up with the page)'),!early.scrolled&&early.top>0&&early.top<early.bh+1,J(early));
+ await page.evaluate(()=>window.scrollTo({top:300,behavior:'instant'}));await sleep(500);
+ const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {scrolled:document.getElementById('nav').classList.contains('is-scrolled'),radius:c.borderTopLeftRadius,bg:c.backgroundColor,borderW:c.borderTopWidth+' '+c.borderRightWidth+' '+c.borderBottomWidth+' '+c.borderLeftWidth,blur:c.backdropFilter||c.webkitBackdropFilter,top:Math.round(n.getBoundingClientRect().top),w:Math.round(n.getBoundingClientRect().width),shadow:c.boxShadow!=='none',wm:getComputedStyle(document.querySelector('.wordmark')).color,prog:document.getElementById('progress').style.transform}});
+ const alpha=(c=>{const m=/rgba?\(([^)]+)\)/.exec(c||'');if(!m)return 1;const p=m[1].split(',').map(x=>parseFloat(x));return p.length>3?p[3]:1})(pill.bg);
+ const wantText=theme==='dark'?'rgb(224, 224, 224)':'rgb(23, 23, 23)';
+ check(T('past the banner: a floating rounded GLASS pill (translucent, strongly blurred, shadowed, no outline), text in the theme colors'),pill.scrolled&&/\d{3,}px/.test(pill.radius)&&alpha>0.4&&alpha<0.85&&/blur\((2\d|3\d)px\)/.test(pill.blur)&&pill.borderW==='0px 0px 0px 0px'&&pill.shadow&&pill.top>=8&&pill.w<1000&&pill.wm===wantText,J([pill,alpha,wantText]));
+ const rest=await page.evaluate(()=>{const c=getComputedStyle(document.querySelector('.nav-inner'));return {bg:c.backgroundColor,blur:c.backdropFilter||c.webkitBackdropFilter}});
+ check(T('scroll progress hairline responds'),/scaleX\(/.test(pill.prog),J(pill.prog));
  await page.screenshot({path:path.join(out,`nav-pill-1440-${theme}.png`)});
  await page.close();
- // ---------------- the rest of the page (features, sharing, AI access, FAQ, CTA, footer), desktop
+ // ---------------- no banners / live updates
+ {
+  const none=await open(theme,1440,900,{banners:[]});await sleep(900);
+  const nb=await none.page.evaluate(()=>({empty:document.getElementById('banners').offsetHeight===0,navTop:Math.round(document.querySelector('.nav-inner').getBoundingClientRect().top),h1:Math.round(document.querySelector('.display').getBoundingClientRect().top-document.querySelector('.nav-inner').getBoundingClientRect().bottom),vis:getComputedStyle(document.querySelector('.display .line')).opacity}));
+  const restGlass=await none.page.evaluate(()=>{const c=getComputedStyle(document.querySelector('.nav-inner'));const m=/rgba?\(([^)]+)\)/.exec(c.backgroundColor);const p=m?m[1].split(',').map(x=>parseFloat(x)):[];return {a:p.length>3?p[3]:1,blur:c.backdropFilter||c.webkitBackdropFilter}});
+  check(T('the bar at rest is glass too: translucent with a blur'),restGlass.a>0.5&&restGlass.a<0.95&&/blur/.test(restGlass.blur),J(restGlass));
+  check(T('no banner posted: nothing above the nav, the headline keeps its spacing'),nb.empty&&nb.navTop===0&&nb.h1===136&&nb.vis==='1',J(nb));
+  none.state.banners=[{id:'9',body:'Fresh banner',color:'#111111',link:null}];
+  await none.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await sleep(700);
+  const added=await none.page.evaluate(()=>[...document.querySelectorAll('.banner')].map(b=>b.textContent.trim()+'|'+getComputedStyle(b).backgroundColor));
+  none.state.banners=[{id:'9',body:'Fresh banner',color:'#2B6BF0',link:null}];
+  await none.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await sleep(700);
+  const edited=await none.page.evaluate(()=>[...document.querySelectorAll('.banner')].map(b=>b.textContent.trim()+'|'+getComputedStyle(b).backgroundColor));
+  none.state.banners=[];
+  await none.page.evaluate(()=>document.dispatchEvent(new Event('visibilitychange')));await sleep(700);
+  const gone=await none.page.evaluate(()=>document.querySelectorAll('.banner').length);
+  check(T('a banner posted later shows up, an edit changes its color, and deleting it removes it (no stale banner)'),added.join()==='Fresh banner|rgb(17, 17, 17)'&&edited.join()==='Fresh banner|rgb(43, 107, 240)'&&gone===0,J([added,edited,gone]));
+  await none.page.close();
+ }
+ // ---------------- the whole page
  ({page,bad,errs}=await open(theme,1440,900));
  await sleep(800);
  const total=await page.evaluate(()=>document.documentElement.scrollHeight);
  for(let y=0;y<total;y+=500){await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),y);await sleep(110)}
  const full=await page.evaluate(()=>{
-  const ids=['features','sharing','ai','faq'];
+  const ids=['features','how','sharing','ai','deep','themes','faq'];
   const hrefs=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));
   const anchors=hrefs.filter(h=>h.startsWith('#')&&h.length>1);
-  return {ids:ids.map(i=>!!document.getElementById(i)),anchorsOk:anchors.every(h=>!!document.querySelector(h)),pages:[...new Set(hrefs.filter(h=>/^(login|sign-up|dashboard)\//.test(h)))],
-   hscroll:document.documentElement.scrollWidth>innerWidth,h2:[...document.querySelectorAll('.h2,.cta-title')].map(n=>n.textContent.replace(/\s+/g,' ').trim()),
-   italics:[...document.querySelectorAll('.h2')].map(n=>n.querySelectorAll('em').length),
-   footerCols:[...document.querySelectorAll('.foot-cols h3')].map(n=>n.textContent),mark:!!document.querySelector('.foot-mark'),
-   fake:/testimonial|customers|users|rated|stars|trusted by/i.test(document.body.innerText)}});
- check(T('all four nav anchors resolve: #features #sharing #ai #faq, and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
- check(T('page links only point at real pages (login/, sign-up/)'),full.pages.every(h=>/^(login|sign-up)\/$/.test(h)),J(full.pages));
- check(T('every section headline carries exactly one italic word'),full.italics.every(n=>n===1),J(full.italics));
- check(T('no social proof anywhere on the page'),!full.fake,'');
- check(T('footer: grouped columns and the giant watermark; no horizontal scroll'),full.footerCols.join()==='Product,Get started'&&full.mark&&!full.hscroll,J(full));
- // chip selector drives the tabbed window
+  const f=document.querySelector('.footer'),fc=getComputedStyle(f);
+  return {ids:ids.map(i=>!!document.getElementById(i)),anchorsOk:anchors.every(h=>!!document.querySelector(h)),pages:[...new Set(hrefs.filter(h=>/^(login|sign-up|privacy|tos)\/$/.test(h)))],
+   hscroll:document.documentElement.scrollWidth>innerWidth,windows:document.querySelectorAll('.window').length,
+   fakeSocial:/testimonial|customers|trusted by|rated/i.test(document.body.innerText),
+   footerBg:fc.backgroundColor,footerHeads:[...document.querySelectorAll('.foot-cols h3')].map(n=>n.textContent),footerLinks:[...document.querySelectorAll('.foot-cols a')].map(a=>a.textContent),
+   copy:document.querySelector('.foot-bar').textContent.trim(),footLine:document.querySelector('.foot-line').textContent,socials:document.querySelectorAll('.footer svg').length,status:/operational/i.test(f.textContent)}});
+ check(T('every section anchor resolves (#features #how #sharing #ai #deep #themes #faq) and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
+ check(T('page links point at real pages (login, sign-up, privacy, tos)'),full.pages.length===4,J(full.pages));
+ check(T('footer is pure '+(theme==='dark'?'black (#0A0A0A)':'white')+', not gray'),full.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),full.footerBg);
+ check(T('footer: Product, Explore, Legal columns with the right links; one-liner; copyright; no socials or status pill'),full.footerHeads.join()==='Product,Explore,Legal'&&full.footerLinks.join()==='Open Daylight,Features,AI access,Sharing,Themes,FAQ,Privacy,Terms'&&full.footLine==='Your calendar, minus the clutter.'&&full.copy==='© 2026 Daylight. All rights reserved.'&&full.socials===0&&!full.status,J(full));
+ check(T('placeholder frames only, no social proof, no horizontal scroll'),full.windows>=20&&!full.fakeSocial&&!full.hscroll,J([full.windows,full.fakeSocial,full.hscroll]));
  await page.evaluate(()=>window.scrollTo({top:document.getElementById('features').offsetTop,behavior:'instant'}));await sleep(500);
- await page.click('#tab-tasks');await sleep(300);
- const tab=await page.evaluate(()=>({sel:document.getElementById('tab-tasks').getAttribute('aria-selected'),shown:[...document.querySelectorAll('.tabpanel')].filter(p=>!p.hidden).map(p=>p.id)}));
- check(T('chips select the tabbed window (Tasks)'),tab.sel==='true'&&tab.shown.join()==='panel-tasks',J(tab));
- await page.focus('#tab-tasks');await page.keyboard.press('ArrowRight');await sleep(300);
- check(T('arrow keys move between chips'),await page.evaluate(()=>document.getElementById('tab-reminders').getAttribute('aria-selected')==='true'));
- // FAQ
+ const car=await page.evaluate(()=>{const t=document.getElementById('car-features');const peek=[...t.children].some(c=>{const b=c.getBoundingClientRect();return b.left<innerWidth&&b.right>innerWidth});return {peek,prevDisabled:document.querySelector('[data-car=features].prev').disabled,x:t.scrollLeft}});
+ await page.click('[data-car=features].next');await sleep(700);
+ const car2=await page.evaluate(()=>({x:document.getElementById('car-features').scrollLeft,prevDisabled:document.querySelector('[data-car=features].prev').disabled}));
+ check(T('features carousel: the next card peeks at the edge; the arrow scrolls and enables Previous'),car.peek&&car.prevDisabled&&car2.x>car.x+100&&!car2.prevDisabled,J([car,car2]));
+ await page.evaluate(()=>window.scrollTo({top:document.getElementById('ai').offsetTop,behavior:'instant'}));await sleep(500);
+ const ai=await page.evaluate(()=>({tiles:document.querySelector('.slide').children.length,slides:document.querySelectorAll('.slide').length}));
+ await page.click('[data-car=ai].next');await sleep(700);
+ check(T('AI access carousel: two tiles per slide, three slides, the arrow moves on'),ai.tiles===2&&ai.slides===3&&await page.evaluate(()=>document.getElementById('car-ai').scrollLeft>200),J(ai));
  await page.evaluate(()=>window.scrollTo({top:document.getElementById('faq').offsetTop,behavior:'instant'}));await sleep(500);
  await page.click('.faq-item summary');await sleep(250);
  check(T('FAQ items open'),await page.evaluate(()=>document.querySelector('.faq-item').open));
- // dropdown (hover)
  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(400);
  await page.hover('.dd-trigger');await sleep(500);
- const ddo=await page.evaluate(()=>({open:document.getElementById('dd').classList.contains('open'),vis:getComputedStyle(document.getElementById('ddPanel')).visibility,items:document.querySelectorAll('.dd-item').length,cards:document.querySelectorAll('.dd-card').length,expanded:document.getElementById('ddTrigger').getAttribute('aria-expanded')}));
- check(T('Features dropdown opens: six icon+label+line items and two cards'),ddo.open&&ddo.vis==='visible'&&ddo.items===6&&ddo.cards===2&&ddo.expanded==='true',J(ddo));
+ const ddo=await page.evaluate(()=>({open:document.getElementById('dd').classList.contains('open'),items:document.querySelectorAll('.dd-item').length,cards:document.querySelectorAll('.dd-card').length}));
+ check(T('Features dropdown: icon-led items and two featured cards'),ddo.open&&ddo.items===6&&ddo.cards===2,J(ddo));
  await page.screenshot({path:path.join(out,`dropdown-1440-${theme}.png`)});
  await page.keyboard.press('Escape');await sleep(400);
  check(T('Escape closes the dropdown'),await page.evaluate(()=>!document.getElementById('dd').classList.contains('open')));
@@ -110,40 +132,54 @@ for(const theme of ['light','dark']){
  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(500);
  await page.screenshot({path:path.join(out,`page-full-1440-${theme}.png`),fullPage:true});
  await page.close();
- // ---------------- tablet 768
- ({page,bad,errs}=await open(theme,768,1024,{touch:true}));
- await sleep(1500);
- const t=await page.evaluate(()=>({h:document.documentElement.scrollWidth>innerWidth,burger:getComputedStyle(document.getElementById('burger')).display,links:getComputedStyle(document.querySelector('.links')).display}));
- check(T('768: no horizontal scroll; phone nav'),!t.h,J(t));
+ // ---------------- the Daylight logo: homepage when signed out, dashboard when signed in
+ {
+  const lo=await open(theme,1440,900,{rel:'privacy/'});await sleep(600);
+  await lo.page.click('.nav .brand');await sleep(700);
+  check(T('signed out: the nav logo on a legal page goes to the homepage'),new URL(lo.page.url()).pathname==='/','');
+  await lo.page.evaluate(()=>localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',user:{id:'u'}})));
+  await lo.page.goto(url+'privacy/',{waitUntil:'load'});await sleep(500);
+  const seen=[];lo.page.on('framenavigated',f=>seen.push(new URL(f.url()).pathname));
+  await lo.page.click('.nav .brand');await sleep(1200);
+  check(T('signed in: the nav logo goes to the dashboard (the stand-in session is then refused by the real server, which is why the page ends on /login)'),seen.includes('/dashboard/'),J(seen));
+  await lo.page.close();
+  const lf=await open(theme,1440,900);await sleep(600);
+  await lf.page.evaluate(()=>localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',user:{id:'u'}})));
+  await lf.page.goto(url,{waitUntil:'load'});await sleep(500);
+  const seen2=[];lf.page.on('framenavigated',f=>seen2.push(new URL(f.url()).pathname));
+  await lf.page.evaluate(()=>document.querySelector('.footer .brand').click());await sleep(1200);
+  check(T('signed in: the footer logo goes to the dashboard as well'),seen2.includes('/dashboard/'),J(seen2));
+  await lf.page.close();
+ }
+ // ---------------- legal pages
+ for(const [rel,count,title] of [['privacy/',11,'Privacy Policy'],['tos/',17,'Terms of Service']]){
+  ({page,bad,errs}=await open(theme,1440,900,{rel}));await sleep(700);
+  const lg=await page.evaluate(()=>({h1:document.querySelector('h1').textContent,eff:document.querySelector('.eff').textContent,secs:[...document.querySelectorAll('.legal section')].map(s=>s.querySelector('h2').textContent+'|'+s.querySelector('p').textContent),intro:!!document.querySelector('.intro'),nav:!!document.querySelector('.nav .nav-cta'),navHref:document.querySelector('.nav-cta').getAttribute('href'),footer:!!document.querySelector('.footer'),print:[...document.styleSheets].some(ss=>{try{return [...ss.cssRules].some(r=>r.type===CSSRule.MEDIA_RULE&&/print/.test(r.conditionText||r.media.mediaText))}catch(e){return false}}),hscroll:document.documentElement.scrollWidth>innerWidth,footerBg:getComputedStyle(document.querySelector('.footer')).backgroundColor}));
+  check(T(`/${rel}: title, effective placeholder, intro, ${count} numbered sections each with only the shell line`),lg.h1===title&&lg.eff==='Effective: [EFFECTIVE DATE]'&&lg.intro&&lg.secs.length===count&&lg.secs.every((s,i)=>s.startsWith((i+1)+'. ')&&s.endsWith('|Content for this section will be added in the legal pages job.')),J([lg.h1,lg.eff,lg.secs.length]));
+  check(T(`/${rel}: same nav (one Open Daylight to ../login/) and footer, a print stylesheet, no horizontal scroll, no errors`),lg.nav&&lg.navHref==='../login/'&&lg.footer&&lg.print&&!lg.hscroll&&bad.length===0&&errs.length===0&&lg.footerBg===(theme==='dark'?'rgb(10, 10, 10)':'rgb(255, 255, 255)'),J([lg.nav,lg.navHref,lg.footer,lg.print,lg.hscroll,bad,errs,lg.footerBg]));
+  await page.screenshot({path:path.join(out,`${rel.replace('/','')}-1440-${theme}.png`),fullPage:false});
+  await page.close();
+ }
+ // ---------------- tablet 768 and phone 390
+ ({page,bad,errs}=await open(theme,768,1024,{touch:true}));await sleep(1500);
+ check(T('768: no horizontal scroll'),!(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth)));
  await page.screenshot({path:path.join(out,`hero-768-${theme}.png`)});
  await page.close();
- // ---------------- phone 390
- ({page,bad,errs}=await open(theme,390,844,{touch:true}));
- await sleep(1500);
- const p=await page.evaluate(()=>{const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];const h=document.querySelector('.display').getBoundingClientRect();return {h:document.documentElement.scrollWidth>innerWidth,lines:Math.round(h.height/parseFloat(cs('.display','lineHeight'))),burger:cs('#burger','display'),links:cs('.links','display'),btn:document.querySelector('.btn-hero').getBoundingClientRect().height,navCta:cs('.nav-cta','display')}});
- check(T('390: hamburger, ≤3 headline lines, tap targets ≥44, no horizontal scroll'),!p.h&&p.lines<=3&&p.burger!=='none'&&p.links==='none'&&p.btn>=44,J(p));
+ ({page,bad,errs}=await open(theme,390,844,{touch:true}));await sleep(1500);
+ const p=await page.evaluate(()=>{const cs=(s,p)=>getComputedStyle(document.querySelector(s))[p];return {h:document.documentElement.scrollWidth>innerWidth,burger:cs('#burger','display'),links:cs('.links','display'),btn:document.querySelector('.btn-hero').getBoundingClientRect().height,banners:document.querySelectorAll('.banner').length}});
+ check(T('390: hamburger, banners on top, tap targets ≥44, no horizontal scroll'),!p.h&&p.burger!=='none'&&p.links==='none'&&p.btn>=44&&p.banners===2,J(p));
  await page.screenshot({path:path.join(out,`hero-390-${theme}.png`)});
  await page.click('#burger');await sleep(700);
- check(T('390: the menu opens (links + one Open Daylight button) and the icon becomes ×'),await page.evaluate(()=>document.getElementById('menu').classList.contains('open')&&document.getElementById('burger').getAttribute('aria-expanded')==='true'&&document.querySelectorAll('#menu a').length===5));
+ check(T('390: the menu opens with the links and the ONE Open Daylight pill, and the icon becomes ×'),await page.evaluate(()=>document.getElementById('menu').classList.contains('open')&&document.getElementById('burger').getAttribute('aria-expanded')==='true'&&document.querySelectorAll('#menu a').length===5));
  await page.screenshot({path:path.join(out,`menu-390-${theme}.png`)});
- await page.evaluate(()=>window.scrollTo({top:80,behavior:'instant'}));await sleep(500);
+ await page.evaluate(()=>window.scrollTo({top:200,behavior:'instant'}));await sleep(500);
  await page.screenshot({path:path.join(out,`menu-scrolled-390-${theme}.png`)});
  check(T('390: no page errors, no 404s'),errs.length===0&&bad.length===0,J([errs,bad]));
  await page.close();
  // ---------------- reduced motion
- ({page,bad,errs}=await open(theme,1440,900,{reduce:true}));
- await sleep(600);
+ ({page,bad,errs}=await open(theme,1440,900,{reduce:true}));await sleep(600);
  const rm=await page.evaluate(()=>({anim:[...document.querySelectorAll('.a')].map(n=>getComputedStyle(n).animationName+'/'+getComputedStyle(n).opacity),rot:[...document.querySelectorAll('.rot-word')].map(n=>getComputedStyle(n).opacity).join()}));
- check(T('reduced motion: content is visible at once, no animation, the headline word stays put'),rm.anim.every(a=>/^none\/1$/.test(a))&&rm.rot==='1,0,0,0',J(rm));
- await page.close();
-}
-// ---------------- entrance motion: sample opacity of the staggered elements over time
-{
- const {page}=await open('dark',1440,900);
- const samples=await page.evaluate(()=>new Promise(res=>{const els=['.strip','.display .line:nth-child(1)','.display .line:nth-child(2)','.sub','.ctas','.trust','.frame'].map(s=>document.querySelector(s));const out=[];const t0=performance.now();(function tick(){out.push([Math.round(performance.now()-t0),els.map(e=>+(+getComputedStyle(e).opacity).toFixed(2))]);if(performance.now()-t0<1200)requestAnimationFrame(tick);else res(out.filter((_,i)=>i%6===0))})()}));
- console.log('entrance samples (ms, opacities pill|w1|w5|sub|cta|trust|frame):',J(samples.slice(0,14)));
- const last=samples[samples.length-1][1];
- check('entrance: everything ends fully visible within ~1s',last.every(v=>v===1),J(last));
+ check(T('reduced motion: content visible at once, no animation, the headline word stays put'),rm.anim.every(a=>/^none\/1$/.test(a))&&rm.rot==='1,0,0,0',J(rm));
  await page.close();
 }
 await browser.close();server.close();

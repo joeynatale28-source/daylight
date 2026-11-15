@@ -8,6 +8,8 @@ on:
       - dashboard/**
       - login/**
       - sign-up/**
+      - privacy/**
+      - tos/**
       - 404.html
       - tests/**
       - .github/workflows/verify-ui.yml
