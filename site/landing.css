@@ -24,7 +24,7 @@
 *,*::before,*::after{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;overflow-x:clip}
 body{margin:0;background:var(--bg);color:var(--text);font:400 17px/1.6 Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;-webkit-font-smoothing:antialiased}
-body,.strip,.chip,.win,.win-bar,.url,.shot,.shot-label,.panel,.fc,.step,.num,.theme,.foot{transition:background-color 200ms linear,color 200ms linear,border-color 200ms linear}
+body,.strip,.win,.win-bar,.url,.shot,.shot-label,.panel,.fc,.step,.num,.theme,.foot{transition:background-color 200ms linear,color 200ms linear,border-color 200ms linear}
 h1,h2,h3,p,figure,ul,ol{margin:0}
 ul,ol{padding:0;list-style:none}
 a{color:inherit;text-decoration:none}
@@ -33,25 +33,20 @@ button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--text);outline-offset:3px;border-radius:999px}
 .wrap{width:100%;max-width:1120px;margin:0 auto;padding:0 24px}
 
-/* ---------- announcement strip: in the flow, scrolls away ---------- */
-.strip{display:flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 16px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:var(--bg);font-size:13px;font-weight:600;line-height:1;white-space:nowrap}
-.chip{display:inline-flex;align-items:center;height:22px;padding:0 9px;border-radius:999px;background:var(--surface)}
-.strip .arrow{color:var(--muted);transition:transform 200ms var(--ease)}
+/* ---------- announcement strip: renders only while the Admin dashboard has an active banner. No lines: its own color is the separator ---------- */
 .banners{display:block}
-.strip.live{white-space:normal;text-align:center;min-height:42px;height:auto;padding:10px 16px;line-height:1.3}
-.strip.live .arrow{color:inherit}
+.banners:empty{display:none}
+.strip{display:flex;align-items:center;justify-content:center;gap:8px;min-height:42px;padding:10px 16px;background:var(--surface);font-size:13px;font-weight:600;line-height:1.3;text-align:center}
+.strip .arrow{transition:transform 200ms var(--ease)}
 .strip:hover .arrow{transform:translateX(2px)}
 
-/* ---------- nav: a bar under the strip at rest, a floating pill past 8px ---------- */
+/* ---------- nav: transparent at rest, a compact opaque pill past 8px. No lines anywhere ---------- */
 .nav{position:sticky;top:0;z-index:50;height:54px}
-.bar{position:relative;isolation:isolate;width:var(--w-rest,100%);height:54px;margin:0 auto;background:var(--bg);border-bottom:1px solid var(--line);border-radius:0;
-  transition:width 160ms ease-out,transform 160ms ease-out,border-radius 160ms ease-out,box-shadow 160ms ease-out,border-color 160ms ease-out,background-color 200ms linear}
-.bar::before{content:"";position:absolute;inset:0;z-index:-1;border-radius:inherit;background:transparent;transition:background-color 160ms ease-out}
-.bar-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:100%;max-width:1120px;margin:0 auto;padding:0 24px;transition:padding 160ms ease-out}
-/* opaque: the page background sits under the frosted tint, so content never shows through */
-.is-pill .bar{width:var(--w-pill,calc(100% - 32px));transform:translateY(16px);border-radius:27px;border-bottom-color:transparent;box-shadow:var(--pill-shadow);-webkit-backdrop-filter:blur(12px) saturate(180%);backdrop-filter:blur(12px) saturate(180%)}
-.is-pill .bar::before{background:var(--pill)}
-.is-pill .bar-in{padding:0 8px 0 14px}
+.bar{position:relative;width:var(--w-rest,100%);height:54px;margin:0 auto;background:transparent;border-radius:0;
+  transition:width 160ms ease-out,transform 160ms ease-out,height 160ms ease-out,border-radius 160ms ease-out,box-shadow 160ms ease-out,background-color 160ms ease-out}
+.bar-in{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;height:100%;max-width:1120px;margin:0 auto;padding:0 24px}
+.is-pill .bar{width:var(--w-pill,auto);height:48px;transform:translateY(8px);border-radius:24px;background:var(--card);box-shadow:var(--pill-shadow)}
+.is-pill .bar-in{display:flex;justify-content:space-between;gap:28px;max-width:none;padding:0 6px 0 16px}
 .brand{display:inline-flex;align-items:center;gap:8px;justify-self:start;font-size:16px;font-weight:800;letter-spacing:-0.02em;line-height:1}
 .mark{width:34px;height:34px;flex:none}
 .links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--muted)}
@@ -76,10 +71,10 @@ button{font:inherit;color:inherit}
 .menu i:last-child{transform:translateY(4px)}
 .open .menu i:first-child{transform:rotate(45deg)}
 .open .menu i:last-child{transform:rotate(-45deg)}
-.panel{display:none;position:absolute;top:100%;left:0;right:0;padding:8px 20px 20px;background:var(--bg);border-bottom:1px solid var(--line)}
+.panel{display:none;position:absolute;top:100%;left:0;right:0;padding:8px 20px 20px;background:var(--bg);box-shadow:var(--pill-shadow)}
 .panel a.pl{display:flex;align-items:center;height:52px;font-size:17px;font-weight:600;letter-spacing:-0.01em;border-bottom:1px solid var(--line)}
 .panel .btn{width:100%;margin-top:20px}
-.is-pill .panel{top:calc(100% + 24px);left:16px;right:16px;border:0;border-radius:28px;box-shadow:var(--pill-shadow)}
+.is-pill .panel{top:calc(100% + 10px);left:16px;right:16px;border-radius:28px;background:var(--card)}
 
 /* ---------- hero ----------
    Gaps are glyph to glyph: nav→headline 112, headline→subcopy 16, subcopy→buttons 32, buttons→trust 28, trust→window 64.
@@ -122,50 +117,50 @@ button{font:inherit;color:inherit}
 .shot.has-shot .sk,.shot.has-shot .shot-label{display:none}
 .frame,.fc-shot,.col-shot,.ai-shot,.share-shot,.theme-shot{border:1px solid var(--line);border-radius:20px}
 
-/* ---------- sections: one fixed rhythm ---------- */
-.sec{margin-top:var(--gap);scroll-margin-top:96px}
+/* ---------- sections: one fixed rhythm, one bento system ---------- */
+.sec{margin-top:var(--gap);scroll-margin-top:80px}
 .sec-head{text-align:center;margin-bottom:48px}
 .sec h2{font-size:clamp(32px,4vw,48px);font-weight:700;letter-spacing:-0.03em;line-height:1.08;text-wrap:balance}
-.sec h2 em{font-style:italic}
+.sec h2 em{font-family:inherit;font-style:italic}
 .sec h3{font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.3}
 .eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:.12em;line-height:1;text-transform:uppercase;color:var(--muted)}
 .eyebrow svg{width:15px;height:15px}
-.sec-sub{margin:12px auto 0;max-width:62ch;color:var(--muted);text-wrap:balance}
-.sec-head:has(.sec-sub){margin-bottom:43px}
-.lift{transition:translate 200ms var(--ease),background-color 200ms linear,border-color 200ms linear}
-.lift:hover{translate:0 -1px}
-.lift:active{scale:.98}
+.sec-sub{margin:16px auto 0;max-width:62ch;color:var(--muted);text-wrap:balance}
 
-/* 1. features: three cards fanned like a hand, equal heights */
-.fan{display:flex;justify-content:center;align-items:stretch;padding-top:18px}
-.fc{flex:0 1 356px;min-width:0;display:flex;flex-direction:column;padding:14px 14px 26px;background:var(--card);border:1px solid var(--line);border-radius:28px;box-shadow:var(--shadow)}
-.fc+.fc{margin-left:-14px}
-.fc:nth-child(1){transform:rotate(-3.5deg);transform-origin:50% 100%}
-.fc:nth-child(2){margin-top:-18px;padding-bottom:44px;z-index:2}
-.fc:nth-child(3){transform:rotate(3.5deg);transform-origin:50% 100%}
-.fc-shot{aspect-ratio:4/3;border-radius:16px}
-.fc h3{margin:22px 14px 8px}
-.fc p{margin:0 14px;color:var(--muted);font-size:16px;line-height:1.55}
+/* the bento card: one radius, one hairline, no shadow */
+.bento{display:grid;gap:16px}
+.bc{position:relative;display:flex;flex-direction:column;min-width:0;margin:0;background:var(--theme-card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
+.bc .vis{position:relative;flex:none;aspect-ratio:var(--ar,1.6);overflow:hidden}
+.bc .vis img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 0;display:block}
+.bc .txt{padding:20px 24px 24px}
+.bc h3{margin:0 0 6px}
+.bc p{margin:0;color:var(--muted);font-size:15.5px;line-height:1.5}
 
-/* 2. views: four equal columns, captions share a two-line minimum so baselines align */
-.cols4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:20px}
-.col-shot{aspect-ratio:3/4}
-.col h3{margin:18px 4px 6px}
-.col p{margin:0 4px;min-height:3em;color:var(--muted);font-size:15px;line-height:1.5}
+/* 1. features: one tall card, two stacked */
+.bento-feat{grid-template-columns:7fr 5fr;grid-template-rows:1fr 1fr}
+.bento-feat .tall{grid-column:1;grid-row:1/3}
+.bento-feat > .bc:not(.tall){grid-column:2}
 
-/* 3. AI access: split, the panel is as tall as the left side */
-.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:48px;align-items:stretch}
-.split-l{display:flex;flex-direction:column;justify-content:center}
-.split h2{margin-bottom:32px}
+/* 2. views: one wide card, then three equal */
+.bento-views{grid-template-columns:repeat(3,minmax(0,1fr))}
+.bento-views .wide{grid-column:1/-1}
+.bento-views .bc:not(.wide) p{min-height:3em}
+
+/* 3. AI access: one wide card (assistant rows left, screenshot right), then three steps */
+.ai-card{display:grid;grid-template-columns:minmax(0,.4fr) minmax(0,.6fr)}
+.ai-left{display:flex;flex-direction:column;justify-content:center;padding:32px 28px}
+.ai-vis{position:relative;aspect-ratio:630/460}
+.ai-vis img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left;display:block}
 .ai-list{display:grid;gap:4px}
-.ai-row{border-radius:22px;transition:background-color 200ms linear}
-.js-acc .ai-row.open{background:var(--surface)}
+.ai-row{border-radius:18px;transition:background-color 200ms linear}
+.js-acc .ai-row.open{background:var(--bg)}
 .js-acc .ai-row:not(.open):hover{background:var(--soft-hover)}
-.ai-head{display:flex;align-items:center;gap:14px;width:100%;min-height:60px;padding:0 20px 0 18px;border:0;border-radius:22px;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;text-align:left;cursor:default}
+.ai-head{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 16px 0 12px;border:0;border-radius:18px;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;text-align:left;cursor:default}
 .js-acc .ai-head,.js-acc .faq-q{cursor:pointer}
-.ai-logo{width:24px;height:24px;flex:none}
-.logo-claude{color:var(--claude)}
-.logo-gemini{color:var(--gemini)}
+.tile{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#26272B;overflow:hidden}
+.tile img{width:62%;height:62%;object-fit:contain;display:block}
+.tile img.inv{filter:invert(1)}
+@media (prefers-color-scheme:dark){.tile{background:#3A3C42;outline:1px solid rgba(255,255,255,.2);outline-offset:-1px}}
 .ai-name{flex:1}
 .chev{flex:none;width:9px;height:9px;margin-bottom:4px;border-right:1.75px solid currentColor;border-bottom:1.75px solid currentColor;transform:rotate(45deg);transition:transform 250ms var(--ease);opacity:.7;display:none}
 .js-acc .chev{display:block}
@@ -173,37 +168,34 @@ button{font:inherit;color:inherit}
 .acc-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows 250ms var(--ease)}
 .acc-body>div{overflow:hidden;min-height:0}
 .js-acc .acc-item:not(.open) .acc-body{grid-template-rows:0fr}
-.ai-row .acc-body p{padding:0 20px 18px 56px;color:var(--muted);font-size:16px}
-.ai-shot{min-height:320px;height:100%}
-.ai-shot img{object-fit:cover;transform:none}
-.steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:32px}
-.step{display:flex;align-items:center;gap:16px;padding:20px 24px;background:var(--card);border:1px solid var(--line);border-radius:28px}
-.num{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--surface);font-size:13px;font-weight:600}
+.ai-row .acc-body p{padding:0 16px 18px 66px;color:var(--muted);font-size:16px}
+.steps{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
+.step{flex-direction:row;align-items:center;gap:16px;padding:22px 24px}
+.num{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--bg);font-size:13px;font-weight:600}
 .step p{color:var(--muted);font-size:15.5px;line-height:1.5}
 .step b{color:var(--text);font-weight:600}
-.assure{margin-top:24px;text-align:center;color:var(--muted);font-size:15px}
+.assure{margin:24px auto 0;max-width:64ch;text-align:center;color:var(--muted);font-size:15px}
 
-/* 4. sharing: one quiet panel, narrower than the page */
-.share-shot{max-width:720px;margin:0 auto;aspect-ratio:16/10}
-.share-shot img{object-fit:contain;transform:none}
+/* 4. sharing: one full-width card, the whole dialog visible */
+.share-card{aspect-ratio:8/5}
+.share-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block}
 
-/* 5. themes: two pictures, caption inside the top of each card */
-.pair{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
-.theme{padding:18px;background:var(--theme-card);border:1px solid var(--ghost);border-radius:28px;color:var(--text)}
-.theme figcaption{margin:0 4px 14px;font-size:13px;font-weight:600;letter-spacing:.12em;line-height:1;text-transform:uppercase;color:var(--muted)}
-.theme-shot{aspect-ratio:16/10;border-radius:16px}
+/* 5. themes: two equal cards, caption inside the top */
+.bento-themes{grid-template-columns:repeat(2,minmax(0,1fr))}
+.theme figcaption{padding:18px 24px;font-size:13px;font-weight:600;letter-spacing:.12em;line-height:1;text-transform:uppercase;color:var(--muted)}
 
-/* 6. small details: four columns, last row centered */
-.details{display:flex;flex-wrap:wrap;justify-content:center;gap:28px 24px}
-.details li{flex:0 0 calc((100% - 72px)/4);padding-top:16px;border-top:1px solid var(--line)}
-.details b{display:block;margin-bottom:4px;font-size:16px;font-weight:700}
+/* 6. small details: 14 small cards, last row centered */
+.details{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
+.details li{flex:0 0 calc((100% - 48px)/4);padding:20px 22px 22px}
+.details b{display:block;margin-bottom:6px;font-size:16px;font-weight:700;white-space:nowrap}
 .details span{display:block;color:var(--muted);font-size:15px;line-height:1.5}
 
-/* 7. FAQ */
-.faq{max-width:760px;margin:0 auto;border-top:1px solid var(--line);overflow-anchor:none}
+/* 7. FAQ: one container, hairline rows */
+.faq{padding:8px 32px;overflow-anchor:none}
 .faq-item{border-bottom:1px solid var(--line)}
-.faq-q{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:68px;padding:12px 6px 12px 0;border:0;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;line-height:1.35;text-align:left;cursor:default}
-.faq-item .acc-body p{padding:0 40px 24px 0;color:var(--text)}
+.faq-item:last-child{border-bottom:0}
+.faq-q{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:68px;padding:12px 0;border:0;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;line-height:1.35;text-align:left;cursor:default}
+.faq-item .acc-body p{max-width:70ch;padding:0 40px 24px 0;color:var(--text);font-size:17px;line-height:1.6}
 
 /* 8. final CTA */
 .cta{text-align:center}
@@ -219,22 +211,16 @@ button{font:inherit;color:inherit}
 .foot li a:hover,.foot-bar a:hover{color:var(--text)}
 .foot-bar{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 0 28px;border-top:1px solid var(--line);font-size:13.5px;color:var(--muted)}
 
-/* ---------- legal pages: one calm column ---------- */
-.legal{max-width:848px;margin:0 auto;padding:56px 24px 0}
-.legal h1{font-size:48px;font-weight:700;letter-spacing:-0.03em;line-height:1.08}
-.legal .updated{margin-top:16px;font-size:13.5px;line-height:1.4;color:var(--muted)}
-.legal .intro{margin-top:16px}
-.legal .soon{margin-top:8px;font-size:13.5px;line-height:1.5;color:var(--muted)}
-.toc{margin-top:32px;padding-bottom:48px}
-.toc li{font-size:15px;line-height:1.3;break-inside:avoid}
-.toc a{display:inline-block;padding:5px 0;color:var(--text);transition:color 200ms linear}
-.toc a:hover{color:var(--muted)}
-.toc-2 ol{columns:2;column-gap:40px}
-.legal .n{color:var(--muted);font-variant-numeric:tabular-nums}
-.legal section{padding:32px 0;border-top:1px solid var(--line);scroll-margin-top:96px}
-.legal h2{font-size:28px;font-weight:700;letter-spacing:-0.02em;line-height:1.2}
-.legal section p{margin-top:12px;color:var(--text)}
-.legal section:last-of-type{padding-bottom:0}
+/* ---------- legal pages: one centered column, whitespace only (formatted like Mobbin's privacy page) ---------- */
+.legal{max-width:849px;margin:0 auto;padding:120px 24px 0}
+.legal h1{font-size:72px;font-weight:700;letter-spacing:-0.03em;line-height:1.05;text-align:center}
+.legal .updated{margin-top:40px;font-size:15px;line-height:1.4;text-align:center;color:var(--muted)}
+.legal .soon{margin-top:8px;font-size:13.5px;line-height:1.5;text-align:center;color:var(--muted)}
+.legal .intro{margin-top:96px;font-size:17px;line-height:1.7;color:var(--text)}
+.legal section{margin-top:96px;scroll-margin-top:80px}
+.legal h2{font-size:32px;font-weight:700;letter-spacing:-0.02em;line-height:1.15;color:var(--text)}
+.legal section p{margin-top:24px;font-size:17px;line-height:1.7;color:var(--text)}
+.legal a{text-decoration:underline;text-underline-offset:3px}
 
 /* ---------- motion ---------- */
 @media (prefers-reduced-motion:no-preference){
@@ -247,18 +233,18 @@ button{font:inherit;color:inherit}
 
 /* ---------- responsive ---------- */
 @media (max-width:960px){
-  .fan{display:grid;gap:16px;padding:0;max-width:520px;margin:0 auto}
-  .fan .fc{transform:none;margin:0}
-  .fan .fc:nth-child(2){padding-bottom:26px}
-  .fan{grid-auto-rows:1fr}
-  .cols4{grid-template-columns:repeat(2,minmax(0,1fr));gap:28px 20px}
-  .col-shot{aspect-ratio:4/3}
-  .split{grid-template-columns:minmax(0,1fr);gap:32px}
-  .ai-shot{aspect-ratio:16/10;height:auto;min-height:0}
-  .steps{grid-template-columns:minmax(0,1fr)}
-  .details li{flex-basis:calc((100% - 24px)/2)}
+  .details li{flex-basis:calc((100% - 16px)/2)}
   .foot-top{grid-template-columns:repeat(3,1fr);gap:32px 20px}
   .foot-brand{grid-column:1/-1}
+}
+@media (max-width:900px){
+  .bento-feat,.bento-views,.bento-themes,.steps{grid-template-columns:minmax(0,1fr)}
+  .bento-feat{grid-template-rows:none}
+  .bento-feat .tall{grid-row:auto}
+  .bento-feat > .bc:not(.tall){grid-column:1}
+  .bento-views .bc:not(.wide) p{min-height:0}
+  .ai-card{grid-template-columns:minmax(0,1fr)}
+  .ai-left{padding:20px 16px}
 }
 @media (max-width:768px){
   .wrap{padding:0 20px}
@@ -267,22 +253,23 @@ button{font:inherit;color:inherit}
 }
 @media (max-width:767.98px){
   :root{--gap:64px}
+  .bento,.details{gap:12px}
   .bar-in{grid-template-columns:1fr auto}
   .links,.btn-nav{display:none}
   .menu{display:block}
   .open .panel{display:block}
   .strip{font-size:12.5px}
   .sec-head,.sec-head:has(.sec-sub){margin-bottom:36px}
-  .toc-2 ol{columns:1}
-  .legal h1{font-size:36px}
-  .legal h2{font-size:24px}
+  .legal{padding-top:72px}
+  .legal h1{font-size:44px}
+  .legal .updated{margin-top:28px}
+  .legal .intro,.legal section{margin-top:64px}
+  .legal h2{font-size:26px}
+  .faq{padding:4px 20px}
 }
 @media (max-width:600px){
-  .cols4,.pair{grid-template-columns:minmax(0,1fr)}
-  .col p{min-height:0}
   .details li{flex-basis:100%}
   .faq-item .acc-body p{padding-right:8px}
-  .share-shot,.theme-shot{aspect-ratio:4/3}
 }
 @media (max-width:480px){
   .wrap{padding:0 16px}

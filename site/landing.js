@@ -28,10 +28,10 @@
 
   /* Announcement strip above the nav: the same live banner list the Admin dashboard writes ("Dashboard and landing page" banners,
      read through the public daylight_landing_banner function). Text, link and color come from the database; nothing is hardcoded.
-     With no active banner the default strip stays. Visitors cannot dismiss it. It refreshes every minute and when the tab returns,
+     With no active banner nothing renders. Visitors cannot dismiss it. It refreshes every minute and when the tab returns,
      so an edited, deactivated or deleted banner never lingers. */
-  var holder = d.getElementById('banners'), dflt = d.getElementById('stripDefault');
-  if (holder && dflt && w.fetch) {
+  var holder = d.getElementById('banners');
+  if (holder && w.fetch) {
     var SUPA = 'https://usihrcucnreecynewgbd.supabase.co', KEY = 'sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM';
     var lastKey = '';
     var textOn = function (hex) {
@@ -46,7 +46,7 @@
       if (key === lastKey) return;
       lastKey = key;
       holder.textContent = '';
-      if (!list.length) { holder.appendChild(dflt); return; }
+      if (!list.length) return;
       list.forEach(function (b) {
         var link = /^https?:\/\/\S+$/i.test(b.link || '') ? b.link : null;
         var row = d.createElement(link ? 'a' : 'div');
@@ -75,12 +75,17 @@
   /* Nav: bar at rest, floating pill past 8px. Widths in px so the change animates smoothly. */
   var nav = d.getElementById('nav'), menu = d.getElementById('menu'), panel = d.getElementById('panel');
   if (nav) {
+    var brand = nav.querySelector('.brand'), linksEl = nav.querySelector('.links'), rightEl = nav.querySelector('.right');
     var size = function () {
       var cw = nav.clientWidth;
       nav.style.setProperty('--w-rest', cw + 'px');
-      nav.style.setProperty('--w-pill', Math.max(0, Math.min(760, cw - 32)) + 'px');
+      var parts = [brand && brand.offsetWidth, linksEl && linksEl.offsetParent ? linksEl.offsetWidth : 0, rightEl && rightEl.offsetWidth].filter(Boolean);
+      var pill = parts.reduce(function (s, n) { return s + n; }, 0) + 28 * Math.max(0, parts.length - 1) + 22;
+      nav.style.setProperty('--w-pill', Math.max(0, Math.min(cw - 32, Math.ceil(pill))) + 'px');
     };
     size();
+    w.addEventListener('load', size);
+    if (d.fonts && d.fonts.ready) d.fonts.ready.then(size);
     if ('ResizeObserver' in w) new ResizeObserver(size).observe(nav); else w.addEventListener('resize', size);
     var onScroll = function () {
       nav.classList.toggle('is-pill', (w.pageYOffset || root.scrollTop || 0) > 8);
