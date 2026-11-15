@@ -76,6 +76,55 @@
     hero.addEventListener("pointerleave", function () { active = false; glow.classList.remove("on"); });
   }
 
+  /* ---- Features dropdown (desktop): opens on hover, focus or click; Escape and outside clicks close it ---- */
+  var dd = document.getElementById("dd"), ddTrigger = document.getElementById("ddTrigger"), ddTimer = 0, escaped = false;
+  function setDd(open) {
+    if (!dd) return;
+    clearTimeout(ddTimer);
+    dd.classList.toggle("open", open);
+    ddTrigger.setAttribute("aria-expanded", String(open));
+  }
+  if (dd) {
+    dd.addEventListener("pointerenter", function (e) { if (e.pointerType === "touch" || phone.matches) return; ddTimer = setTimeout(function () { setDd(true); }, 60); });
+    dd.addEventListener("pointerleave", function () { clearTimeout(ddTimer); ddTimer = setTimeout(function () { setDd(false); }, 140); });
+    ddTrigger.addEventListener("click", function (e) { if (phone.matches) return; if (!dd.classList.contains("open")) { e.preventDefault(); setDd(true); } else { setDd(false); } });
+    dd.addEventListener("focusin", function () { if (!phone.matches && !escaped) setDd(true); });
+    dd.addEventListener("focusout", function (e) { if (!dd.contains(e.relatedTarget)) setDd(false); });
+    dd.addEventListener("click", function (e) { if (e.target.closest(".dd-item, .dd-card")) setDd(false); });
+    document.addEventListener("keydown", function (e) { if (e.key === "Escape" && dd.classList.contains("open")) { escaped = true; setDd(false); ddTrigger.focus(); setTimeout(function () { escaped = false; }, 400); } });
+    document.addEventListener("click", function (e) { if (!dd.contains(e.target)) setDd(false); });
+  }
+
+  /* ---- Features: chip selector driving the tabbed window (arrow keys, Home and End work too) ---- */
+  var tabs = [].slice.call(document.querySelectorAll(".chip[role=tab]"));
+  function selectTab(tab, focus) {
+    tabs.forEach(function (t) {
+      var on = t === tab;
+      t.setAttribute("aria-selected", String(on)); t.tabIndex = on ? 0 : -1;
+      var panel = document.getElementById(t.getAttribute("aria-controls"));
+      if (panel) panel.hidden = !on;
+    });
+    if (focus) tab.focus();
+  }
+  tabs.forEach(function (t, i) {
+    t.addEventListener("click", function () { selectTab(t, false); });
+    t.addEventListener("keydown", function (e) {
+      var n = -1;
+      if (e.key === "ArrowRight") n = (i + 1) % tabs.length; else if (e.key === "ArrowLeft") n = (i - 1 + tabs.length) % tabs.length;
+      else if (e.key === "Home") n = 0; else if (e.key === "End") n = tabs.length - 1;
+      if (n >= 0) { e.preventDefault(); selectTab(tabs[n], true); }
+    });
+  });
+
+  /* ---- scroll reveal: each block rises in once as it enters the viewport ---- */
+  var reveals = [].slice.call(document.querySelectorAll(".reveal"));
+  if ("IntersectionObserver" in window && motionOk()) {
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (en) { if (en.isIntersecting) { en.target.classList.add("in"); io.unobserve(en.target); } });
+    }, { rootMargin: "0px 0px -8% 0px", threshold: 0.08 });
+    reveals.forEach(function (n) { io.observe(n); });
+  } else { reveals.forEach(function (n) { n.classList.add("in"); }); }
+
   /* ---- the OS theme can flip while the page is open: colors crossfade (the CSS reads prefers-color-scheme directly) ---- */
   var scheme = window.matchMedia("(prefers-color-scheme: dark)");
   function fade() {

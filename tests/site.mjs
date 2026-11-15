@@ -36,7 +36,7 @@ for(const theme of ['light','dark']){
   return {nav:r('.nav-inner'),pill:r('.announce'),h1:r('.display'),sub:r('.sub'),ctas:r('.ctas'),trust:r('.trust'),frame:r('.frame'),screen:r('.frame-screen'),
    h1size:cs('.display','fontSize'),h1w:cs('.display','fontWeight'),h1ls:cs('.display','letterSpacing'),font:cs('body','fontFamily').slice(0,30),btnH:r('.btn-primary').h,
    lines:Math.round(r('.display').h/parseFloat(cs('.display','lineHeight'))),hscroll:document.documentElement.scrollWidth>innerWidth,
-   links:[...document.querySelectorAll('.links a')].map(a=>a.getAttribute('href')),cta:document.querySelector('.nav-cta').getAttribute('href'),
+   links:[...document.querySelectorAll('.links > a, .links .dd-trigger')].map(a=>a.getAttribute('href')),cta:document.querySelector('.nav-cta').getAttribute('href'),
    hero:[...document.querySelectorAll('.ctas a')].map(a=>a.getAttribute('href')),logo:document.querySelector('.brand').getAttribute('href'),
    navBtns:document.querySelectorAll('.nav-cta').length,loginBtn:/log in/i.test(document.querySelector('.nav').textContent)}});
  check(T('nav is 54px'),Math.round(m.nav.h)===54||Math.round(m.nav.h)===55,J(m.nav));
@@ -51,10 +51,52 @@ for(const theme of ['light','dark']){
  check(T('no horizontal scroll, no 404s, no page errors'),!m.hscroll&&bad.length===0&&errs.length===0,J([m.hscroll,bad,errs]));
  // scrolled pill over the dark hero
  await page.evaluate(()=>window.scrollTo({top:140,behavior:'instant'}));await sleep(500);
- const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {radius:c.borderTopLeftRadius,bg:c.backgroundColor,border:c.borderTopWidth+' '+c.borderBottomWidth+' '+c.borderBottomColor,blur:c.backdropFilter||c.webkitBackdropFilter,w:Math.round(n.getBoundingClientRect().width),top:Math.round(n.getBoundingClientRect().top),prog:document.getElementById('progress').style.transform,par:document.getElementById('par').style.transform}});
+ const pill=await page.evaluate(()=>{const n=document.querySelector('.nav-inner');const c=getComputedStyle(n);return {radius:c.borderTopLeftRadius,bg:c.backgroundColor,border:c.borderTopWidth+' '+c.borderBottomWidth+' '+c.borderBottomColor,blur:c.backdropFilter||c.webkitBackdropFilter,w:Math.round(n.getBoundingClientRect().width),top:Math.round(n.getBoundingClientRect().top),prog:document.getElementById('progress').style.transform,par:document.getElementById('par').style.transform,fine:matchMedia('(pointer: fine)').matches}});
  check(T('scrolled: floating pill, no outline line, frosted, opaque enough (.88)'),/999|\d{3,}px/.test(pill.radius)&&/0\.9/.test(pill.bg)&&/blur/.test(pill.blur)&&/^0px 0px/.test(pill.border)||/transparent|rgba\(0, 0, 0, 0\)/.test(pill.border),J(pill));
- check(T('scroll progress hairline and parallax respond'),/scaleX\(/.test(pill.prog)&&/translate3d\(0px, -/.test(pill.par),J([pill.prog,pill.par]));
+ check(T('scroll progress hairline and parallax respond'),/scaleX\(/.test(pill.prog)&&(!pill.fine||/translate3d\(0px, -/.test(pill.par)),J([pill.prog,pill.par]));
  await page.screenshot({path:path.join(out,`nav-pill-1440-${theme}.png`)});
+ await page.close();
+ // ---------------- the rest of the page (features, sharing, AI access, FAQ, CTA, footer), desktop
+ ({page,bad,errs}=await open(theme,1440,900));
+ await sleep(800);
+ const total=await page.evaluate(()=>document.documentElement.scrollHeight);
+ for(let y=0;y<total;y+=500){await page.evaluate(y=>window.scrollTo({top:y,behavior:'instant'}),y);await sleep(110)}
+ const full=await page.evaluate(()=>{
+  const ids=['features','sharing','ai','faq'];
+  const hrefs=[...document.querySelectorAll('a[href]')].map(a=>a.getAttribute('href'));
+  const anchors=hrefs.filter(h=>h.startsWith('#')&&h.length>1);
+  return {ids:ids.map(i=>!!document.getElementById(i)),anchorsOk:anchors.every(h=>!!document.querySelector(h)),pages:[...new Set(hrefs.filter(h=>/^(login|sign-up|dashboard)\//.test(h)))],
+   hscroll:document.documentElement.scrollWidth>innerWidth,h2:[...document.querySelectorAll('.h2,.cta-title')].map(n=>n.textContent.replace(/\s+/g,' ').trim()),
+   italics:[...document.querySelectorAll('.h2')].map(n=>n.querySelectorAll('em').length),
+   footerCols:[...document.querySelectorAll('.foot-cols h3')].map(n=>n.textContent),mark:!!document.querySelector('.foot-mark'),
+   fake:/testimonial|customers|users|rated|stars|trusted by/i.test(document.body.innerText)}});
+ check(T('all four nav anchors resolve: #features #sharing #ai #faq, and every in-page link has a target'),full.ids.every(Boolean)&&full.anchorsOk,J(full));
+ check(T('page links only point at real pages (login/, sign-up/)'),full.pages.every(h=>/^(login|sign-up)\/$/.test(h)),J(full.pages));
+ check(T('every section headline carries exactly one italic word'),full.italics.every(n=>n===1),J(full.italics));
+ check(T('no social proof anywhere on the page'),!full.fake,'');
+ check(T('footer: grouped columns and the giant watermark; no horizontal scroll'),full.footerCols.join()==='Product,Get started'&&full.mark&&!full.hscroll,J(full));
+ // chip selector drives the tabbed window
+ await page.evaluate(()=>window.scrollTo({top:document.getElementById('features').offsetTop,behavior:'instant'}));await sleep(500);
+ await page.click('#tab-tasks');await sleep(300);
+ const tab=await page.evaluate(()=>({sel:document.getElementById('tab-tasks').getAttribute('aria-selected'),shown:[...document.querySelectorAll('.tabpanel')].filter(p=>!p.hidden).map(p=>p.id)}));
+ check(T('chips select the tabbed window (Tasks)'),tab.sel==='true'&&tab.shown.join()==='panel-tasks',J(tab));
+ await page.focus('#tab-tasks');await page.keyboard.press('ArrowRight');await sleep(300);
+ check(T('arrow keys move between chips'),await page.evaluate(()=>document.getElementById('tab-reminders').getAttribute('aria-selected')==='true'));
+ // FAQ
+ await page.evaluate(()=>window.scrollTo({top:document.getElementById('faq').offsetTop,behavior:'instant'}));await sleep(500);
+ await page.click('.faq-item summary');await sleep(250);
+ check(T('FAQ items open'),await page.evaluate(()=>document.querySelector('.faq-item').open));
+ // dropdown (hover)
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(400);
+ await page.hover('.dd-trigger');await sleep(500);
+ const ddo=await page.evaluate(()=>({open:document.getElementById('dd').classList.contains('open'),vis:getComputedStyle(document.getElementById('ddPanel')).visibility,items:document.querySelectorAll('.dd-item').length,cards:document.querySelectorAll('.dd-card').length,expanded:document.getElementById('ddTrigger').getAttribute('aria-expanded')}));
+ check(T('Features dropdown opens: six icon+label+line items and two cards'),ddo.open&&ddo.vis==='visible'&&ddo.items===6&&ddo.cards===2&&ddo.expanded==='true',J(ddo));
+ await page.screenshot({path:path.join(out,`dropdown-1440-${theme}.png`)});
+ await page.keyboard.press('Escape');await sleep(400);
+ check(T('Escape closes the dropdown'),await page.evaluate(()=>!document.getElementById('dd').classList.contains('open')));
+ check(T('full page: no 404s, no errors'),bad.length===0&&errs.length===0,J([bad,errs]));
+ await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));await sleep(500);
+ await page.screenshot({path:path.join(out,`page-full-1440-${theme}.png`),fullPage:true});
  await page.close();
  // ---------------- tablet 768
  ({page,bad,errs}=await open(theme,768,1024,{touch:true}));
