@@ -117,91 +117,55 @@ button{font:inherit;color:inherit}
 .shot.has-shot .sk,.shot.has-shot .shot-label{display:none}
 .frame,.fc-shot,.col-shot,.ai-shot,.share-shot,.theme-shot{border:1px solid var(--line);border-radius:20px}
 
-/* ---------- sections: one fixed rhythm, one bento system ---------- */
-.sec{margin-top:var(--gap);scroll-margin-top:80px}
-.sec-head{text-align:center;margin-bottom:48px}
-.sec h2{font-size:clamp(34px,4.4vw,56px);font-weight:600;letter-spacing:-0.03em;line-height:1.08;text-wrap:balance}
-.sec h2 em{font-family:inherit;font-style:italic}
-.sec h3{font-size:18px;font-weight:700;letter-spacing:-0.01em;line-height:1.3}
-.eyebrow{display:inline-flex;align-items:center;gap:8px;margin-bottom:16px;font-size:13px;font-weight:600;letter-spacing:.12em;line-height:1;text-transform:uppercase;color:var(--muted)}
-.eyebrow svg{width:15px;height:15px}
-.sec-sub{margin:16px auto 0;max-width:62ch;color:var(--muted);text-wrap:balance}
+/* ---------- the content section: three feature cards, panel on top, title and copy below ---------- */
+.feat{margin-top:var(--gap);scroll-margin-top:80px}
+.feat-head{text-align:center;margin-bottom:56px}
+.feat-head h2{max-width:14em;margin:0 auto;font-size:clamp(34px,4.6vw,56px);font-weight:700;letter-spacing:-0.035em;line-height:1.06;text-wrap:balance}
+.feat-head p{max-width:34em;margin:16px auto 0;color:var(--muted);font-size:17px;line-height:1.55;text-wrap:balance}
+.feat-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}
+.fcard{scroll-margin-top:80px;transition:translate 240ms var(--ease)}
+.fcard:hover{translate:0 -4px}
+.fcard h3{margin:20px 4px 8px;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.25}
+.fcard p{margin:0 4px;color:var(--muted);font-size:15.5px;line-height:1.55}
+.fpanel{position:relative;display:flex;flex-direction:column;justify-content:center;gap:14px;aspect-ratio:4/3;overflow:hidden;border-radius:24px;background:var(--theme-card);
+  -webkit-mask-image:none}
+.fpanel.dark{background:#121212;box-shadow:inset 0 0 0 1px var(--line)}
+@media (prefers-color-scheme:dark){.fpanel.dark{background:#000}}
+.lane{overflow:hidden;-webkit-mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent);mask-image:linear-gradient(90deg,transparent,#000 12%,#000 88%,transparent)}
+.track{display:flex;width:max-content;animation:drift 40s linear infinite;will-change:transform}
+.l2 .track{animation-duration:52s;animation-delay:-18s}
+.set{display:flex;flex:none;gap:14px;padding-right:14px}
+@keyframes drift{from{transform:translateX(-50%)}to{transform:translateX(0)}}
 
-/* the bento card: one radius, one hairline, no shadow */
-.bento{display:grid;gap:16px}
-.bc{transition:translate 200ms var(--ease),border-color 200ms linear,background-color 200ms linear;position:relative;display:flex;flex-direction:column;min-width:0;margin:0;background:var(--theme-card);border:1px solid var(--line);border-radius:20px;overflow:hidden}
-.bc .vis{position:relative;flex:none;aspect-ratio:var(--ar,1.6);overflow:hidden;border-bottom:1px solid var(--line)}
-.bc:hover{border-color:var(--ghost);translate:0 -1px}
-.bc .vis img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:50% 0;display:block}
-.bc .txt{padding:22px 26px 26px}
-.bc h3{margin:0 0 8px;font-size:20px;font-weight:600;letter-spacing:-0.02em}
-.bc p{margin:0;color:var(--muted);font-size:16px;line-height:1.55}
-
-/* 1. features: one tall card, two stacked */
-.bento-feat{grid-template-columns:7fr 5fr;grid-template-rows:1fr 1fr}
-.bento-feat .tall{grid-column:1;grid-row:1/3}
-.bento-feat > .bc:not(.tall){grid-column:2}
-
-/* 2. views: one wide card, then three equal */
-.bento-views{grid-template-columns:repeat(3,minmax(0,1fr))}
-.bento-views .wide{grid-column:1/-1}
-.bento-views .bc:not(.wide) p{min-height:3em}
-
-/* 3. AI access: one wide card (assistant rows left, screenshot right), then three steps */
-.ai-card{display:grid;grid-template-columns:minmax(0,.4fr) minmax(0,.6fr)}
-.ai-left{display:flex;flex-direction:column;justify-content:center;padding:32px 28px}
-.ai-vis{position:relative;aspect-ratio:630/460}
-.ai-vis img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:top left;display:block}
-.ai-list{display:grid;gap:4px}
-.ai-row{border-radius:18px;transition:background-color 200ms linear}
-.js-acc .ai-row.open{background:var(--bg)}
-.js-acc .ai-row:not(.open):hover{background:var(--soft-hover)}
-.ai-head{display:flex;align-items:center;gap:14px;width:100%;min-height:64px;padding:0 16px 0 12px;border:0;border-radius:18px;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;text-align:left;cursor:default}
-.js-acc .ai-head,.js-acc .faq-q{cursor:pointer}
+/* mockup parts: the app's own tokens and calendar colors, no text beyond real labels */
+.c1{--c:var(--c1)}.c2{--c:var(--c2)}.c3{--c:var(--c3)}.c4{--c:var(--c4)}
+.mv{flex:none;width:204px;padding:10px 12px 12px;background:var(--bg);border:1px solid var(--line);border-radius:14px}
+.mv-l{display:block;margin-bottom:8px;font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);line-height:1}
+.mv-month{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.mv-month i{position:relative;aspect-ratio:1;border-radius:4px;background:var(--surface)}
+.mv-month b{position:absolute;left:3px;right:3px;bottom:3px;height:4px;border-radius:2px;background:var(--c)}
+.mv-week{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;height:108px}
+.mv-week i{position:relative;border-radius:5px;background:var(--surface)}
+.mv-week b,.mv-day b{position:absolute;left:3px;right:3px;border-radius:4px;background:var(--c)}
+.mv-day{position:relative;height:108px;border-radius:5px;background:repeating-linear-gradient(to bottom,var(--surface) 0 1px,transparent 1px 22px)}
+.mv-day b{left:8px;right:8px}
+.mv-agenda{display:grid;gap:9px;padding-top:2px}
+.mv-agenda p{display:flex;align-items:center;gap:8px;margin:0}
+.mv-agenda u{flex:none;width:8px;height:8px;border-radius:50%;background:var(--c)}
+.mv-agenda s{display:block;height:7px;border-radius:4px;background:var(--surface)}
+.ai-chip{flex:none;display:flex;align-items:center;gap:10px;padding:8px 14px 8px 8px;border-radius:16px;background:#1e1e1e;border:1px solid #2c2c2c;color:#e0e0e0;font-size:14px;font-weight:600;letter-spacing:-0.01em}
+.ai-chip .tile{width:32px;height:32px;border-radius:9px}
+.ai-chip .live{width:7px;height:7px;margin-left:4px;border-radius:50%;background:#81c995}
+.pr{flex:none;display:flex;align-items:center;gap:12px;width:228px;padding:10px 12px;background:var(--bg);border:1px solid var(--line);border-radius:16px}
+.av{flex:none;width:32px;height:32px;border-radius:50%;background:var(--c)}
+.ln{flex:1;display:grid;gap:6px;min-width:0}
+.ln s{display:block;height:7px;border-radius:4px;background:var(--surface)}
+.ln s:first-child{background:var(--ghost)}
+.pr em{flex:none;padding:5px 10px;border-radius:999px;background:var(--surface);font-size:12px;font-style:normal;font-weight:600;color:var(--muted)}
 .tile{flex:none;display:grid;place-items:center;width:40px;height:40px;border-radius:11px;background:#26272B;overflow:hidden}
 .tile img{width:62%;height:62%;object-fit:contain;display:block}
 .tile img.inv{filter:invert(1)}
 @media (prefers-color-scheme:dark){.tile{background:#3A3C42;outline:1px solid rgba(255,255,255,.2);outline-offset:-1px}}
-.ai-name{flex:1}
-.chev{flex:none;width:9px;height:9px;margin-bottom:4px;border-right:1.75px solid currentColor;border-bottom:1.75px solid currentColor;transform:rotate(45deg);transition:transform 250ms var(--ease);opacity:.7;display:none}
-.js-acc .chev{display:block}
-.js-acc .open .chev{transform:translateY(4px) rotate(-135deg)}
-.acc-body{display:grid;grid-template-rows:1fr;transition:grid-template-rows 250ms var(--ease)}
-.acc-body>div{overflow:hidden;min-height:0}
-.js-acc .acc-item:not(.open) .acc-body{grid-template-rows:0fr}
-.ai-row .acc-body p{padding:0 16px 18px 66px;color:var(--muted);font-size:16px}
-.steps{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:16px}
-.step{flex-direction:row;align-items:center;gap:16px;padding:22px 24px}
-.num{flex:none;display:grid;place-items:center;width:32px;height:32px;border-radius:50%;background:var(--bg);font-size:13px;font-weight:600}
-.step p{color:var(--muted);font-size:15.5px;line-height:1.5}
-.step b{color:var(--text);font-weight:600}
-.assure{margin:24px auto 0;max-width:64ch;text-align:center;color:var(--muted);font-size:15px}
-
-/* 4. sharing: one full-width card, the whole dialog visible */
-.share-card{aspect-ratio:8/5}
-.share-card img{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;object-position:center;display:block}
-
-/* 5. themes: two equal cards, caption inside the top */
-.bento-themes{grid-template-columns:repeat(2,minmax(0,1fr))}
-.theme figcaption{padding:18px 24px;font-size:13px;font-weight:600;letter-spacing:.12em;line-height:1;text-transform:uppercase;color:var(--muted)}
-
-/* 6. small details: 14 small cards, last row centered */
-.details{display:flex;flex-wrap:wrap;justify-content:center;gap:16px}
-.details li{flex:0 0 calc((100% - 48px)/4);padding:20px 22px 22px}
-.details b{display:block;margin-bottom:6px;font-size:16px;font-weight:700;white-space:nowrap}
-.details span{display:block;color:var(--muted);font-size:15px;line-height:1.5}
-
-/* 7. FAQ: one container, hairline rows */
-.faq{padding:8px 32px;overflow-anchor:none}
-.faq-item{border-bottom:1px solid var(--line)}
-.faq-item:last-child{border-bottom:0}
-.faq-q{display:flex;align-items:center;justify-content:space-between;gap:20px;width:100%;min-height:68px;padding:12px 0;border:0;background:none;font-size:18px;font-weight:600;letter-spacing:-0.01em;line-height:1.35;text-align:left;cursor:default}
-.faq-item .acc-body p{max-width:70ch;padding:0 40px 24px 0;color:var(--text);font-size:17px;line-height:1.6}
-
-/* 8. final CTA */
-.cta{text-align:center}
-.cta h2{font-size:clamp(40px,5.4vw,72px);letter-spacing:-0.035em}
-.cta .btn{margin-top:32px}
 
 /* 9. footer: white in light, black in dark */
 .foot{margin-top:var(--gap);padding-top:64px;background:var(--foot);border-top:1px solid var(--line)}
@@ -235,18 +199,9 @@ button{font:inherit;color:inherit}
 
 /* ---------- responsive ---------- */
 @media (max-width:960px){
-  .details li{flex-basis:calc((100% - 16px)/2)}
+  .feat-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
   .foot-top{grid-template-columns:repeat(3,1fr);gap:32px 20px}
   .foot-brand{grid-column:1/-1}
-}
-@media (max-width:900px){
-  .bento-feat,.bento-views,.bento-themes,.steps{grid-template-columns:minmax(0,1fr)}
-  .bento-feat{grid-template-rows:none}
-  .bento-feat .tall{grid-row:auto}
-  .bento-feat > .bc:not(.tall){grid-column:1}
-  .bento-views .bc:not(.wide) p{min-height:0}
-  .ai-card{grid-template-columns:minmax(0,1fr)}
-  .ai-left{padding:20px 16px}
 }
 @media (max-width:768px){
   .wrap{padding:0 20px}
@@ -255,23 +210,20 @@ button{font:inherit;color:inherit}
 }
 @media (max-width:767.98px){
   :root{--gap:64px}
-  .bento,.details{gap:12px}
   .bar-in{grid-template-columns:1fr auto}
   .links,.btn-nav{display:none}
   .menu{display:block}
   .open .panel{display:block}
   .strip{font-size:12.5px}
-  .sec-head,.sec-head:has(.sec-sub){margin-bottom:36px}
+  .feat-head{margin-bottom:36px}
   .legal{padding-top:72px}
   .legal h1{font-size:44px}
   .legal .updated{margin-top:28px}
   .legal .intro,.legal section{margin-top:64px}
   .legal h2{font-size:26px}
-  .faq{padding:4px 20px}
 }
 @media (max-width:600px){
-  .details li{flex-basis:100%}
-  .faq-item .acc-body p{padding-right:8px}
+  .feat-grid{grid-template-columns:minmax(0,1fr);gap:32px}
 }
 @media (max-width:480px){
   .wrap{padding:0 16px}

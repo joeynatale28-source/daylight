@@ -121,28 +121,6 @@
     }, 2600);
   }
 
-  /* Accordions. Without this script every row stays expanded. Toggling never scrolls the page. */
-  [].forEach.call(d.querySelectorAll('[data-acc]'), function (rootEl) {
-    var keepOne = rootEl.getAttribute('data-acc') === 'one';
-    var items = [].slice.call(rootEl.querySelectorAll('.acc-item'));
-    var set = function (item, open) {
-      item.classList.toggle('open', open);
-      var btn = item.querySelector('button');
-      if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false');
-    };
-    items.forEach(function (item, n) {
-      set(item, keepOne && n === 0);
-      var btn = item.querySelector('button');
-      if (btn) btn.addEventListener('click', function () {
-        var isOpen = item.classList.contains('open');
-        if (keepOne && isOpen) return;
-        items.forEach(function (other) { set(other, false); });
-        set(item, !isOpen);
-      });
-    });
-    rootEl.classList.add('js-acc');
-  });
-
   /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden
      in CSS, anything on screen at load is left alone, and a timer always forces the finished state. */
   if (!reduce.matches && 'IntersectionObserver' in w && typeof Element.prototype.animate === 'function') {
