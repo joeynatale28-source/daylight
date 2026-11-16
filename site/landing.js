@@ -121,6 +121,67 @@
     }, 2600);
   }
 
+  /* Feature carousel: whole cards move together, three at a time (two on tablet, one on phone), forever. Never moves inside a panel. */
+  var track = d.getElementById('carTrack');
+  if (track) {
+    var view = track.parentNode, dots = d.getElementById('carDots'), prevB = d.getElementById('carPrev'), nextB = d.getElementById('carNext');
+    var originals = [].slice.call(track.children), per = 3, pages = 4, idx = 0, timer = 0, hover = false, gap = 24;
+    var motionOff = reduce.matches;
+    var clones = [];
+    function perView() { var wd = w.innerWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
+    function step() { return view.clientWidth - 8 + gap; }   /* the view has 4px of room each side for the hover lift */
+    function place(animate) {
+      track.classList.toggle('go', !!animate && !motionOff);
+      track.style.transform = 'translate3d(' + (-idx * step()) + 'px,0,0)';
+    }
+    function mark() {
+      var cur = idx % pages;
+      [].forEach.call(dots.children, function (b, i) { b.setAttribute('aria-selected', i === cur ? 'true' : 'false'); });
+    }
+    function build() {
+      per = perView(); pages = Math.ceil(originals.length / per);
+      gap = parseFloat(getComputedStyle(track).columnGap) || 24;
+      track.style.setProperty('--per', per);
+      clones.forEach(function (n) { n.remove(); }); clones = [];
+      for (var i = 0; i < per; i++) { var cl = originals[i].cloneNode(true); cl.setAttribute('aria-hidden', 'true'); cl.removeAttribute('id'); track.appendChild(cl); clones.push(cl); }
+      dots.textContent = '';
+      for (var p = 0; p < pages; p++) {
+        (function (p) {
+          var b = d.createElement('button'); b.type = 'button'; b.className = 'car-dot'; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', 'Show cards ' + (p * per + 1) + ' to ' + Math.min(originals.length, p * per + per));
+          b.addEventListener('click', function () { go(p); }); dots.appendChild(b);
+        })(p);
+      }
+      if (idx >= pages) idx = 0;
+      place(false); mark();
+    }
+    function go(p) { idx = p; place(true); mark(); restart(); }
+    function next() {
+      idx += 1; place(true);
+      if (idx >= pages) {
+        var settle = function () { track.removeEventListener('transitionend', settle); idx = 0; place(false); mark(); };
+        if (motionOff) settle(); else track.addEventListener('transitionend', settle);
+      } else mark();
+      d.querySelectorAll('.car-dot')[idx % pages] && mark();
+      restart();
+    }
+    function prev() {
+      if (idx === 0) { idx = pages; place(false); void track.offsetWidth; }
+      idx -= 1; place(true); mark(); restart();
+    }
+    function restart() { clearTimeout(timer); if (!motionOff && !hover && !d.hidden) timer = setTimeout(next, 6500); }
+    nextB.addEventListener('click', next); prevB.addEventListener('click', prev);
+    var sec = d.getElementById('features');
+    sec.addEventListener('mouseenter', function () { hover = true; clearTimeout(timer); });
+    sec.addEventListener('mouseleave', function () { hover = false; restart(); });
+    sec.addEventListener('focusin', function () { hover = true; clearTimeout(timer); });
+    sec.addEventListener('focusout', function () { hover = false; restart(); });
+    d.addEventListener('visibilitychange', function () { restart(); });
+    var lastPer = 0;
+    w.addEventListener('resize', function () { if (perView() !== lastPer) { lastPer = perView(); idx = 0; build(); } else place(false); restart(); });
+    if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; restart(); });
+    lastPer = perView(); build(); restart();
+  }
+
   /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden
      in CSS, anything on screen at load is left alone, and a timer always forces the finished state. */
   if (!reduce.matches && 'IntersectionObserver' in w && typeof Element.prototype.animate === 'function') {
