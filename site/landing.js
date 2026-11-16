@@ -106,80 +106,100 @@
     }
   }
 
-  /* Rotating word: the word and its period are one unit. Two stacked units cross-fade inside a fixed-width slot. Nothing outside the slot can move. */
+  /* Rotating word: the word and its period are one unit. Two stacked units cross-fade inside a fixed-width slot. Nothing outside the slot can move.
+     Driven by the Web Animations API so there are no class swaps to race: every swap starts one fade-in and one fade-out together. */
   var a = d.getElementById('w1'), b = d.getElementById('w2');
-  if (a && b && !reduce.matches) {
+  if (a && b && !reduce.matches && typeof a.animate === 'function') {
     var words = ['clutter.', 'noise.', 'chaos.', 'mess.'], i = 0, cur = a, next = b;
+    var EASE_W = 'cubic-bezier(0.16, 1, 0.3, 1)';
+    a.classList.remove('on'); a.style.opacity = '1'; a.style.transform = 'none';
+    b.style.opacity = '0'; b.style.transform = 'translateY(6px)';
+    var run = function (el, from, to) {
+      var old = el.getAnimations();
+      var an = el.animate([from, to], { duration: 320, easing: EASE_W, fill: 'forwards' });
+      an.finished.then(function () { old.forEach(function (x) { x.cancel(); }); try { an.commitStyles(); an.cancel(); } catch (e) {} }).catch(function () {});
+    };
     setInterval(function () {
+      if (d.hidden) return;
       i = (i + 1) % words.length;
-      next.className = 'word reset';
       next.textContent = words[i];
-      void next.offsetWidth;
-      next.className = 'word on';
-      cur.className = 'word up';
+      run(next, { opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' });
+      run(cur, { opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' });
       var t = cur; cur = next; next = t;
     }, 2600);
   }
 
-  /* Feature carousel: whole cards move together, three at a time (two on tablet, one on phone), forever. Never moves inside a panel. */
+  /* Feature carousel: the section shows three cards (two on tablet, one on phone) with one blurred card peeking in on each side.
+     Every 4.5 seconds the whole row moves one card to the right, forever. Nothing moves inside a panel. */
   var track = d.getElementById('carTrack');
   if (track) {
-    var view = track.parentNode, dots = d.getElementById('carDots'), prevB = d.getElementById('carPrev'), nextB = d.getElementById('carNext');
-    var originals = [].slice.call(track.children), per = 3, pages = 4, idx = 0, timer = 0, hover = false, gap = 24;
-    var motionOff = reduce.matches;
-    var clones = [];
+    var view = track.parentNode, dots = d.getElementById('carDots');
+    var originals = [].slice.call(track.children), N = originals.length, per = 3, buf = 4, pos = 0, timer = 0, hover = false, gap = 24, busy = false;
+    var motionOff = reduce.matches, clones = [], lastPer = 0;
     function perView() { var wd = w.innerWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
-    function step() { return view.clientWidth - 8 + gap; }   /* the view has 4px of room each side for the hover lift */
+    function cardStep() { return originals[0].getBoundingClientRect().width + gap; }
+    function shape() {
+      var kids = [].slice.call(track.children);
+      kids.forEach(function (k, i) { k.classList.toggle('side', i < buf + pos || i >= buf + pos + per); });
+      [].forEach.call(dots.children, function (b, i) { b.setAttribute('aria-selected', i === ((pos % N) + N) % N ? 'true' : 'false'); });
+    }
     function place(animate) {
       track.classList.toggle('go', !!animate && !motionOff);
-      track.style.transform = 'translate3d(' + (-idx * step()) + 'px,0,0)';
-    }
-    function mark() {
-      var cur = idx % pages;
-      [].forEach.call(dots.children, function (b, i) { b.setAttribute('aria-selected', i === cur ? 'true' : 'false'); });
+      track.classList.toggle('still', !animate || motionOff);
+      track.style.transform = 'translate3d(' + (-(buf + pos) * cardStep()) + 'px,0,0)';
+      shape();
     }
     function build() {
-      per = perView(); pages = Math.ceil(originals.length / per);
+      per = perView(); buf = per + 1;
       gap = parseFloat(getComputedStyle(track).columnGap) || 24;
       track.style.setProperty('--per', per);
       clones.forEach(function (n) { n.remove(); }); clones = [];
-      for (var i = 0; i < per; i++) { var cl = originals[i].cloneNode(true); cl.setAttribute('aria-hidden', 'true'); cl.removeAttribute('id'); track.appendChild(cl); clones.push(cl); }
+      for (var i = 0; i < buf; i++) {
+        var a = originals[(N - buf + i) % N].cloneNode(true), z = originals[i % N].cloneNode(true);
+        [a, z].forEach(function (n) { n.setAttribute('aria-hidden', 'true'); n.removeAttribute('id'); });
+        track.insertBefore(a, originals[0]); track.appendChild(z); clones.push(a, z);
+      }
+      /* the clones before the row were inserted in order, so put them back in sequence */
+      var before = clones.filter(function (n, i) { return i % 2 === 0; });
+      before.forEach(function (n) { track.insertBefore(n, originals[0]); });
       dots.textContent = '';
-      for (var p = 0; p < pages; p++) {
+      for (var p = 0; p < N; p++) {
         (function (p) {
-          var b = d.createElement('button'); b.type = 'button'; b.className = 'car-dot'; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', 'Show cards ' + (p * per + 1) + ' to ' + Math.min(originals.length, p * per + per));
-          b.addEventListener('click', function () { go(p); }); dots.appendChild(b);
+          var b = d.createElement('button'); b.type = 'button'; b.className = 'car-dot'; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', 'Show card ' + (p + 1));
+          b.addEventListener('click', function () { pos = p; place(true); restart(); }); dots.appendChild(b);
         })(p);
       }
-      if (idx >= pages) idx = 0;
-      place(false); mark();
+      if (pos >= N || pos < 0) pos = 0;
+      place(false);
     }
-    function go(p) { idx = p; place(true); mark(); restart(); }
-    function next() {
-      idx += 1; place(true);
-      if (idx >= pages) {
-        var settle = function () { track.removeEventListener('transitionend', settle); idx = 0; place(false); mark(); };
-        if (motionOff) settle(); else track.addEventListener('transitionend', settle);
-      } else mark();
-      d.querySelectorAll('.car-dot')[idx % pages] && mark();
-      restart();
+    function advance() {
+      if (busy) return;
+      busy = true; pos -= 1; place(true);   /* the row slides right: the card on the left comes in */
+      restart();                            /* the next move is 4.5s after this one starts */
+      var done = function () {
+        track.removeEventListener('transitionend', onEnd); busy = false;
+        if (pos < 0) { pos = N - 1; place(false); }
+      };
+      var onEnd = function (e) { if (e.target === track) done(); };
+      if (motionOff) done(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) done(); }, 1400); }
     }
-    function prev() {
-      if (idx === 0) { idx = pages; place(false); void track.offsetWidth; }
-      idx -= 1; place(true); mark(); restart();
-    }
-    function restart() { clearTimeout(timer); if (!motionOff && !hover && !d.hidden) timer = setTimeout(next, 6500); }
-    nextB.addEventListener('click', next); prevB.addEventListener('click', prev);
+    function restart() { clearTimeout(timer); if (!motionOff && !hover && !d.hidden) timer = setTimeout(advance, 4500); }
     var sec = d.getElementById('features');
     sec.addEventListener('mouseenter', function () { hover = true; clearTimeout(timer); });
     sec.addEventListener('mouseleave', function () { hover = false; restart(); });
-    sec.addEventListener('focusin', function () { hover = true; clearTimeout(timer); });
-    sec.addEventListener('focusout', function () { hover = false; restart(); });
     d.addEventListener('visibilitychange', function () { restart(); });
-    var lastPer = 0;
-    w.addEventListener('resize', function () { if (perView() !== lastPer) { lastPer = perView(); idx = 0; build(); } else place(false); restart(); });
+    w.addEventListener('resize', function () { if (perView() !== lastPer) { lastPer = perView(); pos = 0; build(); } else place(false); restart(); });
     if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; restart(); });
     lastPer = perView(); build(); restart();
+    /* it runs from page load, and the first time the section scrolls into view it starts a move right away, so it is already in motion on arrival */
+    if ('IntersectionObserver' in w) {
+      var seen = new IntersectionObserver(function (es) {
+        if (!es[0].isIntersecting) return;
+        seen.disconnect();
+        if (!motionOff && !busy) { clearTimeout(timer); timer = setTimeout(advance, 450); }
+      }, { threshold: 0.25 });
+      seen.observe(sec);
+    }
   }
 
   /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden

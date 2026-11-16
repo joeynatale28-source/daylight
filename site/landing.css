@@ -86,10 +86,8 @@ button{font:inherit;color:inherit}
 /* the rotating unit (word plus its period) has its own fixed-width slot, as wide as "clutter.", left-aligned; "minus the" sits before it */
 .slot{display:inline-block;position:relative;text-align:left;white-space:nowrap}
 .sizer{visibility:hidden}
-.word{position:absolute;left:0;top:0;text-align:left;white-space:nowrap;opacity:0;transform:translateY(6px);transition:opacity 220ms var(--ease),transform 220ms var(--ease)}
-.word.on{opacity:1;transform:none}
-.word.up{opacity:0;transform:translateY(-6px)}
-.word.reset{transition:none}
+.word{position:absolute;left:0;top:0;text-align:left;white-space:nowrap;opacity:0}
+.word.on{opacity:1}
 .sub{margin-top:calc(8.6px - var(--h1)*0.1764);color:var(--muted);font-size:17px;text-wrap:balance}
 .ctas{display:flex;justify-content:center;gap:12px;margin-top:27px}
 .trust{margin-top:24px;font-size:13.5px;line-height:1.4;color:var(--muted)}
@@ -123,17 +121,19 @@ button{font:inherit;color:inherit}
 .feat-head h2{max-width:14em;margin:0 auto;font-size:clamp(34px,4.6vw,56px);font-weight:700;letter-spacing:-0.035em;line-height:1.06;text-wrap:balance}
 .feat-head p{max-width:34em;margin:16px auto 0;color:var(--muted);font-size:17px;line-height:1.55;text-wrap:balance}
 .car{--gap-c:24px}
-.car-view{overflow:hidden;margin:-10px -4px 0;padding:10px 4px 0}
+.feat{overflow-x:clip}
+.car-view{position:relative}
 .car-track{display:flex;gap:var(--gap-c);will-change:transform}
-.car-track.go{transition:transform 760ms var(--ease)}
-.fcard{flex:0 0 calc((100% - (var(--per,3) - 1) * var(--gap-c)) / var(--per,3));min-width:0;scroll-margin-top:80px;transition:translate 240ms var(--ease)}
+.car-track.go{transition:transform 1100ms var(--ease)}
+.fcard{transition:translate 240ms var(--ease),filter 1100ms var(--ease),opacity 1100ms var(--ease)}
+.fcard.side{filter:blur(7px);opacity:.55;pointer-events:none}
+.car-track.still .fcard{transition:translate 240ms var(--ease)}
+.fcard{flex:0 0 calc((100% - (var(--per,3) - 1) * var(--gap-c)) / var(--per,3));min-width:0;scroll-margin-top:80px}
 .fcard:hover{translate:0 -4px}
 .fcard h3{margin:20px 4px 8px;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.25}
 .fcard p{margin:0 4px;color:var(--muted);font-size:15.5px;line-height:1.55}
 .fpanel{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:24px;background:var(--theme-card);container-type:inline-size}
 .car-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:36px}
-.car-btn{width:40px;height:40px;border:0;border-radius:50%;background:var(--surface);color:var(--text);font-size:22px;line-height:1;cursor:pointer;transition:background-color 200ms linear,transform 200ms var(--ease)}
-.car-btn:hover{background:var(--soft-hover);transform:translateY(-1px)}
 .car-dots{display:flex;gap:8px;align-items:center}
 .car-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--ghost);cursor:pointer;transition:background-color 200ms linear,transform 200ms var(--ease)}
 .car-dot[aria-selected=true]{background:var(--text);transform:scale(1.25)}
@@ -315,3 +315,18 @@ button{font:inherit;color:inherit}
   .dots i{width:8px;height:8px}
   .foot-bar{flex-direction:column;align-items:flex-start;gap:10px}
 }
+
+/* nicer AI access mockup */
+.mk .arl{display:grid;gap:.7em;margin-top:.3em}
+.mk .ar{display:flex;align-items:center;gap:1em;padding:.9em 1em;border-radius:1.1em;background:var(--surface)}
+.mk .ar .tile{width:3.4em;height:3.4em;border-radius:1em}
+.mk .ar .who b{display:inline;font-size:1.25em;font-weight:700;letter-spacing:-0.01em}
+.mk .st{display:inline-flex;align-items:center;gap:.4em;margin-left:.7em;font-size:.95em;font-style:normal;font-weight:600;color:var(--muted)}
+.mk .st u{width:.6em;height:.6em;border-radius:50%;background:var(--faint);text-decoration:none}
+.mk .st.ok{color:#1e8e5a}.mk .st.ok u{background:#1e8e5a}
+.mk .chs{display:flex;gap:.4em;margin-top:.5em}
+.mk .chp{padding:.2em .7em;border-radius:99px;background:var(--mkbg);font-size:.9em;font-style:normal;font-weight:600;color:var(--muted)}
+.mk .ar .btn{padding:.6em 1.2em}
+.mk .act{display:flex;align-items:center;gap:1em;margin-top:auto;padding-top:.9em;border-top:1px solid var(--line)}
+.mk .act .tile{width:2.6em;height:2.6em;border-radius:.8em}
+.mk .act b{font-size:1.05em;font-weight:600}
