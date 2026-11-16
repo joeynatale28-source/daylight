@@ -189,18 +189,19 @@
       busy = false; pending = null;
       if (pos < 0) { pos = N - 1; place(false); }   /* identical picture: copy of card 12 -> the real card 12 */
     }
+    function over() { try { return view.matches(':hover'); } catch (e) { return false; } }
     function advance() {
       if (busy) return;
+      if (over()) { restart(); return; }          /* the pointer is on the cards: wait, then check again */
       busy = true; pos -= 1; place(true);           /* the row slides right: the card on the left comes in */
       restart();                                    /* the next move starts 4.5s after this one, so every rest is the same length */
       var onEnd = function (e) { if (e.target === track) { track.removeEventListener('transitionend', onEnd); finish(); } };
       pending = function () { track.removeEventListener('transitionend', onEnd); finish(); };
       if (motionOff) pending(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) pending(); }, 1500); }
     }
-    function restart() { clearTimeout(timer); if (!motionOff && !hover && !d.hidden) timer = setTimeout(advance, 4500); }
+    function restart() { clearTimeout(timer); if (!motionOff && !d.hidden) timer = setTimeout(advance, 4500); }
     var sec = d.getElementById('features');
-    sec.addEventListener('mouseenter', function () { hover = true; clearTimeout(timer); });
-    sec.addEventListener('mouseleave', function () { hover = false; restart(); });
+    view.addEventListener('mouseleave', function () { if (!busy) restart(); });
     d.addEventListener('visibilitychange', function () { if (!d.hidden && pending) pending(); restart(); });
     w.addEventListener('resize', function () {
       if (perView() !== lastPer) { lastPer = perView(); pos = 0; busy = false; build(); }
@@ -220,6 +221,15 @@
       }, { threshold: 0.25 });
       seen.observe(sec);
     }
+  }
+
+  /* Feature sections: animations play while a section is on screen and pause (keeping their place) when it is not. */
+  var fxs = [].slice.call(d.querySelectorAll('.fx'));
+  if (fxs.length) {
+    if ('IntersectionObserver' in w) {
+      var fxio = new IntersectionObserver(function (es) { es.forEach(function (e) { e.target.classList.toggle('on', e.isIntersecting); }); }, { threshold: 0.2 });
+      fxs.forEach(function (s) { fxio.observe(s); });
+    } else fxs.forEach(function (s) { s.classList.add('on'); });
   }
 
   /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden
