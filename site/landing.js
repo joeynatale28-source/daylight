@@ -129,17 +129,34 @@
     }, 2600);
   }
 
-  /* Feature carousel: the section shows three cards (two on tablet, one on phone) with one blurred card peeking in on each side.
-     Every 4.5 seconds the whole row moves one card to the right, forever. Nothing moves inside a panel. */
+  /* Feature carousel. Twelve equal cards, five on screen: three sharp in the middle, one blurred and set back on each side.
+     Every 4.5 seconds the whole row slides one card to the right (the next card enters from the left), forever. Copies of the cards
+     sit on both ends of the row, so after card 12 the row simply keeps going and card 1 follows with the identical motion; the reset
+     to the real cards happens while the picture is identical, so the wrap cannot be seen. Nothing moves inside a panel. */
   var track = d.getElementById('carTrack');
   if (track) {
-    var view = track.parentNode;
-    var originals = [].slice.call(track.children), N = originals.length, per = 3, buf = 4, pos = 0, timer = 0, hover = false, gap = 24, busy = false;
+    var view = track.parentNode, root = d.documentElement;
+    var originals = [].slice.call(track.children), N = originals.length;
+    var per = 3, buf = 4, pos = 0, timer = 0, hover = false, g = 24, cardW = 0, offX = 0, busy = false, pending = null;
     var motionOff = reduce.matches, clones = [], lastPer = 0;
-    function perView() { var wd = w.innerWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
-    function cardStep() { return originals[0].getBoundingClientRect().width + gap; }
+    function perView() { var wd = root.clientWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
+    /* one size for every card: the middle group is centered and leaves room for a peek of the side cards */
+    function size() {
+      var vw = root.clientWidth, viewW = view.clientWidth;
+      var peek = vw >= 960 ? 48 : vw >= 600 ? 36 : 26;
+      g = vw >= 768 ? 24 : 16;
+      var group = Math.min(viewW, vw - 2 * (peek + g));
+      cardW = (group - (per - 1) * g) / per;
+      offX = (viewW - group) / 2;
+      track.style.setProperty('--cw', cardW + 'px');
+      track.style.columnGap = g + 'px';
+      /* equal heights: every description gets the room of the longest one */
+      var all = [].slice.call(track.querySelectorAll('.fcard > p'));
+      all.forEach(function (p) { p.style.minHeight = ''; });
+      var tallest = 0; originals.forEach(function (c) { tallest = Math.max(tallest, c.querySelector(':scope > p').getBoundingClientRect().height); });
+      all.forEach(function (p) { p.style.minHeight = tallest + 'px'; });
+    }
     function shape() {
-      /* one card on each side is blurred and set back; everything farther out is hidden until it is next to come in */
       [].slice.call(track.children).forEach(function (k, i) {
         var l = i < buf + pos, r = i >= buf + pos + per;
         k.classList.toggle('side', l || r);
@@ -151,12 +168,11 @@
     function place(animate) {
       track.classList.toggle('go', !!animate && !motionOff);
       track.classList.toggle('still', !animate || motionOff);
-      track.style.transform = 'translate3d(' + (-(buf + pos) * cardStep()) + 'px,0,0)';
+      track.style.transform = 'translate3d(' + (offX - (buf + pos) * (cardW + g)) + 'px,0,0)';
       shape();
     }
     function build() {
       per = perView(); buf = per + 1;
-      gap = parseFloat(getComputedStyle(track).columnGap) || 24;
       track.style.setProperty('--per', per);
       clones.forEach(function (n) { n.remove(); }); clones = [];
       for (var i = 0; i < buf; i++) {
@@ -164,29 +180,35 @@
         [a, z].forEach(function (n) { n.setAttribute('aria-hidden', 'true'); n.removeAttribute('id'); });
         track.insertBefore(a, originals[0]); track.appendChild(z); clones.push(a, z);
       }
-      /* the clones before the row were inserted in order, so put them back in sequence */
-      var before = clones.filter(function (n, i) { return i % 2 === 0; });
-      before.forEach(function (n) { track.insertBefore(n, originals[0]); });
+      size();
       if (pos >= N || pos < 0) pos = 0;
       place(false);
     }
+    function finish() {
+      if (!busy) return;
+      busy = false; pending = null;
+      if (pos < 0) { pos = N - 1; place(false); }   /* identical picture: copy of card 12 -> the real card 12 */
+    }
     function advance() {
       if (busy) return;
-      busy = true; pos -= 1; place(true);   /* the row slides right: the card on the left comes in */
-      restart();                            /* the next move is 4.5s after this one starts */
-      var done = function () {
-        track.removeEventListener('transitionend', onEnd); busy = false;
-        if (pos < 0) { pos = N - 1; place(false); }
-      };
-      var onEnd = function (e) { if (e.target === track) done(); };
-      if (motionOff) done(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) done(); }, 1400); }
+      busy = true; pos -= 1; place(true);           /* the row slides right: the card on the left comes in */
+      restart();                                    /* the next move starts 4.5s after this one, so every rest is the same length */
+      var onEnd = function (e) { if (e.target === track) { track.removeEventListener('transitionend', onEnd); finish(); } };
+      pending = function () { track.removeEventListener('transitionend', onEnd); finish(); };
+      if (motionOff) pending(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) pending(); }, 1500); }
     }
     function restart() { clearTimeout(timer); if (!motionOff && !hover && !d.hidden) timer = setTimeout(advance, 4500); }
     var sec = d.getElementById('features');
     sec.addEventListener('mouseenter', function () { hover = true; clearTimeout(timer); });
     sec.addEventListener('mouseleave', function () { hover = false; restart(); });
-    d.addEventListener('visibilitychange', function () { restart(); });
-    w.addEventListener('resize', function () { if (perView() !== lastPer) { lastPer = perView(); pos = 0; build(); } else place(false); restart(); });
+    d.addEventListener('visibilitychange', function () { if (!d.hidden && pending) pending(); restart(); });
+    w.addEventListener('resize', function () {
+      if (perView() !== lastPer) { lastPer = perView(); pos = 0; busy = false; build(); }
+      else { size(); place(false); }
+      restart();
+    });
+    if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { size(); place(false); });
+    w.addEventListener('load', function () { size(); place(false); });
     if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; restart(); });
     lastPer = perView(); build(); restart();
     /* it runs from page load, and the first time the section scrolls into view it starts a move right away, so it is already in motion on arrival */

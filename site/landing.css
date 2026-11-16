@@ -124,17 +124,17 @@ button{font:inherit;color:inherit}
 .feat{overflow-x:clip}
 .car-view{position:relative}
 .car-track{display:flex;gap:var(--gap-c);will-change:transform}
-.car-track.go{transition:transform 1300ms cubic-bezier(0.45,0,0.15,1)}
-.fcard{transition:translate 240ms var(--ease),filter 1300ms cubic-bezier(0.45,0,0.15,1),opacity 1300ms cubic-bezier(0.45,0,0.15,1),scale 1300ms cubic-bezier(0.45,0,0.15,1)}
+.car-track.go{transition:transform 1300ms cubic-bezier(0.4,0,0.2,1)}
+.fcard{transition:translate 240ms var(--ease),filter 1300ms cubic-bezier(0.4,0,0.2,1),opacity 1300ms cubic-bezier(0.4,0,0.2,1),scale 1300ms cubic-bezier(0.4,0,0.2,1)}
 .fcard.side{filter:blur(6px);opacity:.5;scale:.93;pointer-events:none}
 .fcard.sl{transform-origin:100% 40%}
 .fcard.sr{transform-origin:0 40%}
-.fcard.far{opacity:0;visibility:hidden}
+.fcard.far{opacity:0;pointer-events:none}
 .car-track.still .fcard{transition:translate 240ms var(--ease)}
-.fcard{flex:0 0 calc((100% - (var(--per,3) - 1) * var(--gap-c)) / var(--per,3));min-width:0;scroll-margin-top:80px}
+.fcard{flex:0 0 var(--cw,349px);width:var(--cw,349px);min-width:0;scroll-margin-top:80px;container-type:inline-size}
 .fcard:hover{translate:0 -4px}
-.fcard h3{margin:20px 4px 8px;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.25}
-.fcard p{margin:0 4px;color:var(--muted);font-size:15.5px;line-height:1.55}
+.fcard h3{margin:20px 4px 8px;font-size:min(20px,calc((100cqw - 8px) / 19));font-weight:700;letter-spacing:-0.02em;line-height:1.25;white-space:nowrap}
+.fcard > p{margin:0 4px;color:var(--muted);font-size:min(15.5px,calc(100cqw / 22));line-height:1.55}
 .fpanel{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:24px;background:var(--theme-card);container-type:inline-size}
 
 /* mockups: drawn in code at the app's own scale; one em is 1/40 of the panel, so every mockup fills its panel at any width */
@@ -329,3 +329,7 @@ button{font:inherit;color:inherit}
 .mk .act{display:flex;align-items:center;gap:1em;margin-top:auto;padding-top:.9em;border-top:1px solid var(--line)}
 .mk .act .tile{width:2.6em;height:2.6em;border-radius:.8em}
 .mk .act b{font-size:1.05em;font-weight:600}
+
+.mk.roomy .res{padding:.95em 0}
+.mk.roomy .cap.mt{margin-top:1.2em}
+.mk.roomy .drops{padding:.7em 1em}
