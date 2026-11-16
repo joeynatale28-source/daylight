@@ -87,7 +87,8 @@
     w.addEventListener('load', size);
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(size);
     if ('ResizeObserver' in w) new ResizeObserver(size).observe(nav); else w.addEventListener('resize', size);
-    var lastY = 0, lockUntil = 0;
+    var lastY = 0, lockUntil = 0, idle = 0;
+    var navHide = function () { var y = w.pageYOffset || root.scrollTop || 0; if (y >= 200 && !nav.classList.contains('open') && !nav.matches(':hover') && Date.now() >= lockUntil) nav.classList.add('hide'); };
     var onScroll = function () {
       var y = w.pageYOffset || root.scrollTop || 0;
       nav.classList.toggle('is-pill', y > 8);
@@ -95,6 +96,7 @@
       if (y < 200 || nav.classList.contains('open') || Date.now() < lockUntil) nav.classList.remove('hide');
       else if (dy > 4) nav.classList.add('hide');
       else if (dy < -4) nav.classList.remove('hide');
+      clearTimeout(idle); idle = setTimeout(navHide, 1800 + Math.max(0, lockUntil - Date.now()));   /* at rest the pill steps aside too */
     };
     d.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.links a, #panel a, .foot a, [data-top]')) lockUntil = Date.now() + 1600; });
     w.addEventListener('scroll', onScroll, { passive: true });
@@ -184,19 +186,20 @@
     function finish() {
       if (!busy) return;
       busy = false; pending = null;
-      if (pos < 0) { pos = N - 1; place(false); }   /* identical picture: copy of card 12 -> the real card 12 */
+      if (pos >= N) { pos = 0; place(false); }   /* identical picture: the copy of card 1 -> the real card 1 */
     }
     function over() { try { return view.matches(':hover'); } catch (e) { return false; } }
     function advance() {
       if (busy) return;
       if (over()) { restart(); return; }          /* the pointer is on the cards: wait, then check again */
-      busy = true; pos -= 1; place(true);           /* the row slides right: the card on the left comes in */
+      busy = true; pos += 1; place(true);           /* the row slides left: the next card enters from the right */
       restart();                                    /* the next move starts 4.5s after this one, so every rest is the same length */
       var onEnd = function (e) { if (e.target === track) { track.removeEventListener('transitionend', onEnd); finish(); } };
       pending = function () { track.removeEventListener('transitionend', onEnd); finish(); };
-      if (motionOff) pending(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) pending(); }, 1500); }
+      if (motionOff) pending(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) pending(); }, 1100); }
     }
-    function restart() { clearTimeout(timer); if (!motionOff && !d.hidden) timer = setTimeout(advance, 4500); }
+    var inView = false;
+    function restart() { clearTimeout(timer); if (!motionOff && !d.hidden && inView) timer = setTimeout(advance, 4500); }
     var sec = d.getElementById('features');
     view.addEventListener('mouseleave', function () { if (!busy) restart(); });
     d.addEventListener('visibilitychange', function () { if (!d.hidden && pending) pending(); restart(); });
@@ -208,16 +211,15 @@
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { size(); place(false); });
     w.addEventListener('load', function () { size(); place(false); });
     if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; restart(); });
-    lastPer = perView(); build(); restart();
-    /* it runs from page load, and the first time the section scrolls into view it starts a move right away, so it is already in motion on arrival */
+    lastPer = perView(); pos = 0; build();
+    /* it waits at card 1 until the section is on screen, then advances every 4.5s; it stops while the section is off screen */
     if ('IntersectionObserver' in w) {
-      var seen = new IntersectionObserver(function (es) {
-        if (!es[0].isIntersecting) return;
-        seen.disconnect();
-        if (!motionOff && !busy) { clearTimeout(timer); timer = setTimeout(advance, 450); }
-      }, { threshold: 0.25 });
-      seen.observe(sec);
-    }
+      new IntersectionObserver(function (es) {
+        var on = es[0].intersectionRatio >= 0.3;
+        if (on && !inView) { inView = true; restart(); }
+        else if (!es[0].isIntersecting && inView) { inView = false; clearTimeout(timer); }
+      }, { threshold: [0, 0.3] }).observe(sec);
+    } else { inView = true; restart(); }
   }
 
   /* Feature sections: each animation starts from its beginning when its section first scrolls into view, pauses (keeping its place)
@@ -231,7 +233,7 @@
         es.forEach(function (e) {
           var s = e.target;
           if (e.intersectionRatio >= 0.3) {
-            if (!started.has(s)) { started.add(s); anims(s).forEach(function (a) { try { a.currentTime = 0; } catch (x) {} }); }
+            if (!s.classList.contains('on')) anims(s).forEach(function (a) { try { a.currentTime = 0; } catch (x) {} });
             s.classList.add('on');
           } else if (!e.isIntersecting) s.classList.remove('on');
         });
@@ -240,29 +242,42 @@
     } else fxs.forEach(function (s) { s.classList.add('on'); });
   }
 
-  /* Scroll reveals: a fade and rise (28px, 700ms), children one after another. Content is visible by default: nothing is hidden
-     in CSS, anything on screen at load is left alone, and a timer always forces the finished state. */
-  if (!reduce.matches && 'IntersectionObserver' in w && typeof Element.prototype.animate === 'function') {
-    var first = true;
-    var io = new IntersectionObserver(function (entries) {
-      var initial = first; first = false;
-      entries.forEach(function (en) {
-        if (!en.isIntersecting) return;
-        io.unobserve(en.target);
-        if (initial) return;
-        var group = en.target;
-        var els = group.hasAttribute('data-stagger') ? [].slice.call(group.children) : [group];
-        var anims = els.map(function (el, n) {
-          try {
-            return el.animate([{ offset: 0, opacity: 0, translate: '0 28px' }],
-              { duration: 700, delay: Math.min(n, 5) * 110, easing: EASE, fill: 'backwards' });
-          } catch (e) { return null; }
-        });
-        setTimeout(function () {
-          anims.forEach(function (an) { try { if (an && an.playState !== 'finished') an.finish(); } catch (e) {} });
-        }, 1600);
+  /* Scroll reveals: sections below the fold start hidden (set here, by script, so the page is complete without it) and fade and rise
+     in, one part after another, as they come into view. */
+  if (!reduce.matches && 'IntersectionObserver' in w) {
+    var rvTargets = [];
+    [].forEach.call(d.querySelectorAll('[data-reveal]'), function (el) {
+      var parts = el.hasAttribute('data-stagger') ? [].slice.call(el.children) : [el];
+      if (el.getBoundingClientRect().top < w.innerHeight * 0.9) return;     /* already on screen: leave it alone */
+      parts.forEach(function (p, n) { p.classList.add('rv'); p.style.setProperty('--rd', Math.min(n, 5) * 160 + 'ms'); });
+      rvTargets.push({ el: el, parts: parts });
+    });
+    var rvio = new IntersectionObserver(function (es) {
+      es.forEach(function (e) {
+        if (!e.isIntersecting) return;
+        rvio.unobserve(e.target);
+        var t = rvTargets.filter(function (x) { return x.el === e.target; })[0];
+        if (t) t.parts.forEach(function (p) { p.classList.add('in'); });
       });
-    }, { threshold: 0.12 });
-    [].forEach.call(d.querySelectorAll('[data-reveal]'), function (el) { io.observe(el); });
+    }, { threshold: 0.18 });
+    rvTargets.forEach(function (t) { rvio.observe(t.el); });
+    /* safety: nothing may stay hidden */
+    setTimeout(function () { rvTargets.forEach(function (t) { var r = t.el.getBoundingClientRect(); if (r.top < w.innerHeight && r.bottom > 0) t.parts.forEach(function (p) { p.classList.add('in'); }); }); }, 6000);
   }
+
+  /* Accordions: one row open at a time; the first starts open. Without this script every row stays expanded. */
+  [].forEach.call(d.querySelectorAll('[data-acc]'), function (rootEl) {
+    var items = [].slice.call(rootEl.querySelectorAll('.acc-item'));
+    var setOpen = function (item, open) { item.classList.toggle('open', open); var btn = item.querySelector('button'); if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    items.forEach(function (item, n) {
+      setOpen(item, n === 0);
+      var btn = item.querySelector('button');
+      if (btn) btn.addEventListener('click', function () {
+        var was = item.classList.contains('open');
+        items.forEach(function (o) { setOpen(o, false); });
+        setOpen(item, !was);
+      });
+    });
+    rootEl.classList.add('js-acc'); d.documentElement.classList.add('js-acc');
+  });
 })();
