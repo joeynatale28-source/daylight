@@ -87,18 +87,7 @@
     w.addEventListener('load', size);
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(size);
     if ('ResizeObserver' in w) new ResizeObserver(size).observe(nav); else w.addEventListener('resize', size);
-    var lastY = 0, lockUntil = 0, idle = 0;
-    var navHide = function () { var y = w.pageYOffset || root.scrollTop || 0; if (y >= 200 && !nav.classList.contains('open') && !nav.matches(':hover') && Date.now() >= lockUntil) nav.classList.add('hide'); };
-    var onScroll = function () {
-      var y = w.pageYOffset || root.scrollTop || 0;
-      nav.classList.toggle('is-pill', y > 8);
-      var dy = y - lastY; lastY = y;
-      if (y < 200 || nav.classList.contains('open') || Date.now() < lockUntil) nav.classList.remove('hide');
-      else if (dy > 4) nav.classList.add('hide');
-      else if (dy < -4) nav.classList.remove('hide');
-      clearTimeout(idle); idle = setTimeout(navHide, 1800 + Math.max(0, lockUntil - Date.now()));   /* at rest the pill steps aside too */
-    };
-    d.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.links a, #panel a, .foot a, [data-top]')) lockUntil = Date.now() + 1600; });
+    var onScroll = function () { nav.classList.toggle('is-pill', (w.pageYOffset || root.scrollTop || 0) > 8); };
     w.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
@@ -113,29 +102,6 @@
       d.addEventListener('keydown', function (e) { if (e.key === 'Escape') setOpen(false); });
       w.addEventListener('resize', function () { if (w.innerWidth >= 768) setOpen(false); });
     }
-  }
-
-  /* Rotating word: the word and its period are one unit. Two stacked units cross-fade inside a fixed-width slot. Nothing outside the slot can move.
-     Driven by the Web Animations API so there are no class swaps to race: every swap starts one fade-in and one fade-out together. */
-  var a = d.getElementById('w1'), b = d.getElementById('w2');
-  if (a && b && !reduce.matches && typeof a.animate === 'function') {
-    var words = ['clutter.', 'noise.', 'chaos.', 'mess.'], i = 0, cur = a, next = b;
-    var EASE_W = 'cubic-bezier(0.16, 1, 0.3, 1)';
-    a.classList.remove('on'); a.style.opacity = '1'; a.style.transform = 'none';
-    b.style.opacity = '0'; b.style.transform = 'translateY(6px)';
-    var run = function (el, from, to) {
-      var old = el.getAnimations();
-      var an = el.animate([from, to], { duration: 320, easing: EASE_W, fill: 'forwards' });
-      an.finished.then(function () { old.forEach(function (x) { x.cancel(); }); try { an.commitStyles(); an.cancel(); } catch (e) {} }).catch(function () {});
-    };
-    setInterval(function () {
-      if (d.hidden) return;
-      i = (i + 1) % words.length;
-      next.textContent = words[i];
-      run(next, { opacity: 0, transform: 'translateY(6px)' }, { opacity: 1, transform: 'translateY(0)' });
-      run(cur, { opacity: 1, transform: 'translateY(0)' }, { opacity: 0, transform: 'translateY(-6px)' });
-      var t = cur; cur = next; next = t;
-    }, 2600);
   }
 
   /* Feature carousel. Twelve equal cards, three on screen (two on tablet, one on phone), all sharp; the row is clipped to exactly those cards.
@@ -222,12 +188,13 @@
     } else { inView = true; restart(); }
   }
 
-  /* Feature sections: each animation starts from its beginning when its section first scrolls into view, pauses (keeping its place)
-     when the section leaves, and resumes where it left off. */
+  /* Feature sections: each animation starts from its first frame when its section scrolls into view, pauses when it leaves,
+     and starts again from the first frame on re-entry. */
   var fxs = [].slice.call(d.querySelectorAll('.fx'));
+  var typers = [].slice.call(d.querySelectorAll('.typ'));
+  typers.forEach(function (t) { if (reduce.matches) t.textContent = t.getAttribute('data-typ'); });
   if (fxs.length) {
     var anims = function (s) { return [].slice.call(s.querySelectorAll('.fxp *')).reduce(function (all, e) { return all.concat(e.getAnimations ? e.getAnimations() : []); }, []); };
-    var started = new WeakSet();
     if ('IntersectionObserver' in w) {
       var fxio = new IntersectionObserver(function (es) {
         es.forEach(function (e) {
@@ -241,34 +208,78 @@
       fxs.forEach(function (s) { fxio.observe(s); });
     } else fxs.forEach(function (s) { s.classList.add('on'); });
   }
+  /* typing is keystroke by keystroke, locked to the animation clock so it loops with the scene */
+  if (typers.length && !reduce.matches) {
+    var tick = function () {
+      typers.forEach(function (t) {
+        var an = t.getAnimations ? t.getAnimations()[0] : null;
+        if (!an) return;
+        var dur = an.effect.getComputedTiming().duration, ct = (an.currentTime || 0) % dur;
+        var txt = t.getAttribute('data-typ'), n = Math.max(0, Math.min(txt.length, Math.floor((ct / 1000 - parseFloat(t.getAttribute('data-start'))) * parseFloat(t.getAttribute('data-cps')))));
+        var v = txt.slice(0, n);
+        if (t.textContent !== v) t.textContent = v;
+      });
+      w.requestAnimationFrame(tick);
+    };
+    w.requestAnimationFrame(tick);
+  }
+  /* Views: Month, Week, Day and Agenda are real tabs. The first click takes over from the automatic loop. */
+  var vsec = d.getElementById('views');
+  if (vsec) {
+    var layers = [].slice.call(vsec.querySelectorAll('.sc2 .vl'));
+    var tabs = [].slice.call(vsec.querySelectorAll('[data-view]'));
+    var showView = function (k) {
+      vsec.classList.add('manual');
+      layers.forEach(function (l, i) { l.style.transform = 'translateX(' + (i === k ? 0 : i < k ? -100 : 100) + '%)'; });
+      tabs.forEach(function (t) { var on = +t.getAttribute('data-view') === k; t.classList.toggle('active', on); t.setAttribute('aria-pressed', on ? 'true' : 'false'); });
+    };
+    tabs.forEach(function (t) { t.addEventListener('click', function () { showView(+t.getAttribute('data-view')); }); });
+  }
 
-  /* Scroll reveals: sections below the fold start hidden (set here, by script, so the page is complete without it) and fade and rise
-     in, one part after another, as they come into view. */
+  /* Scroll reveals: parts below the fold start hidden (set by script, so the page is complete without it) and fade and rise 16px
+     in 500ms as they come into view. An anchor jump shows everything up to its target at once. */
+  var rvTargets = [];
   if (!reduce.matches && 'IntersectionObserver' in w) {
-    var rvTargets = [];
     [].forEach.call(d.querySelectorAll('[data-reveal]'), function (el) {
       var parts = el.hasAttribute('data-stagger') ? [].slice.call(el.children) : [el];
-      if (el.getBoundingClientRect().top < w.innerHeight * 0.9) return;     /* already on screen: leave it alone */
-      parts.forEach(function (p, n) { p.classList.add('rv'); p.style.setProperty('--rd', Math.min(n, 5) * 160 + 'ms'); });
-      rvTargets.push({ el: el, parts: parts });
+      if (el.getBoundingClientRect().top < w.innerHeight * 0.9) return;
+      parts.forEach(function (p, n) { p.classList.add('rv'); p.style.setProperty('--rd', Math.min(n, 5) * 100 + 'ms'); });
+      rvTargets.push({ el: el, parts: parts, done: false });
     });
+    var showRv = function (t, now) { if (t.done) return; t.done = true; t.parts.forEach(function (p) { if (now) p.classList.add('now'); p.classList.add('in'); }); };
     var rvio = new IntersectionObserver(function (es) {
       es.forEach(function (e) {
         if (!e.isIntersecting) return;
         rvio.unobserve(e.target);
-        var t = rvTargets.filter(function (x) { return x.el === e.target; })[0];
-        if (t) t.parts.forEach(function (p) { p.classList.add('in'); });
+        rvTargets.forEach(function (t) { if (t.el === e.target) showRv(t, false); });
       });
-    }, { threshold: 0.18 });
+    }, { threshold: 0.12 });
     rvTargets.forEach(function (t) { rvio.observe(t.el); });
-    /* safety: nothing may stay hidden */
-    setTimeout(function () { rvTargets.forEach(function (t) { var r = t.el.getBoundingClientRect(); if (r.top < w.innerHeight && r.bottom > 0) t.parts.forEach(function (p) { p.classList.add('in'); }); }); }, 6000);
+    var revealTo = function (id) {
+      var target = id && d.getElementById(id);
+      if (!target) return;
+      rvTargets.forEach(function (t) {
+        var pos = t.el.compareDocumentPosition(target);
+        if (t.el === target || (pos & 4) || (pos & 8)) showRv(t, true);   /* before, around or inside the target */
+      });
+    };
+    d.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href*="#"]');
+      if (a) { var h = a.getAttribute('href'); revealTo(h.slice(h.indexOf('#') + 1)); }
+    }, true);
+    w.addEventListener('hashchange', function () { revealTo(location.hash.slice(1)); });
+    if (location.hash) revealTo(decodeURIComponent(location.hash.slice(1)));
+    var sweep = function () { rvTargets.forEach(function (t) { var r = t.el.getBoundingClientRect(); if (r.top < w.innerHeight * 0.95 && r.bottom > 0) showRv(t, false); }); };
+    w.addEventListener('scroll', sweep, { passive: true });
+    setTimeout(sweep, 1500);
   }
 
-  /* Accordions: one row open at a time; the first starts open. Without this script every row stays expanded. */
+  /* Accordions: one row open at a time; the first starts open. Heights animate for 300ms. Without this script every row stays expanded. */
   [].forEach.call(d.querySelectorAll('[data-acc]'), function (rootEl) {
     var items = [].slice.call(rootEl.querySelectorAll('.acc-item'));
-    var setOpen = function (item, open) { item.classList.toggle('open', open); var btn = item.querySelector('button'); if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false'); };
+    var fit = function (item) { var body = item.querySelector('.acc-body'); if (body) body.style.height = item.classList.contains('open') ? body.firstElementChild.offsetHeight + 'px' : '0px'; };
+    var setOpen = function (item, open) { item.classList.toggle('open', open); var btn = item.querySelector('button'); if (btn) btn.setAttribute('aria-expanded', open ? 'true' : 'false'); fit(item); };
+    rootEl.classList.add('js-acc'); d.documentElement.classList.add('js-acc');
     items.forEach(function (item, n) {
       setOpen(item, n === 0);
       var btn = item.querySelector('button');
@@ -278,6 +289,7 @@
         setOpen(item, !was);
       });
     });
-    rootEl.classList.add('js-acc'); d.documentElement.classList.add('js-acc');
+    w.addEventListener('resize', function () { items.forEach(fit); });
+    if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { items.forEach(fit); });
   });
 })();
