@@ -6,3 +6,9 @@ allow_dynamic_registration = true
 
 [functions.mcp]
 verify_jwt = false
+
+[functions.status]
+verify_jwt = false
+
+[functions.status-check]
+verify_jwt = false

@@ -13,6 +13,7 @@ on:
       - sign-up/**
       - privacy/**
       - tos/**
+      - status/**
       - assets/**
       - .github/workflows/deploy-pages.yml
   workflow_dispatch:
@@ -41,13 +42,13 @@ jobs:
           mkdir -p _site
           # one site: landing page (/), sign-in (/login), create account (/sign-up), the app (/dashboard), shared assets
           cp index.html 404.html _site/
-          cp -R site dashboard login sign-up privacy tos assets _site/
+          cp -R site dashboard login sign-up privacy tos status assets _site/
           # Version-bust every deploy: caches and first-paint snapshots written by a
           # different build are ignored (see window.__DL_BUILD in dashboard/boot.js).
           grep -rl "__BUILD_ID__" _site --include='*.html' | xargs sed -i "s/__BUILD_ID__/${GITHUB_SHA}/g"
           sed -i "s/__BUILD_ID__/${GITHUB_SHA}/g" _site/dashboard/boot.js
           grep -q "${GITHUB_SHA}" _site/dashboard/index.html
-          for f in index.html 404.html             site/landing.css site/landing.js             login/index.html sign-up/index.html privacy/index.html tos/index.html dashboard/index.html             dashboard/boot.js dashboard/shell.js dashboard/app.js dashboard/app.css dashboard/route.js             dashboard/daylight-cloud.js dashboard/daylight-notifications.js dashboard/daylight-admin.js dashboard/daylight-adminpage.js             dashboard/daylight-auth.js dashboard/daylight-security.js dashboard/daylight-ai-access.js dashboard/daylight-print.js             dashboard/daylight-event-tools.js dashboard/daylight-sharing.js dashboard/daylight-manage.js dashboard/daylight-onboarding.js             dashboard/daylight-settings.js dashboard/daylight-integrations.js dashboard/daylight-places.js dashboard/daylight-places.css             dashboard/daylight-enhancements.js dashboard/daylight-oauth.js dashboard/daylight-banners.js; do
+          for f in index.html 404.html             site/landing.css site/landing.js             login/index.html sign-up/index.html privacy/index.html tos/index.html status/index.html site/status.js dashboard/index.html             dashboard/boot.js dashboard/shell.js dashboard/app.js dashboard/app.css dashboard/route.js             dashboard/daylight-cloud.js dashboard/daylight-notifications.js dashboard/daylight-admin.js dashboard/daylight-adminpage.js             dashboard/daylight-auth.js dashboard/daylight-security.js dashboard/daylight-ai-access.js dashboard/daylight-print.js             dashboard/daylight-event-tools.js dashboard/daylight-sharing.js dashboard/daylight-manage.js dashboard/daylight-onboarding.js             dashboard/daylight-settings.js dashboard/daylight-integrations.js dashboard/daylight-places.js dashboard/daylight-places.css             dashboard/daylight-enhancements.js dashboard/daylight-oauth.js dashboard/daylight-banners.js; do
             test -s "_site/$f" || { echo "missing $f"; exit 1; }
           done
           test -d _site/assets/banners

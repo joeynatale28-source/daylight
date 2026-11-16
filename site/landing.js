@@ -292,4 +292,31 @@
     w.addEventListener('resize', function () { items.forEach(fit); });
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { items.forEach(fit); });
   });
+  /* Status: ONE small read of the cached summary per page load (the same read feeds the footer dot and the /status page),
+     refreshed at most every 5 minutes while the page is open. It never calls a ping address or a third-party source. */
+  var stFoot = [].slice.call(d.querySelectorAll('[data-status]')), stPage = d.getElementById('stGroups');
+  if ((stFoot.length || stPage) && w.fetch) {
+    var ST = { data: null, failed: false, subs: [], at: 0, busy: false };
+    var stLoad = function () {
+      if (ST.busy) return; ST.busy = true;
+      w.fetch('https://usihrcucnreecynewgbd.supabase.co/rest/v1/rpc/status_public', { method: 'POST', headers: { apikey: 'sb_publishable_rFlNj3ZOQtyO-CTftzUhwQ_l9dkfFjM', 'Content-Type': 'application/json' }, body: '{}', cache: 'no-store' })
+        .then(function (r) { if (!r.ok) throw new Error('status'); return r.json(); })
+        .then(function (j) { ST.data = j; ST.failed = false; })
+        .catch(function () { ST.failed = true; })
+        .then(function () { ST.busy = false; ST.at = Date.now(); ST.subs.forEach(function (f) { f(ST); }); });
+    };
+    w.dlStatus = { on: function (f) { ST.subs.push(f); if (ST.at) f(ST); } };
+    var LABEL = { operational: 'Servers up', degraded: 'Degraded', down: 'Servers down', maintenance: 'Maintenance', unknown: 'Status unavailable' };
+    w.dlStatus.on(function (s) {
+      var st = !s.data ? 'unknown' : (s.data.overall || 'unknown');
+      stFoot.forEach(function (a) {
+        a.setAttribute('data-state', st);
+        a.querySelector('span').textContent = LABEL[st] || LABEL.unknown;
+        a.classList.remove('pending');
+      });
+    });
+    stLoad();
+    setInterval(function () { if (!d.hidden) stLoad(); }, 300000);
+    d.addEventListener('visibilitychange', function () { if (!d.hidden && Date.now() - ST.at > 300000) stLoad(); });
+  }
 })();

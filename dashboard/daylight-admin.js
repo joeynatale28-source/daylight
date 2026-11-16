@@ -39,6 +39,12 @@
     ".dl-ad-preview .dl-banner{min-height:36px}",
     ".dl-ad-list-empty{font-size:13px;color:var(--faint);padding:6px 0 10px}",
     ".dl-ad-item{display:flex;align-items:center;gap:14px;padding:13px 0;border-top:1px solid var(--line-soft)}",
+    ".dl-mt-svcs{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:8px 14px}",
+    ".dl-mt-svcs label{display:flex;align-items:center;gap:8px;font-size:13.5px;cursor:pointer}",
+    ".dl-mt-grp{margin:12px 0 6px;font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}",
+    ".dl-mt-times{display:grid;grid-template-columns:1fr 1fr;gap:12px}",
+    ".dl-mt-tag{display:inline-block;margin-left:8px;padding:1px 8px;border-radius:99px;background:var(--surface2);font-size:11px;font-weight:600;color:var(--muted);vertical-align:1px}",
+    ".dl-mt-tag.live{background:#2563eb;color:#fff}",
     ".dl-ad-item:first-of-type{border-top:0}",
     ".dl-ad-item-text{flex:1;min-width:0}",
     ".dl-ad-item-title{font-size:14px;font-weight:550;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
@@ -365,5 +371,85 @@
       });
     }
     drawManage();
+
+    /* d) maintenance windows: shown on the public /status page the moment they are saved */
+    var mt = make('<div class="set-group"><div class="set-group-title">Maintenance</div>' +
+      '<p class="dl-ad-lead">Schedule a window for the services you pick. It appears on the public status page right away; while it is active those services show Maintenance and their checks do not count against uptime.</p>' +
+      '<div data-mt-form></div><div class="dl-ad-actions" data-mt-new><button type="button" class="btn-primary" data-mt-add>Schedule maintenance</button></div>' +
+      '<div data-mt-list style="margin-top:14px"><div class="dl-ad-list-empty">Loading…</div></div></div>');
+    pane.appendChild(mt);
+    var mtForm = mt.querySelector("[data-mt-form]"), mtList = mt.querySelector("[data-mt-list]"), mtNew = mt.querySelector("[data-mt-new]"), mtServices = null;
+    function toLocalInput(iso) { var d = new Date(iso); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 16); }
+    function esc2(t) { return String(t).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+    function mtError(e) {
+      var m = String((e && e.message) || "");
+      if (/Add a title|Pick at least|end must be after|Unknown service|no longer exists/i.test(m)) return m;
+      if (/not allowed/i.test(m)) return "Only the owner account can do this.";
+      return "Couldn’t save that. Check your connection and try again.";
+    }
+    async function openMtForm(w) {
+      if (!mtServices) { try { mtServices = (await call("status_admin_services")) || []; } catch (e) { mtServices = null; } }
+      if (!mtServices) { mtForm.innerHTML = ""; mtForm.appendChild(make('<div class="dl-ad-list-empty">Couldn’t load the service list.</div>')); return; }
+      var chosen = {}; ((w && w.services) || []).forEach(function (k) { chosen[k] = true; });
+      var groups = [], by = {}; mtServices.forEach(function (x) { if (!by[x.group]) { by[x.group] = []; groups.push(x.group); } by[x.group].push(x); });
+      var svcHtml = groups.map(function (g) { return '<div class="dl-mt-grp">' + esc2(g) + '</div><div class="dl-mt-svcs">' + by[g].map(function (x) { return '<label><input type="checkbox" value="' + esc2(x.key) + '"' + (chosen[x.key] ? " checked" : "") + '> ' + esc2(x.name) + "</label>"; }).join("") + "</div>"; }).join("");
+      var now = new Date(); now.setMinutes(0, 0, 0); now.setHours(now.getHours() + 1);
+      var later = new Date(now.getTime() + 3600000);
+      var f = make('<div class="dl-ad-edit" style="margin-bottom:18px;padding-bottom:18px;border-bottom:1px solid var(--line-soft)">' +
+        '<div class="dl-ad-field"><label for="mtTitle">Title</label><input class="text-input" id="mtTitle" maxlength="120" autocomplete="off" placeholder="What is being worked on?"></div>' +
+        '<div class="dl-ad-field"><label for="mtDesc">Description</label><textarea class="text-input" id="mtDesc" maxlength="600" placeholder="What people should expect"></textarea></div>' +
+        '<div class="dl-ad-field"><span class="dl-ad-label">Affected services</span>' + svcHtml + "</div>" +
+        '<div class="dl-mt-times"><div class="dl-ad-field"><label for="mtStart">Starts</label><input class="text-input" id="mtStart" type="datetime-local"></div><div class="dl-ad-field"><label for="mtEnd">Ends</label><input class="text-input" id="mtEnd" type="datetime-local"></div></div>' +
+        '<div class="dl-ad-status" role="status" aria-live="polite" data-mt-status></div>' +
+        '<div class="dl-ad-actions"><button type="button" class="btn-ghost" data-mt-cancel>Cancel</button><button type="button" class="btn-primary" data-mt-save style="margin-left:0">' + (w ? "Save changes" : "Save window") + "</button></div></div>");
+      f.querySelector("#mtTitle").value = w ? w.title : ""; f.querySelector("#mtDesc").value = w ? (w.description || "") : "";
+      f.querySelector("#mtStart").value = toLocalInput(w ? w.starts : now); f.querySelector("#mtEnd").value = toLocalInput(w ? w.ends : later);
+      mtForm.innerHTML = ""; mtForm.appendChild(f); mtNew.hidden = true;
+      var stt = f.querySelector("[data-mt-status]"), save = f.querySelector("[data-mt-save]");
+      var close = function () { mtForm.innerHTML = ""; mtNew.hidden = false; };
+      f.querySelector("[data-mt-cancel]").addEventListener("click", close);
+      save.addEventListener("click", async function () {
+        var picks = [].slice.call(f.querySelectorAll('input[type=checkbox]:checked')).map(function (i) { return i.value; });
+        var a = new Date(f.querySelector("#mtStart").value), b = new Date(f.querySelector("#mtEnd").value);
+        stt.className = "dl-ad-status is-warn";
+        if (!f.querySelector("#mtTitle").value.trim()) { stt.textContent = "Add a title."; return; }
+        if (!picks.length) { stt.textContent = "Pick at least one service."; return; }
+        if (isNaN(a) || isNaN(b) || b <= a) { stt.textContent = "The end must be after the start."; return; }
+        save.disabled = true; save.textContent = "Saving…"; stt.textContent = "";
+        try {
+          await call("status_admin_save_maintenance", { p_id: w ? w.id : null, p_title: f.querySelector("#mtTitle").value.trim(), p_description: f.querySelector("#mtDesc").value.trim(), p_services: picks, p_starts: a.toISOString(), p_ends: b.toISOString() });
+          close(); drawMt();
+        } catch (e) { stt.className = "dl-ad-status is-warn"; stt.textContent = mtError(e); save.disabled = false; save.textContent = w ? "Save changes" : "Save window"; }
+      });
+      setTimeout(function () { f.querySelector("#mtTitle").focus(); }, 0);
+    }
+    mt.querySelector("[data-mt-add]").addEventListener("click", function () { openMtForm(null); });
+    async function drawMt() {
+      var list = null;
+      try { list = (await call("status_admin_list_maintenance")) || []; } catch (e) { list = null; }
+      if (!mtList.isConnected) return;
+      mtList.innerHTML = "";
+      if (list === null) { mtList.appendChild(make('<div class="dl-ad-list-empty">Couldn’t load this list.</div>')); return; }
+      if (!list.length) { mtList.appendChild(make('<div class="dl-ad-list-empty">No maintenance windows yet.</div>')); return; }
+      var now = Date.now(), names = {}; (mtServices || []).forEach(function (x) { names[x.key] = x.name; });
+      var phase = function (w) { var a = new Date(w.starts), b = new Date(w.ends); return w.canceled ? "past" : now < a ? "upcoming" : now < b ? "active" : "past"; };
+      var order = { active: 0, upcoming: 1, past: 2 };
+      list.sort(function (x, y) { return order[phase(x)] - order[phase(y)] || (phase(x) === "past" ? new Date(y.starts) - new Date(x.starts) : new Date(x.starts) - new Date(y.starts)); });
+      list.forEach(function (w) {
+        var ph = phase(w);
+        var row = make('<div class="dl-ad-item"><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-meta"></div></div>' + (ph === "past" ? "" : '<button type="button" class="btn-ghost dl-btn-sm" data-edit>Edit</button><button type="button" class="btn-ghost dl-btn-sm" data-cancel>Cancel window</button>') + "</div>");
+        var tt = row.querySelector(".dl-ad-item-title"); tt.textContent = w.title;
+        var tag = document.createElement("span"); tag.className = "dl-mt-tag" + (ph === "active" ? " live" : ""); tag.textContent = w.canceled ? "Canceled" : ph === "active" ? "Active" : ph === "upcoming" ? "Upcoming" : "Past"; tt.appendChild(tag);
+        row.querySelector(".dl-ad-item-meta").textContent = (w.services || []).map(function (k) { return names[k] || k; }).join(", ") + " · " + when(w.starts) + " – " + when(w.ends);
+        if (ph !== "past") {
+          row.querySelector("[data-edit]").addEventListener("click", function () { openMtForm(w); });
+          var cb = row.querySelector("[data-cancel]");
+          cb.setAttribute("aria-label", "Cancel maintenance " + w.title);
+          removeRow(cb, { title: "Cancel this maintenance window?", body: "“" + w.title + "” is removed from the status page right away.", confirm: "Cancel window" }, "status_admin_cancel_maintenance", { p_id: w.id }, async function () { await drawMt(); });
+        }
+        mtList.appendChild(row);
+      });
+    }
+    (async function () { try { mtServices = (await call("status_admin_services")) || []; } catch (e) { mtServices = null; } drawMt(); })();
   };
 })();

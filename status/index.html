@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>System status — Daylight</title>
+<meta name="description" content="Live status of Daylight and the services it depends on.">
+<meta name="color-scheme" content="light dark">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 498 498'%3E%3Cstyle%3Epath%7Bfill:%23171717%7D@media(prefers-color-scheme:dark)%7Bpath%7Bfill:%23e0e0e0%7D%7D%3C/style%3E%3Cpath d='M100 326a149 149 0 0 1 298 0z'/%3E%3Cpath d='M36 339h426v12H36z'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,400;0,500;0,600;0,700;0,800;1,700&display=swap">
+<link rel="stylesheet" href="../site/landing.css?v=__BUILD_ID__">
+</head>
+<body>
+
+<div class="banners" id="banners" role="region" aria-label="Announcements"></div>
+
+<header class="nav" id="nav">
+  <div class="bar"><div class="bar-in">
+    <a class="brand" href="../" aria-label="Daylight home"><svg class="mark" viewBox="0 0 498 498" aria-hidden="true"><path fill="currentColor" d="M100 326a149 149 0 0 1 298 0z"/><path fill="currentColor" d="M36 339h426v12H36z"/></svg><span>Daylight</span></a>
+    <nav class="links" aria-label="Primary"><a href="../#features">Features</a><a href="../#sharing">Sharing</a><a href="../#ai">AI access</a><a href="../#faq">FAQ</a></nav>
+    <div class="right">
+      <a class="btn btn-p btn-nav" href="../login/">Open Daylight</a>
+      <button class="menu" id="menu" type="button" aria-expanded="false" aria-controls="panel" aria-label="Open menu"><i></i><i></i></button>
+    </div>
+  </div></div>
+  <div class="panel" id="panel">
+    <a class="pl" style="--i:0" href="../#features">Features</a>
+    <a class="pl" style="--i:1" href="../#sharing">Sharing</a>
+    <a class="pl" style="--i:2" href="../#ai">AI access</a>
+    <a class="pl" style="--i:3" href="../#faq">FAQ</a>
+    <a class="btn btn-p" style="--i:4" href="../login/">Open Daylight</a>
+  </div>
+</header>
+
+<main class="st">
+  <div class="wrap">
+    <header class="st-head">
+      <p class="st-eyebrow">System status</p>
+      <h1 class="st-title" id="stTitle" data-state="unknown"><i class="sdot" aria-hidden="true"></i><span>Checking status</span></h1>
+      <p class="st-sub" id="stSub">Reading the latest checks.</p>
+      <p class="st-upd" id="stUpd"></p>
+    </header>
+    <div class="st-stats" id="stStats" hidden>
+      <div class="st-stat"><span>Uptime</span><b id="sUp">—</b><small>30-day average</small></div>
+      <div class="st-stat"><span>Services</span><b id="sSv">—</b><small>operational</small></div>
+      <div class="st-stat"><span>Avg response</span><b id="sMs">—</b><small>across services</small></div>
+      <div class="st-stat"><span>Incidents</span><b id="sIn">—</b><small id="sInS">last 30 days</small></div>
+    </div>
+    <div id="stGroups"></div>
+    <noscript><p class="st-empty">Status needs JavaScript to load the latest checks.</p></noscript>
+    <section class="st-sec" id="stMaintSec" hidden>
+      <h2>Scheduled maintenance</h2>
+      <div class="st-list" id="stMaint"></div>
+    </section>
+    <section class="st-sec" id="stIncSec" hidden>
+      <h2>Past incidents</h2>
+      <div class="st-list" id="stInc"></div>
+    </section>
+    <p class="st-region" id="stRegion"></p>
+  </div>
+  <div class="st-tip" id="stTip" role="tooltip" hidden></div>
+</main>
+
+<footer class="foot"><div class="ft-in"><div class="ft-main"><div class="ft-brand"><div><a class="brand" href="../"><svg class="mark" viewBox="0 0 498 498" aria-hidden="true"><path fill="currentColor" d="M100 326a149 149 0 0 1 298 0z"/><path fill="currentColor" d="M36 339h426v12H36z"/></svg><span>Daylight</span></a><p class="ft-tag">Your calendar, minus the clutter.</p><p class="ft-desc">A free calendar in your browser. No install, no card, no ads.</p><a class="ft-status pending" href="../status/" data-status data-state="unknown"><i class="sdot" aria-hidden="true"></i><span>Status unavailable</span></a></div><span class="ft-copy">© 2026 Daylight. All rights reserved.</span></div><div class="ft-cols"><div><h3>Product</h3><ul><li><a href="../login/">Open Daylight</a></li><li><a href="../#features">Features</a></li><li><a href="../#ai">AI access</a></li></ul></div><div><h3>Explore</h3><ul><li><a href="../#views">Views</a></li><li><a href="../#sharing">Sharing</a></li><li><a href="../#events">Events</a></li><li><a href="../#tasks">Tasks</a></li></ul></div><div><h3>Resources</h3><ul><li><a href="../#faq">FAQ</a></li><li><a href="../privacy/">Privacy</a></li><li><a href="../tos/">Terms</a></li></ul></div></div><a class="ft-top" href="#top" data-top>Back to top ↑&#xFE0E;</a></div></div></footer>
+<script src="../site/landing.js?v=__BUILD_ID__"></script>
+<script src="../site/status.js?v=__BUILD_ID__"></script>
+</body>
+</html>
