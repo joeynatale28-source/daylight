@@ -87,9 +87,16 @@
     w.addEventListener('load', size);
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(size);
     if ('ResizeObserver' in w) new ResizeObserver(size).observe(nav); else w.addEventListener('resize', size);
+    var lastY = 0, lockUntil = 0;
     var onScroll = function () {
-      nav.classList.toggle('is-pill', (w.pageYOffset || root.scrollTop || 0) > 8);
+      var y = w.pageYOffset || root.scrollTop || 0;
+      nav.classList.toggle('is-pill', y > 8);
+      var dy = y - lastY; lastY = y;
+      if (y < 200 || nav.classList.contains('open') || Date.now() < lockUntil) nav.classList.remove('hide');
+      else if (dy > 4) nav.classList.add('hide');
+      else if (dy < -4) nav.classList.remove('hide');
     };
+    d.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('.links a, #panel a, .foot a, [data-top]')) lockUntil = Date.now() + 1600; });
     w.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
@@ -129,7 +136,7 @@
     }, 2600);
   }
 
-  /* Feature carousel. Twelve equal cards, five on screen: three sharp in the middle, one blurred and set back on each side.
+  /* Feature carousel. Twelve equal cards, three on screen (two on tablet, one on phone), all sharp; the row is clipped to exactly those cards.
      Every 4.5 seconds the whole row slides one card to the right (the next card enters from the left), forever. Copies of the cards
      sit on both ends of the row, so after card 12 the row simply keeps going and card 1 follows with the identical motion; the reset
      to the real cards happens while the picture is identical, so the wrap cannot be seen. Nothing moves inside a panel. */
@@ -140,14 +147,12 @@
     var per = 3, buf = 4, pos = 0, timer = 0, hover = false, g = 24, cardW = 0, offX = 0, busy = false, pending = null;
     var motionOff = reduce.matches, clones = [], lastPer = 0;
     function perView() { var wd = root.clientWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
-    /* one size for every card: the middle group is centered and leaves room for a peek of the side cards */
+    /* exactly the cards in view fill the row: equal columns, no peeking cards, nothing blurred */
     function size() {
-      var vw = root.clientWidth, viewW = view.clientWidth;
-      var peek = vw >= 960 ? 48 : vw >= 600 ? 36 : 26;
-      g = vw >= 768 ? 24 : 16;
-      var group = Math.min(viewW, vw - 2 * (peek + g));
-      cardW = (group - (per - 1) * g) / per;
-      offX = (viewW - group) / 2;
+      var viewW = view.clientWidth;
+      g = root.clientWidth >= 768 ? 24 : 16;
+      cardW = (viewW - (per - 1) * g) / per;
+      offX = 0;
       track.style.setProperty('--cw', cardW + 'px');
       track.style.columnGap = g + 'px';
       /* equal heights: every description gets the room of the longest one */
@@ -156,15 +161,7 @@
       var tallest = 0; originals.forEach(function (c) { tallest = Math.max(tallest, c.querySelector(':scope > p').getBoundingClientRect().height); });
       all.forEach(function (p) { p.style.minHeight = tallest + 'px'; });
     }
-    function shape() {
-      [].slice.call(track.children).forEach(function (k, i) {
-        var l = i < buf + pos, r = i >= buf + pos + per;
-        k.classList.toggle('side', l || r);
-        k.classList.toggle('sl', l);
-        k.classList.toggle('sr', r);
-        k.classList.toggle('far', i < buf + pos - 1 || i > buf + pos + per);
-      });
-    }
+    function shape() {}
     function place(animate) {
       track.classList.toggle('go', !!animate && !motionOff);
       track.classList.toggle('still', !animate || motionOff);
@@ -223,16 +220,27 @@
     }
   }
 
-  /* Feature sections: animations play while a section is on screen and pause (keeping their place) when it is not. */
+  /* Feature sections: each animation starts from its beginning when its section first scrolls into view, pauses (keeping its place)
+     when the section leaves, and resumes where it left off. */
   var fxs = [].slice.call(d.querySelectorAll('.fx'));
   if (fxs.length) {
+    var anims = function (s) { return [].slice.call(s.querySelectorAll('.fxp *')).reduce(function (all, e) { return all.concat(e.getAnimations ? e.getAnimations() : []); }, []); };
+    var started = new WeakSet();
     if ('IntersectionObserver' in w) {
-      var fxio = new IntersectionObserver(function (es) { es.forEach(function (e) { e.target.classList.toggle('on', e.isIntersecting); }); }, { threshold: 0.2 });
+      var fxio = new IntersectionObserver(function (es) {
+        es.forEach(function (e) {
+          var s = e.target;
+          if (e.intersectionRatio >= 0.3) {
+            if (!started.has(s)) { started.add(s); anims(s).forEach(function (a) { try { a.currentTime = 0; } catch (x) {} }); }
+            s.classList.add('on');
+          } else if (!e.isIntersecting) s.classList.remove('on');
+        });
+      }, { threshold: [0, 0.3] });
       fxs.forEach(function (s) { fxio.observe(s); });
     } else fxs.forEach(function (s) { s.classList.add('on'); });
   }
 
-  /* Scroll reveals: fade + rise 8px, 250ms, 40ms stagger. Content is visible by default: nothing is hidden
+  /* Scroll reveals: a fade and rise (28px, 700ms), children one after another. Content is visible by default: nothing is hidden
      in CSS, anything on screen at load is left alone, and a timer always forces the finished state. */
   if (!reduce.matches && 'IntersectionObserver' in w && typeof Element.prototype.animate === 'function') {
     var first = true;
@@ -246,15 +254,15 @@
         var els = group.hasAttribute('data-stagger') ? [].slice.call(group.children) : [group];
         var anims = els.map(function (el, n) {
           try {
-            return el.animate([{ offset: 0, opacity: 0, translate: '0 8px' }],
-              { duration: 250, delay: Math.min(n, 5) * 40, easing: EASE, fill: 'backwards' });
+            return el.animate([{ offset: 0, opacity: 0, translate: '0 28px' }],
+              { duration: 700, delay: Math.min(n, 5) * 110, easing: EASE, fill: 'backwards' });
           } catch (e) { return null; }
         });
         setTimeout(function () {
           anims.forEach(function (an) { try { if (an && an.playState !== 'finished') an.finish(); } catch (e) {} });
-        }, 700);
+        }, 1600);
       });
-    }, { threshold: 0.1 });
+    }, { threshold: 0.12 });
     [].forEach.call(d.querySelectorAll('[data-reveal]'), function (el) { io.observe(el); });
   }
 })();
