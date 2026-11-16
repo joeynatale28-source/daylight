@@ -133,15 +133,20 @@
      Every 4.5 seconds the whole row moves one card to the right, forever. Nothing moves inside a panel. */
   var track = d.getElementById('carTrack');
   if (track) {
-    var view = track.parentNode, dots = d.getElementById('carDots');
+    var view = track.parentNode;
     var originals = [].slice.call(track.children), N = originals.length, per = 3, buf = 4, pos = 0, timer = 0, hover = false, gap = 24, busy = false;
     var motionOff = reduce.matches, clones = [], lastPer = 0;
     function perView() { var wd = w.innerWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
     function cardStep() { return originals[0].getBoundingClientRect().width + gap; }
     function shape() {
-      var kids = [].slice.call(track.children);
-      kids.forEach(function (k, i) { k.classList.toggle('side', i < buf + pos || i >= buf + pos + per); });
-      [].forEach.call(dots.children, function (b, i) { b.setAttribute('aria-selected', i === ((pos % N) + N) % N ? 'true' : 'false'); });
+      /* one card on each side is blurred and set back; everything farther out is hidden until it is next to come in */
+      [].slice.call(track.children).forEach(function (k, i) {
+        var l = i < buf + pos, r = i >= buf + pos + per;
+        k.classList.toggle('side', l || r);
+        k.classList.toggle('sl', l);
+        k.classList.toggle('sr', r);
+        k.classList.toggle('far', i < buf + pos - 1 || i > buf + pos + per);
+      });
     }
     function place(animate) {
       track.classList.toggle('go', !!animate && !motionOff);
@@ -162,13 +167,6 @@
       /* the clones before the row were inserted in order, so put them back in sequence */
       var before = clones.filter(function (n, i) { return i % 2 === 0; });
       before.forEach(function (n) { track.insertBefore(n, originals[0]); });
-      dots.textContent = '';
-      for (var p = 0; p < N; p++) {
-        (function (p) {
-          var b = d.createElement('button'); b.type = 'button'; b.className = 'car-dot'; b.setAttribute('role', 'tab'); b.setAttribute('aria-label', 'Show card ' + (p + 1));
-          b.addEventListener('click', function () { pos = p; place(true); restart(); }); dots.appendChild(b);
-        })(p);
-      }
       if (pos >= N || pos < 0) pos = 0;
       place(false);
     }

@@ -124,19 +124,18 @@ button{font:inherit;color:inherit}
 .feat{overflow-x:clip}
 .car-view{position:relative}
 .car-track{display:flex;gap:var(--gap-c);will-change:transform}
-.car-track.go{transition:transform 1100ms var(--ease)}
-.fcard{transition:translate 240ms var(--ease),filter 1100ms var(--ease),opacity 1100ms var(--ease)}
-.fcard.side{filter:blur(7px);opacity:.55;pointer-events:none}
+.car-track.go{transition:transform 1300ms cubic-bezier(0.45,0,0.15,1)}
+.fcard{transition:translate 240ms var(--ease),filter 1300ms cubic-bezier(0.45,0,0.15,1),opacity 1300ms cubic-bezier(0.45,0,0.15,1),scale 1300ms cubic-bezier(0.45,0,0.15,1)}
+.fcard.side{filter:blur(6px);opacity:.5;scale:.93;pointer-events:none}
+.fcard.sl{transform-origin:100% 40%}
+.fcard.sr{transform-origin:0 40%}
+.fcard.far{opacity:0;visibility:hidden}
 .car-track.still .fcard{transition:translate 240ms var(--ease)}
 .fcard{flex:0 0 calc((100% - (var(--per,3) - 1) * var(--gap-c)) / var(--per,3));min-width:0;scroll-margin-top:80px}
 .fcard:hover{translate:0 -4px}
 .fcard h3{margin:20px 4px 8px;font-size:20px;font-weight:700;letter-spacing:-0.02em;line-height:1.25}
 .fcard p{margin:0 4px;color:var(--muted);font-size:15.5px;line-height:1.55}
 .fpanel{position:relative;aspect-ratio:4/3;overflow:hidden;border-radius:24px;background:var(--theme-card);container-type:inline-size}
-.car-nav{display:flex;align-items:center;justify-content:center;gap:16px;margin-top:36px}
-.car-dots{display:flex;gap:8px;align-items:center}
-.car-dot{width:8px;height:8px;padding:0;border:0;border-radius:50%;background:var(--ghost);cursor:pointer;transition:background-color 200ms linear,transform 200ms var(--ease)}
-.car-dot[aria-selected=true]{background:var(--text);transform:scale(1.25)}
 
 /* mockups: drawn in code at the app's own scale; one em is 1/40 of the panel, so every mockup fills its panel at any width */
 .mk{--surface:#f3f3f3;--mkbg:#ffffff;position:absolute;inset:2.1em;display:flex;flex-direction:column;padding:1.5em;overflow:hidden;font-size:calc(100cqw / 42);line-height:1.25;color:var(--text);background:var(--mkbg);border-radius:1.5em;box-shadow:0 .5em 2em rgba(0,0,0,.07),0 .1em .3em rgba(0,0,0,.04)}
