@@ -130,7 +130,7 @@
   if (track) {
     var view = track.parentNode, root = d.documentElement;
     var originals = [].slice.call(track.children), N = originals.length;
-    var per = 3, buf = 4, pos = 0, timer = 0, hover = false, g = 24, cardW = 0, offX = 0, busy = false, pending = null;
+    var per = 3, buf = 4, pos = 0, timer = 0, g = 24, cardW = 0, offX = 0, busy = false, pending = null;
     var motionOff = reduce.matches, clones = [], lastPer = 0;
     function perView() { var wd = root.clientWidth; return wd >= 960 ? 3 : wd >= 600 ? 2 : 1; }
     /* exactly the cards in view fill the row: equal columns, no peeking cards, nothing blurred */
@@ -172,21 +172,20 @@
       busy = false; pending = null;
       if (pos >= N) { pos = 0; place(false); }   /* identical picture: the copy of card 1 -> the real card 1 */
     }
-    function over() { try { return fine && view.matches(':hover'); } catch (e) { return false; } }   /* touch screens have no real hover: a tap must never leave the row paused */
+    /* It starts on its own when the page loads and never stops: nothing pauses it (not scroll position, hover, focus, a hidden tab or the
+       motion setting; with reduced motion the row simply jumps instead of sliding). A watchdog restarts it if a timer was ever lost. */
+    var lastAdv = Date.now();
     function advance() {
-      if (busy) return;
-      if (over()) { restart(); return; }          /* the pointer is on the cards: wait, then check again */
-      busy = true; pos += 1; place(true);           /* the row slides left: the next card enters from the right */
+      if (busy && Date.now() - lastAdv < 2500) return;     /* a slide is still in progress */
+      busy = true; lastAdv = Date.now(); pos += 1; place(true);   /* the row slides left: the next card enters from the right */
       restart();                                    /* the next move starts 4.5s after this one, so every rest is the same length */
       var onEnd = function (e) { if (e.target === track) { track.removeEventListener('transitionend', onEnd); finish(); } };
       pending = function () { track.removeEventListener('transitionend', onEnd); finish(); };
       if (motionOff) pending(); else { track.addEventListener('transitionend', onEnd); setTimeout(function () { if (busy) pending(); }, 1100); }
     }
-    var inView = false, fine = !!(w.matchMedia && w.matchMedia('(hover: hover) and (pointer: fine)').matches);
-    function restart() { clearTimeout(timer); if (!motionOff && !d.hidden && inView) timer = setTimeout(advance, 4500); }
-    var sec = d.getElementById('features');
-    view.addEventListener('mouseleave', function () { if (!busy) restart(); });
-    d.addEventListener('visibilitychange', function () { if (!d.hidden && pending) pending(); restart(); });
+    function restart() { clearTimeout(timer); timer = setTimeout(advance, 4500); }
+    d.addEventListener('visibilitychange', function () { if (pending) pending(); if (Date.now() - lastAdv > 4500) { busy = false; advance(); } });
+    setInterval(function () { if (Date.now() - lastAdv > 6500) { busy = false; advance(); } }, 1000);
     w.addEventListener('resize', function () {
       if (perView() !== lastPer) { lastPer = perView(); pos = 0; busy = false; build(); }
       else { size(); place(false); }
@@ -194,17 +193,9 @@
     });
     if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { size(); place(false); });
     w.addEventListener('load', function () { size(); place(false); });
-    if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; restart(); });
+    if (reduce.addEventListener) reduce.addEventListener('change', function () { motionOff = reduce.matches; });
     lastPer = perView(); pos = 0; build();
-    /* it waits at card 1 until the section is on screen, then advances every 4.5s; it stops while the section is off screen */
-    if ('IntersectionObserver' in w) {
-      /* watch the row of cards itself (not the tall section around it): on a phone the section can never be 30% visible */
-      new IntersectionObserver(function (es) {
-        var e = es[es.length - 1];
-        if (e.isIntersecting && !inView) { inView = true; restart(); }
-        else if (!e.isIntersecting && inView) { inView = false; clearTimeout(timer); }
-      }, { threshold: [0, 0.2] }).observe(view);
-    } else { inView = true; restart(); }
+    restart();
   }
 
   /* Feature sections: each animation starts from its first frame when its section scrolls into view, pauses when it leaves,
