@@ -57,7 +57,7 @@
     var m = Math.round((Date.now() - d.getTime()) / 60000);
     if (m < 2) return "just now"; if (m < 60) return m + " minutes ago";
     var h = Math.round(m / 60); if (h < 24) return h + (h === 1 ? " hour ago" : " hours ago");
-    return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   }
   function level(g) { return g.can_delete ? "Read, write and delete" : g.can_write ? "Read and write" : "Read only"; }
   function tile(ai, small) {
@@ -158,7 +158,7 @@
         actions.appendChild(b);
       } else {
         /* never contradicts the activity log: a past connection that was disconnected says so, with when it was last used */
-        sub.textContent = lastAt ? "Not connected · Disconnected · Last activity " + ago(lastAt) : "Not connected";
+        sub.textContent = lastAt ? "Disconnected · Last activity " + ago(lastAt) : "Not connected yet";
         var c = make('<button type="button" class="btn-ghost dl-btn-sm">Connect</button>');
         c.addEventListener("click", function () { openConnect(ai); });
         actions.appendChild(c);

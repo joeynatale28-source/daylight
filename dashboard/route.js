@@ -32,6 +32,7 @@
   if (route !== "dashboard" && typeof transitionAuthTo === "function") {
     var baseTransition = transitionAuthTo;
     transitionAuthTo = function (root, newMode) {
+      if ((newMode === "login" || newMode === "signup") && authState.mode !== newMode) authState.dropPw = true;
       baseTransition.apply(this, arguments);
       try {
         if (newMode === "login" || newMode === "signup") {

@@ -91,6 +91,24 @@
     w.addEventListener('scroll', onScroll, { passive: true });
     onScroll();
 
+    /* A heading never comes to rest under the pill: once scrolling stops, a heading the pill is covering is nudged just below it. */
+    var settle = 0;
+    var heads = function () { return [].slice.call(d.querySelectorAll('main h1, main h2, .fx-text h2, .qa-q')); };
+    var nudge = function () {
+      var bar = nav.querySelector('.bar'); if (!bar || !nav.classList.contains('is-pill') || nav.classList.contains('open')) return;
+      var pr = bar.getBoundingClientRect(), pb = pr.bottom + 12;
+      var hs = heads();
+      for (var i = 0; i < hs.length; i++) {
+        var r = hs[i].getBoundingClientRect();
+        if (r.bottom < pr.top + 6 || r.top > pb) continue;                       /* clear of the pill */
+        if (r.right < pr.left || r.left > pr.right) continue;                     /* beside the pill, not under it */
+        if (r.top >= pr.bottom + 4) continue;
+        w.scrollBy({ top: r.top - pb, behavior: 'smooth' });
+        return;
+      }
+    };
+    w.addEventListener('scroll', function () { clearTimeout(settle); settle = setTimeout(nudge, 220); }, { passive: true });
+
     if (menu && panel) {
       var setOpen = function (o) {
         nav.classList.toggle('open', o);
@@ -207,6 +225,26 @@
       }, { threshold: [0, 0.3] });
       fxs.forEach(function (s) { fxio.observe(s); });
     } else fxs.forEach(function (s) { s.classList.add('on'); });
+  }
+  /* AI access scene: a timer, not the animation clock, moves it along: Checking for ~2.6s, then the answer for ~2.6s, then around again.
+     It starts from "Checking" each time the section comes into view and stops when it leaves. */
+  var aiSec = d.getElementById('ai'), aiScene = aiSec && aiSec.querySelector('.sc1'), aiT = [];
+  if (aiScene) {
+    var aiStop = function () { aiT.forEach(clearTimeout); aiT = []; };
+    var aiRun = function () {
+      aiStop(); aiScene.classList.remove('ans');
+      aiT.push(setTimeout(function () { aiScene.classList.add('ans'); }, 2600));
+      aiT.push(setTimeout(function () { aiScene.classList.remove('ans'); }, 5400));
+      aiT.push(setTimeout(aiRun, 5800));
+    };
+    if (reduce.matches) aiScene.classList.add('ans');
+    else if ('IntersectionObserver' in w) {
+      new IntersectionObserver(function (es) {
+        var e = es[0];
+        if (e.intersectionRatio >= 0.3 && !aiSec._aiOn) { aiSec._aiOn = true; aiRun(); }
+        else if (!e.isIntersecting && aiSec._aiOn) { aiSec._aiOn = false; aiStop(); aiScene.classList.remove('ans'); }
+      }, { threshold: [0, 0.3] }).observe(aiSec);
+    } else aiScene.classList.add('ans');
   }
   /* typing is keystroke by keystroke, locked to the animation clock so it loops with the scene */
   if (typers.length && !reduce.matches) {

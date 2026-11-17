@@ -284,17 +284,19 @@ button{font:inherit;color:inherit}
 .sc1 .ub{align-self:flex-end;padding:.8em 1.3em;border-radius:1.4em 1.4em .4em 1.4em;background:var(--surface);font-size:1.25em;font-weight:500;animation:s1in .4s var(--e) both}
 .sc1 .statline{position:relative;height:2em;margin-top:1.1em;font-size:1.2em}
 .sc1 .statline span{position:absolute;left:0;top:0;white-space:nowrap;line-height:2em}
-.sc1 .k1{color:var(--muted);animation:s1k1 6s var(--e) infinite both}
-.sc1 .k2{color:var(--text);font-weight:600;font-size:.92em;opacity:0;animation:s1k2 6s var(--e) infinite both}
+.sc1 .k1{color:var(--muted);opacity:1;transition:opacity 300ms var(--e)}
+.sc1 .k2{color:var(--text);font-weight:600;font-size:.92em;opacity:0;transition:opacity 300ms var(--e)}
 .sc1 .stage{position:relative;flex:1;min-height:0;margin-top:.9em}
-.sc1 .cals{position:absolute;inset:0;display:flex;flex-direction:column;gap:.7em;animation:s1cr 6s var(--e) infinite both}
+.sc1 .cals{position:absolute;inset:0;display:flex;flex-direction:column;gap:.7em;opacity:1;transition:opacity 300ms var(--e)}
 .sc1 .cr{flex:1;display:flex;align-items:center;gap:1em;padding:0 1.2em;border-radius:1em;background:var(--surface);font-size:1.2em}
 .sc1 .cr i{flex:none;width:.9em;height:.9em;border-radius:50%}
 .sc1 .cr b{flex:1;font-weight:600}
 .sc1 .cr .rs{flex:none;width:1.1em;height:1.1em;border-radius:50%;border:.17em solid var(--ghost);border-top-color:var(--text);animation:spin .8s linear infinite}
 .sc1 .dayv{position:absolute;inset:0;display:flex;flex-direction:column;gap:.7em}
-.sc1 .drow{display:flex;align-items:stretch;gap:1em;flex:1;min-height:0;opacity:0}
-.sc1 .dr0{animation:s1dr0 6s var(--e) infinite both}.sc1 .dr1{animation:s1dr1 6s var(--e) infinite both}.sc1 .dr2{animation:s1dr2 6s var(--e) infinite both}
+.sc1 .drow{display:flex;align-items:stretch;gap:1em;flex:1;min-height:0;opacity:0;transition:opacity 300ms var(--e)}
+.sc1.ans .k1,.sc1.ans .cals{opacity:0}
+.sc1.ans .k2,.sc1.ans .drow{opacity:1}
+.sc1.ans .dr1{transition-delay:60ms}.sc1.ans .dr2{transition-delay:120ms}
 .sc1 .tm{align-self:center;flex:none;width:3.6em;font-size:.95em;font-weight:600;color:var(--faint)}
 .sc1 .dev{flex:1;display:flex;flex-direction:column;justify-content:center;padding:.5em 1em;border-radius:.9em;border-left:.3em solid var(--c);background:color-mix(in srgb,var(--c) 14%,var(--mkbg))}
 .sc1 .dev b{display:block;font-size:1.15em;font-weight:600}
@@ -707,3 +709,7 @@ button{font:inherit;color:inherit}
 .st-item{border:1px solid var(--line);background:var(--card);border-radius:20px}
 .st-empty{border:1px solid var(--line);background:var(--card);border-radius:20px}
 .st-chips span{background:var(--surface)}
+
+/* even rhythm: every feature text column is the same height and starts at the same line, so the gaps between sections read the same */
+@media (min-width:768px){.fx-text{display:flex;flex-direction:column;justify-content:flex-start;align-self:center;min-height:372px}}
+html{scroll-padding-top:84px}

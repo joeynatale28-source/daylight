@@ -80,14 +80,14 @@ for(const theme of ['dark','light']){
   // ---- Create account
   await go('#authToSignup');
   const su=await page.evaluate(()=>({h:document.querySelector('.auth-headline').textContent,fields:[...document.querySelectorAll('.auth-pill-label')].map(n=>n.textContent),btn:document.querySelector('.auth-primary').textContent,footer:(document.querySelector('.auth-footer-row')||{}).textContent,pills:[...document.querySelectorAll('.auth-methods .auth-social')].length}));
-  check(T('Create account page: Email and Password only (the name is asked for after sign-in), its own footer, Google and the passkey'),su.h==='Create account'&&su.fields.join()==='Email,Password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===2,JSON.stringify(su));
+  check(T('Create account page: Email, Password and Confirm password (the name is asked for after sign-in), its own footer, Google and the passkey'),su.h==='Create account'&&su.fields.join()==='Email,Password,Confirm password'&&su.btn==='Create account'&&/Already have an account\?\s*Sign in/.test(su.footer)&&su.pills===2,JSON.stringify(su));
   await shot('5-signup');
   await page.click('.auth-primary');await sleep(300);
   check(T('empty fields are flagged and nothing is sent'),(await calls()).filter(x=>x.fn==='signUp').length===0&&(await page.evaluate(()=>document.querySelectorAll('.auth-pill.err').length))>=1);
   await page.$eval('#authEmail',n=>{n.value=''});await page.type('#authEmail','ada@example.com');await page.type('#authPassword','weak');
   await page.click('.auth-primary');await sleep(300);
   check(T('a weak password is refused by the rules before anything is sent'),(await calls()).filter(x=>x.fn==='signUp').length===0);
-  await page.$eval('#authPassword',n=>{n.value=''});await page.type('#authPassword','Str0ng!Passw0rd');
+  await page.$eval('#authPassword',n=>{n.value=''});await page.type('#authPassword','Str0ng!Passw0rd');await page.type('#authConfirmPw2','Str0ng!Passw0rd');
   await page.evaluate(()=>{window.__signUpMode='closed'});
   await page.click('.auth-primary');await sleep(800);
   check(T('sign-ups switched off in Supabase says so politely'),/New accounts aren’t open yet/.test(await text('.auth-msg.is-error')||''),JSON.stringify(await page.evaluate(()=>({c:window.__authCalls.slice(-2),msg:(document.querySelector('.auth-msg')||{}).textContent,pw:document.querySelector('#authPassword').value,errs:[...document.querySelectorAll('.auth-error')].map(n=>n.textContent)}))));

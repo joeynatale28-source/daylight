@@ -537,6 +537,13 @@
         if (m) return Date.UTC(+m[1],+m[2]-1,+m[3],+(m[4]||0),+(m[5]||0),+(m[6]||0));
         return +new Date(value);
       }
+      /* The repeat frequency of an event, from its repeat field or from its iCal rule ("daily" | "weekly" | "monthly" | "yearly" | null). */
+      function effRepeat(ev) {
+        if (!ev || ev.recurrenceId) return null;
+        if (ev.repeat) return ev.repeat;
+        var m = String(ev.rrule || "").match(/(?:^|;)FREQ=(DAILY|WEEKLY|MONTHLY|YEARLY)(?:;|$)/i);
+        return m ? m[1].toLowerCase() : null;
+      }
       function occurrences(ev, rs, re) {
         var out = [];
         if (String(ev.status||"").toUpperCase()==="CANCELLED") return out;
@@ -1448,6 +1455,8 @@
            either. Only an explicit click on a mini date jumps the main view
            to that date (a deliberate pick, not browsing). */
         var wrap = el('<div class="rail-hide" id="miniWrap"></div>');
+        var mainMonth = state.cursor.getFullYear() * 12 + state.cursor.getMonth();
+        if (state._miniFollow !== mainMonth) { state._miniFollow = mainMonth; state.miniCursor = dt(state.cursor.getFullYear(), state.cursor.getMonth(), 1); }   /* tracks the main view's month */
         var mc = state.miniCursor;
         var head = el('<div class="mini-head"><span class="mini-title">' + MONTHS[mc.getMonth()] + " " + mc.getFullYear() + '</span><span class="mini-navs"><button class="mini-nav" title="Previous month" aria-label="Previous month">' + icon("chevL", 14) + '</button><button class="mini-nav" title="Next month" aria-label="Next month">' + icon("chevR", 14) + "</button></span></div>");
         var navs = head.querySelectorAll(".mini-nav");
@@ -1530,7 +1539,7 @@
             (isDay ? "" : '<button class="icon-btn" id="tbPrev" title="' + prevName + '" aria-label="' + prevName + '">' + icon("chevL", 17) + "</button>") +
             '<span class="month-title' + (isDay ? " is-day" : (isAgenda ? " is-range" : "")) + '" id="tbMonth">' + esc(label) + "</span>" +
             (isDay ? "" : '<button class="icon-btn" id="tbNext" title="' + nextName + '" aria-label="' + nextName + '">' + icon("chevR", 17) + "</button>") +
-            '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + "</button>" +
+            '<button class="icon-btn today-btn" id="tbToday" title="Back to today" aria-label="Back to today">' + icon("calendarDot", 19) + '<span class="today-label">Today</span></button>' +
           "</div>");
           /* the arrows move by the unit the header names: a day, a week, the agenda's three-week period, or a month */
           function pageHeader(dir) { if (state.view === "day") pageDay(dir); else if (state.view === "week" || state.view === "agenda") pageBy(dir, true); else pageMonth(dir); }
@@ -1691,16 +1700,30 @@
           var p=target.split("-").map(Number),day=new Date(p[0],p[1]-1,p[2]),occStart=dragOccurrenceStart?new Date(dragOccurrenceStart):new Date(ev.start),delta=sod(day).getTime()-sod(occStart).getTime();
           function move(scope){
             if(scope==="only"){ev.uid=ev.uid||("daylight-"+ev.id);var copy=Object.assign({},ev,{id:++uid,recurrenceId:occStart,repeat:null,exdates:[],start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start))});state.events.push(copy);ev.exdates=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates.push(occStart.toISOString())}
-            else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,ev.repeat).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start)),repeatEnd:null}))}
+            else if(scope==="following"){ev.repeatEnd=previousRepeatOccurrence(occStart,effRepeat(ev)).toISOString();state.events.push(Object.assign({},ev,{id:++uid,start:new Date(occStart.getTime()+delta),end:new Date(occStart.getTime()+delta+(ev.end-ev.start)),repeatEnd:null}))}
             else{ev.start=new Date(ev.start.getTime()+delta);ev.end=new Date(ev.end.getTime()+delta)}
             renderAll(false);toast("Event moved");
           }
-          if(ev.repeat&&occStart.getTime()!==ev.start.getTime())chooseRepeatScope("Move repeating event","Choose which occurrences to move.",move);else move("all");
+          if(effRepeat(ev)&&occStart.getTime()!==ev.start.getTime())chooseRepeatScope("Move repeating event","Choose which occurrences to move.",move);else move("all");
           dragEventId=null;dragOccurrenceStart=null;
         });
         var monthTouchStart=null;
         viewWrap.addEventListener("touchstart",function(e){if(state.section==="calendar"&&state.view==="month"&&e.touches.length===1)monthTouchStart={x:e.touches[0].clientX,y:e.touches[0].clientY}},{passive:true});
         viewWrap.addEventListener("touchend",function(e){if(!monthTouchStart||state.section!=="calendar"||state.view!=="month")return;var dx=e.changedTouches[0].clientX-monthTouchStart.x,dy=e.changedTouches[0].clientY-monthTouchStart.y;monthTouchStart=null;if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.25)pageBy(dx<0?1:-1,true)},{passive:true});
+        var monthDrag=null,swiped=false;
+        viewWrap.addEventListener("pointerdown",function(e){
+          if(e.pointerType==="touch"||e.button!==0||state.section!=="calendar"||state.view!=="month")return;
+          if(e.target.closest(".chip,.dl-continuous-bar,.more-link,button,a,input"))return;
+          if(!e.target.closest(".month-grid"))return;
+          monthDrag={x:e.clientX,y:e.clientY};swiped=false;
+        });
+        window.addEventListener("pointerup",function(e){
+          if(!monthDrag)return;var dx=e.clientX-monthDrag.x,dy=e.clientY-monthDrag.y;monthDrag=null;
+          if(state.section!=="calendar"||state.view!=="month")return;
+          if(Math.abs(dx)>60&&Math.abs(dx)>Math.abs(dy)*1.25){swiped=true;pageBy(dx<0?1:-1,true);setTimeout(function(){swiped=false},0)}
+        });
+        window.addEventListener("pointercancel",function(){monthDrag=null});
+        viewWrap.addEventListener("click",function(e){if(swiped){e.stopPropagation();e.preventDefault();swiped=false}},true);
         viewWrap.addEventListener("wheel",function(e){if(state.section!=="calendar"||state.view!=="month")return;if(Math.abs(e.deltaX)>55&&Math.abs(e.deltaX)>Math.abs(e.deltaY)*1.35){e.preventDefault();pageBy(e.deltaX>0?1:-1,true)}},{passive:false});
       var reduceMotionMQ = window.matchMedia("(prefers-reduced-motion: reduce)");
       function renderView(animate, dir) {
@@ -1729,6 +1752,20 @@
           }
         }
       }
+      /* "+N more": a small list of every event on that day; picking one opens its details. */
+      function openMoreList(anchor, date) {
+        var list = occsInRange(sod(date), addDays(sod(date), 1)).filter(function (o) { return sod(o.start) <= sod(date) && lastDayOf(o) >= sod(date); });
+        list.sort(function (x, y) {
+          var xa = (x.ev.allDay || isMultiDay(x)) ? 0 : 1, ya = (y.ev.allDay || isMultiDay(y)) ? 0 : 1;
+          return xa - ya || x.start - y.start;
+        });
+        var items = [{ label2: fmtDateLong(date) }];
+        list.forEach(function (o) {
+          var when = (o.ev.allDay || isMultiDay(o)) ? "All day" : fmtEventTime(o.start);
+          items.push({ label: when + " · " + o.ev.title, fn: function () { setTimeout(function () { openPopover(o, anchor); }, 0); } });
+        });
+        openMenu(anchor, items, { maxHeight: 300 });
+      }
       function drillToDay(date) {
         state.section = "calendar";
         if (state.view !== "day") { state.prevView = state.view; state.prevCursor = new Date(state.cursor); }
@@ -1736,8 +1773,8 @@
         renderAll(true, 1);
       }
       function segClass(occ, date, firstCol, lastCol) {
-        var s = sameDay(occ.start, date), e = sameDay(sod(occ.end), date) || sameDay(occ.end, date);
-        var multi = sod(occ.end) - sod(occ.start) >= DAY_MS || (occ.ev.allDay && sod(occ.end) > sod(occ.start));
+        var s = sameDay(occ.start, date), e = sameDay(lastDayOf(occ), date);
+        var multi = isMultiDay(occ) || (occ.ev.allDay && sod(occ.end) > sod(occ.start));
         if (!occ.ev.allDay && !multi) return "";
         if (occ.ev.allDay && !multi) return "";
         if (s && e) return "";
@@ -1747,11 +1784,17 @@
         if (lastCol) return " seg-end";
         return " seg-mid";
       }
-      function isMultiDay(occ) { return sod(occ.end) - sod(occ.start) >= DAY_MS; }
+      /* The last calendar day an occurrence actually occupies: a timed event that ends at exactly 12:00am ends the day before. */
+      function lastDayOf(occ) {
+        var e = occ.end;
+        if (!(occ.ev && occ.ev.allDay) && e > occ.start && e.getHours() === 0 && e.getMinutes() === 0 && e.getSeconds() === 0) return addDays(sod(e), -1);
+        return sod(e);
+      }
+      function isMultiDay(occ) { return lastDayOf(occ) - sod(occ.start) >= DAY_MS; }
       /* "Only include weekdays": ONE event record (ev.weekdaysOnly) that covers Monday-Friday inside its full
          start..end range. Every view asks coversDay() instead of comparing dates itself. */
       function coversDay(o, date) {
-        if (sod(o.start) > date || sod(o.end) < date) return false;
+        if (sod(o.start) > date || lastDayOf(o) < date) return false;
         if (o.ev && o.ev.weekdaysOnly) { var g = date.getDay(); if (g === 0 || g === 6) return false; }
         return true;
       }
@@ -1801,13 +1844,13 @@
             if (colIdx < 0) continue;
             (function (date, colIdx) {
               var inMonth = date.getMonth() === m;
-              var dayOccs = occs.filter(function (o) { return !isMultiDay(o) && sod(o.start) <= date && sod(o.end) >= date; });
+              var dayOccs = occs.filter(function (o) { return !isMultiDay(o) && sod(o.start) <= date && lastDayOf(o) >= date; });
               dayOccs.sort(function (a, b) {
                 var am = (a.ev.allDay || isMultiDay(a)) ? 0 : 1, bm = (b.ev.allDay || isMultiDay(b)) ? 0 : 1;
                 if (am !== bm) return am - bm;
                 return a.start - b.start;
               });
-              var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"></div>');
+              var cell = el('<div class="day-cell' + (inMonth ? "" : " out") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.selected) ? " sel" : "") + '"' + (sameDay(date, TODAY) ? ' data-today="1"' : "") + "></div>");
               cell.dataset.date=date.getFullYear()+"-"+pad2(date.getMonth()+1)+"-"+pad2(date.getDate());
               var num = el('<button class="day-num' + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + '" title="' + esc(fmtDateLong(date)) + '">' + calendarDayLabel(date, m) + "</button>");
               num.addEventListener("click", function (e) { e.stopPropagation(); drillToDay(date); });   /* the date number opens that day; the empty cell area still opens New event */
@@ -1835,7 +1878,7 @@
               });
               if (dayOccs.length) {
                 var more = el('<button class="more-link" hidden></button>');
-                more.addEventListener("click", function (e) { e.stopPropagation(); drillToDay(date); });
+                more.addEventListener("click", function (e) { e.stopPropagation(); openMoreList(more, date); });
                 evBox.appendChild(more);
               }
               cell.appendChild(evBox);
@@ -1914,7 +1957,7 @@
             var chips=Array.prototype.slice.call(box.querySelectorAll(".chip")),more=box.querySelector(".more-link");
             if(!chips.length&&!folded){if(more)more.hidden=true;return;}
             if(!more){more=document.createElement("button");more.className="more-link";more.hidden=true;
-              (function(date){more.addEventListener("click",function(e){e.stopPropagation();drillToDay(date);});})(parseDateKey(cell.dataset.date));
+              (function(date){more.addEventListener("click",function(e){e.stopPropagation();openMoreList(more,date);});})(parseDateKey(cell.dataset.date));
               box.appendChild(more);}
             function limit(){var cr=cell.getBoundingClientRect();return cr.top+cell.clientTop+cell.clientHeight-(parseFloat(getComputedStyle(cell).paddingBottom)||0)-1;}
             function apply(count){
@@ -2013,7 +2056,7 @@
         days.forEach(function(date){
           var cell=el('<div class="allday-cell"></div>');
           if(weekSpans.length)cell.style.paddingTop=(weekSpans.length*27+3)+"px";
-          occs.filter(function(o){return o.ev.allDay&&(numDays===1||!isMultiDay(o))&&coversDay(o,date)})
+          occs.filter(function(o){return numDays===1?((o.ev.allDay||isMultiDay(o))&&coversDay(o,date)):(o.ev.allDay&&!isMultiDay(o)&&coversDay(o,date))})
             .forEach(function(o){
               var cal=calOf(o.ev.cal),bar=el('<button class="allday-bar" style="background:'+tintOf(cal,o.ev)+';color:'+tintTextOf(cal,o.ev)+';box-shadow:'+ribbonOf(cal,o.ev)+'">'+esc(o.ev.title)+'</button>');
               bar.setAttribute("data-calendar-id",o.ev.cal);
@@ -2076,7 +2119,7 @@
         days.forEach(function (date) {
           var isWeekendCol = numDays > 1 && (date.getDay() === 0 || date.getDay() === 6);
           var colEl = el('<div class="tg-col' + (isWeekendCol ? " weekend" : "") + '"><div class="hour-lines" style="background-size:100% ' + hourPx() + 'px"></div></div>');
-          var dayOccs = occs.filter(function (o) { return !o.ev.allDay && (numDays===1||!isMultiDay(o)) && sameDay(o.start, date); });
+          var dayOccs = occs.filter(function (o) { return !o.ev.allDay && !isMultiDay(o) && sameDay(o.start, date); });
           layoutDayEvents(dayOccs).forEach(function (it) {
             var o = it.o, cal = calOf(o.ev.cal);
             var top = it.s / 60 * hourPx(), height = Math.max(26, (it.e - it.s) / 60 * hourPx() - 3);
@@ -2207,7 +2250,7 @@
         var activeCount = state.tasks.filter(function (t) { return !t.done; }).length;
         var doneCount = state.tasks.length - activeCount;
         var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div><div class="tasks-sub">' +
-          (state.tasks.length ? activeCount + " active · " + doneCount + " completed" : "Nothing here yet") +
+          (activeCount + " active · " + doneCount + " completed") +
           '</div></div></div>');
         var headAdd = el('<button class="btn-primary">' + icon("plus", 16) + "<span>Add task</span></button>");
         headAdd.addEventListener("click", function () { var i = document.getElementById("taskTitleInput"); if (i) { i.focus(); i.scrollIntoView({ block: "nearest" }); } });
@@ -2258,8 +2301,8 @@
         }
         /* Segmented filter */
         var seg = el('<div class="task-seg" role="tablist" aria-label="Filter tasks"></div>');
-        [["all", "All"], ["active", "Active"], ["completed", "Completed"]].forEach(function (f) {
-          var b = el('<button role="tab" aria-selected="' + (state.taskFilter === f[0]) + '" class="' + (state.taskFilter === f[0] ? "on" : "") + '">' + f[1] + "</button>");
+        [["all", "All", state.tasks.length], ["active", "Active", activeCount], ["completed", "Completed", doneCount]].forEach(function (f) {
+          var b = el('<button role="tab" aria-selected="' + (state.taskFilter === f[0]) + '" class="' + (state.taskFilter === f[0] ? "on" : "") + '">' + f[1] + ' <span class="task-seg-n">' + f[2] + "</span></button>");
           b.addEventListener("click", function () {
             if (state.taskFilter === f[0]) return;
             state.taskFilter = f[0];
@@ -2500,12 +2543,12 @@
         } }, { duration: 5000, replaceKey: "undo-delete" });
       };
       function confirmDeleteEvent(ev,occ) {
-        var recurring=!!ev.repeat&&occ&&occ.start.getTime()!==ev.start.getTime();
+        var recurring=!!effRepeat(ev)&&occ&&occ.start.getTime()!==ev.start.getTime();
         function remove(scope){
           closePopover();
           var undo;
           if(scope==="only"){var oldEx=Array.isArray(ev.exdates)?ev.exdates.slice():[];ev.exdates=oldEx.slice();ev.exdates.push(occ.start.toISOString());undo=function(){ev.exdates=oldEx}}
-          else if(scope==="following"){var oldEnd=ev.repeatEnd;ev.repeatEnd=previousRepeatOccurrence(occ.start,ev.repeat).toISOString();undo=function(){ev.repeatEnd=oldEnd}}
+          else if(scope==="following"){var oldEnd=ev.repeatEnd;ev.repeatEnd=previousRepeatOccurrence(occ.start,effRepeat(ev)).toISOString();undo=function(){ev.repeatEnd=oldEnd}}
           else{var uid=ev.uid;var before=state.events.slice();state.events=state.events.filter(function(e){return e!==ev&&(uid?e.uid!==uid:e.id!==ev.id)});undo=function(){var keep=state.events.filter(function(e){return before.indexOf(e)===-1});state.events=before.concat(keep)}}
           renderAll(false);undoDeleteToast(undo);
         }
@@ -2513,11 +2556,12 @@
         openConfirm({title:"Delete this event?",body:"“"+ev.title+"” will be removed from "+calOf(ev.cal).name+". This cannot be undone.",confirmLabel:"Delete",danger:true,fn:function(){remove("all")}});
       }
       function editOccurrence(ev,occ){
-        if(!ev.repeat||!occ||occ.start.getTime()===ev.start.getTime()){openEventForm(ev,null,occ||ev);return}
+        if(!effRepeat(ev)){openEventForm(ev,null,occ||ev);return}
+        if(!occ)occ={start:new Date(ev.start),end:new Date(ev.end)};
         chooseRepeatScope("Edit repeating event","Choose which occurrences this change should affect.",function(scope){
           if(scope==="all"){openEventForm(ev,null,ev);return}
           ev.uid=ev.uid||("daylight-"+ev.id);
-          var copy=Object.assign({},ev,{id:++uid,start:new Date(occ.start),end:new Date(occ.end),repeat:scope==="only"?null:ev.repeat,repeatEnd:scope==="only"?ev.repeatEnd:null,recurrenceId:scope==="only"?new Date(occ.start):null,exdates:[],_seriesParentId:ev.id,_seriesScope:scope,_seriesStart:new Date(occ.start)});
+          var copy=Object.assign({},ev,{id:++uid,start:new Date(occ.start),end:new Date(occ.end),repeat:scope==="only"?null:effRepeat(ev),repeatEnd:scope==="only"?ev.repeatEnd:null,recurrenceId:scope==="only"?new Date(occ.start):null,exdates:[],_seriesParentId:ev.id,_seriesScope:scope,_seriesStart:new Date(occ.start)});
           openEventForm(copy,null,copy);
         });
       }
@@ -2589,10 +2633,10 @@
            size (18) down the whole gutter, no redundant row labels.
            With a banner, the date line sits under the title Google-style
            and the clock row is not repeated. */
-        var calLine = '<div class="pop-cal-line"><span class="pop-cal-chip"><span style="width:8px;height:8px;border-radius:50%;background:' + dotOf(cal) + ';display:inline-block"></span>' + esc(cal.name) + "</span>" + (ev.allDay ? "<span>All day</span>" : "") + (ev.repeat ? "<span>" + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span>" : "") + "</div>";
+        var calLine = '<div class="pop-cal-line"><span class="pop-cal-chip"><span style="width:8px;height:8px;border-radius:50%;background:' + dotOf(cal) + ';display:inline-block"></span>' + esc(cal.name) + "</span>" + (ev.allDay ? "<span>All day</span>" : "") + (effRepeat(ev) ? "<span>" + esc(REPEAT_LABELS[effRepeat(ev)] || "Repeats") + "</span>" : "") + "</div>";
         var rows = "";
         if (!bannerKey) rows += '<div class="pop-row"><span class="pop-ic">' + icon("clock", 18) + '</span><span class="pop-main"><span class="pr-strong">' + esc(timeMain) + '</span><span class="pr-sub">' + esc(timeSub) + "</span></span></div>";
-        if (ev.repeat) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[ev.repeat] || "Repeats") + "</span></div>";
+        if (effRepeat(ev)) rows += '<div class="pop-row"><span class="pop-ic">' + icon("repeat", 18) + '</span><span class="pop-main">' + esc(REPEAT_LABELS[effRepeat(ev)] || "Repeats") + "</span></div>";
         if (ev.loc) {
           rows += '<div class="pop-row"><span class="pop-ic">' + icon("pin", 18) + '</span><span class="pop-main">' +
             esc(ev.loc) + '</span></div>';
@@ -2812,7 +2856,7 @@
           eDate: base ? sod(base.end) : sod(presetDate || state.selected),
           sMin: base && !base.allDay ? base.start.getHours() * 60 + base.start.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60),
           eMin: base && !base.allDay ? base.end.getHours() * 60 + base.end.getMinutes() : (presetDate && Number.isFinite(presetDate.slotMinutes) ? presetDate.slotMinutes : nextHour * 60) + state.defaultDuration,
-          repeat: src ? src.repeat : null,
+          repeat: src ? effRepeat(src) : null,
           repeatEnd: src && src.repeatEnd ? new Date(src.repeatEnd) : null,
           accent: "calendar",
           weekdaysOnly: src ? !!src.weekdaysOnly : false,
@@ -2916,7 +2960,10 @@
           });
           openMenu(repBtn, items);
         });
-        repEndBtn.addEventListener("click",function(){if(!f.repeat)return;openDatePicker(repEndBtn,f.repeatEnd||f.eDate,function(d){f.repeatEnd=d;markDirty();syncUI()})});
+        repEndBtn.addEventListener("click",function(){if(!f.repeat)return;
+          openMenu(repEndBtn,[{label2:"Repeat ends"},
+            {label:"Never",right:f.repeatEnd?null:"check",fn:function(){f.repeatEnd=null;markDirty();syncUI()}},
+            {label:"On a date",right:f.repeatEnd?"check":null,fn:function(){setTimeout(function(){openDatePicker(repEndBtn,f.repeatEnd||f.eDate,function(d){f.repeatEnd=d;markDirty();syncUI()})},0)}}]);});
         remBtn.addEventListener("click", function () {
           var items = [{ label2: "Reminder" }];
           REMINDER_CHOICES.forEach(function (pair) {
@@ -2965,13 +3012,13 @@
           closeDatePicker();
           if (isEdit) {
             src.weekdaysOnly = weekdaysOnly;
-            src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
+            src.title = f.title; src.cal = f.cal; src.allDay = f.allDay; src.start = start; src.end = end; src.repeat = f.repeat; if (!f.repeat) src.rrule = null; src.reminder = f.reminder; src.loc = locIn.value.trim(); src.placeId = f.placeId || null;
             src.locationLat = f.locationLat ?? null; src.locationLng = f.locationLng ?? null;
             src.desc = descIn ? descIn.value.trim() : "";
             src.repeatEnd=f.repeatEnd?f.repeatEnd.toISOString():null;src.accent=f.accent;
             if(src._seriesParentId){
               var parent=state.events.find(function(e){return e.id===src._seriesParentId});
-              if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,parent.repeat).toISOString()}
+              if(parent){if(src._seriesScope==="only"){parent.exdates=Array.isArray(parent.exdates)?parent.exdates.slice():[];parent.exdates.push(src._seriesStart.toISOString())}else parent.repeatEnd=previousRepeatOccurrence(src._seriesStart,effRepeat(parent)).toISOString()}
               delete src._seriesParentId;delete src._seriesScope;delete src._seriesStart;state.events.push(src);
             }
             daylightExit(bd); renderAll(false); toast("Event updated");
@@ -3058,7 +3105,7 @@
         (function () {
           var today = sod(TODAY), groups = {}, order = [];
           range.forEach(function (o) {
-            var ev = o.ev, k = ev.repeat ? "r:" + ev.id : (ev.cal === "holidays" || ev.builtin) ? "h:" + (ev.title || "") : null;
+            var ev = o.ev, k = effRepeat(ev) ? "r:" + ev.id : (ev.cal === "holidays" || ev.builtin) ? "h:" + (ev.title || "") : null;
             if (!k) { order.push({ solo: o }); return; }
             if (!groups[k]) { groups[k] = { list: [] }; order.push({ g: groups[k] }); }
             groups[k].list.push(o);
@@ -3088,29 +3135,31 @@
           results.appendChild(noRes);
           return;
         }
-        var groups = {};
-        range.slice(0, 30).forEach(function (o) { (groups[o.ev.cal] = groups[o.ev.cal] || []).push(o); });
+        /* Soonest first: upcoming matches in date order, then past ones, most recent first. One flat list with a count. */
+        var todayS = sod(TODAY);
+        var upcoming = range.filter(function (o) { return o.start >= todayS; }).sort(function (x, y) { return x.start - y.start; });
+        var past = range.filter(function (o) { return o.start < todayS; }).sort(function (x, y) { return y.start - x.start; });
+        var ordered = upcoming.concat(past), total = ordered.length;
         var selEntry = window.daylightSelect && daylightSelect.entry("search", drawSearch);
         if (selEntry) results.appendChild(selEntry);
-        Object.keys(groups).forEach(function (calId) {
-          var cal = calOf(calId);
-          results.appendChild(el('<div class="pal-group">' + esc(cal.name) + "</div>"));
-          groups[calId].forEach(function (o) {
-            var sub = isAllDayLike(o.ev, o.start, o.end) ? fmtDateShort(o.start) + " \u00b7 All day" : fmtDateShort(o.start) + " \u00b7 " + fmtTimeRange(o.start, o.end);
-            if (o.ev.loc) sub += " \u00b7 " + o.ev.loc;
-            var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(o.ev.title) + '</span><br><span class="pi-sub">' + esc(sub) + "</span></span>" + icon("chevR", 15) + "</button>");
-            item.addEventListener("click", function () {
-              closeSearch();
-              inp.value = "";
-              state.section = "calendar";
-              state.selected = sod(o.start);
-              if (state.view !== "day") { state.prevView = state.view; state.view = "day"; }
-              state.cursor = sod(o.start);
-              renderAll(false);
-            });
-            if (window.daylightSelect) daylightSelect.decorate(item, o.ev, "search");
-            results.appendChild(item);
+        results.appendChild(el('<div class="pal-group">' + total + (total === 1 ? " result" : " results") + (total > 50 ? " · showing the first 50" : "") + "</div>"));
+        ordered.slice(0, 50).forEach(function (o) {
+          var cal = calOf(o.ev.cal);
+          var sub = isAllDayLike(o.ev, o.start, o.end) ? fmtDateShort(o.start) + " · All day" : fmtDateShort(o.start) + " · " + fmtTimeRange(o.start, o.end);
+          if (o.ev.loc) sub += " · " + o.ev.loc;
+          sub += " · " + cal.name;
+          var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(o.ev.title) + '</span><br><span class="pi-sub">' + esc(sub) + "</span></span>" + icon("chevR", 15) + "</button>");
+          item.addEventListener("click", function () {
+            closeSearch();
+            inp.value = "";
+            state.section = "calendar";
+            state.selected = sod(o.start);
+            if (state.view !== "day") { state.prevView = state.view; state.view = "day"; }
+            state.cursor = sod(o.start);
+            renderAll(false);
           });
+          if (window.daylightSelect) daylightSelect.decorate(item, o.ev, "search");
+          results.appendChild(item);
         });
         var selBar = window.daylightSelect && daylightSelect.bar("search");
         if (selBar) results.appendChild(selBar);
@@ -3622,18 +3671,21 @@
       function pwRuleError(pw) {
         var rs = pwRules(pw);
         if (rs.every(function (r) { return r.ok; })) return "";
-        if (!rs[0].ok) return "Password is too short — use at least 12 characters";
-        if (!rs[1].ok) return "Add an uppercase letter";
-        if (!rs[2].ok) return "Add a lowercase letter";
-        if (!rs[3].ok) return "Add a number";
-        if (!rs[4].ok) return "Add a symbol (e.g. ! @ # $ %)";
-        return "Password doesn't meet all the rules yet";
+        var more = [];
+        if (!rs[1].ok) more.push("an uppercase letter");
+        if (!rs[2].ok) more.push("a lowercase letter");
+        if (!rs[3].ok) more.push("a number");
+        if (!rs[4].ok) more.push("a symbol (e.g. ! @ # $ %)");
+        var list = more.length > 1 ? more.slice(0, -1).join(", ") + " and " + more[more.length - 1] : (more[0] || "");
+        if (!rs[0].ok) return "Password is too short — use at least 12 characters" + (list ? ". Also add " + list : "");
+        return "Add " + list;
       }
       function captureAuthInputs(root) {
         var n = root.querySelector("#authName"), e = root.querySelector("#authEmail"), p = root.querySelector("#authPassword");
         if (n) authState.name = n.value;
         if (e) authState.email = e.value;
         if (p) authState.password = p.value;
+        var c2 = root.querySelector("#authConfirmPw2"); if (c2) authState.confirm2 = c2.value;
         var np = root.querySelector("#authNewPassword"); if (np) authState.newPassword = np.value;
         var cp = root.querySelector("#authConfirmPassword"); if (cp) authState.confirmPassword = cp.value;
         var boxes = root.querySelectorAll(".auth-code-box");
@@ -3746,13 +3798,13 @@
          Rule state is derived from the password value, so it persists
          across rebuilds and mode switches. */
       function reqListHtml(pwVal) {
-        var has = !!pwVal;
+        var has = true;                                   /* the checklist is visible from the start, not only once typing begins */
         return '<div class="auth-reqs' + (has ? " show" : "") + '" id="authReqs" aria-hidden="' + (has ? "false" : "true") + '"><div class="auth-reqs-clip"><div class="auth-reqs-list">' + rulesHtmlFor(pwVal) + "</div></div></div>";
       }
       function paintReqVisibility(root, pwVal) {
         var wrap = root.querySelector("#authReqs");
         if (!wrap) return;
-        var has = !!pwVal;
+        var has = true;
         wrap.classList.toggle("show", has);
         wrap.setAttribute("aria-hidden", has ? "false" : "true");
       }
@@ -3795,6 +3847,7 @@
           );
         }
         var isLogin = authIsLogin();
+        if (authState.dropPw) { authState.password = ""; authState.confirm2 = ""; authState.dropPw = false; }   /* switching login <-> sign-up never carries the password across */
         var pw = authState.password || "";
         var nameField = "";   /* sign-up no longer asks for a name: the welcome step after the first sign-in does */
         var emailField = authPillHtml("authEmail", "Email",
@@ -3811,10 +3864,12 @@
           '<h1 class="auth-headline">' + (isLogin ? "Sign in" : "Create account") + "</h1>" +
           '<p class="auth-altline">or <button type="button" id="authSwitch">' + (isLogin ? "create an account" : "sign in instead") + "</button></p>" +
           (isLogin && authState.justReset ? '<div class="auth-success" role="status"><span class="ok-ic"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"/></svg></span><span>Password updated — sign in with your new password.</span></div>' : "") +
-          '<div class="auth-fields">' + nameField + emailField + pwField + "</div>" +
+          '<div class="auth-fields">' + nameField + emailField + pwField + (isLogin ? "" : authPillHtml("authConfirmPw2", "Confirm password",
+            '<input class="auth-pill-input" id="authConfirmPw2" type="' + (authState.showPw ? "text" : "password") + '" autocomplete="new-password" placeholder="Type it again" value="' + esc(authState.confirm2 || "") + '" aria-invalid="false" aria-describedby="authConfirm2Err">',
+            "authConfirm2Err", "authConfirm2Tip")) + "</div>" +
           '<button type="submit" class="auth-primary">' + (isLogin ? "Log in" : "Create account") + "</button>" +
           (isLogin ? '<div class="auth-forgot-row"><a class="auth-forgot" href="#" id="authForgot">Forgot password?</a></div>' : "") +
-          (isLogin ? "" : '<p class="auth-terms">By continuing, you agree to the <a href="#" data-terms>Terms of Service</a> and <a href="#" data-terms>Privacy Policy</a>.</p>')
+          (isLogin ? "" : '<p class="auth-terms">By continuing, you agree to the <a href="../tos/" target="_blank" rel="noopener" data-terms>Terms of Service</a> and <a href="../privacy/" target="_blank" rel="noopener" data-terms>Privacy Policy</a>.</p>')
         );
       }
       /* Specific, plain-words problem for a field's current value, or ""
@@ -3839,6 +3894,11 @@
           if (!v) return requireAll ? "Password can't be empty" : "";
           return pwRuleError(v);
         }
+        if (input.id === "authConfirmPw2") {
+          if (!v) return requireAll ? "Confirm your password" : "";
+          var pw1 = document.querySelector("#authPassword");
+          return v === (pw1 ? pw1.value : authState.password) ? "" : "Passwords don't match";
+        }
         if (input.id === "authConfirmPassword") {
           if (!v) return requireAll ? "Confirm your new password" : "";
           var npEl = document.querySelector("#authNewPassword");
@@ -3847,7 +3907,7 @@
         }
         return "";
       }
-      var AUTH_ERR_IDS = { authName: ["#authNameErr", "#authNameTip"], authEmail: ["#authEmailErr", "#authEmailTip"], authPassword: ["#authPwErr", "#authPwTip"], authNewPassword: ["#authNewPwErr", "#authNewPwTip"], authConfirmPassword: ["#authConfirmErr", "#authConfirmTip"] };
+      var AUTH_ERR_IDS = { authName: ["#authNameErr", "#authNameTip"], authEmail: ["#authEmailErr", "#authEmailTip"], authPassword: ["#authPwErr", "#authPwTip"], authNewPassword: ["#authNewPwErr", "#authNewPwTip"], authConfirmPassword: ["#authConfirmErr", "#authConfirmTip"], authConfirmPw2: ["#authConfirm2Err", "#authConfirm2Tip"] };
       /* One writer for every error state: pill tint, hazard in the
          right-edge slot (replacing the eye on the password pill), the
          tooltip copy, and the screen-reader copy all move together. */
@@ -3880,6 +3940,7 @@
         if (input.id === "authPassword" && !isLogin) stillBad = !pwRules(input.value).every(function (r) { return r.ok; });
         else if (input.id === "authNewPassword") stillBad = !pwRules(input.value).every(function (r) { return r.ok; });
         else if (input.id === "authConfirmPassword") { var npEl2 = root.querySelector("#authNewPassword"); stillBad = input.value !== (npEl2 ? npEl2.value : authState.newPassword) || !input.value; }
+        else if (input.id === "authConfirmPw2") { var pw1b = root.querySelector("#authPassword"); stillBad = !input.value || input.value !== (pw1b ? pw1b.value : ""); }
         else if (input.id === "authEmail") stillBad = !validEmail(input.value);
         else stillBad = !input.value.trim();
         if (input.id === "authPassword" && isLogin) stillBad = !input.value;
@@ -3968,6 +4029,7 @@
           captureAuthInputs(root);
           authState.showPw = !authState.showPw;
           pwIn.type = authState.showPw ? "text" : "password";
+          var c2eye = root.querySelector("#authConfirmPw2"); if (c2eye) c2eye.type = pwIn.type;
           this.innerHTML = icon(authState.showPw ? "eyeOff" : "eye", 18);
           this.title = authState.showPw ? "Hide password" : "Show password";
           this.setAttribute("aria-label", this.title);
@@ -4068,7 +4130,7 @@
           confPwIn.addEventListener("input", function () { authState.confirmPassword = confPwIn.value; authRefreshErrLive(root, confPwIn); });
           confPwIn.addEventListener("blur", function () { if (confPwIn.value) authShowErrFor(root, confPwIn, false); });
         }
-        root.querySelectorAll("[data-terms]").forEach(function (a) { a.addEventListener("click", function (e) { e.preventDefault(); }); });
+        
         if (emailIn) {
           emailIn.addEventListener("input", function () { authState.email = emailIn.value; authRefreshErrLive(root, emailIn); });
           emailIn.addEventListener("blur", function () { if (emailIn.value.trim()) authShowErrFor(root, emailIn, false); });
@@ -4077,10 +4139,16 @@
           nameIn.addEventListener("input", function () { authState.name = nameIn.value; authRefreshErrLive(root, nameIn); });
           nameIn.addEventListener("blur", function () { var pl = nameIn.closest(".auth-pill"); if (pl && pl.classList.contains("err")) authShowErrFor(root, nameIn, true); });
         }
+        var conf2In = root.querySelector("#authConfirmPw2");
+        if (conf2In) {
+          conf2In.addEventListener("input", function () { authState.confirm2 = conf2In.value; authRefreshErrLive(root, conf2In); });
+          conf2In.addEventListener("blur", function () { if (conf2In.value) authShowErrFor(root, conf2In, false); });
+        }
         if (pwIn) {
           pwIn.addEventListener("blur", function () { if (!authIsLogin() && pwIn.value) authShowErrFor(root, pwIn, false); });
           pwIn.addEventListener("input", function () {
             authState.password = pwIn.value; authRefreshErrLive(root, pwIn);
+            if (conf2In) authRefreshErrLive(root, conf2In);
             if (!authIsLogin()) {
               var rs = pwRules(pwIn.value);
               root.querySelectorAll(".auth-rule").forEach(function (node, i) { if (rs[i]) node.classList.toggle("ok", rs[i].ok); });
@@ -4252,7 +4320,7 @@
           }
           var ok = true;
           var firstBad = null;
-          [root.querySelector("#authName"), root.querySelector("#authEmail"), root.querySelector("#authPassword")].forEach(function (inp) {
+          [root.querySelector("#authName"), root.querySelector("#authEmail"), root.querySelector("#authPassword"), root.querySelector("#authConfirmPw2")].forEach(function (inp) {
             if (!inp) return;
             if (!authShowErrFor(root, inp, true)) { ok = false; if (!firstBad) firstBad = inp; }
           });

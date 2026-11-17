@@ -303,7 +303,7 @@
       ["ai", "sparkle", "AI access"],
       ["shortcuts", "keyboard", "Shortcuts"]
     ];
-    var secEls = {}, railBtns = {}, spyLock = 0;
+    var secEls = {}, railBtns = {}, spyLock = 0, pinned = null;   /* pinned: the section chosen by clicking the nav stays selected until the person scrolls themselves */
     function setActive(id) {
       settingsState.section = id;
       SECS.forEach(function (x) { var b = railBtns[x[0]]; if (!b) return; var on = x[0] === id; b.classList.toggle("active", on); if (on) b.setAttribute("aria-current", "true"); else b.removeAttribute("aria-current"); });
@@ -313,6 +313,7 @@
       var top = Math.max(0, sec.offsetTop - parseFloat(getComputedStyle(pane).paddingTop || 0));
       var calm = state.reduceMotion || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
       spyLock = Date.now() + (smooth && !calm ? 700 : 150);
+      pinned = id;
       setActive(id);
       if (smooth && !calm) pane.scrollTo({ top: top, behavior: "smooth" }); else pane.scrollTop = top;
     }
@@ -325,12 +326,13 @@
     /* scroll-spy: the nav highlights the section that is at the top of the page as you scroll */
     var spyTick = 0;
     function spy() {
-      if (Date.now() < spyLock) return;
+      if (Date.now() < spyLock || pinned) return;
       var edge = pane.scrollTop + parseFloat(getComputedStyle(pane).paddingTop || 0) + 24, cur = SECS[0][0];
       SECS.forEach(function (sx) { var sec = secEls[sx[0]]; if (sec && sec.offsetTop <= edge) cur = sx[0]; });
       if (pane.scrollTop + pane.clientHeight >= pane.scrollHeight - 2) cur = SECS[SECS.length - 1][0];
       if (cur !== settingsState.section) setActive(cur);
     }
+    ["wheel", "touchmove", "keydown", "mousedown"].forEach(function (t) { pane.addEventListener(t, function () { pinned = null; }, { passive: true }); });
     pane.addEventListener("scroll", function () { if (spyTick) return; spyTick = requestAnimationFrame(function () { spyTick = 0; spy(); }); });
     window.addEventListener("resize", sizeLast);
     /* Admin is its own page now (sidebar, owners only; daylight-adminpage.js), not a Settings section. */

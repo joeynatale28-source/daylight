@@ -28,10 +28,10 @@
     "#dlPrint .pm-bg i.out{background:#f4f4f4}",
     "#dlPrint .pm-grid{position:relative;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:min-content;height:100%;align-content:start}",
     "#dlPrint .pm-num{font-size:11px;font-weight:650;padding:3px 6px 2px;text-align:right;color:#222}#dlPrint .pm-num.out{color:#999}",
-    "#dlPrint .pm-bar{margin:1px 2px;padding:1px 5px;font-size:10px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,#fff);color:#000;border-radius:2px}",
+    "#dlPrint .pm-bar{margin:1px 2px;padding:1px 5px;font-size:10px;font-weight:600;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,#fff);color:#000;border-radius:2px}",
     "#dlPrint .pm-bar.cl{border-top-left-radius:0;border-bottom-left-radius:0}",
     "#dlPrint .pm-list{display:flex;flex-direction:column;gap:1px;padding:1px 2px;min-width:0}",
-    "#dlPrint .pm-ev{font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);padding-left:4px;color:#000}",
+    "#dlPrint .pm-ev{font-size:10px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border-left:3px solid var(--c);padding-left:4px;color:#000}",
     "#dlPrint .pm-ev b{font-weight:650;margin-right:4px}",
     "#dlPrint .pm-more{font-size:9.5px;color:#555;padding-left:7px}"
   ].join("\n");
@@ -39,9 +39,10 @@
 
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   function timeLabel(d) {
-    var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "p" : "a";
+    if (typeof fmtEventTime === "function") return fmtEventTime(d);      /* the app's own time format ("8:35am", "6:45pm") */
+    var h = d.getHours(), m = d.getMinutes(), ap = h >= 12 ? "pm" : "am";
     h = h % 12; if (h === 0) h = 12;
-    return h + (m ? ":" + (m < 10 ? "0" : "") + m : "") + ap;
+    return h + ":" + (m < 10 ? "0" : "") + m + ap;
   }
   function build() {
     var cur = state.cursor, first = new Date(cur.getFullYear(), cur.getMonth(), 1), last = new Date(cur.getFullYear(), cur.getMonth() + 1, 0);

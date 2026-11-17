@@ -212,12 +212,15 @@
       transitionAuthTo(root, "signup-sent");
     } catch (e) {
       setBusy(root, false);
-      var m = String(e && e.message || "");
-      if (/not allowed|signups? (are )?(not allowed|disabled)|signup.*disabled/i.test(m)) showFlash(root, "error", "New accounts aren’t open yet. Please check back soon.");
-      else if (/already (been )?registered|already exists/i.test(m)) showFlash(root, "error", "An account with this email already exists. Sign in instead, or reset your password.");
-      else if (/password/i.test(m)) showFlash(root, "error", "That password isn’t accepted. Choose a longer one with a mix of characters.");
-      else if (/rate|too many|seconds/i.test(m)) showFlash(root, "error", "Too many attempts. Wait a minute and try again.");
-      else showFlash(root, "error", "We couldn’t create your account. Check your connection and try again.");
+      var m = String(e && e.message || ""), code = String(e && (e.code || e.error_code) || ""), status = e && e.status;
+      if (code === "over_email_send_rate_limit" || (status === 429 && /email/i.test(m))) showFlash(root, "error", "Daylight has reached its limit for confirmation emails right now. Try again in about an hour.");
+      else if (code === "over_request_rate_limit" || status === 429 || /rate limit|too many/i.test(m)) showFlash(root, "error", "Too many sign-up attempts from this connection. Try again in about 5 minutes.");
+      else if (/not allowed|signups? (are )?(not allowed|disabled)|signup.*disabled/i.test(m) || code === "signup_disabled") showFlash(root, "error", "New accounts aren’t open yet. Please check back soon.");
+      else if (/already (been )?registered|already exists/i.test(m) || code === "user_already_exists") showFlash(root, "error", "An account with this email already exists. Sign in instead, or reset your password.");
+      else if (code === "email_address_invalid" || code === "email_address_not_authorized") showFlash(root, "error", "That email address isn’t accepted. Use a different one.");
+      else if (code === "weak_password" || /password/i.test(m)) showFlash(root, "error", "That password isn’t accepted: " + m.replace(/\.$/, "") + ".");
+      else if (/failed to fetch|network|load failed|fetch/i.test(m) || e.name === "AuthRetryableFetchError" && !status) showFlash(root, "error", "We couldn’t reach Daylight. Check your connection and try again.");
+      else showFlash(root, "error", "We couldn’t create your account: " + (m || "an unknown error") + (status ? " (error " + status + ")" : "") + ".");
     }
   }
 

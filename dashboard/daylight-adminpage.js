@@ -1,5 +1,5 @@
 /* Sidebar rows above Settings (Documentation for everyone, Admin for owners only) and the owner's Admin page.
-   - Documentation: a normal-looking row with no link yet; clicking it does nothing for now.
+   - Documentation: a row that opens the Documentation site (https://joeynatale.mintlify.site) in a new tab.
    - Admin: an owner-only row. The page swaps into the main area exactly like Tasks does (the sidebar stays). It carries the
      notification and banner tools (the cards come from daylight-admin.js) on two tabs: Notifications and Banners.
      Owners are decided by the database (daylight_is_owner); a non-owner never gets the row or the page. */
@@ -86,8 +86,8 @@
       settings.parentNode.insertBefore(b, settings);
     }
     if (isOwner()) row("Admin", "shield", openAdmin, "admin", state.section === "admin");
-    /* Documentation: a normal-looking row; the link comes later, so clicking does nothing for now */
-    row("Documentation", "book", function (e) { e.preventDefault(); }, "docs", false);
+    /* Documentation opens the Documentation site in a new tab */
+    row("Documentation", "book", function (e) { e.preventDefault(); window.open("https://joeynatale.mintlify.site", "_blank", "noopener"); }, "docs", false);
   }
   var originalRenderSidebar = renderSidebar;
   renderSidebar = function () {

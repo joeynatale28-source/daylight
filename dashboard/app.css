@@ -494,13 +494,13 @@
       }
       .day-num:hover { background: var(--hover); }
       .day-cell.out .day-num { color: var(--faint); }
-      .day-cell.today .day-num { background: var(--accent); color: var(--on-accent); font-weight: 600; }
+      .day-cell.today[data-today="1"] .day-num { background: var(--accent); color: var(--on-accent); font-weight: 600; }
       /* Selected day: a whisper of accent wash on the whole cell plus
          the ring on its number, so the pick reads at a glance without
          shouting over the events inside. */
       .day-cell.sel { background: color-mix(in srgb, var(--accent) 6%, transparent); }
       .day-cell.sel .day-num { box-shadow: inset 0 0 0 1.5px var(--muted); }
-      .day-cell.today.sel .day-num { box-shadow: inset 0 0 0 1.5px var(--on-accent); }
+      .day-cell.today[data-today="1"].sel .day-num { box-shadow: inset 0 0 0 1.5px var(--on-accent); }
       .cell-add {
         position: absolute; top: 4px; right: 4px; width: 28px; height: 28px; border-radius: var(--r-sm);
         display: none; align-items: center; justify-content: center; color: var(--muted);
@@ -2048,4 +2048,29 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
   .dl-notif-panel, .dl-place-options, .tasks-inner.anim-fade, .mini-anim-next, .mini-anim-prev { animation: none !important; }
   .btn-primary, .btn-ghost, .btn-danger, .btn-danger-outline, .icon-btn, .chip, .menu-item, .day-cell { transition: none !important; }
   .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-danger-outline:active, .icon-btn:active, .chip:hover, .chip:active { transform: none !important; }
+}
+
+/* auth pages: visible error text, eye stays beside the warning, readable demo calendar, no slow entrance */
+.auth-error { position: static; width: auto; height: auto; margin: 0; overflow: visible; clip: auto; clip-path: none; white-space: normal; font-size: 12.5px; line-height: 1.4; color: color-mix(in srgb, #e5484d 88%, var(--auth-text)); }
+.auth-error:empty { display: none; }
+.auth-tip { display: none; }
+.auth-pill.err .auth-eye { opacity: 1; visibility: visible; pointer-events: auto; transform: translateY(-50%) scale(1); right: 52px; }
+.auth-pill.err:has(.auth-eye) .auth-pill-input { padding-right: 100px; }
+.auth-art-day.out { opacity: 0.7; }
+#authScreen.is-enter, #authScreen.is-enter .auth-art, .auth-form-wrap.is-enter .auth-form-inner > * { animation: none !important; opacity: 1 !important; }
+
+.month-grid { touch-action: pan-y; }
+
+.task-seg-n { margin-left: 4px; font-weight: 600; opacity: .65; font-variant-numeric: tabular-nums; }
+.today-btn { width: auto; padding: 0 12px 0 9px; gap: 6px; }
+.today-btn .today-label { font-size: 13px; font-weight: 600; }
+
+/* sidebar calendar names: the full name is readable (wraps instead of cutting off) */
+#sidebar:not(.rail) .cal-name { white-space: normal; overflow: visible; text-overflow: clip; overflow-wrap: anywhere; line-height: 1.25; }
+#sidebar:not(.rail) .cal-row { height: auto; align-items: center; }
+
+/* the six month rows always share the space the view has: a row never grows with its contents (extra events fold into "+N more"), so the last row is never below the fold */
+@media (min-height: 700px) and (min-width: 861px) {
+  .month-grid { grid-template-rows: repeat(6, minmax(0, 1fr)); }
+  .month-grid .month-week { min-height: 0; overflow: hidden; }
 }
