@@ -17,7 +17,8 @@ function payload(){
  p.events.push({id:id++,cal:'c2',title:'swimRVA Swim Practice',start:iso(2026,11,2,18,30),end:iso(2026,11,2,19,45),allDay:false,loc:'SwimRVA',desc:'',rrule:'FREQ=WEEKLY;BYDAY=MO,WE,FR',uid:'u-swim'});
  return p;
 }
-const app=await launch({width:1919,height:998,theme:'light',payload:payload()});
+const LIVE=process.env.LIVE_URL?process.env.LIVE_URL.replace(/\/?$/,'/'):null;   // run against the deployed build: only Supabase is stubbed
+const app=await launch(Object.assign({width:1919,height:998,theme:'light',payload:payload()},LIVE?{baseUrl:LIVE+'dashboard/?cb='+Date.now()}:{}));
 const page=app.page;
 try{
  await app.load();
@@ -81,7 +82,7 @@ try{
 }finally{await app.close()}
 
 // ---- auth pages
-const au=await launch({width:1300,height:900,theme:'light',signedIn:false,payload:payload()});
+const au=await launch(Object.assign({width:1300,height:900,theme:'light',signedIn:false,payload:payload()},LIVE?{baseUrl:LIVE+'login/?cb='+Date.now()}:{}));
 try{
  const p=au.page;await p.goto(au.url,{waitUntil:'load'});await p.waitForSelector('#authScreen .auth-primary',{timeout:15000});await sleep(1300);
  await p.evaluate(()=>{switchAuthMode(document.getElementById('authRoot'))});await sleep(700);
