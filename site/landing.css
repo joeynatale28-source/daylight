@@ -593,9 +593,9 @@ button{font:inherit;color:inherit}
 .mk .ar{display:flex;align-items:center;gap:1em;padding:.9em 1em;border-radius:1.1em;background:var(--surface)}
 .mk .ar .tile{width:3.4em;height:3.4em;border-radius:1em}
 .mk .ar .who b{display:inline;font-size:1.25em;font-weight:700;letter-spacing:-0.01em}
-.mk .st{display:inline-flex;align-items:center;gap:.4em;margin-left:.7em;font-size:.95em;font-style:normal;font-weight:600;color:var(--muted)}
-.mk .st u{width:.6em;height:.6em;border-radius:50%;background:var(--faint);text-decoration:none}
-.mk .st.ok{color:#1e8e5a}.mk .st.ok u{background:#1e8e5a}
+.mk .cst{display:inline-flex;align-items:center;gap:.4em;margin-left:.7em;font-size:.95em;font-style:normal;font-weight:600;color:var(--muted)}
+.mk .cst u{width:.6em;height:.6em;border-radius:50%;background:var(--faint);text-decoration:none}
+.mk .cst.ok{color:#1e8e5a}.mk .cst.ok u{background:#1e8e5a}
 .mk .chs{display:flex;gap:.4em;margin-top:.5em}
 .mk .chp{padding:.2em .7em;border-radius:99px;background:var(--mkbg);font-size:.9em;font-style:normal;font-weight:600;color:var(--muted)}
 .mk .ar .btn{padding:.6em 1.2em}
@@ -643,13 +643,7 @@ button{font:inherit;color:inherit}
 [data-state=maintenance]{--sc:var(--s-maint)}
 [data-state=unknown]{--sc:var(--s-unk)}
 .sdot{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:var(--sc,var(--s-unk))}
-.ft-status{display:inline-flex;align-items:center;gap:10px;margin-top:18px;font-size:14px;font-weight:500;line-height:1;color:var(--text);transition:opacity 300ms linear}
-.ft-status.pending{opacity:0}
-.ft-status .sdot{width:9px;height:9px;animation:sPulse 3s ease-in-out infinite}
-.ft-status:hover span{text-decoration:underline;text-underline-offset:3px}
-@keyframes sPulse{0%{box-shadow:0 0 0 0 color-mix(in srgb,var(--sc) 55%,transparent)}70%{box-shadow:0 0 0 8px color-mix(in srgb,var(--sc) 0%,transparent)}100%{box-shadow:0 0 0 0 color-mix(in srgb,var(--sc) 0%,transparent)}}
-@media (prefers-reduced-motion:reduce){.ft-status .sdot{animation:none}}
-
+@media (prefers-reduced-motion:reduce){
 .st{padding:72px 0 0}
 .st-head{text-align:center}
 .st-eyebrow{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
