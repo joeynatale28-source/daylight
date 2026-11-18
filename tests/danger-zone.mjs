@@ -16,6 +16,9 @@ try{
  await page.evaluate(()=>document.querySelector('[data-del]').click());await sleep(400);
  const d=await page.evaluate(()=>({dis:document.querySelector('[data-ok]').disabled,t:document.querySelector('.dialog-title').textContent}));
  check(d.dis&&/Delete your account/.test(d.t),'the confirmation starts disabled',d);
+ check(await page.evaluate(()=>!document.querySelector('.dl-del-dlg').innerText.includes(window.daylightCloud.user.email)),'the dialog never prints the real e-mail address');
+ const ct=await page.evaluate(()=>{const f=s=>s.match(/[\d.]+/g).slice(0,3).map(Number),lum=c=>{const v=c.map(x=>{x/=255;return x<=.03928?x/12.92:Math.pow((x+.055)/1.055,2.4)});return .2126*v[0]+.7152*v[1]+.0722*v[2]};const b=document.querySelector('[data-ok]'),cs=getComputedStyle(b);let bg=f(cs.backgroundColor);const L1=lum(f(cs.color)),L2=lum(bg);return {ratio:+((Math.max(L1,L2)+.05)/(Math.min(L1,L2)+.05)).toFixed(2)}});
+ check(ct.ratio>=4.5,'the disabled delete button has readable contrast (>=4.5:1)',ct);
  check(await page.evaluate(()=>document.querySelector('[data-in]').placeholder)==='Type your email address','the placeholder is neutral (does not repeat the address)');
  const dis=await page.evaluate(()=>{const c=getComputedStyle(document.querySelector('[data-ok]'));return {bg:c.backgroundColor,fg:c.color}});
  check(dis.fg!==dis.bg&&dis.bg!=='rgb(255, 255, 255)','the disabled delete button has its own readable look',dis);

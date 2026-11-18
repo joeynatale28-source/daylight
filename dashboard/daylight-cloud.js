@@ -689,8 +689,23 @@
     } catch (error) {
       console.error('Daylight sign-in failed', error);
       var pw = root.querySelector('#authPassword');
-      if (pw) authSetErr(root, pw, true, error.message || 'Sign-in failed');
-      toast(error.message || 'Unable to sign in');
+      var shown = error.message || 'Sign-in failed';
+      /* a suspended or banned person is always told why, until when, and how to appeal (never a silent block) */
+      if ((error.code || error.error_code) === 'user_banned' || /banned/i.test(String(error.message || ''))) {
+        shown = 'This account can’t sign in right now. For details, contact privacy@daylightcal.com.';
+        try {
+          var nr = await fetch(URL + '/functions/v1/account-notice', {method:'POST', headers:{'content-type':'application/json', apikey:PUBLISHABLE_KEY}, body:JSON.stringify({email:email, password:password})});
+          var nj = await nr.json();
+          if (nj && nj.restricted) {
+            var until = nj.ends_at ? new Date(nj.ends_at).toLocaleString(undefined, {month:'short', day:'numeric', year:'numeric', hour:'numeric', minute:'2-digit'}) : '';
+            shown = nj.kind === 'banned'
+              ? 'Your account has been banned' + (nj.reason ? ': ' + nj.reason : '.') + ' To appeal, contact ' + nj.appeal + '.'
+              : 'Your account is suspended' + (nj.reason ? ': ' + nj.reason : '.') + (until ? ' It ends on ' + until + '.' : ' It stays suspended until Daylight Support lifts it.') + ' Questions? Contact ' + nj.appeal + '.';
+          }
+        } catch (e2) {}
+      }
+      if (pw) authSetErr(root, pw, true, shown);
+      toast(shown);
     } finally {
       if (button && document.contains(button)) { button.disabled = false; button.textContent = 'Log in'; }
     }

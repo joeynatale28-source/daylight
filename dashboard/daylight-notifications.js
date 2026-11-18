@@ -318,7 +318,7 @@
         var top = document.createElement("div"); top.className = "dl-notif-top";
         /* Same anatomy as the invite card: avatar, bold sender header (+ verified seal) with the time at the right, a message line
            (the title) and a subtitle line (the message). No footer text: the seal is the official marker. */
-        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = "Daylight";
+        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = n.sender === "support" ? "Daylight Support" : "Daylight";
         from.appendChild(verifiedBadge());
         var time = document.createElement("span"); time.className = "dl-notif-time"; time.textContent = when(n.created_at);
         top.appendChild(from); top.appendChild(time);

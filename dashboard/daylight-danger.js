@@ -29,7 +29,8 @@
     ".dl-del-dlg .dialog-foot{gap:10px}",
     ".dl-del-dlg .dialog-foot button{height:40px;padding:0 20px;font-size:14px;margin:0}",
     /* the disabled delete button reads as disabled, with enough contrast (not a pale pink) */
-    ".dl-del-dlg .btn-danger:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);opacity:1;cursor:not-allowed;box-shadow:none}",
+    ".dl-del-dlg .btn-danger:disabled{background:#fdeceb;color:#8a1b12;border:1px solid #e9aaa5;opacity:1;cursor:not-allowed;box-shadow:none;font-weight:650}",
+    "[data-theme=dark] .dl-del-dlg .btn-danger:disabled{background:#3b1714;color:#ffb9b1;border-color:#7a3028}",
     ".dl-del-dlg .btn-danger:not(:disabled){transition:background 140ms var(--ease-out),transform 140ms var(--ease-out)}.dl-del-dlg .btn-danger:not(:disabled):active{transform:scale(.98)}",
     ".dl-del-done{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 0 6px}",
     ".dl-del-done .dl-danger-ico{margin-bottom:14px;color:var(--text);background:var(--surface);border-color:var(--line-soft)}",
@@ -43,7 +44,7 @@
       '<div class="dialog-head"><span class="dialog-title">Delete your account?</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
       '<div class="dialog-body dl-del-body"><p>This permanently deletes your Daylight account and everything in it. It can’t be undone.</p>' +
       "<ul><li><i></i>Your calendars, events, tasks and settings</li><li><i></i>Everything you shared, and your AI access connections</li><li><i></i>Your support tickets and uploaded files</li></ul>" +
-      '<div class="dl-del-confirm"><label for="dlDelIn">To confirm, type your e-mail address <b>' + esc(email) + '</b></label>' +
+      '<div class="dl-del-confirm"><label for="dlDelIn">To confirm, type your e-mail address</label>' +
       '<input type="text" id="dlDelIn" class="dl-del-in" data-in autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your email address"><div class="dl-del-err" data-err role="alert"></div></div></div>' +
       '<div class="dialog-foot"><button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-danger" style="margin-left:0" data-ok disabled>Delete my account</button></div></div></div>');
     var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body;

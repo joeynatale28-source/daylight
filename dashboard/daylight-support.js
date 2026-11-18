@@ -192,6 +192,45 @@
     "@keyframes dlDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}",
     "@media (prefers-reduced-motion:reduce){.dl-mrow.new,.dl-sys.new,.dl-dots i,.dl-sup.is-chat .dl-sup-inner{animation:none}}",
     "body.reduce-motion .dl-mrow.new,body.reduce-motion .dl-dots i{animation:none}",
+    ".dl-sup-sum{display:flex;align-items:center;gap:14px;width:100%;padding:16px 20px;margin:0 0 22px;border-radius:20px;border:1px solid var(--line-soft);background:var(--surface2);color:var(--text);cursor:pointer;text-align:left;font:inherit;transition:background 140ms var(--ease-out)}.dl-sup-sum:hover{background:var(--hover)}",
+    ".dl-sup-sum .dl-sup-emico{margin:0;width:44px;height:44px}.dl-sup-sumn{font-size:13px;font-weight:600;color:var(--muted)}",
+    /* ---- admin sidebar ---- */
+    ".dl-sup.has-adm .dl-sup-inner{max-width:1280px}",
+    ".dl-split{flex:1;min-height:0;display:flex;gap:28px;align-items:stretch}",
+    ".dl-split-l{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}",
+    ".dl-adm{flex:none;width:340px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:22px;background:var(--surface2);padding:6px 6px 14px;scrollbar-width:thin;animation:dlSupIn 260ms var(--ease-out) both}",
+    ".dl-adm-top{display:flex;align-items:center;gap:9px;padding:14px 16px 10px;font-size:13px;color:var(--muted)}.dl-adm-top b{color:var(--text);font-size:13.5px}.dl-adm-top span:last-child{margin-left:auto;font-size:11.5px;color:var(--faint)}",
+    ".dl-adm-badge{width:24px;height:24px;border-radius:8px;background:var(--text);color:var(--bg);display:grid;place-items:center}",
+    ".dl-adm-sec{border-top:1px solid var(--line-soft);margin:0 10px}.dl-adm-sec:first-of-type{border-top:0}",
+    ".dl-adm-h{display:flex;align-items:center;justify-content:space-between;width:100%;padding:13px 4px;border:0;background:none;color:var(--text);font:inherit;font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;cursor:pointer}",
+    ".dl-adm-h svg{color:var(--faint);transition:transform 180ms var(--ease-out)}.dl-adm-sec.open .dl-adm-h svg{transform:rotate(90deg)}",
+    ".dl-adm-b{display:none;padding:0 4px 16px}.dl-adm-sec.open .dl-adm-b{display:block;animation:dlSupFade 200ms var(--ease-out) both}",
+    ".dl-adm-kv{display:grid;grid-template-columns:92px minmax(0,1fr);gap:9px 10px;margin:0;font-size:13px}.dl-adm-kv dt{color:var(--muted)}.dl-adm-kv dd{margin:0;color:var(--text);font-weight:550;overflow-wrap:anywhere}",
+    ".dl-adm-pill{display:inline-block;padding:2px 10px;border-radius:999px;border:1px solid var(--line-soft);font-size:12px;font-weight:650}",
+    ".dl-adm-pill.ok{color:#1e8e5a;border-color:color-mix(in srgb,#1e8e5a 40%,transparent);background:color-mix(in srgb,#1e8e5a 10%,transparent)}",
+    ".dl-adm-pill.warn{color:#b86e00;border-color:color-mix(in srgb,#d9952a 50%,transparent);background:color-mix(in srgb,#d9952a 12%,transparent)}",
+    ".dl-adm-pill.bad{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,transparent);background:color-mix(in srgb,var(--danger) 10%,transparent)}",
+    ".dl-adm-pill.open{color:var(--text);border-color:var(--text)}.dl-adm-pill.closed{color:var(--muted)}",
+    ".dl-adm-user{display:flex;align-items:center;gap:12px;margin:0 0 14px}.dl-adm-user b{display:block;font-size:14.5px}.dl-adm-user span:not(.dl-adm-av){display:block;font-size:12.5px;color:var(--muted);overflow-wrap:anywhere}",
+    ".dl-adm-av{flex:none;width:40px;height:40px;border-radius:50%;background:var(--surface);border:1px solid var(--line-soft);display:grid;place-items:center;font-weight:650}",
+    ".dl-adm-restr{margin-top:12px;padding:10px 12px;border-radius:12px;background:color-mix(in srgb,var(--danger) 8%,transparent);border:1px solid color-mix(in srgb,var(--danger) 30%,transparent);font-size:12.5px;line-height:1.5;color:var(--text)}",
+    ".dl-adm-sub{margin:4px 0 8px;font-size:12px;font-weight:650;color:var(--muted)}.dl-adm-sub:not(:first-child){margin-top:16px}",
+    ".dl-adm-empty{font-size:12.5px;color:var(--faint)}",
+    ".dl-adm-tk{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;margin:0 0 6px;border-radius:12px;border:1px solid var(--line-soft);background:var(--bg);color:var(--text);text-align:left;cursor:pointer;font:inherit;transition:background 140ms var(--ease-out)}.dl-adm-tk:hover{background:var(--hover)}",
+    ".dl-adm-tk .dl-sup-rt b{font-size:13px}.dl-adm-tk .dl-sup-rt span{font-size:11.5px}",
+    ".dl-adm-log{padding:9px 0;border-top:1px solid var(--line-soft);font-size:12.5px;line-height:1.45}.dl-adm-log:first-of-type{border-top:0}.dl-adm-log b{display:block;font-size:13px}",
+    ".dl-adm-lm{display:block;color:var(--muted);font-size:11.5px}.dl-adm-lr{display:block;margin-top:2px;color:var(--text)}",
+    ".dl-adm-note{margin:0 0 12px;font-size:12.5px;line-height:1.55;color:var(--muted)}",
+    ".dl-adm-wide{width:100%;height:40px;margin:0 0 14px!important}.dl-adm-wide:disabled{background:var(--surface);color:var(--faint);border:1px solid var(--line-soft);cursor:not-allowed}",
+    ".dl-adm-actions{display:grid;gap:8px}.dl-adm-actions button{width:100%;height:40px;margin:0;justify-content:center}",
+    ".dl-adm-foot{margin:6px 16px 0;font-size:11.5px;line-height:1.5;color:var(--faint)}",
+    ".dl-act-p{margin:0 0 14px;font-size:14px;line-height:1.55;color:var(--muted)}",
+    ".dl-act-f{margin:0 0 14px}.dl-act-f label{display:block;font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}",
+    ".dl-act-f input,.dl-act-f textarea{width:100%;box-sizing:border-box;border:1px solid var(--line-soft);background:var(--surface2);border-radius:14px;padding:11px 14px;font:inherit;font-size:14.5px;color:var(--text);outline:none;resize:vertical}.dl-act-f input:focus,.dl-act-f textarea:focus{border-color:var(--text)}",
+    ".dl-act-seg{display:flex;flex-wrap:wrap;gap:8px}.dl-act-seg button{height:36px;padding:0 15px;border-radius:999px;border:1px solid var(--line-soft);background:none;color:var(--muted);font-size:13.5px;font-weight:550;cursor:pointer}.dl-act-seg button[aria-checked=true]{background:var(--text);color:var(--bg);border-color:var(--text)}",
+    ".dl-act-hint{margin-top:6px;font-size:12px;color:var(--faint)}",
+    ".dl-act .dialog-foot button{height:40px;padding:0 20px;font-size:14px;margin:0}.dl-act .btn-primary:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:not-allowed}.dl-act .btn-danger:disabled{background:#fdeceb;color:#8a1b12;border:1px solid #e9aaa5;cursor:not-allowed;opacity:1}[data-theme=dark] .dl-act .btn-danger:disabled{background:#3b1714;color:#ffb9b1;border-color:#7a3028}",
+    "@media (max-width:1100px){.dl-sup.is-chat.has-adm{overflow-y:auto}.dl-split{flex-direction:column;overflow:visible}.dl-split-l{min-height:72vh}.dl-adm{width:auto;margin-top:18px;overflow:visible}}",
     "@media (max-width:760px){.dl-sup{padding:20px 16px 32px}.dl-sup-hello{font-size:25px}.dl-sup-head{flex-wrap:wrap}.dl-msg{max-width:94%}.dl-file{min-width:0;width:100%;box-sizing:border-box}.dl-file button{margin-left:50px}}"
   ].join("\n");
   document.head.appendChild(css);
@@ -282,10 +321,19 @@
     inner.appendChild(cta);
     var host = make('<div class="dl-sup-fade"></div>'); inner.appendChild(host);
     host.appendChild(make('<div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div>'));
-    rpc("support_ticket_list").then(function (rows) {
-      rows = rows || [];
+    var adminSum = isOwner() ? Promise.all([rpc("support_admin_list", { p_status: "open" }), rpc("support_admin_list", { p_status: "closed" })]).then(function (r) { return { open: (r[0] || []).length, closed: (r[1] || []).length }; }).catch(function () { return null; }) : Promise.resolve(null);
+    Promise.all([rpc("support_ticket_list"), adminSum]).then(function (pair) {
+      var rows = pair[0] || [], sum = pair[1];
       host.innerHTML = "";
+      if (sum && (sum.open || sum.closed)) {
+        var sc = make('<button type="button" class="dl-sup-sum"><span class="dl-sup-emico">' + ico("inbox", 20) + '</span><span class="dl-sup-rt"><b>All tickets</b><span></span></span><span class="dl-sup-sumn"></span>' + ico("chev", 16) + "</button>");
+        sc.querySelector(".dl-sup-rt span").textContent = sum.open + " open · " + sum.closed + " closed from the people using Daylight";
+        sc.querySelector(".dl-sup-sumn").textContent = "View tickets";
+        sc.addEventListener("click", function () { show("admin", { adminTab: sum.open ? "open" : "closed" }); });
+        host.appendChild(sc);
+      }
       var open = rows.filter(function (t) { return t.status === "open"; }), closed = rows.filter(function (t) { return t.status === "closed"; });
+      if (!rows.length && sum && (sum.open || sum.closed)) return;
       if (!rows.length) {
         var em = make('<div class="dl-sup-empty2"><span class="dl-sup-emico">' + ico("chat", 26) + '</span><h2>No tickets yet</h2><p>Questions, bugs, ideas, or a copy of your data — start a ticket and we’ll reply right here.</p><div class="dl-sup-emcats"></div></div>');
         CATS.forEach(function (c) { var b = make('<button type="button" class="dl-sup-chip"></button>'); b.textContent = c[1]; b.addEventListener("click", function () { newTicketSheet(c[0]); }); em.querySelector(".dl-sup-emcats").appendChild(b); });
@@ -434,6 +482,180 @@
     else go();
   }
 
+  /* ------------------------------------------------------------------ admin sidebar on a ticket (owner only)
+     Ticket details, the person's account, history, data, actions. Everything comes from THIS ticket's context (support_admin_context);
+     it never shows calendars, events or tasks, never a password, and every action is confirmed first and logged. */
+  async function invokeFn(name, body) {
+    var c = cloud(), s = c.ensureSession ? await c.ensureSession() : null;
+    var res = await c.client.functions.invoke(name, { body: body, headers: s && s.access_token ? { Authorization: "Bearer " + s.access_token } : undefined });
+    if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }
+    return res.data;
+  }
+  var ACT_LABEL = { reset_password: "Password reset sent", change_email: "E-mail change started", suspend: "Suspended", ban: "Banned", lift: "Restriction lifted", private_message: "Private message sent", give_data: "Data export given" };
+  function dt(iso) { var d = new Date(iso); return isNaN(d) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
+  function dOnly(iso) { var d = new Date(iso); return isNaN(d) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
+
+  /* a small form dialog in the app's own dialog style: fields, a confirm button, an error line */
+  function actionDialog(o) {
+    var bd = make('<div class="backdrop"><div class="dialog dl-std dl-look dl-act" role="dialog" aria-modal="true" aria-label="' + esc(o.title) + '">' +
+      '<div class="dialog-head"><span class="dialog-title">' + esc(o.title) + '</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + ico("x", 17) + "</button></div>" +
+      '<div class="dialog-body"><p class="dl-act-p"></p><div data-fields></div><div class="dl-sup-err" data-err role="alert"></div></div>' +
+      '<div class="dialog-foot"><button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="' + (o.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok></button></div></div></div>');
+    bd.querySelector(".dl-act-p").textContent = o.body || "";
+    var ok = bd.querySelector("[data-ok]"), err = bd.querySelector("[data-err]"), host = bd.querySelector("[data-fields]"), vals = {};
+    ok.textContent = o.confirmLabel;
+    (o.fields || []).forEach(function (f) {
+      var w = make('<div class="dl-act-f"><label></label></div>'); w.querySelector("label").textContent = f.label;
+      if (f.type === "choice") {
+        var seg = make('<div class="dl-act-seg" role="radiogroup"></div>'); vals[f.id] = f.value || f.options[0][0];
+        f.options.forEach(function (op) { var b = make('<button type="button" role="radio"></button>'); b.textContent = op[1]; b.setAttribute("aria-checked", String(op[0] === vals[f.id]));
+          b.addEventListener("click", function () { vals[f.id] = op[0]; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-checked", String(x === b)); }); }); seg.appendChild(b); });
+        w.appendChild(seg);
+      } else {
+        var i = make(f.type === "textarea" ? "<textarea></textarea>" : '<input type="text" autocomplete="off" spellcheck="false">'); i.placeholder = f.placeholder || ""; i.maxLength = f.max || 500;
+        if (f.type === "textarea") i.rows = 3;
+        i.addEventListener("input", function () { vals[f.id] = i.value; err.textContent = ""; sync(); }); vals[f.id] = ""; w.appendChild(i);
+      }
+      if (f.hint) { var h = make('<div class="dl-act-hint"></div>'); h.textContent = f.hint; w.appendChild(h); }
+      host.appendChild(w);
+    });
+    function sync() { ok.disabled = !!o.need && !o.need.every(function (k) { return String(vals[k] || "").trim().length >= (k === "reason" ? 3 : 1); }); }
+    sync();
+    var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body; root.appendChild(bd);
+    function close() { document.removeEventListener("keydown", onKey, true); if (window.daylightExit) window.daylightExit(bd); else bd.remove(); }
+    function onKey(e) { if (e.key === "Escape" && !ok.dataset.busy) { if (typeof ddState !== "undefined" && ddState) return; e.preventDefault(); e.stopPropagation(); close(); } }
+    document.addEventListener("keydown", onKey, true);
+    bd.querySelector("[data-x]").addEventListener("click", function () { if (!ok.dataset.busy) close(); });
+    bd.querySelector("[data-cancel]").addEventListener("click", function () { if (!ok.dataset.busy) close(); });
+    ok.addEventListener("click", async function () {
+      if (ok.disabled || ok.dataset.busy) return;
+      ok.dataset.busy = "1"; ok.disabled = true; var label = ok.textContent; ok.textContent = "Working…"; err.textContent = "";
+      try { await o.run(vals); close(); } catch (e) { delete ok.dataset.busy; ok.disabled = false; ok.textContent = label; err.textContent = errText(e, "That didn’t work. Please try again."); }
+    });
+    setTimeout(function () { var f = bd.querySelector("input,textarea,[data-ok]"); if (f && !f.disabled) f.focus(); }, 60);
+  }
+
+  function adminSidebar(ticketId, hooks) {
+    var el0 = make('<aside class="dl-adm" aria-label="Ticket and person details (admin only)"></aside>'), ctx = null;
+    var open = { ticket: true, user: true, history: true, data: true, actions: true };
+    function sec(key, title, body) {
+      var s = make('<section class="dl-adm-sec' + (open[key] ? " open" : "") + '"><button type="button" class="dl-adm-h" aria-expanded="' + open[key] + '"><span></span>' + ico("chev", 15) + '</button><div class="dl-adm-b"></div></section>');
+      s.querySelector(".dl-adm-h span").textContent = title;
+      s.querySelector(".dl-adm-b").appendChild(body);
+      s.querySelector(".dl-adm-h").addEventListener("click", function () { open[key] = !open[key]; s.classList.toggle("open", open[key]); s.querySelector(".dl-adm-h").setAttribute("aria-expanded", String(open[key])); });
+      return s;
+    }
+    function kv(rows) {
+      var d = make('<dl class="dl-adm-kv"></dl>');
+      rows.forEach(function (r) { var k = make("<dt></dt>"); k.textContent = r[0]; var v = make("<dd></dd>"); if (r[1] instanceof Node) v.appendChild(r[1]); else v.textContent = r[1]; d.appendChild(k); d.appendChild(v); });
+      return d;
+    }
+    function pill(text, cls) { var p = make('<span class="dl-adm-pill ' + cls + '"></span>'); p.textContent = text; return p; }
+    function btn(label, cls, fn, icon) { var b = make('<button type="button" class="' + cls + '"></button>'); b.textContent = label; b.addEventListener("click", fn); return b; }
+
+    function act(name, extra) { return invokeFn("support-admin", Object.assign({ action: name, ticket_id: ticketId }, extra || {})); }
+    function after(msg) { hooks.toast && hooks.toast(msg); return refresh(); }
+
+    function render() {
+      el0.innerHTML = "";
+      var t = ctx.ticket, u = ctx.user, status = u.status;
+      el0.appendChild(make('<div class="dl-adm-top"><span class="dl-adm-badge">' + ico("buoy", 14) + '</span><b>Admin</b><span>Only you see this panel</span></div>'));
+      // 1. ticket details
+      var tk = kv([["Opened", dt(t.created_at)], ["Category", catLabel(t.category)], ["Status", pill(t.status === "open" ? "Open" : "Closed" + (t.closed_by ? " by " + (t.closed_by === "admin" ? "support" : "the customer") : ""), t.status)],
+        ["Last reply", (t.last_sender === "user" ? "Customer" : t.last_sender === "admin" ? "Daylight Support" : "System") + " · " + ago(t.last_message_at)], ["Reference", "#" + t.ref]]);
+      el0.appendChild(sec("ticket", "Ticket details", tk));
+      // 2. user
+      var head = make('<div class="dl-adm-user"><span class="dl-adm-av"></span><div><b></b><span></span></div></div>');
+      head.querySelector(".dl-adm-av").textContent = (u.name || u.email || "?").trim().charAt(0).toUpperCase();
+      head.querySelector("b").textContent = u.name || "No name on file"; head.querySelector(":scope > div > span").textContent = u.email;
+      var ub = make("<div></div>"); ub.appendChild(head);
+      var st = status === "active" ? pill("Active", "ok") : status === "banned" ? pill("Banned", "bad") : pill("Suspended", "warn");
+      var rows = [["Account", st], ["Created", dOnly(u.created_at)], ["Last active", u.last_sign_in_at ? dt(u.last_sign_in_at) : "Never"]];
+      ub.appendChild(kv(rows));
+      if (u.restriction) {
+        var rb = make('<div class="dl-adm-restr"></div>');
+        rb.textContent = (u.restriction.kind === "banned" ? "Banned" : "Suspended") + " · " + (u.restriction.ends_at ? "until " + dt(u.restriction.ends_at) : u.restriction.kind === "banned" ? "permanent" : "until lifted") + " — “" + u.restriction.reason + "”";
+        ub.appendChild(rb);
+      }
+      el0.appendChild(sec("user", "User", ub));
+      // 3. history
+      var hs = make("<div></div>");
+      hs.appendChild(make('<div class="dl-adm-sub">Other tickets</div>'));
+      if (!ctx.history.tickets.length) hs.appendChild(make('<div class="dl-adm-empty">No other tickets.</div>'));
+      ctx.history.tickets.forEach(function (x) {
+        var r = make('<button type="button" class="dl-adm-tk"><span class="dl-sup-rt"><b></b><span></span></span><span class="dl-sup-pill"></span></button>');
+        r.querySelector("b").textContent = x.title; r.querySelector(".dl-sup-rt span").textContent = catLabel(x.category) + " · " + dOnly(x.created_at);
+        var p = r.querySelector(".dl-sup-pill"); p.textContent = x.status === "open" ? "Open" : "Closed"; p.classList.add(x.status);
+        r.addEventListener("click", function () { hooks.openTicket(x.id); }); hs.appendChild(r);
+      });
+      hs.appendChild(make('<div class="dl-adm-sub">Admin actions</div>'));
+      if (!ctx.history.actions.length) hs.appendChild(make('<div class="dl-adm-empty">No actions taken on this account.</div>'));
+      ctx.history.actions.forEach(function (a) {
+        var r = make('<div class="dl-adm-log"><b></b><span class="dl-adm-lm"></span><span class="dl-adm-lr"></span></div>');
+        r.querySelector("b").textContent = ACT_LABEL[a.action] || a.action;
+        var meta = dt(a.created_at) + " · " + (a.admin_email || "admin") + (a.detail && a.detail.duration ? " · " + String(a.detail.duration).replace("_", " ") : "") + (a.detail && a.detail.to ? " · to " + a.detail.to : "");
+        r.querySelector(".dl-adm-lm").textContent = meta;
+        if (a.reason) r.querySelector(".dl-adm-lr").textContent = "“" + a.reason + "”"; else r.querySelector(".dl-adm-lr").remove();
+        hs.appendChild(r);
+      });
+      el0.appendChild(sec("history", "History", hs));
+      // 4. data
+      var dd = make("<div></div>");
+      dd.appendChild(make('<p class="dl-adm-note">Builds this person’s full data (readable JSON files, calendars as ICS, and a summary) and posts it in this ticket. Their own data only; the download expires after 24 hours.</p>'));
+      var gb = btn("Give data", "btn-primary dl-adm-wide", function () {
+        actionDialog({ title: "Give " + (u.name || u.email) + " their data?", body: "This posts a ZIP of their data in this ticket. It stays downloadable for 24 hours.", confirmLabel: "Give data",
+          run: async function () { await invokeFn("support", { action: "give_data", ticket_id: ticketId }); await after("Data posted in the ticket."); hooks.reload(); } });
+      });
+      if (t.status !== "open") { gb.disabled = true; gb.title = "Open tickets only"; }
+      dd.appendChild(gb);
+      dd.appendChild(kv([["Data requests", String(ctx.data.requests)], ["Exports given", String(ctx.data.exports_given) + (ctx.data.last_export_at ? " · last " + dOnly(ctx.data.last_export_at) : "")]]));
+      el0.appendChild(sec("data", "Data", dd));
+      // 5. actions
+      var ac = make('<div class="dl-adm-actions"></div>');
+      ac.appendChild(btn("Reset password", "btn-ghost", function () {
+        actionDialog({ title: "Send a password reset link?", body: "We e-mail " + u.email + " a link to choose a new password. You never see or set the password.", confirmLabel: "Send link",
+          run: async function () { await act("reset_password", { redirect_to: (window.daylightRoute && window.daylightRoute.siteRoot) || undefined }); await after("Password reset link sent."); } });
+      }));
+      ac.appendChild(btn("Change email", "btn-ghost", function () {
+        actionDialog({ title: "Change this person’s e-mail?", body: "A verification link goes to the NEW address. The account keeps its current e-mail until they confirm it.", confirmLabel: "Send verification", need: ["new_email"],
+          fields: [{ id: "new_email", label: "New e-mail address", placeholder: "name@example.com", max: 200 }],
+          run: async function (v) { await act("change_email", { new_email: v.new_email.trim() }); await after("Verification sent to the new address."); } });
+      }));
+      ac.appendChild(btn("Send private message", "btn-ghost", function () {
+        actionDialog({ title: "Send a private message?", body: "They get it in their notifications from Daylight Support. It is separate from this ticket.", confirmLabel: "Send message", need: ["text"],
+          fields: [{ id: "text", label: "Message", type: "textarea", placeholder: "What do you want to tell them?", max: 1000 }],
+          run: async function (v) { await act("private_message", { text: v.text.trim() }); await after("Message sent."); } });
+      }));
+      if (status === "active") {
+        ac.appendChild(btn("Suspend user", "btn-ghost", function () {
+          actionDialog({ title: "Suspend this user?", body: "They can’t sign in while suspended. They’re shown why and when it ends, and it lifts by itself at the end.", confirmLabel: "Suspend", danger: true, need: ["reason"],
+            fields: [{ id: "duration", label: "For how long", type: "choice", value: "7d", options: [["1d", "1 day"], ["7d", "7 days"], ["30d", "30 days"], ["until_lifted", "Until lifted"]] },
+                     { id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being suspended?", max: 300 }],
+            run: async function (v) { await act("suspend", { duration: v.duration, reason: v.reason.trim() }); await after("Suspended."); } });
+        }));
+        ac.appendChild(btn("Ban user", "btn-danger-outline", function () {
+          actionDialog({ title: "Ban this user permanently?", body: "They can’t sign in until an admin lifts the ban. They’re shown why and how to appeal (privacy@daylightcal.com).", confirmLabel: "Ban user", danger: true, need: ["reason"],
+            fields: [{ id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being banned?", max: 300 }],
+            run: async function (v) { await act("ban", { reason: v.reason.trim() }); await after("Banned."); } });
+        }));
+      } else {
+        ac.appendChild(btn(status === "banned" ? "Lift ban" : "Lift suspension", "btn-primary", function () {
+          actionDialog({ title: status === "banned" ? "Lift this ban?" : "Lift this suspension?", body: "They can sign in again right away.", confirmLabel: "Lift", need: ["reason"],
+            fields: [{ id: "reason", label: "Reason", type: "textarea", placeholder: "Why is it being lifted?", max: 300 }],
+            run: async function (v) { await act("lift", { reason: v.reason.trim() }); await after("Restriction lifted."); } });
+        }));
+      }
+      el0.appendChild(sec("actions", "Actions", ac));
+      el0.appendChild(make('<p class="dl-adm-foot">Admin access is for support and safety only. Every action is logged with who, what, when and why. Calendar content is never shown here.</p>'));
+    }
+    async function refresh() {
+      try { ctx = await rpc("support_admin_context", { p_ticket_id: ticketId }); render(); }
+      catch (e) { el0.innerHTML = '<div class="dl-adm-empty" style="padding:16px">Couldn’t load the details.</div>'; }
+    }
+    refresh();
+    return { el: el0, refresh: refresh };
+  }
+
   /* ------------------------------------------------------------------ chat */
   function chatView(inner, wrap) {
     var token = ++ST.token, data = null, pending = [], sending = false, lastSig = "";
@@ -441,7 +663,8 @@
     back.addEventListener("click", function () { show(ST.from === "admin" && isOwner() ? "admin" : "home"); });
     inner.appendChild(back);
     var headHost = make("<div></div>"), msgsHost = make('<div class="dl-msgs" role="log" aria-live="polite"></div>'), compHost = make("<div></div>");
-    inner.appendChild(headHost); inner.appendChild(msgsHost); inner.appendChild(compHost);
+    var split = make('<div class="dl-split"><div class="dl-split-l"></div></div>'), leftCol = split.firstChild, side = null;
+    leftCol.appendChild(headHost); leftCol.appendChild(msgsHost); leftCol.appendChild(compHost); inner.appendChild(split);
     msgsHost.innerHTML = '<div class="dl-sys">Loading…</div>';
 
     function viewerIsUser() { return !!(data && data.ticket.mine); }
@@ -453,11 +676,6 @@
       var who = !t.mine ? (t.user_name ? t.user_name + " · " + t.user_email : t.user_email) + " · " : "";
       h.querySelector(".dl-chat-meta").textContent = who + catLabel(t.category) + " · " + (t.status === "open" ? "Open" : "Closed") + " · opened " + clock(t.created_at);
       var acts = h.querySelector(".dl-chat-actions");
-      if (t.status === "open" && !t.mine && isOwner()) {
-        var gd = make('<button type="button" class="btn-primary">Give data</button>');
-        gd.addEventListener("click", function () { giveData(gd); });
-        acts.appendChild(gd);
-      }
       if (t.status === "open") {
         var cb = make('<button type="button" class="btn-ghost">Close ticket</button>');
         cb.addEventListener("click", function () {
@@ -652,6 +870,10 @@
         var statusChanged = !lastSig || lastSig.split("|")[0] !== d.ticket.status;
         lastSig = sig;
         if (first || statusChanged) { drawHead(); drawComposer(); }
+        if (!side && !d.ticket.mine && isOwner()) {
+          side = adminSidebar(d.ticket.id, { openTicket: function (id) { openTicket(id, "admin"); }, reload: function () { load(true); }, toast: function (m) { if (typeof toast === "function") toast(m); } });
+          split.appendChild(side.el); wrap.classList.add("has-adm");
+        } else if (side && statusChanged) side.refresh();
         await drawMsgs(first || force);
       }
     }
@@ -710,4 +932,16 @@
       } else if (tries > 80) clearInterval(t);
     }, 250);
   }
+
+  /* Month grid keyboard reach: PageUp / PageDown / Home / End scroll the month grid when it is scrollable (short windows) */
+  document.addEventListener("keydown", function (e) {
+    if (e.defaultPrevented || e.ctrlKey || e.metaKey || e.altKey || !window.state || state.section !== "calendar" || state.view !== "month") return;
+    if (!/^(PageDown|PageUp|Home|End)$/.test(e.key)) return;
+    var t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+    if (document.querySelector(".backdrop,.menu,.dd-menu")) return;
+    var g = document.querySelector(".month-grid"); if (!g || g.scrollHeight <= g.clientHeight + 1) return;
+    e.preventDefault();
+    if (e.key === "Home") g.scrollTop = 0; else if (e.key === "End") g.scrollTop = g.scrollHeight;
+    else g.scrollBy({ top: (e.key === "PageDown" ? 1 : -1) * g.clientHeight * 0.85 });
+  });
 })();

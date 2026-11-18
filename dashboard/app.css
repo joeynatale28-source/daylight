@@ -2105,15 +2105,16 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .settings-pane #dl-sec-danger .set-group { margin-bottom: 0; }
 /* sidebar calendar names wrap cleanly: a row grows with its wrapped name instead of overlapping the next row */
 #sidebar:not(.rail) .cal-row { height: auto !important; min-height: var(--dl-cal-row-height, 30px) !important; padding-top: 3px; padding-bottom: 3px; }
-/* month grid: rows share the view's height, but never get shorter than a readable row; below that the grid scrolls (wheel / trackpad / touch) so the last week is always reachable */
-.month-grid { --month-row-min: 104px; }
-@media (min-height: 760px) and (min-width: 861px) {
+/* month grid: rows share the view's height, but never get shorter than a readable row (120px); below that the grid scrolls (wheel, trackpad, touch, PageUp/PageDown, Home/End) so the last week is always reachable, with a little room under it */
+.month-grid { --month-row-min: 120px; }
+@media (min-height: 830px) and (min-width: 861px) {
   .month-grid { grid-template-rows: repeat(6, minmax(0, 1fr)); }
   .month-grid .month-week { min-height: 0; overflow: hidden; }
 }
-@media (max-height: 759px), (max-width: 860px) {
+@media (max-height: 829px), (max-width: 860px) {
   .month-grid { grid-template-rows: repeat(6, minmax(var(--month-row-min), 1fr)); }
   .month-grid .month-week { min-height: var(--month-row-min); overflow: hidden; }
+  .month-grid::after { content: ""; display: block; height: 14px; }
 }
 /* inputs show an ellipsis instead of cutting a long value mid-word (event Location, titles) */
 .text-input, .dialog input[type=text] { text-overflow: ellipsis; }

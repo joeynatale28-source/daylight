@@ -27,11 +27,12 @@ try{
    if(name==='support_ticket_get'){const t=db.tickets.find(x=>x.id===a.p_id);if(!t)return fail('That ticket does not exist.');const side=t.user_id===db.uid?'user':'admin';db.calls.push({n:'get',side,viewing:a.p_viewing});return ok({ticket:Object.assign({},t,{mine:t.user_id===db.uid,other_typing:!!db.typing}),messages:db.msgs.filter(m=>m.ticket_id===t.id)})}
    if(name==='support_send'){const t=db.tickets.find(x=>x.id===a.p_id);db.msgs.push({id:'m'+(db.msgs.length+1),ticket_id:t.id,sender:t.user_id===db.uid?'user':'admin',kind:'text',body:a.p_body,attachments:a.p_atts||[],created_at:now()});t.last_message_at=now();return ok('x')}
    if(name==='support_typing')return ok(null);
+   if(name==='support_admin_context'){const t=db.tickets.find(x=>x.id===a.p_ticket_id);return ok({ticket:{id:t.id,ref:'A1B2C3D4',created_at:t.created_at,category:t.category,status:t.status,closed_by:null,last_sender:t.last_sender,last_message_at:t.last_message_at},user:{name:t.user_name,email:t.user_email,created_at:'2026-11-01T10:00:00Z',last_sign_in_at:'2026-11-17T09:00:00Z',status:db.restr?'suspended':'active',restriction:db.restr||null},history:{tickets:[{id:'old1',title:'Earlier question',status:'closed',category:'other',created_at:'2026-11-10T10:00:00Z'}],actions:db.actions||[]},data:{requests:1,exports_given:0,last_export_at:null}})}
    if(name==='support_close'){const t=db.tickets.find(x=>x.id===a.p_id);t.status='closed';db.msgs.push({id:'m'+(db.msgs.length+1),ticket_id:t.id,sender:'system',kind:'system',body:'The ticket was closed.',attachments:[],created_at:now()});return ok(null)}
    return real(name,a);
   };
   c.client.storage={from:()=>({upload:async(p,f)=>{db.calls.push({n:'upload',p});return {data:{path:p},error:null}},createSignedUrls:async ps=>({data:ps.map(p=>({path:p,signedUrl:'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAYAAADED76LAAAAJ0lEQVR4nGNkYGD4z0AEYBxVSF/F/6EQ0EQoAwMDQ/wnQL+KA1QAAHlwBwWfHfMQAAAAAElFTkSuQmCC'})),error:null}),createSignedUrl:async()=>({data:{signedUrl:'data:text/plain,zip'},error:null}),getPublicUrl:()=>({data:{publicUrl:'data:image/svg+xml;utf8,'+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64" fill="#e8a33d"/><circle cx="32" cy="26" r="12" fill="#fff"/><rect x="12" y="42" width="40" height="22" rx="11" fill="#fff"/></svg>')}})})};
-  c.client.functions={invoke:async(fn,o)=>{db.calls.push({n:'fn',fn,body:o.body});const t=db.tickets.find(x=>x.id===o.body.ticket_id);db.msgs.push({id:'m'+(db.msgs.length+1),ticket_id:t.id,sender:'admin',kind:'export',body:'Here is a copy of your data. The download is available for 24 hours.',attachments:[{path:'u/t/export-1.zip',name:'daylight-data-export.zip',type:'application/zip',size:5440,expires_at:new Date(Date.now()+864e5).toISOString()}],created_at:now()});return {data:{ok:true},error:null}}};
+  c.client.functions={invoke:async(fn,o)=>{db.calls.push({n:'fn',fn,body:o.body});if(fn==='support-admin'){if(o.body.action==='suspend'){db.restr={kind:'suspended',reason:o.body.reason,ends_at:new Date(Date.now()+864e5).toISOString()};db.actions=[{action:'suspend',reason:o.body.reason,detail:{duration:o.body.duration},admin_email:'admin@x.com',created_at:new Date().toISOString()}]}if(o.body.action==='lift'){db.restr=null}return {data:{ok:true},error:null}}const t=db.tickets.find(x=>x.id===o.body.ticket_id);db.msgs.push({id:'m'+(db.msgs.length+1),ticket_id:t.id,sender:'admin',kind:'export',body:'Here is a copy of your data. The download is available for 24 hours.',attachments:[{path:'u/t/export-1.zip',name:'daylight-data-export.zip',type:'application/zip',size:5440,expires_at:new Date(Date.now()+864e5).toISOString()}],created_at:now()});return {data:{ok:true},error:null}}};
   window.daylightAdmin.isOwner=()=>db.owner;
   c.user.user_metadata=Object.assign({},c.user.user_metadata,{full_name:'Maya Rivera'});
  });
@@ -127,6 +128,7 @@ try{
  await page.evaluate(()=>{state.section='support';renderAll(false)});await sleep(400);
  await page.evaluate(()=>document.querySelector('[data-side-support]').click());await sleep(500);
  check(await page.evaluate(()=>/Open tickets/.test((document.querySelector('.dl-sup-open')||{}).textContent||'')),'owner sees an "Open tickets" button');
+ check(await page.evaluate(()=>!!document.querySelector('.dl-sup-sum')&&!document.querySelector('.dl-sup-empty2')&&/open · .* closed/.test(document.querySelector('.dl-sup-sum').textContent)),'the home shows a tickets summary (not "No tickets yet") when tickets exist for the admin');
  if(SHOTS)await page.screenshot({path:SHOTS+'/'+(process.env.W||1440)+(process.env.THEME||'light')+'-sup-admin-home.png'});
  await page.click('.dl-sup-open');await sleep(600);
  const ol=await page.evaluate(()=>[...document.querySelectorAll('.dl-sup-row')].map(r=>r.innerText.replace(/\s+/g,' ')));
@@ -143,10 +145,25 @@ try{
  check(await page.evaluate(()=>document.querySelectorAll('.dl-sup-row').length===1&&/Data request/.test(document.querySelector('.dl-sup-h2').textContent)),'tickets are grouped under their category');
  await page.click('.dl-sup-row');await sleep(900);
  const ac=await page.evaluate(()=>({btns:[...document.querySelectorAll('.dl-chat-actions button')].map(b=>b.textContent),from:[...document.querySelectorAll('.dl-msg-from')].map(x=>x.textContent.trim()),back:document.querySelector('.dl-sup-back').textContent.trim()}));
- check(ac.btns.includes('Give data')&&ac.btns.includes('Close ticket')&&ac.from.includes('Alex Kim')&&ac.back==='Open tickets','admin chat: Give data, Close, user named, back goes to Open tickets',ac);
- await page.evaluate(()=>[...document.querySelectorAll('.dl-chat-actions button')].find(b=>b.textContent==='Give data').click());await sleep(300);
- await page.evaluate(()=>document.querySelector('.dl-confirm [data-ok]').click());await sleep(1200);
- const ex=await page.evaluate(()=>({file:!!document.querySelector('.dl-file'),dl:!!document.querySelector('.dl-file button'),txt:(document.querySelector('.dl-file small')||{}).textContent,fn:window.__sup.calls.filter(c=>c.n==='fn').length}));
+ check(ac.btns.includes('Close ticket')&&!ac.btns.includes('Give data')&&ac.from.includes('Alex Kim')&&ac.back==='Open tickets','admin chat: Give data, Close, user named, back goes to Open tickets',ac);
+ check(await page.evaluate(()=>[...document.querySelectorAll('.dl-adm-h span')].map(x=>x.textContent).join('|'))==='Ticket details|User|History|Data|Actions','the admin sidebar has the five sections in order');
+ const sb=await page.evaluate(()=>{const t=document.querySelector('.dl-adm').innerText;return {ref:/#A1B2C3D4/.test(t),email:/alex@example\.com/.test(t),active:/Active/.test(t),hist:/Earlier question/.test(t),cal:/calendar|event title|task/i.test(t.replace(/Calendar content is never shown here\./,'').replace(/calendars as ICS/i,'').replace(/readable JSON files, calendars as ICS, and a summary/i,''))}});
+ check(sb.ref&&sb.email&&sb.active&&sb.hist,'sidebar shows reference, e-mail, account status and the other tickets',sb);
+ if(SHOTS)await page.screenshot({path:SHOTS+'/'+(process.env.W||1440)+(process.env.THEME||'light')+'-sup-sidebar.png'});
+ // suspend: needs a reason; confirm; the sidebar then shows Suspended + the log entry
+ await page.evaluate(()=>[...document.querySelectorAll('.dl-adm-actions button')].find(b=>b.textContent==='Suspend user').click());await sleep(350);
+ check(await page.evaluate(()=>document.querySelector('.dl-act [data-ok]').disabled),'Suspend asks for a reason first (button disabled until typed)');
+ if(SHOTS)await page.screenshot({path:SHOTS+'/'+(process.env.W||1440)+(process.env.THEME||'light')+'-sup-suspend.png'});
+ await page.type('.dl-act textarea','Repeated abuse');await sleep(100);
+ await page.evaluate(()=>[...document.querySelectorAll('.dl-act-seg button')].find(b=>b.textContent==='30 days').click());
+ await page.evaluate(()=>document.querySelector('.dl-act [data-ok]').click());await sleep(900);
+ check(await page.evaluate(()=>/Suspended/.test(document.querySelector('.dl-adm').innerText)&&/Repeated abuse/.test(document.querySelector('.dl-adm').innerText)&&window.__sup.calls.some(c=>c.fn==='support-admin'&&c.body.action==='suspend'&&c.body.duration==='30d')),'suspend runs with the duration and reason; the sidebar shows it and the log');
+ await page.evaluate(()=>[...document.querySelectorAll('.dl-adm-actions button')].find(b=>/Lift/.test(b.textContent)).click());await sleep(300);
+ await page.type('.dl-act textarea','Resolved');await page.evaluate(()=>document.querySelector('.dl-act [data-ok]').click());await sleep(800);
+ check(await page.evaluate(()=>/Active/.test(document.querySelector('.dl-adm').innerText)),'lifting returns the account to Active');
+ await page.evaluate(()=>[...document.querySelectorAll('.dl-adm button')].find(b=>b.textContent==='Give data').click());await sleep(300);
+ await page.evaluate(()=>document.querySelector('.dl-act [data-ok]').click());await sleep(1200);
+ const ex=await page.evaluate(()=>({file:!!document.querySelector('.dl-file'),dl:!!document.querySelector('.dl-file button'),txt:(document.querySelector('.dl-file small')||{}).textContent,fn:window.__sup.calls.filter(c=>c.n==='fn'&&c.fn==='support').length}));
  check(ex.file&&ex.dl&&/available until/.test(ex.txt)&&ex.fn===1,'Give data posts a downloadable export with an expiry',ex);
  if(SHOTS)await page.screenshot({path:SHOTS+'/'+(process.env.W||1440)+(process.env.THEME||'light')+'-sup-admin-chat.png'});
  // admin sends with a photo

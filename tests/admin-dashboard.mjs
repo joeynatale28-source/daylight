@@ -186,7 +186,7 @@ for(const theme of ['dark','light']){
   check(T('the test account sees both banners, newest first, stacked at the very top'),JSON.stringify(tb.texts)==='["Only for the test account","Scheduled maintenance tonight at 10pm Eastern"]'&&tb.top===0,JSON.stringify(tb));
   const hexToRgb=h=>{const m=/^#(..)(..)(..)$/.exec(h);return `rgb(${parseInt(m[1],16)}, ${parseInt(m[2],16)}, ${parseInt(m[3],16)})`};
   check(T('the banner is in the picked color, with readable text'),tb.colors[1]===hexToRgb(picked)&&tb.textColor[1]!==tb.colors[1],JSON.stringify({c:tb.colors,want:hexToRgb(picked),t:tb.textColor}));
-  check(T('there is no dismiss control on any banner'),tb.controls===0&&!await page.$('#dlBanners button'),String(tb.controls));
+  check(T('every banner has a dismiss control (a dismissed banner stays dismissed for that person)'),tb.controls===2&&(await page.$$('#dlBanners .dl-banner-x')).length===2,String(tb.controls));
   check(T('the linked banner\'s text is a link that opens in a new tab'),tb.link&&tb.link.href==='https://example.com/status'&&tb.link.target==='_blank'&&/noopener/.test(tb.link.rel),JSON.stringify(tb.link));
   check(T('the app sits right under the banners and still fits the window'),tb.appTop===tb.bannerBottom&&tb.appBottom<=tb.vh+1,JSON.stringify(tb));
   const fits=await page.evaluate(()=>{const g=document.querySelector('.month-grid');if(!g)return null;g.scrollTop=g.scrollHeight;const rows=[...g.querySelectorAll('.month-week')];return {rows:rows.length,lastBottom:Math.round(rows[rows.length-1].getBoundingClientRect().bottom),gridBottom:Math.round(g.getBoundingClientRect().bottom),vh:innerHeight}});

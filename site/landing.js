@@ -28,7 +28,7 @@
 
   /* Announcement strip above the nav: the same live banner list the Admin dashboard writes ("Dashboard and landing page" banners,
      read through the public daylight_landing_banner function). Text, link and color come from the database; nothing is hardcoded.
-     With no active banner nothing renders. Visitors cannot dismiss it. It refreshes every minute and when the tab returns,
+     With no active banner nothing renders. A visitor can dismiss it (remembered in this browser). It refreshes every minute and when the tab returns,
      so an edited, deactivated or deleted banner never lingers. */
   var holder = d.getElementById('banners');
   if (holder && w.fetch) {
@@ -40,8 +40,13 @@
       var lin = function (v) { v = parseInt(v, 16) / 255; return v <= 0.03928 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4); };
       return (0.2126 * lin(m[1]) + 0.7152 * lin(m[2]) + 0.0722 * lin(m[3])) > 0.4 ? '#111111' : '#ffffff';
     };
+    var KEYD = 'daylight-dismissed-banners', lastList = [];
+    var dismissed = function () { try { return JSON.parse(localStorage.getItem(KEYD) || '[]'); } catch (e) { return []; } };
+    var dismiss = function (id) { try { var a = dismissed(); if (a.indexOf(id) < 0) a.push(id); localStorage.setItem(KEYD, JSON.stringify(a.slice(-50))); } catch (e) {} };
     var show = function (list) {
-      list = (list || []).filter(function (b) { return b && b.body; });
+      lastList = list || [];
+      var gone = dismissed();
+      list = (list || []).filter(function (b) { return b && b.body && gone.indexOf(b.id) < 0; });
       var key = JSON.stringify(list);
       if (key === lastKey) return;
       lastKey = key;
@@ -49,15 +54,21 @@
       if (!list.length) return;
       list.forEach(function (b) {
         var link = /^https?:\/\/\S+$/i.test(b.link || '') ? b.link : null;
-        var row = d.createElement(link ? 'a' : 'div');
-        row.className = 'strip live';
+        var row = d.createElement('div');
+        row.className = 'strip live has-x';
         if (/^#[0-9a-f]{6}$/i.test(b.color || '')) { row.style.background = b.color; row.style.color = textOn(b.color); }
-        var t = d.createElement('span'); t.textContent = b.body; row.appendChild(t);
+        var inner = d.createElement(link ? 'a' : 'span'); inner.className = 'strip-in';
+        var t = d.createElement('span'); t.textContent = b.body; inner.appendChild(t);
         if (link) {
-          row.href = link; row.target = '_blank'; row.rel = 'noopener noreferrer';
-          var ar = d.createElement('span'); ar.className = 'arrow'; ar.setAttribute('aria-hidden', 'true'); ar.textContent = '\u203a';
-          row.appendChild(ar);
+          inner.href = link; inner.target = '_blank'; inner.rel = 'noopener noreferrer';
+          var ar = d.createElement('span'); ar.className = 'arrow'; ar.setAttribute('aria-hidden', 'true'); ar.textContent = '›';
+          inner.appendChild(ar);
         }
+        row.appendChild(inner);
+        var x = d.createElement('button'); x.type = 'button'; x.className = 'strip-x'; x.setAttribute('aria-label', 'Dismiss this announcement'); x.title = 'Dismiss';
+        x.innerHTML = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>';
+        x.addEventListener('click', function () { dismiss(b.id); lastKey = ''; show(lastList); });
+        row.appendChild(x);
         holder.appendChild(row);
       });
     };
@@ -93,7 +104,7 @@
 
     /* A heading never comes to rest under the pill: once scrolling stops, a heading the pill is covering is nudged just below it. */
     var settle = 0;
-    var heads = function () { return [].slice.call(d.querySelectorAll('main h1, main h2, .fx-text h2, .qa-q')); };
+    var heads = function () { return [].slice.call(d.querySelectorAll('main h1, main h2, main h3, .fx-text h2, .qa-q, .qa-q *, .legal h2, .st-group h2, .st-sec h2, .st-title, .foot h3, .cta2 h2, .trust, .ctas a, .legal .updated')); };
     var nudge = function () {
       var bar = nav.querySelector('.bar'); if (!bar || !nav.classList.contains('is-pill') || nav.classList.contains('open')) return;
       var pr = bar.getBoundingClientRect(), pb = pr.bottom + 12;
@@ -104,10 +115,11 @@
         if (r.right < pr.left || r.left > pr.right) continue;                     /* beside the pill, not under it */
         if (r.top >= pr.bottom + 4) continue;
         w.scrollBy({ top: r.top - pb, behavior: 'smooth' });
+        clearTimeout(settle); settle = setTimeout(nudge, 700);   /* check again once the nudge has landed */
         return;
       }
     };
-    w.addEventListener('scroll', function () { clearTimeout(settle); settle = setTimeout(nudge, 220); }, { passive: true });
+    w.addEventListener('scroll', function () { clearTimeout(settle); settle = setTimeout(nudge, 160); }, { passive: true });
 
     if (menu && panel) {
       var setOpen = function (o) {
