@@ -643,7 +643,6 @@ button{font:inherit;color:inherit}
 [data-state=maintenance]{--sc:var(--s-maint)}
 [data-state=unknown]{--sc:var(--s-unk)}
 .sdot{display:inline-block;flex:none;width:10px;height:10px;border-radius:50%;background:var(--sc,var(--s-unk))}
-@media (prefers-reduced-motion:reduce){
 .st{padding:72px 0 0}
 .st-head{text-align:center}
 .st-eyebrow{font-size:13px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}

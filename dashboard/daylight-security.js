@@ -30,7 +30,7 @@
     ".dl-pk-entry.is-editing{align-items:flex-start}.dl-pk-entry.is-editing .dl-sec-actions{padding-top:1px}",
     ".dl-sec-status{font-size:13px;color:var(--muted);flex:none;font-weight:550}",
     ".dl-sec-list .dl-sec-row+.dl-sec-row{border-top:1px solid var(--line-soft)}",
-    ".dl-sec-actions{display:inline-flex;gap:8px;flex:none;align-items:center}",
+    ".dl-sec-actions{display:inline-flex;gap:14px;flex:none;align-items:center}",
     ".dl-sec-actions .btn-danger-outline{height:32px;padding:0 13px;font-size:12.5px;border-radius:999px}",
     ".dl-sec-rename{display:flex;gap:8px;align-items:center;flex:1;min-width:0}",
     ".dl-sec-rename input{height:36px;flex:1;min-width:0;border-radius:10px}",

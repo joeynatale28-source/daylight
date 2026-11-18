@@ -414,7 +414,7 @@
          calendar-with-a-dot button that returns to today in Month
          view. Lives at the left of the header band, before the
          right-side actions. */
-      .cal-toolbar { display: flex; align-items: center; gap: 2px; min-width: 0; }
+      .cal-toolbar { display: flex; align-items: center; gap: 8px; min-width: 0; }
       .cal-toolbar .icon-btn { width: 34px; height: 34px; }
       /* Fixed-width label area, sized for the longest label ("September 2026"), so the ‹ › buttons
          never move with the month name. Day view shows a full date and gets a wider (still fixed) area. */
@@ -423,7 +423,7 @@
       .month-title.is-range { width: 12.4em; }
       .dl-day-arrows { display: inline-flex; align-items: center; gap: 2px; margin-right: 4px; }
       .dl-day-arrows .icon-btn { width: 36px; height: 36px; }
-      .today-btn { margin-left: 6px; color: var(--muted); }
+      .today-btn { margin-left: 12px; color: var(--muted); }
       .today-btn:hover { color: var(--accent); }
       /* Primary = the login's big pill at app scale: monochrome fill
          (near-white in dark, near-black in light), full radius, flat. */
@@ -2075,3 +2075,16 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
   .month-grid .month-week { min-height: 0; overflow: hidden; }
 }
 #sidebar:not(.rail) .cal-row .cal-name { white-space: normal !important; overflow: visible !important; text-overflow: clip !important; overflow-wrap: anywhere; }
+/* sizing sweep: breathing room between neighbouring controls */
+.agenda-card .ac-meta { gap: 8px; }
+.dl-day-arrows { gap: 8px; margin-right: 8px; }
+/* sizing sweep, phone width: rows whose text and button did not fit now wrap the button under the text; the Day title no longer pushes Today off screen; Admin tabs wrap */
+@media (max-width: 640px) {
+  .dl-sec-row { flex-wrap: wrap !important; row-gap: 10px; }
+  .dl-sec-row .dl-sec-text { flex: 1 1 160px !important; min-width: 160px !important; }
+  .dl-sec-row .dl-sec-actions { margin-left: auto; flex-wrap: wrap; }
+  .cal-toolbar .month-title.is-day { width: auto; flex: 1 1 0; min-width: 0; white-space: normal; line-height: 1.2; text-align: left; font-size: 15.5px; }
+  .dl-tabs { display: flex !important; flex-wrap: wrap; border-radius: 22px !important; overflow: visible !important; }
+  .dl-tabs button { padding: 7px 14px !important; }
+  .tg-gutter-head { padding: 0 4px 4px 6px; font-size: 10px; line-height: 1.15; text-align: right; justify-content: flex-end; }
+}
