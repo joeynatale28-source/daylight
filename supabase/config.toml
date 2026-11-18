@@ -12,3 +12,6 @@ verify_jwt = false
 
 [functions.status-check]
 verify_jwt = false
+
+[functions.data-request]
+verify_jwt = false

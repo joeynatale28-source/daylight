@@ -301,6 +301,7 @@
       ["calendar", "calendar", "Calendar"],
       ["notifications", "bell", "Notifications"],
       ["ai", "sparkle", "AI access"],
+      ["yourdata", "download", "Your data"],
       ["shortcuts", "keyboard", "Shortcuts"]
     ];
     var secEls = {}, railBtns = {}, spyLock = 0, pinned = null;   /* pinned: the section chosen by clicking the nav stays selected until the person scrolls themselves */
@@ -422,7 +423,7 @@
       SECS.forEach(function (sx) {
         var sec = el('<section class="dl-set-sec" id="dl-sec-' + sx[0] + '" data-sec="' + sx[0] + '" aria-label="' + sx[2] + '"></section>');
         pane.appendChild(sec); secEls[sx[0]] = sec;
-        var fn = { profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, ai: window.daylightAiPane }[sx[0]];
+        var fn = { profile: window.daylightProfilePane, appearance: paneAppearance, calendar: paneCalendar, notifications: paneNotifications, shortcuts: paneShortcuts, ai: window.daylightAiPane, yourdata: window.daylightDataPane }[sx[0]];
         try { fn(sec, close); } catch (err) { sec.appendChild(el('<div class="dl-ai-empty">This section isn’t available right now.</div>')); }
       });
       bindDropdowns(pane);

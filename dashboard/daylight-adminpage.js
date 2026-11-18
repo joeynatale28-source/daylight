@@ -31,9 +31,9 @@
   function adminPage() {
     var page = make('<div class="dl-page"><div class="dl-page-inner"><div class="dl-page-head"><h1 class="dl-page-title">Admin</h1></div></div></div>');
     var inner = page.querySelector(".dl-page-inner");
-    var tabs = make('<div class="dl-tabs" role="tablist" aria-label="Admin sections"><button type="button" role="tab" data-tab="notifications">Notifications</button><button type="button" role="tab" data-tab="banners">Banners</button></div>');
+    var tabs = make('<div class="dl-tabs" role="tablist" aria-label="Admin sections"><button type="button" role="tab" data-tab="notifications">Notifications</button><button type="button" role="tab" data-tab="banners">Banners</button><button type="button" role="tab" data-tab="maintenance">Maintenance</button><button type="button" role="tab" data-tab="data">Data requests</button></div>');
     inner.appendChild(tabs);
-    var panels = { notifications: make('<div data-panel="notifications"></div>'), banners: make('<div data-panel="banners" hidden></div>') };
+    var panels = { notifications: make('<div data-panel="notifications"></div>'), banners: make('<div data-panel="banners" hidden></div>'), maintenance: make('<div data-panel="maintenance" hidden></div>'), data: make('<div data-panel="data" hidden></div>') };
     /* daylight-admin.js builds four cards (send notification, banner, notifications sent, active banners): split them over the two tabs */
     var tmp = document.createElement("div");
     if (window.daylightAdminPane) {
@@ -43,7 +43,9 @@
       if (kids[2]) panels.notifications.appendChild(kids[2]);
       if (kids[1]) panels.banners.appendChild(kids[1]);
       if (kids[3]) panels.banners.appendChild(kids[3]);
+      if (kids[4]) panels.maintenance.appendChild(kids[4]);
     }
+    if (window.daylightDataAdminPanel) { try { panels.data.appendChild(window.daylightDataAdminPanel()); } catch (e) {} }
     Object.keys(panels).forEach(function (k) { inner.appendChild(panels[k]); });
     function show(name) {
       tabs.querySelectorAll("[data-tab]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === name)); });

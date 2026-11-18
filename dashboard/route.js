@@ -13,7 +13,7 @@
   function pageUrl(name) { return siteRoot + name + "/"; }
   function carry() {
     var s = new URLSearchParams(location.search), keep = new URLSearchParams();
-    ["oauth_consent", "authorization_id"].forEach(function (k) { if (s.has(k)) keep.set(k, s.get(k)); });
+    ["oauth_consent", "authorization_id", "settings"].forEach(function (k) { if (s.has(k)) keep.set(k, s.get(k)); });
     var q = keep.toString();
     return q ? "?" + q : "";
   }
