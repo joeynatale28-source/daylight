@@ -2088,3 +2088,11 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
   .dl-tabs button { padding: 7px 14px !important; }
   .tg-gutter-head { padding: 0 4px 4px 6px; font-size: 10px; line-height: 1.15; text-align: right; justify-content: flex-end; }
 }
+/* Today: its own pill button (border at rest, rounded hover/focus that covers icon + label), clear of the month arrows */
+.cal-toolbar .today-btn { width: auto; height: 34px; margin-left: 14px; padding: 0 14px 0 11px; gap: 7px; border-radius: 999px; border: 1px solid var(--line-soft); background: var(--surface2); color: var(--text); white-space: nowrap; transition: background 140ms var(--ease-out), border-color 140ms var(--ease-out), color 140ms var(--ease-out); }
+.cal-toolbar .today-btn:hover { background: var(--hover); border-color: var(--line); color: var(--text); }
+.cal-toolbar .today-btn:active { transform: scale(.98); }
+.cal-toolbar .today-btn:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.cal-toolbar .today-btn svg { color: var(--muted); flex: none; }
+.cal-toolbar .today-btn:hover svg { color: var(--accent); }
+.cal-toolbar .today-btn .today-label { font-size: 13px; font-weight: 600; line-height: 1; }

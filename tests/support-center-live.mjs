@@ -40,35 +40,29 @@ try{
  const att=[];
  const pstat=await upload(A,`${A.id}/${tid}/pic.png`,PNG,'image/png');check(pstat===200,'user uploads a photo into their own ticket folder',pstat);
  check(await upload(A,`${C.id}/${tid}/x.png`,PNG,'image/png')!==200,"a user cannot upload into someone else's folder");
- const created=await rpc(A,'support_ticket_create',{p_id:tid,p_title:'Calendar will not load',p_body:'Blank month view.',p_kind:'ticket',p_atts:[{path:`${A.id}/${tid}/pic.png`,name:'pic.png',type:'image/png',size:PNG.length}]});
+ const created=await rpc(A,'support_ticket_create',{p_id:tid,p_title:'Calendar will not load',p_body:'Blank month view.',p_kind:'ticket',p_category:'bug',p_atts:[{path:`${A.id}/${tid}/pic.png`,name:'pic.png',type:'image/png',size:PNG.length}]});
  check(created.ok&&created.data===tid,'creating a ticket works (with a photo)',created);
- check(!(await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'x',p_body:'y',p_kind:'ticket',p_atts:[{path:`${C.id}/z/pic.png`,name:'p',type:'image/png',size:1}]})).ok,'attachments must live in the ticket owner folder');
+ check(!(await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'x',p_body:'y',p_kind:'ticket',p_category:'bug',p_atts:[{path:`${C.id}/z/pic.png`,name:'p',type:'image/png',size:1}]})).ok,'attachments must live in the ticket owner folder');
  check((await rpc(A,'support_ticket_list')).data.length===1,'the user sees their own ticket');
  check((await rpc(C,'support_ticket_list')).data.length===0&&!(await rpc(C,'support_ticket_get',{p_id:tid})).ok,'another user sees nothing and cannot open it');
  check(!(await rpc(A,'support_admin_list',{p_status:'open'})).ok,'a normal user cannot list all tickets');
  const al=await rpc(B,'support_admin_list',{p_status:'open'});check(al.ok&&al.data.some(t=>t.id===tid),'the admin sees it under Open tickets',al.data&&al.data.length);
- const notesFor=async uid=>Number((await mgmt(`select count(*)::int c from public.daylight_broadcast_recipients r join public.daylight_broadcasts b on b.id=r.broadcast_id where r.user_id='${uid}' and b.ticket_id='${tid}'`))[0].c);
- check(await notesFor(B.id)===1,'the admin was notified of the new ticket (nobody was viewing)');
- check(!(await rpc(C,'support_send',{p_id:tid,p_body:'hi',p_atts:[]})).ok,"another user cannot write in someone else's ticket");
- // admin views the ticket, then the user replies: no notification
+ const notesFor=async uid=>Number((await mgmt(`select count(*)::int c from public.daylight_broadcast_recipients r join public.daylight_broadcasts b on b.id=r.broadcast_id where r.user_id='${uid}'`))[0].c);
+ check(await notesFor(B.id)===0,'creating a ticket notifies nobody');
  await rpc(B,'support_ticket_get',{p_id:tid,p_viewing:true});
- const before=await notesFor(B.id);
  await rpc(A,'support_send',{p_id:tid,p_body:'Any update?',p_atts:[]});
- check(await notesFor(B.id)===before,'user reply while the admin is viewing: no admin notification');
- await sleep(22000);   // the admin stops "viewing" (no heartbeat for 20+ seconds)
- await mgmt(`delete from public.daylight_broadcasts where ticket_id='${tid}'`);   // the admin has read the earlier one
+ await sleep(22000);   // nobody is viewing any more
  await rpc(A,'support_send',{p_id:tid,p_body:'Still blank.',p_atts:[]});
- check(await notesFor(B.id)===1,'user reply while the admin is NOT viewing: admin notified');
- // admin reply: user viewing -> none; not viewing -> notification from Daylight Support
- await rpc(A,'support_ticket_get',{p_id:tid,p_viewing:true});
+ check(await notesFor(B.id)===0,'user replies (viewing or not): no admin notification');
  await rpc(B,'support_send',{p_id:tid,p_body:'Looking now.',p_atts:[]});
- check(await notesFor(A.id)===0,'admin reply while the user is viewing: no user notification');
  await sleep(22000);
  await rpc(B,'support_send',{p_id:tid,p_body:'Fixed on our side.',p_atts:[]});
- const nl=await rpc(A,'daylight_list_broadcasts');const n=(nl.data||[]).find(x=>x.ticket_id===tid);
- check(n&&n.sender==='support'&&/replied to your support ticket/.test(n.title),'admin reply while the user is away: notification "Daylight Support ✓ replied to your support ticket"',n);
- const ad=await rpc(B,'daylight_list_broadcasts');const an=(ad.data||[]).find(x=>x.ticket_id===tid);
- check(an&&an.sender==='ticket'&&/Alex Rivera/.test(an.title),'admin notifications name the person who replied',an);
+ check(await notesFor(A.id)===0,'admin replies (viewing or not): no user notification');
+ const nl=await rpc(A,'daylight_list_broadcasts');check(nl.ok&&(nl.data||[]).length===0,'no ticket notifications in the user Notifications list',nl.data);
+ const al2=await rpc(B,'daylight_list_broadcasts');check(al2.ok&&!(al2.data||[]).some(x=>x.sender==='support'||x.sender==='ticket'),'none in the admin list either',al2.data);
+ check((await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'x',p_body:'y',p_kind:'ticket',p_category:'nonsense',p_atts:[]})).ok===false,'a ticket needs a valid category');
+ const lst=(await rpc(A,'support_ticket_list')).data[0];check(lst.category==='bug'&&/Blank month view/.test(lst.preview),'the list returns category and a preview',lst);
+ const adl=(await rpc(B,'support_admin_list',{p_status:'open'})).data.find(t=>t.id===tid);check(adl&&adl.category==='bug'&&adl.user_name==='Alex Rivera'&&adl.preview,'the admin list returns requester, category and preview',adl);
  // ---- data export
  const g=await fnCall(A,{action:'give_data',ticket_id:tid});check(g.status===403,'a normal user cannot call Give data',g.status);
  const gd=await fnCall(B,{action:'give_data',ticket_id:tid});check(gd.status===200&&gd.body.ok,'the admin gives data',gd);
@@ -92,7 +86,7 @@ try{
  check(!(await rpc(B,'support_send',{p_id:tid,p_body:'late',p_atts:[]})).ok,'nobody can write after it is closed');
  const cl=await rpc(B,'support_admin_list',{p_status:'closed'});check(cl.data.some(t=>t.id===tid),'the admin sees it under Closed');
  // admin can close another ticket
- const t2=crypto.randomUUID();await rpc(C,'support_ticket_create',{p_id:t2,p_title:'Data request',p_body:'',p_kind:'data',p_atts:[]});
+ const t2=crypto.randomUUID();await rpc(C,'support_ticket_create',{p_id:t2,p_title:'Data request',p_body:'',p_kind:'data',p_category:'data',p_atts:[]});
  check((await rpc(B,'support_close',{p_id:t2})).ok,'the admin can close a ticket');
 
  // ================= MCP sharing (through the real mcp_workspace_tool, with an OAuth-style claim) =================
@@ -122,7 +116,7 @@ try{
   try{const l=await (await fetch(`${BASE}/storage/v1/object/list/support-files`,{method:'POST',headers:SH,body:JSON.stringify({prefix:u.id+'/',limit:1000})})).json();
    const sub=Array.isArray(l)?l:[];for(const f of sub){const l2=await (await fetch(`${BASE}/storage/v1/object/list/support-files`,{method:'POST',headers:SH,body:JSON.stringify({prefix:u.id+'/'+f.name+'/',limit:1000})})).json();
     const paths=(Array.isArray(l2)?l2:[]).map(x=>`${u.id}/${f.name}/${x.name}`);if(paths.length)await fetch(`${BASE}/storage/v1/object/support-files`,{method:'DELETE',headers:SH,body:JSON.stringify({prefixes:paths})})}}catch(e){}
-  try{await mgmt(`delete from public.daylight_broadcasts where ticket_id in (select id from public.support_tickets where user_id='${u.id}'); delete from public.daylight_calendar_shares where owner_id='${u.id}' or recipient_id='${u.id}'; delete from public.daylight_event_shares where owner_id='${u.id}' or recipient_id='${u.id}'; delete from public.mcp_grants where user_id='${u.id}'; delete from public.mcp_workspace_audit where user_id='${u.id}'`)}catch(e){console.log('cleanup',e.message)}
+  try{await mgmt(`delete from public.daylight_calendar_shares where owner_id='${u.id}' or recipient_id='${u.id}'; delete from public.daylight_event_shares where owner_id='${u.id}' or recipient_id='${u.id}'; delete from public.mcp_grants where user_id='${u.id}'; delete from public.mcp_workspace_audit where user_id='${u.id}'`)}catch(e){console.log('cleanup',e.message)}
   await fetch(`${BASE}/auth/v1/admin/users/${u.id}`,{method:'DELETE',headers:SH});
  }
  const left=await mgmt(`select (select count(*) from auth.users where email like 'qa.daylight.%${stamp}@mailinator.com')::int users, (select count(*) from public.support_tickets where user_email like 'qa.daylight.%${stamp}%')::int tickets`);

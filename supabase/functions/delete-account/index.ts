@@ -51,9 +51,6 @@ Deno.serve(async (req) => {
       ["banner recipients", sb.from("daylight_banner_recipients").delete().eq("user_id", uid)],
     ];
     for (const [label, p] of steps) { const { error } = await p; if (error) throw new Error(`${label}: ${error.message}`); }
-    // notifications that were about this person's tickets
-    const { data: tk } = await sb.from("support_tickets").select("id").eq("user_id", uid);
-    if (tk && tk.length) await sb.from("daylight_broadcasts").delete().in("ticket_id", tk.map((t: any) => t.id));
     await emptyFolder("avatars", uid);
     await emptyFolder("support-files", uid);
     const { error } = await sb.auth.admin.deleteUser(uid);   // cascades: calendars, workspace, tokens, grants, subscriptions, settings, logs, tickets
