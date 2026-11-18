@@ -13,5 +13,8 @@ verify_jwt = false
 [functions.status-check]
 verify_jwt = false
 
-[functions.data-request]
+[functions.support]
+verify_jwt = false
+
+[functions.delete-account]
 verify_jwt = false

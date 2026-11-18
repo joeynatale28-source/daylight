@@ -202,10 +202,14 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    const cell=[...document.querySelectorAll('.day-cell')].find(n=>n.dataset.date==='2026-12-09');
    const more=cell?.querySelector('.more-link'),label=more?.textContent||'';
    more?.click();
-   return {label,view:state.view};
+   await new Promise(r=>setTimeout(r,200));
+   const items=document.querySelectorAll('.menu .menu-item').length;
+   document.dispatchEvent(new KeyboardEvent('keydown',{key:'Escape',bubbles:true}));
+   return {label,view:state.view,items};
  });
  assert.match(overflow.label,/\+\d+ more/,'five synthetic events should expose a +N more link');
- assert.equal(overflow.view,'day','clicking +N more should open the selected day');
+ assert.equal(overflow.view,'month','clicking +N more keeps Month view');
+ assert.ok(overflow.items>=2,'clicking +N more opens a list of events on that day');
  await page.evaluate(()=>{
    state.events=state.events.filter(e=>e.cal!=='scratch-overflow');
    state.calendars=state.calendars.filter(c=>c.id!=='scratch-overflow');
@@ -327,7 +331,7 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
         signout:out?{w:box.width,h:box.height,title:out.title,color:getComputedStyle(out).color,hasIcon:!!out.querySelector('svg'),text:out.textContent.trim()}:null,textButton:!!row.querySelector('button.btn-ghost')}}),
      closeSize:(()=>{const r=document.querySelector('.settings-close').getBoundingClientRect();return [r.width,r.height]})()
    }));
-   assert.deepEqual(profile.sections,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts']);
+   assert.deepEqual(profile.sections,['Profile','Appearance','Calendar','Notifications','AI access','Shortcuts','Danger Zone']);
    assert.equal(profile.email,'demo@example.com','Profile must show the authenticated email');
    assert.ok(profile.sessions.some(text=>text.includes('Chrome on Windows')&&text.includes('This device')),'current session is labelled This device: '+JSON.stringify(profile.sessions));
    const [current,other]=profile.sessionUi;

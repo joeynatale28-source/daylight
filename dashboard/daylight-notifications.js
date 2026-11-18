@@ -128,7 +128,7 @@
     loaded = false;
     refresh();
     clearInterval(pollTimer);
-    pollTimer = setInterval(refresh, 5 * 60 * 1000);
+    pollTimer = setInterval(refresh, 45 * 1000);
   }
 
   function collapse(row) {
@@ -318,12 +318,14 @@
         var top = document.createElement("div"); top.className = "dl-notif-top";
         /* Same anatomy as the invite card: avatar, bold sender header (+ verified seal) with the time at the right, a message line
            (the title) and a subtitle line (the message). No footer text: the seal is the official marker. */
-        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = "Daylight";
-        from.appendChild(verifiedBadge());
+        var isSup = n.sender === "support", isTk = n.sender === "ticket";
+        var from = document.createElement("span"); from.className = "dl-notif-from dl-official-from"; from.textContent = isSup ? "Daylight Support" : isTk ? n.title : "Daylight";
+        if (!isTk) from.appendChild(verifiedBadge());
         var time = document.createElement("span"); time.className = "dl-notif-time"; time.textContent = when(n.created_at);
         top.appendChild(from); top.appendChild(time);
-        var title = document.createElement("div"); title.className = "dl-notif-msg dl-notif-title-line"; title.style.color = "var(--text)"; title.style.fontWeight = "600"; title.textContent = n.title;
-        var msg = document.createElement("div"); msg.className = "dl-notif-sub"; msg.textContent = n.body;
+        var title = document.createElement("div"); title.className = "dl-notif-msg dl-notif-title-line"; title.style.color = "var(--text)"; title.style.fontWeight = "600"; title.textContent = isTk ? n.body : n.title;
+        var msg = document.createElement("div"); msg.className = "dl-notif-sub"; msg.textContent = isSup ? n.body : (isTk ? "" : n.body);
+        if (n.ticket_id) { row.style.cursor = "pointer"; row.addEventListener("click", function () { if (window.daylightSupport) { window.daylightSupport.openTicket(n.ticket_id, isTk ? "admin" : "home"); if (typeof closePopover === "function") closePopover(); } }); }
         main.appendChild(top); main.appendChild(title); main.appendChild(msg);
         row.appendChild(main);
         var clear = document.createElement("button");

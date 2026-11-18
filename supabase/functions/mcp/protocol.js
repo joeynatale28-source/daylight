@@ -20,6 +20,8 @@ export const tools=[
  opt('create_event','Create a calendar event',object({calendar_id:str,title:str,starts_at:str,ends_at:str,location:str,description:str,all_day:{type:'boolean'}},['calendar_id','title','starts_at','ends_at']),'write'),
  opt('update_event','Edit a calendar event',object({id:str,title:str,starts_at:str,ends_at:str,location:str,description:str},['id']),'write'),
  opt('delete_event','Delete a calendar event permanently',object({id:str},['id']),'delete'),
+ opt('share_calendar','Share one of your own calendars with a person by email, with view or edit permission, exactly like sharing in the Daylight app. They receive the same invitation and can accept or decline it.',object({calendar_id:str,email:str,permission:{type:'string',enum:['view','edit']}},['calendar_id','email','permission']),'write'),
+ opt('share_event','Share one event with a person by email, with view or edit permission, exactly like sharing in the Daylight app. They receive the same invitation and can accept or decline it.',object({event_id:str,email:str,permission:{type:'string',enum:['view','edit']}},['event_id','email','permission']),'write'),
  opt('create_task','Create a task',object({title:str,due_date:str},['title']),'write'),
  opt('complete_task','Mark a task complete or incomplete',object({id:str,completed:{type:'boolean'}},['id','completed']),'write'),
 ];

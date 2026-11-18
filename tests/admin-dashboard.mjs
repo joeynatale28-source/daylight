@@ -83,7 +83,7 @@ for(const theme of ['dark','light']){
   await openAdmin();
   await page.screenshot({path:path.join(out,`3-dashboard-${theme}.png`)});
   const dash=await page.evaluate(()=>({titles:[...document.querySelectorAll('.dl-page .set-group-title')].map(n=>n.textContent.trim()),h2:document.querySelector('.dl-page-title').textContent}));
-  check(T('the dashboard has Send notification, Banner and the Manage lists, styled like Settings'),dash.h2==='Admin'&&JSON.stringify(dash.titles)==='["Send notification","Notifications sent","Banner","Active banners","Maintenance","Data requests"]',JSON.stringify(dash));
+  check(T('the dashboard has Send notification, Banner and the Manage lists, styled like Settings'),dash.h2==='Admin'&&JSON.stringify(dash.titles)==='["Send notification","Notifications sent","Banner","Active banners","Maintenance"]',JSON.stringify(dash));
 
   // ---- targeted notification
   await sendNote('Just for you','Hello test account','user@daylightcal.com');
