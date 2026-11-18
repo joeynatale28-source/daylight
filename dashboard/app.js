@@ -758,6 +758,31 @@
       function closeMenu() { closeDropdown(); if (openMenuEl) { daylightExit(openMenuEl); openMenuEl = null; document.removeEventListener("mousedown", menuOutside, true); document.removeEventListener("click", menuOutside, true); document.removeEventListener("focusin", menuOutside, true); document.removeEventListener("keydown", menuEscape, true); } }
       function menuEscape(e) { if (e.key === "Escape" && openMenuEl) { e.preventDefault(); e.stopPropagation(); closeMenu(); } }
       function menuOutside(e) { if (openMenuEl && !openMenuEl.contains(e.target)) closeMenu(); }
+      /* Where a menu goes: inside the dialog it belongs to (never hanging outside it), below its trigger when it fits, otherwise on the side with more
+         room, and never ending in the middle of a neighbouring label. Returns {top, up, maxH}. */
+      function menuBounds(anchor) {
+        var cont = anchor.closest && anchor.closest(".dialog,.settings-dialog");
+        var c = cont ? cont.getBoundingClientRect() : { top: 0, bottom: window.innerHeight, left: 0, right: window.innerWidth };
+        return { cont: cont, top: Math.max(0, c.top), bottom: Math.min(window.innerHeight, c.bottom) };
+      }
+      function placeMenuV(m, anchor, setMax, chrome) {
+        var r = anchor.getBoundingClientRect(), b = menuBounds(anchor);
+        var below = b.bottom - 8 - (r.bottom + 6), above = (r.top - 6) - (b.top + 8);
+        var mh = m.offsetHeight, up = mh > below && above > below;
+        var space = up ? above : below;
+        if (mh > space) { setMax(Math.max(96, space - chrome)); mh = m.offsetHeight; }
+        var top = up ? r.top - mh - 6 : r.bottom + 6;
+        if (!up && b.cont) {
+          var bottom = top + mh, hit = null;
+          [].slice.call(b.cont.querySelectorAll("label,.sw-label,.dl-ad-label")).forEach(function (l) {
+            var lr = l.getBoundingClientRect();
+            if (!lr.width || lr.top <= r.bottom + 2) return;
+            if (lr.top < bottom && lr.bottom > bottom - 1 && (!hit || lr.top < hit.top)) hit = lr;
+          });
+          if (hit && hit.top - 8 - top - chrome >= 96) { setMax(hit.top - 8 - top - chrome); mh = m.offsetHeight; }
+        }
+        return { top: top, up: up };
+      }
       function openMenu(anchor, items, opts) {
         opts = opts || {};
         closeDropdown();
@@ -773,15 +798,19 @@
         });
         document.body.appendChild(m);
         var r = anchor.getBoundingClientRect();
-        var mw = opts.matchWidth ? Math.round(r.width) : 220;
-        if (opts.matchWidth) m.style.width = mw + "px";
+        /* a menu opened from a field in a dialog is as wide as that field */
+        var fieldy = opts.matchWidth !== false && anchor.matches && anchor.matches(".picker-btn,.dl-select-btn,.dd") && !!anchor.closest(".dialog,.settings-dialog");
+        var mw = (opts.matchWidth || fieldy) ? Math.round(r.width) : 220;
+        if (opts.matchWidth || fieldy) m.style.width = mw + "px";
         if (opts.maxHeight) { m.style.maxHeight = opts.maxHeight + "px"; m.style.overflowY = "auto"; }
-        var mh = m.offsetHeight;
         var left = opts.align === "right" ? r.right - mw : r.left;
         left = Math.max(8, Math.min(left, window.innerWidth - mw - 8));
-        var top = opts.above ? r.top - mh - 8 : r.bottom + 6;
-        if (!opts.above && top + mh > window.innerHeight - 8) top = Math.max(8, r.top - mh - 6);
-        if (opts.above && top < 8) top = 8;
+        var top;
+        if (opts.above) { top = r.top - m.offsetHeight - 8; if (top < 8) top = 8; }
+        else {
+          var pl = placeMenuV(m, anchor, function (h) { m.style.maxHeight = h + "px"; m.style.overflowY = "auto"; }, 12);
+          top = pl.top;
+        }
         m.style.left = left + "px"; m.style.top = top + "px";
         /* Scale from the trigger: the menu grows out of the point nearest its anchor. */
         m.style.transformOrigin = Math.round(Math.max(0, Math.min(mw, r.left + r.width / 2 - left))) + "px " + (top >= r.bottom - 1 ? "0" : "100%");
@@ -922,7 +951,7 @@
         document.body.appendChild(m);
         var r = btn.getBoundingClientRect();
         var hasRight = opts.some(function (o) { return !!o[2]; });
-        var mw = Math.min(Math.max(r.width, hasRight ? 308 : 196), window.innerWidth - 16);
+        var mw = Math.min(Math.max(r.width, hasRight ? 308 : 120), window.innerWidth - 16);   /* as wide as its trigger */
         m.style.width = mw + "px";
         var st = { btn: btn, menu: m, search: searchIn, items: [], active: -1, taBuf: "", taTime: 0 };
         ddState = st;
@@ -952,10 +981,10 @@
         }
         draw("");
         if (searchIn) searchIn.addEventListener("input", function () { draw(searchIn.value); });
-        var mh = m.offsetHeight;
         var left = Math.max(8, Math.min(r.left, window.innerWidth - mw - 8));
-        var top = r.bottom + 6, origin = "top";
-        if (top + mh > window.innerHeight - 8) { top = Math.max(8, r.top - mh - 6); origin = "bottom"; }
+        var chrome = m.offsetHeight - list.offsetHeight;
+        var pl = placeMenuV(m, btn, function (h) { list.style.maxHeight = Math.min(264, Math.max(96, Math.floor(h / 32) * 32)) + "px"; }, chrome);
+        var top = pl.top, origin = pl.up ? "bottom" : "top";
         m.style.left = left + "px"; m.style.top = top + "px";
         m.style.transformOrigin = origin + " center";
         btn.classList.add("open");
@@ -1748,7 +1777,7 @@
             var today=days.some(function(d){return sameDay(d,TODAY);});
             var anchor=today?(new Date().getHours()+new Date().getMinutes()/60-1):(Number(state.workStart||540)/60);
             relevant.forEach(function(o){var hour=o.start.getHours()+o.start.getMinutes()/60;if(hour<anchor)anchor=hour;});
-            sc.scrollTop=Math.max(0,anchor*hourPx()-14);
+            sc.scrollTop=state.view==="day"?0:Math.max(0,anchor*hourPx()-14);   /* Day opens at the top of the day (midnight), not partway down the morning */
           }
         }
       }
@@ -1863,7 +1892,8 @@
               spans.forEach(function(span,lane){
                 if(span.first<=colIdx&&span.last>=colIdx)laneForCell=Math.max(laneForCell,lane);
               });
-              if(laneForCell>=0){evBox.style.paddingTop=(laneForCell+1)*25+"px";evBox.dataset.lanes=String(laneForCell+1);}
+              /* every cell of the week reserves the same lanes, so multi-day bars never push single-day events down unevenly */
+              if(spans.length){evBox.style.paddingTop=spans.length*25+"px";evBox.dataset.lanes=String(spans.length);}
               dayOccs.forEach(function (o) {
                 var cal = calOf(o.ev.cal);
                 var seg = segClass(o, date, colIdx === 0, colIdx === dows.length - 1);

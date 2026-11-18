@@ -155,7 +155,6 @@
     ".dl-sup-chip:hover{background:var(--hover)}.dl-sup-chip:active{transform:scale(.97)}",
     ".dl-sup-open,.dl-sup-back,.dl-sup-cta button,.dl-ibtn,.dl-addpic{transition:background 140ms var(--ease-out),transform 140ms var(--ease-out),border-color 140ms var(--ease-out)}",
     ".dl-sup-cta button:active,.dl-sup-back:active{transform:scale(.98)}",
-    ".dl-msg{animation:dlSupIn 220ms var(--ease-out) both}",
     ".dl-sheet-bd.is-out{animation:dlShOut 200ms var(--ease-out) both}.dl-sheet-bd.is-out .dl-sheet{animation:dlShPanelOut 200ms var(--ease-out) both}",
     "@keyframes dlSupIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}",
     "@keyframes dlSupFade{from{opacity:0}to{opacity:1}}",
@@ -163,7 +162,36 @@
     "@keyframes dlShOut{to{opacity:0}}@keyframes dlShPanelOut{to{transform:translateX(28px);opacity:0}}",
     "@media (prefers-reduced-motion:reduce){.dl-sup-row,.dl-msg,.dl-sup-fade,.dl-sup-skel i{animation:none}}",
     "body.reduce-motion .dl-sup-row,body.reduce-motion .dl-msg,body.reduce-motion .dl-sup-fade,body.reduce-motion .dl-sheet,body.reduce-motion .dl-sheet-bd{animation:none}",
+    ".dl-sup-ddf{display:flex;align-items:center;justify-content:space-between;gap:10px;height:40px;padding:0 14px 0 16px;border-radius:999px;border:1px solid var(--line-soft);background:var(--surface2);color:var(--text);font:inherit;font-size:14px;cursor:pointer;text-align:left}",
+    ".dl-sup-ddf-bar{min-width:180px}",
+    ".dl-sheet .dl-selwrap .dl-sup-ddf.dd{width:100%;height:46px;border-radius:14px;box-sizing:border-box;font-size:14.5px;padding:0 14px}",
+    ".dl-sup-ddf.is-empty .dd-val{color:var(--faint)}.dl-sup-ddf.bad{border-color:var(--danger)}",
     "@media (max-width:760px){.dl-sup-row{flex-wrap:wrap;row-gap:8px}.dl-sup-side{flex-direction:row;align-items:center;margin-left:50px;order:3;width:calc(100% - 50px);justify-content:flex-start;gap:10px}.dl-sup-row>svg{display:none}.dl-sup-bar{gap:10px}.dl-sup-sel{flex:1}}",
+    /* ---- round 3: chat polish ---- */
+    ".dl-compose{padding:8px 10px;gap:6px;border-radius:26px}",
+    ".dl-compose-row{align-items:flex-end;gap:8px}",
+    ".dl-compose textarea{flex:1;min-width:0;width:auto;padding:8px 4px;line-height:22px;min-height:38px;max-height:176px;overflow-y:hidden;box-sizing:border-box}",
+    ".dl-compose .dl-send{height:38px;padding:0 18px;border-radius:999px;transition:background 160ms var(--ease-out),color 160ms var(--ease-out),opacity 160ms var(--ease-out),transform 120ms var(--ease-out)}",
+    ".dl-compose .dl-send:disabled{background:var(--surface);color:var(--faint);border:1px solid var(--line-soft);cursor:not-allowed;opacity:1}",
+    ".dl-compose .dl-send.is-ready{background:var(--text);color:var(--bg);border-color:var(--text);cursor:pointer}.dl-compose .dl-send.is-ready:active{transform:scale(.97)}",
+    ".dl-compose .dl-ibtn{width:38px;height:38px}",
+    ".dl-compose-row .sp{display:none}",
+    ".dl-compose .dl-sup-err:empty,.dl-compose .dl-thumbs:empty{display:none}",
+    ".dl-mrow{align-items:flex-start}",
+    ".dl-mav{margin-bottom:0;margin-top:0}",
+    ".dl-mrow.new{animation:dlMsgIn 260ms var(--ease-out) both}.dl-sys.new{animation:dlSupFade 260ms var(--ease-out) both}",
+    ".dl-mrow.pending .dl-bub{opacity:.6}.dl-mrow.pending .dl-msg-t{color:var(--muted)}",
+    ".dl-daydiv{display:flex;align-items:center;gap:12px;margin:14px 0 4px;color:var(--faint);font-size:11.5px;font-weight:650;letter-spacing:.04em;text-transform:uppercase}",
+    ".dl-daydiv::before,.dl-daydiv::after{content:'';flex:1;height:1px;background:var(--line-soft)}",
+    ".dl-bub{line-height:1.42}",
+    ".dl-dots{display:inline-flex;align-items:center;gap:5px;padding:14px 16px}",
+    ".dl-dots i{width:6px;height:6px;border-radius:50%;background:var(--muted);animation:dlDot 1.1s ease-in-out infinite}.dl-dots i:nth-child(2){animation-delay:.15s}.dl-dots i:nth-child(3){animation-delay:.3s}",
+    ".dl-typing .dl-msg-t{font-style:italic}",
+    ".dl-sup.is-chat .dl-sup-inner{animation:dlSupIn 260ms var(--ease-out) both}",
+    "@keyframes dlMsgIn{from{opacity:0;transform:translateY(10px) scale(.985)}to{opacity:1;transform:none}}",
+    "@keyframes dlDot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}",
+    "@media (prefers-reduced-motion:reduce){.dl-mrow.new,.dl-sys.new,.dl-dots i,.dl-sup.is-chat .dl-sup-inner{animation:none}}",
+    "body.reduce-motion .dl-mrow.new,body.reduce-motion .dl-dots i{animation:none}",
     "@media (max-width:760px){.dl-sup{padding:20px 16px 32px}.dl-sup-hello{font-size:25px}.dl-sup-head{flex-wrap:wrap}.dl-msg{max-width:94%}.dl-file{min-width:0;width:100%;box-sizing:border-box}.dl-file button{margin-left:50px}}"
   ].join("\n");
   document.head.appendChild(css);
@@ -216,19 +244,19 @@
     var row = make('<button type="button" class="dl-sup-row"></button>');
     row.style.setProperty("--i", Math.min(i || 0, 12));
     if (admin) row.appendChild(make('<span class="dl-sup-av" aria-hidden="true">' + esc(initial(t)) + "</span>"));
-    else row.appendChild(make('<span class="dl-sup-dot' + (t.unread ? " on" : "") + '" aria-hidden="true"></span>'));
+    else row.appendChild(make('<span class="dl-sup-dot' + (t.unread && t.status !== "closed" ? " on" : "") + '" aria-hidden="true"></span>'));
     var text = make('<span class="dl-sup-rt"></span>');
-    if (admin) { var w = make('<span class="dl-sup-who"></span>'); w.textContent = who; if (t.unread) w.appendChild(make('<i class="dl-sup-dot on" aria-label="New reply"></i>')); text.appendChild(w); }
+    if (admin) { var w = make('<span class="dl-sup-who"></span>'); w.textContent = who; if (t.unread && t.status !== "closed") w.appendChild(make('<i class="dl-sup-dot on" aria-label="New reply"></i>')); text.appendChild(w); }
     var b = make("<b></b>"); b.textContent = t.title; text.appendChild(b);
     if (t.preview) { var pv = make('<span class="dl-sup-pv"></span>'); pv.textContent = t.preview; text.appendChild(pv); }
     row.appendChild(text);
-    var side = make('<span class="dl-sup-side"><span class="dl-sup-tag"></span><span class="dl-sup-date"></span></span>');
-    side.querySelector(".dl-sup-tag").textContent = catLabel(t.category);
+    var side = make('<span class="dl-sup-side">' + (admin ? "" : '<span class="dl-sup-tag"></span>') + '<span class="dl-sup-date"></span></span>');
+    if (!admin) side.querySelector(".dl-sup-tag").textContent = catLabel(t.category);
     side.querySelector(".dl-sup-date").textContent = fullDate(admin ? t.created_at : t.last_message_at);
     if (!admin && t.status === "closed") side.insertBefore(make('<span class="dl-sup-pill closed">Closed</span>'), side.firstChild);
     row.appendChild(side);
     row.appendChild(make(ico("chev", 16)));
-    if (t.unread && !admin) row.setAttribute("aria-label", t.title + " (new reply)");
+    if (t.unread && t.status !== "closed" && !admin) row.setAttribute("aria-label", t.title + " (new reply)");
     row.addEventListener("click", function () { openTicket(t.id, from); });
     return row;
   }
@@ -277,10 +305,9 @@
     inner.appendChild(make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello">Tickets</h1><p class="dl-sup-sub">Every ticket from the people using Daylight, grouped by category.</p></div></div>'));
     var bar = make('<div class="dl-sup-bar"><div class="dl-sup-tabs" role="tablist"><button type="button" role="tab" data-t="open">Open <span data-n="open">–</span></button><button type="button" role="tab" data-t="closed">Closed <span data-n="closed">–</span></button></div>' +
       '<label class="dl-sup-search">' + ico("search", 15) + '<input type="search" placeholder="Search tickets" aria-label="Search tickets"></label>' +
-      '<select class="dl-sup-sel" aria-label="Filter by category"><option value="">All categories</option></select></div>');
-    var sel = bar.querySelector("select"), q = bar.querySelector("input");
-    CATS.forEach(function (c) { var o = document.createElement("option"); o.value = c[0]; o.textContent = c[1]; sel.appendChild(o); });
-    sel.value = ST.cat || "";
+      '<button type="button" class="dd dl-sup-ddf dl-sup-ddf-bar" id="dlSupCat" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by category"><span class="dd-val"></span><span class="dd-chev">' + ico("chevD", 15) + "</span></button></div>");
+    var sel = bar.querySelector("#dlSupCat"), q = bar.querySelector("input");
+    ddBind(sel, [["", "All categories"]].concat(CATS.map(function (c) { return [c[0], c[1]]; })), ST.cat || "");
     inner.appendChild(bar);
     var box = make('<div class="dl-sup-fade"><div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div></div>'); inner.appendChild(box);
     var data = { open: null, closed: null };
@@ -352,15 +379,16 @@
     var bd = make('<div class="dl-sheet-bd"><aside class="dl-sheet" role="dialog" aria-modal="true" aria-label="New ticket">' +
       '<div class="dl-sheet-h"><h2>New ticket</h2><button type="button" class="icon-btn" data-x aria-label="Close">' + ico("x", 17) + "</button></div>" +
       '<p class="dl-sheet-p">Tell us what’s going on. We’ll reply right here in the ticket.</p>' +
-      '<div class="dl-sheet-b"><div><label for="dlTkCat">Category</label><div class="dl-selwrap"><select id="dlTkCat" class="dl-sup-sel dl-sup-sel-f" required><option value="">Choose a category…</option></select></div></div>' +
+      '<div class="dl-sheet-b"><div><label for="dlTkCat">Category</label><div class="dl-selwrap"><button type="button" id="dlTkCat" class="dd dl-sup-ddf" aria-haspopup="listbox" aria-expanded="false" aria-label="Category"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div></div>' +
       '<div><label for="dlTkTitle">Title</label><input type="text" id="dlTkTitle" maxlength="120" placeholder="What’s the problem?" autocomplete="off"></div>' +
       '<div><label for="dlTkBody">Details</label><textarea id="dlTkBody" maxlength="4000" placeholder="What happened, and what did you expect?"></textarea></div>' +
       '<div><label>Photos</label><div class="dl-thumbs" data-thumbs></div><button type="button" class="dl-addpic" data-add>' + ico("image", 16) + 'Add photos</button></div>' +
       '<div class="dl-sup-err" data-err role="alert"></div></div>' +
       '<div class="dl-sheet-f"><button type="button" class="btn-ghost" data-x>Cancel</button><button type="button" class="btn-primary" data-ok>Submit ticket</button></div></aside></div>');
     var sel = bd.querySelector("#dlTkCat");
-    CATS.forEach(function (c) { var o = document.createElement("option"); o.value = c[0]; o.textContent = c[1]; sel.appendChild(o); });
-    if (typeof preCat === "string" && preCat) sel.value = preCat;
+    ddBind(sel, CATS.map(function (c) { return [c[0], c[1]]; }), typeof preCat === "string" && preCat ? preCat : CATS[0][0]);
+    function placeholder() { sel._dd.value = ""; sel.querySelector(".dd-val").textContent = "Choose a category…"; sel.classList.add("is-empty"); }
+    if (!(typeof preCat === "string" && preCat)) placeholder();
     var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body;
     root.appendChild(bd);
     var err = bd.querySelector("[data-err]"), th = bd.querySelector("[data-thumbs]"), closing = false;
@@ -371,13 +399,13 @@
       if (calm) { bd.remove(); return; }
       bd.classList.add("is-out"); setTimeout(function () { bd.remove(); }, 200);
     }
-    function onKey(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); close(); } }
+    function onKey(e) { if (e.key === "Escape") { if (typeof ddState !== "undefined" && ddState) return; e.preventDefault(); e.stopPropagation(); close(); } }
     document.addEventListener("keydown", onKey, true);
     bd.querySelectorAll("[data-x]").forEach(function (b) { b.addEventListener("click", close); });
     bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
     var redraw = function (m) { thumbs(photos, th, redraw); err.textContent = m || ""; };
     bd.querySelector("[data-add]").addEventListener("click", function () { pickPhotos(photos, redraw, 4); });
-    sel.addEventListener("change", function () { err.textContent = ""; sel.classList.remove("bad"); });
+    sel.addEventListener("change", function () { err.textContent = ""; sel.classList.remove("bad", "is-empty"); });
     var ok = bd.querySelector("[data-ok]");
     ok.addEventListener("click", async function () {
       var cat = sel.value, title = bd.querySelector("#dlTkTitle").value.trim(), body = bd.querySelector("#dlTkBody").value.trim();
@@ -454,33 +482,67 @@
       };
       if (typeof openConfirm === "function") openConfirm({ title: "Give " + (t.user_name || t.user_email) + " their data?", body: "This builds their full data export (JSON files, ICS calendars and a readable summary) and posts it in this ticket. It stays downloadable for 24 hours.", confirmLabel: "Give data", fn: go }); else go();
     }
+    var lastTypingPing = 0;
     function drawComposer() {
       var t = data.ticket;
       compHost.innerHTML = "";
       if (t.status !== "open") { compHost.appendChild(make('<div class="dl-closed-note">This ticket is closed.</div>')); return; }
-      var c = make('<div class="dl-compose"><div class="dl-thumbs" data-th></div><textarea rows="1" placeholder="Write a message…" aria-label="Message"></textarea><div class="dl-sup-err" data-err role="alert"></div>' +
-        '<div class="dl-compose-row"><button type="button" class="dl-ibtn" data-add title="Add photos" aria-label="Add photos">' + ico("image", 17) + '</button><span class="sp"></span><button type="button" class="btn-primary" data-send>' + ico("send", 15) + "Send</button></div></div>");
-      var ta = c.querySelector("textarea"), err = c.querySelector("[data-err]"), th = c.querySelector("[data-th]");
-      var redraw = function (m) { thumbs(pending, th, redraw); err.textContent = m || ""; };
-      ta.addEventListener("input", function () { ta.style.height = "auto"; ta.style.height = Math.min(160, ta.scrollHeight) + "px"; });
+      var c = make('<div class="dl-compose"><div class="dl-thumbs" data-th></div>' +
+        '<div class="dl-compose-row"><button type="button" class="dl-ibtn" data-add title="Add photos" aria-label="Add photos">' + ico("image", 17) + '</button>' +
+        '<textarea rows="1" placeholder="Write a message…" aria-label="Message"></textarea>' +
+        '<button type="button" class="btn-primary dl-send" data-send disabled>' + ico("send", 15) + '<span>Send</span></button></div>' +
+        '<div class="dl-sup-err" data-err role="alert"></div></div>');
+      var ta = c.querySelector("textarea"), err = c.querySelector("[data-err]"), th = c.querySelector("[data-th]"), send = c.querySelector("[data-send]");
+      function sync() {
+        ta.style.height = "auto"; ta.style.height = Math.min(176, ta.scrollHeight) + "px";
+        ta.style.overflowY = ta.scrollHeight > 176 ? "auto" : "hidden";
+        var has = !!ta.value.trim() || pending.length > 0;
+        send.disabled = !has || sending; send.classList.toggle("is-ready", has && !sending);
+      }
+      var redraw = function (m) { thumbs(pending, th, redraw); err.textContent = m || ""; sync(); };
+      ta.addEventListener("input", function () {
+        sync();
+        var now = Date.now();
+        if (ta.value.trim() && now - lastTypingPing > 3000) { lastTypingPing = now; rpc("support_typing", { p_id: t.id }).catch(function () {}); }
+      });
       c.querySelector("[data-add]").addEventListener("click", function () { pickPhotos(pending, redraw, 4); });
-      var send = c.querySelector("[data-send]");
       async function doSend() {
         if (sending) return;
         var body = ta.value.trim(); if (!body && !pending.length) return;
-        sending = true; send.disabled = true; err.textContent = "";
+        sending = true; send.disabled = true; send.classList.remove("is-ready"); err.textContent = "";
+        showPending(body, pending.length);
         try {
           var atts = await uploadAll(pending, t.user_id, t.id);
           await rpc("support_send", { p_id: t.id, p_body: body, p_atts: atts });
-          pending.forEach(function (p) { URL.revokeObjectURL(p.url); }); pending.length = 0; ta.value = ""; ta.style.height = "auto"; redraw("");
+          pending.forEach(function (p) { URL.revokeObjectURL(p.url); }); pending.length = 0; ta.value = ""; redraw("");
+          sending = false;
           await load(true);
-        } catch (e) { err.textContent = errText(e, "Couldn’t send that message."); }
-        sending = false; send.disabled = false; ta.focus();
+        } catch (e) { var pe = msgsHost.querySelector(".dl-mrow.pending"); if (pe) pe.remove(); err.textContent = errText(e, "Couldn’t send that message."); }
+        sending = false; sync(); ta.focus();
       }
       send.addEventListener("click", doSend);
       ta.addEventListener("keydown", function (e) { if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); doSend(); } });
       compHost.appendChild(c);
       redraw("");
+    }
+    /* the message shows up right away, dimmed with "Sending…", until the server has it */
+    function showPending(body, photos) {
+      var row = make('<div class="dl-mrow me pending new"><span class="dl-mav sp" aria-hidden="true"></span><div class="dl-msg me"><div class="dl-bub"></div><div class="dl-msg-t">Sending…</div></div></div>');
+      var bub = row.querySelector(".dl-bub");
+      bub.textContent = body || (photos + (photos === 1 ? " photo" : " photos"));
+      var ty = msgsHost.querySelector(".dl-typing"); if (ty) ty.remove();
+      msgsHost.appendChild(row); msgsHost.scrollTop = msgsHost.scrollHeight;
+    }
+    function drawTyping() {
+      var old = msgsHost.querySelector(".dl-typing"); if (old) old.remove();
+      if (!data || !data.ticket.other_typing) return;
+      var t = data.ticket, near = msgsHost.scrollHeight - msgsHost.scrollTop - msgsHost.clientHeight < 90;
+      var who = viewerIsUser() ? "Daylight Support" : (t.user_name || t.user_email || "They");
+      var row = make('<div class="dl-mrow dl-typing new" role="status"><div class="dl-msg"><div class="dl-bub dl-dots" aria-hidden="true"><i></i><i></i><i></i></div><div class="dl-msg-t"></div></div></div>');
+      row.insertBefore(avatarFor(viewerIsUser() ? "admin" : "user", t), row.firstChild);
+      row.querySelector(".dl-msg-t").textContent = who + " is typing…";
+      msgsHost.appendChild(row);
+      if (near) msgsHost.scrollTop = msgsHost.scrollHeight;
     }
     async function signed(paths) {
       if (!paths.length) return {};
@@ -498,6 +560,14 @@
       try { var pu = cloud().client.storage.from("avatars").getPublicUrl(t.user_id + "/avatar.png").data.publicUrl; img.src = /^https?:/.test(pu) ? pu + "?v=" + Math.floor(Date.now() / 600000) : pu; } catch (e) {}
       return a;
     }
+    var seenIds = null;
+    function dayKey(iso) { var d = new Date(iso); return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate(); }
+    function dayLabel(iso) {
+      var d = new Date(iso), n = new Date(), y = new Date(Date.now() - 864e5);
+      if (dayKey(iso) === dayKey(n)) return "Today"; if (dayKey(iso) === dayKey(y)) return "Yesterday";
+      return d.toLocaleDateString(undefined, { weekday: "long", month: "short", day: "numeric", year: d.getFullYear() === n.getFullYear() ? undefined : "numeric" });
+    }
+    function timeOnly(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
     async function drawMsgs(stick) {
       var t = data.ticket, msgs = data.messages;
       var paths = []; msgs.forEach(function (m) { (m.attachments || []).forEach(function (a) { if (m.kind !== "export" && a.path) paths.push(a.path); }); });
@@ -505,9 +575,12 @@
       if (token !== ST.token) return;
       var near = msgsHost.scrollHeight - msgsHost.scrollTop - msgsHost.clientHeight < 80;
       msgsHost.innerHTML = "";
-      var prev = null;
+      var prev = null, lastDay = "", fresh = {};
       msgs.forEach(function (m, idx) {
-        if (m.sender === "system") { msgsHost.appendChild(make('<div class="dl-sys"></div>')).textContent = m.body + " · " + clock(m.created_at); prev = null; return; }
+        var dk = dayKey(m.created_at);
+        if (dk !== lastDay) { lastDay = dk; var dd = make('<div class="dl-daydiv"><span></span></div>'); dd.firstChild.textContent = dayLabel(m.created_at); msgsHost.appendChild(dd); prev = null; }
+        var isNew = !!seenIds && !seenIds[m.id]; fresh[m.id] = 1;
+        if (m.sender === "system") { var sy = make('<div class="dl-sys' + (isNew ? " new" : "") + '"></div>'); sy.textContent = m.body + " · " + timeOnly(m.created_at); msgsHost.appendChild(sy); prev = null; return; }
         var me = (m.sender === "user") === viewerIsUser();
         var box = make('<div class="dl-msg' + (me ? " me" : "") + '"></div>');
         if (prev !== m.sender) {
@@ -552,14 +625,15 @@
           if (pics.children.length) { if (!m.body) bub.style.padding = "6px"; bub.appendChild(pics); }
         }
         box.appendChild(bub);
-        box.appendChild(make('<div class="dl-msg-t">' + esc(clock(m.created_at)) + "</div>"));
-        var nextM = msgs[idx + 1], lastOfGroup = !nextM || nextM.sender !== m.sender;
-        var mrow = make('<div class="dl-mrow' + (me ? " me" : "") + '"></div>');
-        mrow.appendChild(lastOfGroup ? avatarFor(m.sender, t) : make('<span class="dl-mav sp" aria-hidden="true"></span>'));
+        box.appendChild(make('<div class="dl-msg-t">' + esc(timeOnly(m.created_at)) + "</div>"));
+        var mrow = make('<div class="dl-mrow' + (me ? " me" : "") + (isNew ? " new" : "") + '"></div>');
+        mrow.appendChild(prev !== m.sender ? avatarFor(m.sender, t) : make('<span class="dl-mav sp" aria-hidden="true"></span>'));
         mrow.appendChild(box);
         msgsHost.appendChild(mrow);
         prev = m.sender;
       });
+      seenIds = fresh;
+      drawTyping();
       if (stick || near) msgsHost.scrollTop = msgsHost.scrollHeight;
     }
     async function load(force) {
@@ -571,8 +645,9 @@
       if (token !== ST.token) return;
       var sig = d.ticket.status + "|" + d.messages.length + "|" + (d.messages.length ? d.messages[d.messages.length - 1].id : "");
       d.messages.forEach(function (m) { if (m.kind === "export") (m.attachments || []).forEach(function (x) { sig += "|" + (x.expires_at && new Date(x.expires_at).getTime() < Date.now() ? "x" : "o"); }); });
-      var first = !data;
+      var first = !data, wasTyping = !!(data && data.ticket.other_typing);
       data = d;
+      if (!first && wasTyping !== !!d.ticket.other_typing && sig === lastSig) drawTyping();
       if (first || force || sig !== lastSig) {
         var statusChanged = !lastSig || lastSig.split("|")[0] !== d.ticket.status;
         lastSig = sig;
@@ -581,7 +656,7 @@
       }
     }
     setTimeout(function () { load(true); }, 0);   /* after the page is attached */
-    var myTimer = setInterval(function () { if (!wrap.isConnected || token !== ST.token) { clearInterval(myTimer); return; } if (document.visibilityState === "visible") load(false); }, 4000);
+    var myTimer = setInterval(function () { if (!wrap.isConnected || token !== ST.token) { clearInterval(myTimer); return; } if (document.visibilityState === "visible") load(false); }, 2500);
     ST.timer = myTimer;
   }
 

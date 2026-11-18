@@ -224,6 +224,8 @@
 
     function closeOnEscape(event) {
       if(event.key!=="Escape"||overlayRoot.lastElementChild!==bd)return;
+      /* an open dropdown / menu / date picker takes the first Escape; Settings closes on the next one */
+      if ((typeof ddState !== "undefined" && ddState) || (typeof openMenuEl !== "undefined" && openMenuEl) || document.getElementById("datePop")) return;
       event.preventDefault(); event.stopPropagation();
       close();
     }
@@ -264,37 +266,9 @@
       markDirty();
       /* Unsaved changes: the pill (Save / Discard) is the ONLY gate. Closing from the X, the backdrop or Esc simply does
          nothing while it is showing: no second popup, no animation. */
-      if (isDirty()) { nudgePill(); askLeave(); return; }   /* never silent: a clear Save / Discard / Keep editing choice (the pill also pulses) */
+      if (isDirty()) { nudgePill(); return; }   /* the bar is the only way to resolve unsaved changes */
       finish(false);
     }
-    /* Leaving Settings (X, Escape or a click outside) with unsaved changes: Save, Discard, or Keep editing. */
-    var leaveEl = null;
-    function askLeave() {
-      if (leaveEl) return;
-      leaveEl = el('<div class="backdrop dl-leave-bd"><div class="dialog dl-std dl-look dl-leave" role="alertdialog" aria-modal="true" aria-label="Unsaved changes" aria-describedby="dlLeaveText">' +
-        '<div class="dialog-head"><span class="dialog-title">Save your changes?</span></div>' +
-        '<div class="dialog-body"><p id="dlLeaveText" class="dl-leave-text">You have unsaved changes in Settings. Save them, discard them, or keep editing.</p></div>' +
-        '<div class="dialog-foot"><button type="button" class="btn-ghost" data-keep>Keep editing</button><button type="button" class="btn-ghost" data-drop>Discard</button><button type="button" class="btn-primary" style="margin-left:0" data-yes>Save</button></div></div></div>');
-      overlayRoot.appendChild(leaveEl);
-      function shut() { document.removeEventListener("keydown", onKey, true); var n = leaveEl; leaveEl = null; if (window.daylightExit) window.daylightExit(n); else n.remove(); }
-      function onKey(e) { if (e.key === "Escape") { e.preventDefault(); e.stopPropagation(); shut(); nudgePill(); } }
-      document.addEventListener("keydown", onKey, true);
-      leaveEl.querySelector("[data-keep]").addEventListener("click", function () { shut(); nudgePill(); });
-      leaveEl.addEventListener("mousedown", function (e) { if (e.target === leaveEl) { shut(); nudgePill(); } });
-      leaveEl.querySelector("[data-drop]").addEventListener("click", function () { shut(); finish(false); });
-      leaveEl.querySelector("[data-yes]").addEventListener("click", function () {
-        shut();
-        bar.querySelector("[data-save]").click();
-        var tries = 0, t = setInterval(function () {
-          tries++;
-          if (!settingsState.transactionActive) { clearInterval(t); return; }
-          if (!isDirty()) { clearInterval(t); settingsState.onDiscard = null; setTimeout(function () { if (settingsState.transactionActive) finish(false); }, 700); }
-          else if (tries > 120) clearInterval(t);   /* a save that could not finish keeps Settings open with its message on the pill */
-        }, 60);
-      });
-      setTimeout(function () { var y = leaveEl && leaveEl.querySelector("[data-yes]"); if (y) y.focus(); }, 0);
-    }
-
     var SECS = [
       ["profile", "user", "Profile"],
       ["appearance", "droplet", "Appearance"],
@@ -311,7 +285,8 @@
     }
     function goTo(id, smooth) {
       var sec = secEls[id]; if (!sec) return;
-      var top = Math.max(0, sec.offsetTop - parseFloat(getComputedStyle(pane).paddingTop || 0));
+      /* measured from the real positions (not offsetTop), so a jump lands with the heading fully visible even while the pane animates */
+      var top = Math.max(0, pane.scrollTop + (sec.getBoundingClientRect().top - pane.getBoundingClientRect().top) - 6);
       var calm = state.reduceMotion || (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
       spyLock = Date.now() + (smooth && !calm ? 700 : 150);
       pinned = id;
@@ -414,7 +389,7 @@
 
     function sizeLast() {
       var last = secEls[SECS[SECS.length - 1][0]]; if (!last || !last.isConnected) return;
-      last.style.minHeight = Math.max(0, pane.clientHeight - parseFloat(getComputedStyle(pane).paddingTop || 0) - 8) + "px";   /* so even the last section can reach the top */
+      last.style.minHeight = "";   /* the content ends at the last card (plus the pane padding): no scrolling past the bottom */
     }
     function drawPane(initial) {
       settingsState.redrawPane = drawPane;

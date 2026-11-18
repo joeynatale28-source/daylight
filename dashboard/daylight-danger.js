@@ -6,29 +6,45 @@
   function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
   var css = document.createElement("style");
   css.textContent = [
-    ".dl-danger{border-color:color-mix(in srgb,var(--danger) 45%,var(--line-soft))!important}",
-    ".dl-danger .set-group-title{color:var(--danger)}",
-    ".dl-danger-row{display:flex;align-items:center;gap:18px;justify-content:space-between}",
+    ".dl-danger{border-color:color-mix(in srgb,var(--danger) 40%,var(--line-soft))!important;background:color-mix(in srgb,var(--danger) 4%,var(--surface2))!important;padding:22px 24px!important}",
+    ".dl-danger .set-group-title{display:flex;align-items:center;gap:9px;color:var(--danger);margin-bottom:16px}",
+    ".dl-danger .set-group-title i{width:6px;height:6px;border-radius:50%;background:var(--danger);display:inline-block}",
+    ".dl-danger-row{display:flex;align-items:center;gap:22px;justify-content:space-between}",
     ".dl-danger-row>span{min-width:0}",
-    ".dl-danger-row .sw-label,.dl-danger-row .sw-sub{display:block}.dl-danger-row .sw-sub{margin-top:3px;font-size:12.5px;line-height:1.5;color:var(--muted)}",
-    ".dl-danger-row .btn-danger{flex:none;margin:0}",
-    ".dl-del-in{width:100%;box-sizing:border-box;border:1px solid var(--line-soft);background:var(--surface2);border-radius:14px;padding:12px 14px;font:inherit;font-size:14.5px;color:var(--text);outline:none;margin-top:12px}",
-    ".dl-del-in:focus{border-color:var(--danger)}",
-    ".dl-del-err{min-height:18px;margin-top:8px;font-size:12.5px;color:var(--danger)}",
-    ".dl-del-body p{margin:0 0 10px;font-size:14px;line-height:1.55;color:var(--muted)}",
-    ".dl-del-body ul{margin:0 0 6px;padding-left:18px;font-size:14px;line-height:1.6;color:var(--muted)}",
-    "@media(max-width:640px){.dl-danger-row{flex-wrap:wrap}}"
-  ].join("\n");
+    ".dl-danger-ico{flex:none;width:44px;height:44px;border-radius:14px;display:grid;place-items:center;color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent);border:1px solid color-mix(in srgb,var(--danger) 28%,transparent)}",
+    ".dl-danger-row .sw-label,.dl-danger-row .sw-sub{display:block}.dl-danger-row .sw-label{font-size:15px;font-weight:650;letter-spacing:-.01em}.dl-danger-row .sw-sub{margin-top:4px;font-size:13px;line-height:1.55;color:var(--muted);max-width:430px}",
+    ".dl-danger-row .btn-danger{flex:none;margin:0;height:40px;padding:0 20px;border-radius:999px;font-size:14px;font-weight:600}",
+    /* confirmation dialog */
+    ".dl-del-body p{margin:0 0 12px;font-size:14px;line-height:1.55;color:var(--muted)}",
+    ".dl-del-body ul{margin:0 0 4px;padding:0;list-style:none;display:grid;gap:8px}",
+    ".dl-del-body li{display:flex;align-items:center;gap:10px;font-size:14px;line-height:1.4;color:var(--text)}",
+    ".dl-del-body li i{flex:none;width:6px;height:6px;border-radius:50%;background:var(--danger)}",
+    ".dl-del-confirm{margin-top:16px!important}",
+    ".dl-del-confirm label{display:block;font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}",
+    ".dl-del-confirm b{display:inline-block;margin-left:4px;color:var(--text);letter-spacing:0;text-transform:none;font-size:12.5px;font-weight:600}",
+    ".dl-del-in{width:100%;box-sizing:border-box;border:1px solid var(--line-soft);background:var(--surface2);border-radius:14px;padding:12px 14px;font:inherit;font-size:14.5px;color:var(--text);outline:none;transition:border-color 140ms var(--ease-out),box-shadow 140ms var(--ease-out)}",
+    ".dl-del-in::placeholder{color:var(--faint)}",
+    ".dl-del-in:focus{border-color:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 16%,transparent)}",
+    ".dl-del-err{min-height:18px;margin-top:8px;font-size:12.5px;line-height:1.4;color:var(--danger)}",
+    ".dl-del-dlg .dialog-foot{gap:10px}",
+    ".dl-del-dlg .dialog-foot button{height:40px;padding:0 20px;font-size:14px;margin:0}",
+    /* the disabled delete button reads as disabled, with enough contrast (not a pale pink) */
+    ".dl-del-dlg .btn-danger:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);opacity:1;cursor:not-allowed;box-shadow:none}",
+    ".dl-del-dlg .btn-danger:not(:disabled){transition:background 140ms var(--ease-out),transform 140ms var(--ease-out)}.dl-del-dlg .btn-danger:not(:disabled):active{transform:scale(.98)}",
+    ".dl-del-done{display:flex;flex-direction:column;align-items:center;text-align:center;padding:12px 0 6px}",
+    ".dl-del-done .dl-danger-ico{margin-bottom:14px;color:var(--text);background:var(--surface);border-color:var(--line-soft)}",
+    "@media(max-width:640px){.dl-danger-row{flex-wrap:wrap}.dl-danger-row .btn-danger{margin-left:66px!important}}"
+  ].join(String.fromCharCode(10));
   document.head.appendChild(css);
 
   function openDelete() {
     var c = window.daylightCloud, email = (c && c.user && c.user.email) || "";
-    var bd = make('<div class="backdrop"><div class="dialog dl-std dl-look" role="dialog" aria-modal="true" aria-label="Delete account">' +
+    var bd = make('<div class="backdrop"><div class="dialog dl-std dl-look dl-del-dlg" role="dialog" aria-modal="true" aria-label="Delete account">' +
       '<div class="dialog-head"><span class="dialog-title">Delete your account?</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
       '<div class="dialog-body dl-del-body"><p>This permanently deletes your Daylight account and everything in it. It can’t be undone.</p>' +
-      "<ul><li>Your calendars, events, tasks and settings</li><li>Everything you shared, and your AI access connections</li><li>Your support tickets and uploaded files</li></ul>" +
-      '<p style="margin-top:12px">To confirm, type your e-mail address: <b style="color:var(--text)">' + esc(email) + '</b></p>' +
-      '<input type="text" class="dl-del-in" data-in autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="' + esc(email) + '" aria-label="Type your e-mail address to confirm"><div class="dl-del-err" data-err role="alert"></div></div>' +
+      "<ul><li><i></i>Your calendars, events, tasks and settings</li><li><i></i>Everything you shared, and your AI access connections</li><li><i></i>Your support tickets and uploaded files</li></ul>" +
+      '<div class="dl-del-confirm"><label for="dlDelIn">To confirm, type your e-mail address <b>' + esc(email) + '</b></label>' +
+      '<input type="text" id="dlDelIn" class="dl-del-in" data-in autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Type your email address"><div class="dl-del-err" data-err role="alert"></div></div></div>' +
       '<div class="dialog-foot"><button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="btn-danger" style="margin-left:0" data-ok disabled>Delete my account</button></div></div></div>');
     var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body;
     root.appendChild(bd);
@@ -48,7 +64,7 @@
         var session = c.ensureSession ? await c.ensureSession() : null;
         var res = await c.client.functions.invoke("delete-account", { body: { confirm: input.value.trim() }, headers: session && session.access_token ? { Authorization: "Bearer " + session.access_token } : undefined });
         if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }
-        bd.querySelector(".dialog").innerHTML = '<div class="dialog-head"><span class="dialog-title">Your account was deleted</span></div><div class="dialog-body dl-del-body"><p>Everything was removed. Taking you back to the start page…</p></div>';
+        bd.querySelector(".dialog").innerHTML = '<div class="dialog-body dl-del-body"><div class="dl-del-done"><span class="dl-danger-ico">' + icon("check", 22) + '</span><div class="dialog-title" style="margin-bottom:6px">Your account was deleted</div><p style="margin:0">Everything was removed. Taking you back to the start page…</p></div></div>';
         try { await c.client.auth.signOut({ scope: "local" }); } catch (e) {}
         try { Object.keys(localStorage).filter(function (k) { return /^sb-.*-auth-token/.test(k) || /^daylight/i.test(k); }).forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
         setTimeout(function () { location.replace((window.daylightRoute && window.daylightRoute.siteRoot) || "../"); }, 1400);
@@ -62,8 +78,8 @@
 
   window.daylightDangerPane = function (pane) {
     paneHead(pane, "Danger Zone", "Actions here can’t be undone.");
-    var g = make('<div class="set-group dl-danger"><div class="set-group-title">Delete account</div>' +
-      '<div class="dl-danger-row"><span><span class="sw-label">Delete your account</span><span class="sw-sub">Permanently deletes your account, calendars, events, tasks, settings, sharing, AI access and support tickets.</span></span>' +
+    var g = make('<div class="set-group dl-danger"><div class="set-group-title"><i></i>Delete account</div>' +
+      '<div class="dl-danger-row"><span class="dl-danger-ico" aria-hidden="true">' + icon("alert", 20) + '</span><span style="flex:1"><span class="sw-label">Delete your account</span><span class="sw-sub">Permanently deletes your account, calendars, events, tasks, settings, sharing, AI access and support tickets.</span></span>' +
       '<button type="button" class="btn-danger" data-del>Delete account</button></div></div>');
     g.querySelector("[data-del]").addEventListener("click", openDelete);
     pane.appendChild(g);

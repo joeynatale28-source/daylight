@@ -16,7 +16,10 @@ try{
  await page.evaluate(()=>document.querySelector('[data-del]').click());await sleep(400);
  const d=await page.evaluate(()=>({dis:document.querySelector('[data-ok]').disabled,t:document.querySelector('.dialog-title').textContent}));
  check(d.dis&&/Delete your account/.test(d.t),'the confirmation starts disabled',d);
- await page.type('[data-in]','wrong@example.com');
+ check(await page.evaluate(()=>document.querySelector('[data-in]').placeholder)==='Type your email address','the placeholder is neutral (does not repeat the address)');
+ const dis=await page.evaluate(()=>{const c=getComputedStyle(document.querySelector('[data-ok]'));return {bg:c.backgroundColor,fg:c.color}});
+ check(dis.fg!==dis.bg&&dis.bg!=='rgb(255, 255, 255)','the disabled delete button has its own readable look',dis);
+ if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+'/danger-dialog0.png'}); await page.type('[data-in]','wrong@example.com');
  check(await page.evaluate(()=>document.querySelector('[data-ok]').disabled),'a wrong e-mail keeps it disabled');
  const email=await page.evaluate(()=>window.daylightCloud.user.email);
  await page.$eval('[data-in]',e=>{e.value=''});await page.type('[data-in]',email);
