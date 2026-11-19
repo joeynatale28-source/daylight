@@ -24,7 +24,8 @@
     ".dl-del-confirm b{display:inline-block;margin-left:4px;color:var(--text);letter-spacing:0;text-transform:none;font-size:12.5px;font-weight:600}",
     ".dl-del-in{width:100%;box-sizing:border-box;border:1px solid var(--line-soft);background:var(--surface2);border-radius:14px;padding:12px 14px;font:inherit;font-size:14.5px;color:var(--text);outline:none;transition:border-color 140ms var(--ease-out),box-shadow 140ms var(--ease-out)}",
     ".dl-del-in::placeholder{color:var(--faint)}",
-    ".dl-del-in:focus{border-color:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 16%,transparent)}",
+    ".dl-del-in:focus{border-color:color-mix(in srgb,var(--text) 38%,transparent);box-shadow:0 0 0 3px color-mix(in srgb,var(--text) 8%,transparent)}",
+    ".dl-del-in.bad,.dl-del-in.bad:focus{border-color:var(--danger);box-shadow:0 0 0 3px color-mix(in srgb,var(--danger) 16%,transparent)}",
     ".dl-del-err{min-height:18px;margin-top:8px;font-size:12.5px;line-height:1.4;color:var(--danger)}",
     ".dl-del-dlg .dialog-foot{gap:10px}",
     ".dl-del-dlg .dialog-foot button{height:40px;padding:0 20px;font-size:14px;margin:0}",
@@ -56,7 +57,7 @@
     bd.querySelector("[data-x]").addEventListener("click", function () { if (!ok.dataset.busy) close(); });
     bd.querySelector("[data-cancel]").addEventListener("click", function () { if (!ok.dataset.busy) close(); });
     function match() { return !!email && input.value.trim().toLowerCase() === email.toLowerCase(); }
-    input.addEventListener("input", function () { ok.disabled = !match(); err.textContent = ""; });
+    input.addEventListener("input", function () { ok.disabled = !match(); err.textContent = ""; var v = input.value.trim().toLowerCase(); input.classList.toggle("bad", !!v && !!email && email.toLowerCase().indexOf(v) !== 0); });
     input.addEventListener("keydown", function (e) { if (e.key === "Enter" && match()) ok.click(); });
     ok.addEventListener("click", async function () {
       if (!match() || ok.dataset.busy) return;

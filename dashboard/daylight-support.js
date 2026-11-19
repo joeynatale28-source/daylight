@@ -23,7 +23,7 @@
     image: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L8 19"/>', chev: '<path d="m9 6 6 6-6 6"/>',
     file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>', dl: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
     buoy: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/>',
-    search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6Z"/>', chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>'
+    search: '<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>', lock: '<rect x="4" y="11" width="16" height="10" rx="3"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/>', inbox: '<path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.5 5h13L22 12v6a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-6Z"/>', chat: '<path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12Z"/>'
   };
   function ico(n, s) { return '<svg viewBox="0 0 24 24" width="' + (s || 18) + '" height="' + (s || 18) + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + IC[n] + "</svg>"; }
 
@@ -38,7 +38,8 @@
     ".dl-sup-sub{margin:8px 0 0;font-size:16px;color:var(--muted)}",
     ".dl-sup-head>div:first-child{flex:1;min-width:0}",
     ".dl-sup-open{display:inline-flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 18px;border-radius:999px;border:1px solid var(--line-soft);background:var(--surface2);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;flex:none;transition:background 140ms var(--ease-out),transform 140ms var(--ease-out)}",
-    ".dl-sup-open:hover{background:var(--hover)}.dl-sup-open:active{transform:scale(.98)}",
+    ".dl-sup-open:hover{background:var(--hover);border-color:color-mix(in srgb,var(--text) 28%,transparent)}.dl-sup-open>svg:last-child{color:var(--muted);margin-left:-2px;margin-right:4px}",
+    ".dl-sup-open:active{transform:scale(.98)}",
     ".dl-sup-open b{min-width:26px;height:26px;padding:0 8px;border-radius:999px;background:var(--text);color:var(--bg);display:inline-grid;place-items:center;font-size:12.5px;font-weight:650}",
     ".dl-sup-cta{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 34px}",
     ".dl-sup-cta button{height:42px;padding:0 20px;font-size:14px;margin:0;display:inline-flex;align-items:center;gap:8px}",
@@ -196,6 +197,7 @@
     ".dl-sup-sum .dl-sup-emico{margin:0;width:44px;height:44px}.dl-sup-sumn{font-size:13px;font-weight:600;color:var(--muted)}",
     /* ---- admin sidebar ---- */
     ".dl-sup.has-adm .dl-sup-inner{max-width:1280px}",
+    ".dl-sup.adm-hidden .dl-adm{display:none}.dl-sup.adm-hidden.has-adm .dl-sup-inner{max-width:860px}",
     ".dl-split{flex:1;min-height:0;display:flex;gap:28px;align-items:stretch}",
     ".dl-split-l{flex:1;min-width:0;display:flex;flex-direction:column;min-height:0}",
     ".dl-adm{flex:none;width:340px;overflow-y:auto;border:1px solid var(--line-soft);border-radius:22px;background:var(--surface2);padding:6px 6px 14px;scrollbar-width:thin;animation:dlSupIn 260ms var(--ease-out) both}",
@@ -217,23 +219,77 @@
     ".dl-adm-sub{margin:4px 0 8px;font-size:12px;font-weight:650;color:var(--muted)}.dl-adm-sub:not(:first-child){margin-top:16px}",
     ".dl-adm-empty{font-size:12.5px;color:var(--faint)}",
     ".dl-adm-tk{display:flex;align-items:center;gap:10px;width:100%;padding:9px 10px;margin:0 0 6px;border-radius:12px;border:1px solid var(--line-soft);background:var(--bg);color:var(--text);text-align:left;cursor:pointer;font:inherit;transition:background 140ms var(--ease-out)}.dl-adm-tk:hover{background:var(--hover)}",
-    ".dl-adm-tk .dl-sup-rt b{font-size:13px}.dl-adm-tk .dl-sup-rt span{font-size:11.5px}",
+    ".dl-adm-tk .dl-sup-rt b{font-size:13px;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.3}.dl-adm-tk .dl-sup-rt span{font-size:11.5px}",
     ".dl-adm-log{padding:9px 0;border-top:1px solid var(--line-soft);font-size:12.5px;line-height:1.45}.dl-adm-log:first-of-type{border-top:0}.dl-adm-log b{display:block;font-size:13px}",
-    ".dl-adm-lm{display:block;color:var(--muted);font-size:11.5px}.dl-adm-lr{display:block;margin-top:2px;color:var(--text)}",
+    ".dl-adm-lm,.dl-adm-lw{display:block;color:var(--muted);font-size:11.5px;overflow-wrap:anywhere}.dl-adm-lw{margin-top:1px}.dl-adm-lr{display:block;margin-top:2px;color:var(--text)}",
     ".dl-adm-note{margin:0 0 12px;font-size:12.5px;line-height:1.55;color:var(--muted)}",
-    ".dl-adm-wide{width:100%;height:40px;margin:0 0 14px!important}.dl-adm-wide:disabled{background:var(--surface);color:var(--faint);border:1px solid var(--line-soft);cursor:not-allowed}",
+    ".dl-adm-wide{width:100%;height:40px;margin:0 0 14px!important}.dl-adm-wide:disabled{background:var(--surface);color:var(--text);opacity:.6;border:1px solid var(--line);cursor:not-allowed}.dl-adm-why{margin:-6px 0 14px;font-size:12.5px;line-height:1.5;color:var(--muted)}.dl-adm-sm{margin-left:8px;font-size:12px;color:var(--muted);font-weight:400}",
     ".dl-adm-actions{display:grid;gap:8px}.dl-adm-actions button{width:100%;height:40px;margin:0;justify-content:center}",
     ".dl-adm-foot{margin:6px 16px 0;font-size:11.5px;line-height:1.5;color:var(--faint)}",
-    ".dl-act-p{margin:0 0 14px;font-size:14px;line-height:1.55;color:var(--muted)}",
+    ".dl-act-who{display:flex;align-items:center;gap:12px;margin:0 0 14px;padding:10px 12px;border-radius:14px;border:1px solid var(--line-soft);background:var(--surface2)}.dl-act-who b{display:block;font-size:14px}.dl-act-who span:not(.dl-adm-av){display:block;font-size:12.5px;color:var(--muted)}.dl-act-p{margin:0 0 14px;font-size:14px;line-height:1.55;color:var(--muted)}",
     ".dl-act-f{margin:0 0 14px}.dl-act-f label{display:block;font-size:11px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--faint);margin-bottom:8px}",
     ".dl-act-f input,.dl-act-f textarea{width:100%;box-sizing:border-box;border:1px solid var(--line-soft);background:var(--surface2);border-radius:14px;padding:11px 14px;font:inherit;font-size:14.5px;color:var(--text);outline:none;resize:vertical}.dl-act-f input:focus,.dl-act-f textarea:focus{border-color:var(--text)}",
     ".dl-act-seg{display:flex;flex-wrap:wrap;gap:8px}.dl-act-seg button{height:36px;padding:0 15px;border-radius:999px;border:1px solid var(--line-soft);background:none;color:var(--muted);font-size:13.5px;font-weight:550;cursor:pointer}.dl-act-seg button[aria-checked=true]{background:var(--text);color:var(--bg);border-color:var(--text)}",
     ".dl-act-hint{margin-top:6px;font-size:12px;color:var(--faint)}",
     ".dl-act .dialog-foot button{height:40px;padding:0 20px;font-size:14px;margin:0}.dl-act .btn-primary:disabled{background:var(--surface);color:var(--muted);border:1px solid var(--line);cursor:not-allowed}.dl-act .btn-danger:disabled{background:#fdeceb;color:#8a1b12;border:1px solid #e9aaa5;cursor:not-allowed;opacity:1}[data-theme=dark] .dl-act .btn-danger:disabled{background:#3b1714;color:#ffb9b1;border-color:#7a3028}",
     "@media (max-width:1100px){.dl-sup.is-chat.has-adm{overflow-y:auto}.dl-split{flex-direction:column;overflow:visible}.dl-split-l{min-height:72vh}.dl-adm{width:auto;margin-top:18px;overflow:visible}}",
+    ".dl-restr{display:flex;gap:18px;align-items:flex-start;padding:22px 24px;border-radius:22px;border:1px solid color-mix(in srgb,var(--danger) 35%,var(--line-soft));background:color-mix(in srgb,var(--danger) 5%,var(--surface2));width:100%;box-sizing:border-box}",
+    ".dl-restr-ico{flex:none;width:46px;height:46px;border-radius:14px;display:grid;place-items:center;color:var(--danger);background:color-mix(in srgb,var(--danger) 12%,transparent);border:1px solid color-mix(in srgb,var(--danger) 28%,transparent)}",
+    ".dl-restr .dl-sup-hello{font-size:24px}.dl-restr-r{margin:12px 0 0;padding:10px 14px;border-radius:12px;background:var(--bg);border:1px solid var(--line-soft);font-size:13.5px;line-height:1.5;color:var(--text)}",
+    ".dl-appeal{display:flex;align-items:center;gap:18px;width:100%;margin:8px 0 0;padding:20px 24px;border-radius:24px;border:0;background:var(--text);color:var(--bg);cursor:pointer;text-align:left;font:inherit;box-shadow:0 14px 34px rgba(0,0,0,.18);transition:transform 160ms var(--ease-out),box-shadow 160ms var(--ease-out)}",
+    ".dl-appeal:hover{transform:translateY(-1px);box-shadow:0 18px 40px rgba(0,0,0,.24)}.dl-appeal:active{transform:scale(.99)}.dl-appeal:focus-visible{outline:3px solid var(--accent);outline-offset:3px}",
+    ".dl-appeal-mark{flex:none;width:46px;height:46px;border-radius:50%;background:var(--bg);color:var(--text);display:grid;place-items:center}.dl-appeal-mark svg{width:26px;height:26px;display:block}",
+    ".dl-appeal-t{flex:1;min-width:0}.dl-appeal-t b{display:block;font-size:18px;font-weight:700;letter-spacing:-.02em}.dl-appeal-t span{display:block;margin-top:3px;font-size:13.5px;opacity:.78}",
+    "[data-lock]{opacity:.38!important;pointer-events:none!important;filter:grayscale(1)}",
     "@media (max-width:760px){.dl-sup{padding:20px 16px 32px}.dl-sup-hello{font-size:25px}.dl-sup-head{flex-wrap:wrap}.dl-msg{max-width:94%}.dl-file{min-width:0;width:100%;box-sizing:border-box}.dl-file button{margin-left:50px}}"
   ].join("\n");
   document.head.appendChild(css);
+
+  /* ------------------------------------------------------------------ restricted accounts (suspended / banned)
+     They can sign in, but only reach the Support Center and Settings. my_account_status() decides (and ends a suspension by itself at its end date). */
+  function restrictedMsg(r, shortForm) {
+    if (!r) return "";
+    var until = r.ends_at ? new Date(r.ends_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) : "";
+    return r.status === "banned" ? "Your account is banned" : "Your account is suspended" + (until ? " until " + until : "");
+  }
+  var ALLOWED_LOCK = "[data-side-support],.profile-wrap,.side-row[title=Settings]";
+  function lockSidebar() {
+    var sb = document.getElementById("sidebar"); if (!sb) return;
+    var on = !!window.daylightRestricted;
+    [].slice.call(sb.querySelectorAll("button,.cal-row,.mini,.mini-cal,.side-row,.brand-row,.side-label")).forEach(function (n) {
+      var ok = n.matches(ALLOWED_LOCK) || n.closest(".profile-wrap") || n.closest("[data-side-support]");
+      if (on && !ok) { n.setAttribute("data-lock", "1"); n.setAttribute("aria-disabled", "true"); n.tabIndex = -1; }
+      else if (n.hasAttribute("data-lock")) { n.removeAttribute("data-lock"); n.removeAttribute("aria-disabled"); n.removeAttribute("tabindex"); }
+    });
+    [].slice.call(document.querySelectorAll("#header .icon-btn, header .icon-btn, .app-header .icon-btn")).forEach(function (n) {
+      if (n.closest(".dl-notif-btn") || n.classList.contains("dl-notif-btn") || /Settings/i.test(n.getAttribute("title") || n.getAttribute("aria-label") || "")) return;
+      if (on) n.setAttribute("data-lock", "1"); else n.removeAttribute("data-lock");
+    });
+  }
+  async function loadStatus() {
+    var c = cloud(); if (!c || !c.client || !c.user) return;
+    var r = null;
+    try { r = await rpc("my_account_status"); } catch (e) { return; }
+    var was = !!window.daylightRestricted, now = r && r.status && r.status !== "active" ? r : null;
+    window.daylightRestricted = now;
+    document.body.classList.toggle("restricted", !!now);
+    if (now && !was) { ST.view = "home"; state.section = "support"; renderAll(true, 1); }
+    else if (!now && was) renderAll(false);
+    lockSidebar();
+    if (window.daylightNotifications && window.daylightNotifications.refresh) window.daylightNotifications.refresh();
+  }
+  document.addEventListener("daylight:workspace-ready", function () { loadStatus(); });
+  document.addEventListener("daylight:workspace-signed-out", function () { window.daylightRestricted = null; document.body.classList.remove("restricted"); });
+  setInterval(function () { if (!document.hidden) loadStatus(); }, 60000);
+  window.addEventListener("focus", function () { if (cloud() && cloud().user) loadStatus(); });
+  /* shortcuts that would open the calendar's tools are off while restricted */
+  document.addEventListener("keydown", function (e) {
+    if (!window.daylightRestricted) return;
+    var t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+    if (e.key === "Escape" || e.key === "Tab" || e.key === "Enter" || e.key === " " || /^Arrow|^Page|^Home|^End|^F\d/.test(e.key)) return;
+    if ((e.ctrlKey || e.metaKey) && e.key === ",") return;
+    if (e.key.length === 1 || e.ctrlKey || e.metaKey) { e.preventDefault(); e.stopPropagation(); }
+  }, true);
 
   /* ------------------------------------------------------------------ state */
   var ST = { view: "home", ticketId: null, adminTab: "open", cat: "", from: "home", host: null, timer: null, token: 0 };
@@ -247,6 +303,13 @@
     var h = new Date().getHours(), part = h < 12 ? "Good morning" : h < 18 ? "Good afternoon" : "Good evening";
     var n = firstName();
     return n ? part + ", " + n : part;
+  }
+  /* cut at a word boundary (never mid-word); the full text stays available on hover */
+  function wordCut(str, max) {
+    str = String(str || ""); if (str.length <= max) return str;
+    var cut = str.slice(0, max + 1), i = cut.lastIndexOf(" ");
+    if (i < max * 0.5) i = max;
+    return cut.slice(0, i).replace(/[\s,.;:\-–—]+$/, "") + "…";
   }
   function ago(iso) {
     var d = new Date(iso); if (isNaN(d)) return "";
@@ -274,7 +337,8 @@
   }
 
   var CATS = [["feature", "Feature request"], ["bug", "Bug report"], ["account", "Account & sign-in"], ["data", "Data request"], ["other", "Something else"]];
-  function catLabel(k) { for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === k) return CATS[i][1]; return "Something else"; }
+  var ADM_CATS = [["appeal", "Appeal"]].concat(CATS);
+  function catLabel(k) { if (k === "appeal") return "Appeal"; for (var i = 0; i < CATS.length; i++) if (CATS[i][0] === k) return CATS[i][1]; return "Something else"; }
   function fullDate(iso) { var d = new Date(iso); return isNaN(d) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
   function initial(t) { var n = String(t.user_name || t.user_email || "?").trim(); return n.charAt(0).toUpperCase() || "?"; }
 
@@ -306,11 +370,18 @@
   }
 
   function homeView(inner) {
+    var R = window.daylightRestricted;
     var head = make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello"></h1><p class="dl-sup-sub">How can we help you?</p></div></div>');
-    head.querySelector("h1").textContent = greeting();
+    if (R) {
+      head = make('<div class="dl-sup-head"><div class="dl-restr"><span class="dl-restr-ico">' + ico("lock", 22) + '</span><div><h1 class="dl-sup-hello"></h1><p class="dl-sup-sub"></p><p class="dl-restr-r"></p></div></div></div>');
+      head.querySelector("h1").textContent = restrictedMsg(R);
+      head.querySelector(".dl-sup-sub").textContent = "You can still use the Support Center and Settings. The rest of Daylight is unavailable while this is in place.";
+      head.querySelector(".dl-restr-r").textContent = R.reason ? "Reason given: " + R.reason : "";
+      if (!R.reason) head.querySelector(".dl-restr-r").remove();
+    } else head.querySelector("h1").textContent = greeting();
     inner.appendChild(head);
     if (isOwner()) {
-      var ob = make('<button type="button" class="dl-sup-open">' + ico("inbox", 17) + '<span>Open tickets</span><b>–</b></button>');
+      var ob = make('<button type="button" class="dl-sup-open">' + ico("inbox", 17) + '<span>Open tickets</span><b>–</b>' + ico("chev", 15) + '</button>');
       ob.addEventListener("click", function () { show("admin", { adminTab: "open" }); });
       head.appendChild(ob);
       rpc("support_admin_list", { p_status: "open" }).then(function (r) { ob.querySelector("b").textContent = String((r || []).length); }).catch(function () { ob.querySelector("b").textContent = "0"; });
@@ -321,13 +392,13 @@
     inner.appendChild(cta);
     var host = make('<div class="dl-sup-fade"></div>'); inner.appendChild(host);
     host.appendChild(make('<div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div>'));
-    var adminSum = isOwner() ? Promise.all([rpc("support_admin_list", { p_status: "open" }), rpc("support_admin_list", { p_status: "closed" })]).then(function (r) { return { open: (r[0] || []).length, closed: (r[1] || []).length }; }).catch(function () { return null; }) : Promise.resolve(null);
+    var adminSum = isOwner() && !R ? Promise.all([rpc("support_admin_list", { p_status: "open" }), rpc("support_admin_list", { p_status: "closed" })]).then(function (r) { return { open: (r[0] || []).length, closed: (r[1] || []).length }; }).catch(function () { return null; }) : Promise.resolve(null);
     Promise.all([rpc("support_ticket_list"), adminSum]).then(function (pair) {
       var rows = pair[0] || [], sum = pair[1];
       host.innerHTML = "";
       if (sum && (sum.open || sum.closed)) {
         var sc = make('<button type="button" class="dl-sup-sum"><span class="dl-sup-emico">' + ico("inbox", 20) + '</span><span class="dl-sup-rt"><b>All tickets</b><span></span></span><span class="dl-sup-sumn"></span>' + ico("chev", 16) + "</button>");
-        sc.querySelector(".dl-sup-rt span").textContent = sum.open + " open · " + sum.closed + " closed from the people using Daylight";
+        sc.querySelector(".dl-sup-rt span").textContent = sum.open + " open · " + sum.closed + " closed";
         sc.querySelector(".dl-sup-sumn").textContent = "View tickets";
         sc.addEventListener("click", function () { show("admin", { adminTab: sum.open ? "open" : "closed" }); });
         host.appendChild(sc);
@@ -338,24 +409,35 @@
         var em = make('<div class="dl-sup-empty2"><span class="dl-sup-emico">' + ico("chat", 26) + '</span><h2>No tickets yet</h2><p>Questions, bugs, ideas, or a copy of your data — start a ticket and we’ll reply right here.</p><div class="dl-sup-emcats"></div></div>');
         CATS.forEach(function (c) { var b = make('<button type="button" class="dl-sup-chip"></button>'); b.textContent = c[1]; b.addEventListener("click", function () { newTicketSheet(c[0]); }); em.querySelector(".dl-sup-emcats").appendChild(b); });
         host.appendChild(em);
+        if (R) addAppeal(host, R);
         return;
       }
       host.appendChild(make('<div class="dl-sup-h2">Open</div>'));
       if (open.length) host.appendChild(listCard(open, false, "home")); else host.appendChild(make('<div class="dl-sup-card"><div class="dl-sup-empty">You have no open tickets.</div></div>'));
       if (closed.length) { host.appendChild(make('<div class="dl-sup-h2">Closed</div>')); host.appendChild(listCard(closed, false, "home")); }
+      if (R) addAppeal(host, R);
     }).catch(function () { host.innerHTML = '<div class="dl-sup-card"><div class="dl-sup-empty">Couldn’t load your tickets.</div></div>'; });
   }
 
+  /* the big, branded appeal button under everything (restricted accounts only) */
+  function addAppeal(host, R) {
+    var banned = R.status === "banned";
+    var b = make('<button type="button" class="dl-appeal"><span class="dl-appeal-mark"><svg viewBox="0 0 498 498" aria-hidden="true"><path fill="currentColor" d="M100 326a149 149 0 0 1 298 0z"/><path fill="currentColor" d="M36 339h426v12H36z"/></svg></span><span class="dl-appeal-t"><b></b><span></span></span>' + ico("chev", 20) + "</button>");
+    b.querySelector("b").textContent = banned ? "Appeal your ban" : "Appeal your suspension";
+    b.querySelector(".dl-appeal-t span").textContent = "Tell us why the decision should be reviewed. An admin will read it.";
+    b.addEventListener("click", function () { newTicketSheet("appeal"); });
+    host.appendChild(b);
+  }
   function adminView(inner) {
     var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + "Support Center</button>");
     back.addEventListener("click", function () { show("home"); });
     inner.appendChild(back);
-    inner.appendChild(make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello">Tickets</h1><p class="dl-sup-sub">Every ticket from the people using Daylight, grouped by category.</p></div></div>'));
+    inner.appendChild(make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello">Tickets</h1><p class="dl-sup-sub">All tickets, grouped by category.</p></div></div>'));
     var bar = make('<div class="dl-sup-bar"><div class="dl-sup-tabs" role="tablist"><button type="button" role="tab" data-t="open">Open <span data-n="open">–</span></button><button type="button" role="tab" data-t="closed">Closed <span data-n="closed">–</span></button></div>' +
       '<label class="dl-sup-search">' + ico("search", 15) + '<input type="search" placeholder="Search tickets" aria-label="Search tickets"></label>' +
       '<button type="button" class="dd dl-sup-ddf dl-sup-ddf-bar" id="dlSupCat" aria-haspopup="listbox" aria-expanded="false" aria-label="Filter by category"><span class="dd-val"></span><span class="dd-chev">' + ico("chevD", 15) + "</span></button></div>");
     var sel = bar.querySelector("#dlSupCat"), q = bar.querySelector("input");
-    ddBind(sel, [["", "All categories"]].concat(CATS.map(function (c) { return [c[0], c[1]]; })), ST.cat || "");
+    ddBind(sel, [["", "All categories"]].concat(ADM_CATS.map(function (c) { return [c[0], c[1]]; })), ST.cat || "");
     inner.appendChild(bar);
     var box = make('<div class="dl-sup-fade"><div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div></div>'); inner.appendChild(box);
     var data = { open: null, closed: null };
@@ -370,7 +452,7 @@
       rows = rows.filter(function (t) { return (!cat || t.category === cat) && (!term || [t.title, t.user_name, t.user_email, t.preview, catLabel(t.category)].join(" ").toLowerCase().indexOf(term) >= 0); });
       box.innerHTML = "";
       if (!rows.length) { box.appendChild(make('<div class="dl-sup-card"><div class="dl-sup-empty">' + (term || cat ? "No tickets match." : (ST.adminTab === "open" ? "No open tickets." : "No closed tickets yet.")) + "</div></div>")); return; }
-      CATS.forEach(function (c) {
+      ADM_CATS.forEach(function (c) {
         var g = rows.filter(function (t) { return t.category === c[0]; });
         if (!g.length) return;
         box.appendChild(make('<div class="dl-sup-h2">' + esc(c[1]) + ' <span>' + g.length + "</span></div>"));
@@ -423,9 +505,9 @@
 
   /* ------------------------------------------------------------------ new ticket (side panel) */
   function newTicketSheet(preCat) {
-    var photos = [];
-    var bd = make('<div class="dl-sheet-bd"><aside class="dl-sheet" role="dialog" aria-modal="true" aria-label="New ticket">' +
-      '<div class="dl-sheet-h"><h2>New ticket</h2><button type="button" class="icon-btn" data-x aria-label="Close">' + ico("x", 17) + "</button></div>" +
+    var photos = [], appeal = preCat === "appeal";
+    var bd = make('<div class="dl-sheet-bd"><aside class="dl-sheet" role="dialog" aria-modal="true" aria-label="' + (appeal ? "Appeal" : "New ticket") + '">' +
+      '<div class="dl-sheet-h"><h2>' + (appeal ? (window.daylightRestricted && window.daylightRestricted.status === "banned" ? "Appeal your ban" : "Appeal your suspension") : "New ticket") + '</h2><button type="button" class="icon-btn" data-x aria-label="Close">' + ico("x", 17) + "</button></div>" +
       '<p class="dl-sheet-p">Tell us what’s going on. We’ll reply right here in the ticket.</p>' +
       '<div class="dl-sheet-b"><div><label for="dlTkCat">Category</label><div class="dl-selwrap"><button type="button" id="dlTkCat" class="dd dl-sup-ddf" aria-haspopup="listbox" aria-expanded="false" aria-label="Category"><span class="dd-val"></span><span class="dd-chev">' + icon("chevD", 15) + '</span></button></div></div>' +
       '<div><label for="dlTkTitle">Title</label><input type="text" id="dlTkTitle" maxlength="120" placeholder="What’s the problem?" autocomplete="off"></div>' +
@@ -434,9 +516,15 @@
       '<div class="dl-sup-err" data-err role="alert"></div></div>' +
       '<div class="dl-sheet-f"><button type="button" class="btn-ghost" data-x>Cancel</button><button type="button" class="btn-primary" data-ok>Submit ticket</button></div></aside></div>');
     var sel = bd.querySelector("#dlTkCat");
-    ddBind(sel, CATS.map(function (c) { return [c[0], c[1]]; }), typeof preCat === "string" && preCat ? preCat : CATS[0][0]);
+    if (appeal) {
+      ddBind(sel, [["appeal", "Appeal"]], "appeal"); sel.disabled = true; sel.closest("div").style.display = "none";
+      bd.querySelector("#dlTkTitle").value = window.daylightRestricted && window.daylightRestricted.status === "banned" ? "Appeal: my ban" : "Appeal: my suspension";
+      bd.querySelector("#dlTkBody").placeholder = "Explain why the decision should be reviewed.";
+      bd.querySelector(".dl-sheet-p").textContent = "Write your appeal. An admin will read it and reply here in the ticket.";
+      bd.querySelector("[data-ok]").textContent = "Send appeal";
+    } else ddBind(sel, CATS.map(function (c) { return [c[0], c[1]]; }), typeof preCat === "string" && preCat ? preCat : CATS[0][0]);
     function placeholder() { sel._dd.value = ""; sel.querySelector(".dd-val").textContent = "Choose a category…"; sel.classList.add("is-empty"); }
-    if (!(typeof preCat === "string" && preCat)) placeholder();
+    if (!appeal && !(typeof preCat === "string" && preCat)) placeholder();
     var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body;
     root.appendChild(bd);
     var err = bd.querySelector("[data-err]"), th = bd.querySelector("[data-thumbs]"), closing = false;
@@ -456,7 +544,7 @@
     sel.addEventListener("change", function () { err.textContent = ""; sel.classList.remove("bad", "is-empty"); });
     var ok = bd.querySelector("[data-ok]");
     ok.addEventListener("click", async function () {
-      var cat = sel.value, title = bd.querySelector("#dlTkTitle").value.trim(), body = bd.querySelector("#dlTkBody").value.trim();
+      var cat = appeal ? "appeal" : sel.value, title = bd.querySelector("#dlTkTitle").value.trim(), body = bd.querySelector("#dlTkBody").value.trim();
       if (!cat) { err.textContent = "Pick a category."; sel.classList.add("bad"); sel.focus(); return; }
       if (!title) { err.textContent = "Add a title."; bd.querySelector("#dlTkTitle").focus(); return; }
       if (!body) { err.textContent = "Describe the problem."; bd.querySelector("#dlTkBody").focus(); return; }
@@ -465,7 +553,7 @@
         var id = crypto.randomUUID(), atts = await uploadAll(photos, cloud().user.id, id);
         await rpc("support_ticket_create", { p_id: id, p_title: title, p_body: body, p_kind: cat === "data" ? "data" : "ticket", p_category: cat, p_atts: atts });
         close(); openTicket(id, "home");
-      } catch (e) { err.textContent = errText(e, "Couldn’t send the ticket. Please try again."); ok.disabled = false; ok.textContent = "Submit ticket"; }
+      } catch (e) { err.textContent = errText(e, "Couldn’t send the ticket. Please try again."); ok.disabled = false; ok.textContent = appeal ? "Send appeal" : "Submit ticket"; }
     });
     setTimeout(function () { var i = bd.querySelector(sel.value ? "#dlTkTitle" : "#dlTkCat"); if (i) i.focus(); }, 80);
   }
@@ -501,15 +589,22 @@
       '<div class="dialog-head"><span class="dialog-title">' + esc(o.title) + '</span><button type="button" class="icon-btn" data-x title="Close" aria-label="Close">' + ico("x", 17) + "</button></div>" +
       '<div class="dialog-body"><p class="dl-act-p"></p><div data-fields></div><div class="dl-sup-err" data-err role="alert"></div></div>' +
       '<div class="dialog-foot"><button type="button" class="btn-ghost" data-cancel>Cancel</button><button type="button" class="' + (o.danger ? "btn-danger" : "btn-primary") + '" style="margin-left:0" data-ok></button></div></div></div>');
-    bd.querySelector(".dl-act-p").textContent = o.body || "";
+    bd.querySelector(".dl-act-p").textContent = typeof o.body === "function" ? o.body({}) : (o.body || "");
     var ok = bd.querySelector("[data-ok]"), err = bd.querySelector("[data-err]"), host = bd.querySelector("[data-fields]"), vals = {};
+    if (o.who) {
+      var wh = make('<div class="dl-act-who"><span class="dl-adm-av"></span><div><b></b><span></span></div></div>');
+      wh.querySelector(".dl-adm-av").textContent = (o.who.name || o.who.email || "?").trim().charAt(0).toUpperCase();
+      wh.querySelector("b").textContent = o.who.name || "No name on file"; wh.querySelector(":scope > div > span").textContent = o.who.email;
+      bd.querySelector(".dialog-body").insertBefore(wh, bd.querySelector(".dl-act-p"));
+    }
+    function redoBody() { if (typeof o.body === "function") bd.querySelector(".dl-act-p").textContent = o.body(vals); }
     ok.textContent = o.confirmLabel;
     (o.fields || []).forEach(function (f) {
       var w = make('<div class="dl-act-f"><label></label></div>'); w.querySelector("label").textContent = f.label;
       if (f.type === "choice") {
         var seg = make('<div class="dl-act-seg" role="radiogroup"></div>'); vals[f.id] = f.value || f.options[0][0];
         f.options.forEach(function (op) { var b = make('<button type="button" role="radio"></button>'); b.textContent = op[1]; b.setAttribute("aria-checked", String(op[0] === vals[f.id]));
-          b.addEventListener("click", function () { vals[f.id] = op[0]; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-checked", String(x === b)); }); }); seg.appendChild(b); });
+          b.addEventListener("click", function () { vals[f.id] = op[0]; seg.querySelectorAll("button").forEach(function (x) { x.setAttribute("aria-checked", String(x === b)); }); redoBody(); }); seg.appendChild(b); });
         w.appendChild(seg);
       } else {
         var i = make(f.type === "textarea" ? "<textarea></textarea>" : '<input type="text" autocomplete="off" spellcheck="false">'); i.placeholder = f.placeholder || ""; i.maxLength = f.max || 500;
@@ -520,7 +615,7 @@
       host.appendChild(w);
     });
     function sync() { ok.disabled = !!o.need && !o.need.every(function (k) { return String(vals[k] || "").trim().length >= (k === "reason" ? 3 : 1); }); }
-    sync();
+    sync(); redoBody();
     var root = (typeof overlayRoot !== "undefined" && overlayRoot) || document.body; root.appendChild(bd);
     function close() { document.removeEventListener("keydown", onKey, true); if (window.daylightExit) window.daylightExit(bd); else bd.remove(); }
     function onKey(e) { if (e.key === "Escape" && !ok.dataset.busy) { if (typeof ddState !== "undefined" && ddState) return; e.preventDefault(); e.stopPropagation(); close(); } }
@@ -550,6 +645,11 @@
       rows.forEach(function (r) { var k = make("<dt></dt>"); k.textContent = r[0]; var v = make("<dd></dd>"); if (r[1] instanceof Node) v.appendChild(r[1]); else v.textContent = r[1]; d.appendChild(k); d.appendChild(v); });
       return d;
     }
+    function statusCell(t) {
+      var w = make("<span></span>"); w.appendChild(pill(t.status === "open" ? "Open" : "Closed", t.status));
+      if (t.status === "closed" && t.closed_by) { var sm = make('<small class="dl-adm-sm"></small>'); sm.textContent = "by " + (t.closed_by === "admin" ? "support" : "the customer"); w.appendChild(sm); }
+      return w;
+    }
     function pill(text, cls) { var p = make('<span class="dl-adm-pill ' + cls + '"></span>'); p.textContent = text; return p; }
     function btn(label, cls, fn, icon) { var b = make('<button type="button" class="' + cls + '"></button>'); b.textContent = label; b.addEventListener("click", fn); return b; }
 
@@ -561,7 +661,7 @@
       var t = ctx.ticket, u = ctx.user, status = u.status;
       el0.appendChild(make('<div class="dl-adm-top"><span class="dl-adm-badge">' + ico("buoy", 14) + '</span><b>Admin</b><span>Only you see this panel</span></div>'));
       // 1. ticket details
-      var tk = kv([["Opened", dt(t.created_at)], ["Category", catLabel(t.category)], ["Status", pill(t.status === "open" ? "Open" : "Closed" + (t.closed_by ? " by " + (t.closed_by === "admin" ? "support" : "the customer") : ""), t.status)],
+      var tk = kv([["Opened", dt(t.created_at)], ["Category", catLabel(t.category)], ["Status", statusCell(t)],
         ["Last reply", (t.last_sender === "user" ? "Customer" : t.last_sender === "admin" ? "Daylight Support" : "System") + " · " + ago(t.last_message_at)], ["Reference", "#" + t.ref]]);
       el0.appendChild(sec("ticket", "Ticket details", tk));
       // 2. user
@@ -584,17 +684,17 @@
       if (!ctx.history.tickets.length) hs.appendChild(make('<div class="dl-adm-empty">No other tickets.</div>'));
       ctx.history.tickets.forEach(function (x) {
         var r = make('<button type="button" class="dl-adm-tk"><span class="dl-sup-rt"><b></b><span></span></span><span class="dl-sup-pill"></span></button>');
-        r.querySelector("b").textContent = x.title; r.querySelector(".dl-sup-rt span").textContent = catLabel(x.category) + " · " + dOnly(x.created_at);
+        r.querySelector("b").textContent = wordCut(x.title, 34); r.title = x.title; r.querySelector(".dl-sup-rt span").textContent = catLabel(x.category) + " · " + dOnly(x.created_at);
         var p = r.querySelector(".dl-sup-pill"); p.textContent = x.status === "open" ? "Open" : "Closed"; p.classList.add(x.status);
         r.addEventListener("click", function () { hooks.openTicket(x.id); }); hs.appendChild(r);
       });
       hs.appendChild(make('<div class="dl-adm-sub">Admin actions</div>'));
       if (!ctx.history.actions.length) hs.appendChild(make('<div class="dl-adm-empty">No actions taken on this account.</div>'));
       ctx.history.actions.forEach(function (a) {
-        var r = make('<div class="dl-adm-log"><b></b><span class="dl-adm-lm"></span><span class="dl-adm-lr"></span></div>');
+        var r = make('<div class="dl-adm-log"><b></b><span class="dl-adm-lm"></span><span class="dl-adm-lw"></span><span class="dl-adm-lr"></span></div>');
         r.querySelector("b").textContent = ACT_LABEL[a.action] || a.action;
-        var meta = dt(a.created_at) + " · " + (a.admin_email || "admin") + (a.detail && a.detail.duration ? " · " + String(a.detail.duration).replace("_", " ") : "") + (a.detail && a.detail.to ? " · to " + a.detail.to : "");
-        r.querySelector(".dl-adm-lm").textContent = meta;
+        r.querySelector(".dl-adm-lm").textContent = dt(a.created_at) + (a.detail && a.detail.duration ? " · " + String(a.detail.duration).replace("_", " ") : "") + (a.detail && a.detail.to ? " · to " + a.detail.to : "");
+        r.querySelector(".dl-adm-lw").textContent = "by " + (a.admin_email || "admin");
         if (a.reason) r.querySelector(".dl-adm-lr").textContent = "“" + a.reason + "”"; else r.querySelector(".dl-adm-lr").remove();
         hs.appendChild(r);
       });
@@ -606,7 +706,8 @@
         actionDialog({ title: "Give " + (u.name || u.email) + " their data?", body: "This posts a ZIP of their data in this ticket. It stays downloadable for 24 hours.", confirmLabel: "Give data",
           run: async function () { await invokeFn("support", { action: "give_data", ticket_id: ticketId }); await after("Data posted in the ticket."); hooks.reload(); } });
       });
-      if (t.status !== "open") { gb.disabled = true; gb.title = "Open tickets only"; }
+      var dataTicket = t.category === "data";
+      if (t.status !== "open" && !dataTicket) { gb.disabled = true; gb.title = "Only open tickets (data requests can always be fulfilled)"; var why = make('<div class="dl-adm-why"></div>'); why.textContent = "This ticket is closed. Give data is available on open tickets and on data requests."; dd.appendChild(why); }
       dd.appendChild(gb);
       dd.appendChild(kv([["Data requests", String(ctx.data.requests)], ["Exports given", String(ctx.data.exports_given) + (ctx.data.last_export_at ? " · last " + dOnly(ctx.data.last_export_at) : "")]]));
       el0.appendChild(sec("data", "Data", dd));
@@ -628,19 +729,23 @@
       }));
       if (status === "active") {
         ac.appendChild(btn("Suspend user", "btn-ghost", function () {
-          actionDialog({ title: "Suspend this user?", body: "They can’t sign in while suspended. They’re shown why and when it ends, and it lifts by itself at the end.", confirmLabel: "Suspend", danger: true, need: ["reason"],
+          actionDialog({ title: "Suspend this user?", who: u, body: function (v) {
+            var d = v.duration || "7d", days = { "1d": 1, "7d": 7, "30d": 30 }[d];
+            return days ? "They can still sign in, but only to the Support Center and Settings, until " + new Date(Date.now() + days * 864e5).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ". It lifts by itself then. They’re shown the reason and can appeal."
+                        : "They can still sign in, but only to the Support Center and Settings, until an admin lifts the suspension. They’re shown the reason and can appeal."; },
+          confirmLabel: "Suspend", danger: true, need: ["reason"],
             fields: [{ id: "duration", label: "For how long", type: "choice", value: "7d", options: [["1d", "1 day"], ["7d", "7 days"], ["30d", "30 days"], ["until_lifted", "Until lifted"]] },
                      { id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being suspended?", max: 300 }],
             run: async function (v) { await act("suspend", { duration: v.duration, reason: v.reason.trim() }); await after("Suspended."); } });
         }));
         ac.appendChild(btn("Ban user", "btn-danger-outline", function () {
-          actionDialog({ title: "Ban this user permanently?", body: "They can’t sign in until an admin lifts the ban. They’re shown why and how to appeal (privacy@daylightcal.com).", confirmLabel: "Ban user", danger: true, need: ["reason"],
+          actionDialog({ title: "Ban this user permanently?", who: u, body: "They can still sign in, but only to the Support Center and Settings, until an admin lifts the ban. They’re shown the reason and can appeal from there.", confirmLabel: "Ban user", danger: true, need: ["reason"],
             fields: [{ id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being banned?", max: 300 }],
             run: async function (v) { await act("ban", { reason: v.reason.trim() }); await after("Banned."); } });
         }));
       } else {
         ac.appendChild(btn(status === "banned" ? "Lift ban" : "Lift suspension", "btn-primary", function () {
-          actionDialog({ title: status === "banned" ? "Lift this ban?" : "Lift this suspension?", body: "They can sign in again right away.", confirmLabel: "Lift", need: ["reason"],
+          actionDialog({ title: status === "banned" ? "Lift this ban?" : "Lift this suspension?", who: u, body: "Full access to Daylight returns right away.", confirmLabel: "Lift", need: ["reason"],
             fields: [{ id: "reason", label: "Reason", type: "textarea", placeholder: "Why is it being lifted?", max: 300 }],
             run: async function (v) { await act("lift", { reason: v.reason.trim() }); await after("Restriction lifted."); } });
         }));
@@ -659,7 +764,7 @@
   /* ------------------------------------------------------------------ chat */
   function chatView(inner, wrap) {
     var token = ++ST.token, data = null, pending = [], sending = false, lastSig = "";
-    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Open tickets" : "Support Center") + "</button>");
+    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Tickets" : "Support Center") + "</button>");
     back.addEventListener("click", function () { show(ST.from === "admin" && isOwner() ? "admin" : "home"); });
     inner.appendChild(back);
     var headHost = make("<div></div>"), msgsHost = make('<div class="dl-msgs" role="log" aria-live="polite"></div>'), compHost = make("<div></div>");
@@ -676,6 +781,12 @@
       var who = !t.mine ? (t.user_name ? t.user_name + " · " + t.user_email : t.user_email) + " · " : "";
       h.querySelector(".dl-chat-meta").textContent = who + catLabel(t.category) + " · " + (t.status === "open" ? "Open" : "Closed") + " · opened " + clock(t.created_at);
       var acts = h.querySelector(".dl-chat-actions");
+      if (!t.mine && isOwner()) {
+        var tg = make('<button type="button" class="btn-ghost dl-adm-toggle" aria-pressed="false"></button>');
+        var paintTg = function () { var hid = wrap.classList.contains("adm-hidden"); tg.textContent = hid ? "Show details" : "Hide details"; tg.setAttribute("aria-pressed", String(!hid)); };
+        tg.addEventListener("click", function () { wrap.classList.toggle("adm-hidden"); try { localStorage.setItem("daylight-adm-hidden", wrap.classList.contains("adm-hidden") ? "1" : "0"); } catch (e) {} paintTg(); });
+        paintTg(); acts.appendChild(tg);
+      }
       if (t.status === "open") {
         var cb = make('<button type="button" class="btn-ghost">Close ticket</button>');
         cb.addEventListener("click", function () {
@@ -873,6 +984,8 @@
         if (!side && !d.ticket.mine && isOwner()) {
           side = adminSidebar(d.ticket.id, { openTicket: function (id) { openTicket(id, "admin"); }, reload: function () { load(true); }, toast: function (m) { if (typeof toast === "function") toast(m); } });
           split.appendChild(side.el); wrap.classList.add("has-adm");
+          try { if (localStorage.getItem("daylight-adm-hidden") === "1") wrap.classList.add("adm-hidden"); } catch (e) {}
+          drawHead();
         } else if (side && statusChanged) side.refresh();
         await drawMsgs(first || force);
       }
@@ -885,6 +998,7 @@
   /* ------------------------------------------------------------------ wiring into the app */
   var baseRenderView = renderView;
   renderView = function (animate, dir) {
+    if (window.daylightRestricted && state.section !== "support") state.section = "support";
     if (state.section === "support") {
       if (typeof closePopover === "function") closePopover();
       if (typeof closeMenu === "function") closeMenu();
@@ -911,7 +1025,7 @@
   var baseSidebar = renderSidebar;
   renderSidebar = function () {
     var r = baseSidebar.apply(this, arguments);
-    try { decorate(); } catch (e) { /* the sidebar works without this row */ }
+    try { decorate(); lockSidebar(); } catch (e) { /* the sidebar works without this row */ }
     return r;
   };
   document.addEventListener("daylight:workspace-signed-out", function () { stopTimer(); if (window.state && state.section === "support") state.section = "calendar"; });

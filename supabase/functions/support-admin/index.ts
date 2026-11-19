@@ -2,8 +2,8 @@
 // (the caller can never name an arbitrary account), and every action is written to support_admin_actions with who, what, when and the reason.
 //   reset_password   { ticket_id }                     sends the existing password-reset e-mail to the person (the admin never sees or sets a password)
 //   change_email     { ticket_id, new_email }          starts GoTrue's own e-mail change: a confirmation goes to the NEW address, the change only takes effect when they confirm
-//   suspend          { ticket_id, duration, reason }   duration: 1d | 7d | 30d | until_lifted. Blocks sign-in (auth ban) and ends by itself at expiry
-//   ban              { ticket_id, reason }             permanent until an admin lifts it
+//   suspend          { ticket_id, duration, reason }   duration: 1d | 7d | 30d | until_lifted. Limits the account to the Support Center and Settings; ends by itself at expiry
+//   ban              { ticket_id, reason }             same limits, with no end date, until an admin lifts it
 //   lift             { ticket_id, reason? }            lifts an active suspension or ban
 //   private_message  { ticket_id, text }               an in-app notification from Daylight Support, separate from the ticket thread
 // The caller must be the owner (daylight_is_owner() is asked with the caller's own token) or hold the project's service role key (tests).
@@ -99,9 +99,8 @@ Deno.serve(async (req) => {
         else if (HOURS[dur]) { hours = HOURS[dur]; endsAt = new Date(Date.now() + hours * 3600 * 1000).toISOString(); }
         else return json({ error: "Pick a duration." }, 400);
       }
+      // the person can still sign in: the app limits them to the Support Center and Settings (my_account_status), and they can appeal there
       await sb.from("account_restrictions").update({ lifted_at: new Date().toISOString(), lifted_by: admin.id }).eq("user_id", uid).is("lifted_at", null);
-      const { error } = await sb.auth.admin.updateUserById(uid, { ban_duration: `${hours}h` });
-      if (error) throw new Error(error.message);
       await sb.from("account_restrictions").insert({ user_id: uid, kind, reason: reason.slice(0, 500), ends_at: endsAt, set_by: admin.id });
       await log(action, reason, { duration: dur, ends_at: endsAt });
       return json({ ok: true, kind, ends_at: endsAt });

@@ -33,6 +33,8 @@
     ".dl-notif-title{margin-top:3px;font-size:13.5px;font-weight:650;line-height:1.35;overflow-wrap:anywhere}",
     ".dl-notif-msg{margin-top:3px;font-size:13px;line-height:1.5;color:var(--muted);white-space:pre-wrap;overflow-wrap:anywhere}",
     ".dl-notif-official{display:none}",
+    ".dl-notif-restricted{padding:28px 22px;text-align:center;font-size:13.5px;line-height:1.55;color:var(--muted)}",
+    ".dl-notif-close{margin-left:auto;width:28px;height:28px;border-radius:50%;border:0;background:none;color:var(--muted);cursor:pointer;display:grid;place-items:center;flex:none}.dl-notif-close:hover{background:var(--hover);color:var(--text)}.dl-notif-markall+.dl-notif-close{margin-left:8px}",
     /* Verified seal: marks rows the server identifies as official Daylight broadcasts; never shown next to a person. */
     ".dl-verified{position:relative;display:inline-flex;align-items:center;vertical-align:-2px;margin-left:5px;width:15px;height:15px;border-radius:50%;color:var(--accent);cursor:default;outline:none}",
     ".dl-verified svg{width:15px;height:15px;display:block}",
@@ -271,7 +273,8 @@
     var head = panel.querySelector(".dl-notif-head");
     var markAll = null;
     if (head) {
-      head.innerHTML = '<span>Notifications</span><button type="button" class="dl-notif-markall" hidden>Mark all read</button>';
+      head.innerHTML = '<span>Notifications</span><button type="button" class="dl-notif-markall" hidden>Mark all read</button><button type="button" class="dl-notif-close" aria-label="Close notifications" title="Close">' + (typeof icon === "function" ? icon("x", 16) : "×") + '</button>';
+      head.querySelector(".dl-notif-close").addEventListener("click", function () { if (typeof closePopover === "function") closePopover(); });
       markAll = head.querySelector(".dl-notif-markall");
       markAll.addEventListener("click", function () {
         items.forEach(function (n) { n.read = true; });
@@ -291,6 +294,14 @@
       var old = panel.querySelector(".dl-notif-list"), spin = panel.querySelector(".dl-notif-loading");
       if (old) old.remove();
       if (spin) spin.remove();
+      var oldR = panel.querySelector(".dl-notif-restricted"); if (oldR) oldR.remove();
+      if (window.daylightRestricted) {   /* suspended or banned: no notifications, one clear message */
+        if (empty) empty.hidden = true;
+        var rm = document.createElement("div"); rm.className = "dl-notif-restricted";
+        rm.textContent = window.daylightRestricted.status === "banned" ? "Your account is banned — you can’t view your notifications." : "Your account is suspended — you can’t view your notifications.";
+        panel.appendChild(rm); if (markAll) markAll.hidden = true;
+        return;
+      }
       if (!loaded) {
         if (empty) empty.hidden = true;
         var l = document.createElement("div"); l.className = "dl-notif-loading"; l.textContent = "Loading…"; panel.appendChild(l);

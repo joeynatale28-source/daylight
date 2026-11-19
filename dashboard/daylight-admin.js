@@ -51,6 +51,7 @@
     ".dl-ad-item-title{font-size:14px;font-weight:550;line-height:1.35;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
     ".dl-ad-item-meta{margin-top:2px;font-size:12.5px;color:var(--muted);line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
     ".dl-ad-dot{flex:none;width:12px;height:12px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.18)}",
+    ".dl-ad-item-body{font-size:13px;color:var(--muted);margin-top:3px;line-height:1.45;white-space:pre-wrap;overflow-wrap:anywhere;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}",
     ".dl-ad-item .btn-danger-outline,.dl-ad-item .btn-ghost{flex:none}",
     "@media (max-width:639px){.dl-ad-item{align-items:flex-start;flex-wrap:wrap}.dl-ad-item-text{flex-basis:calc(100% - 30px)}.dl-ad-swatches{grid-template-columns:repeat(8,1fr)}}"
   ].join("\n");
@@ -362,11 +363,11 @@
       if (list === null) notes.appendChild(make('<div class="dl-ad-list-empty">Couldn’t load this list.</div>'));
       else if (!list.length) notes.appendChild(make('<div class="dl-ad-list-empty">Nothing sent yet.</div>'));
       else list.forEach(function (n) {
-        var row = make('<div class="dl-ad-item"><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-meta"></div></div><button type="button" class="btn-danger-outline dl-btn-sm" data-force>Force remove</button></div>');
-        row.querySelector(".dl-ad-item-title").textContent = n.title;
+        var row = make('<div class="dl-ad-item"><div class="dl-ad-item-text"><div class="dl-ad-item-title"></div><div class="dl-ad-item-body"></div><div class="dl-ad-item-meta"></div></div><button type="button" class="btn-danger-outline dl-btn-sm" data-force>Remove</button></div>');
+        row.querySelector(".dl-ad-item-title").textContent = n.title; row.querySelector(".dl-ad-item-body").textContent = n.body || "";
         row.querySelector(".dl-ad-item-meta").textContent = audienceText(n) + " · " + when(n.created_at);
-        var btn = row.querySelector("[data-force]"); btn.setAttribute("aria-label", "Force remove " + n.title);
-        removeRow(btn, { title: "Force remove this notification?", body: "“" + n.title + "” disappears from everyone’s notifications right away, including people who already read it.", confirm: "Force remove" }, "daylight_delete_broadcast", { p_id: n.id }, async function () { await drawManage(); if (window.daylightNotifications) window.daylightNotifications.refresh(); });
+        var btn = row.querySelector("[data-force]"); btn.setAttribute("aria-label", "Remove " + n.title);
+        removeRow(btn, { title: "Remove this notification?", body: "“" + n.title + "” disappears from everyone’s notifications right away, including people who already read it.", confirm: "Remove" }, "daylight_delete_broadcast", { p_id: n.id }, async function () { await drawManage(); if (window.daylightNotifications) window.daylightNotifications.refresh(); });
         notes.appendChild(row);
       });
       bans.innerHTML = "";

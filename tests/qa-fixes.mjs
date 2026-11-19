@@ -78,7 +78,7 @@ try{
  check(/Today/.test(lbl||''),'30: Back to today has a text label',lbl);
  await page.evaluate(()=>{state.section='tasks';renderAll(false)});await sleep(400);
  const seg=await page.evaluate(()=>[...document.querySelectorAll('.task-seg button')].map(b=>b.textContent.trim()));
- check(seg.length===3&&seg.every(t=>/\d/.test(t)),'29: task tabs show counts',seg);
+ const hasT=await page.evaluate(()=>state.tasks.length>0);check(seg.length===3&&(hasT?seg.every(t=>/[0-9]/.test(t)):seg.every(t=>!/[0-9]/.test(t))),'29: task tabs show counts once there are tasks (none in the empty state)',seg);
 }finally{await app.close()}
 
 // ---- auth pages

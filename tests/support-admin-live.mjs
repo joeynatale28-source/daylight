@@ -50,24 +50,28 @@ try{
  const th=await rpc(A,'support_ticket_get',{p_id:tid,p_viewing:false});check(!(th.data.messages||[]).some(m=>/private/.test(m.body)),'and it is separate from the ticket thread');
  // ---- suspend
  check((await fn(B,'support-admin',{action:'suspend',ticket_id:tid,duration:'1d',reason:'ab'})).status===400,'a suspension needs a real reason');
+ check((await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'Appeal',p_body:'x',p_kind:'ticket',p_category:'appeal',p_atts:[]})).ok===false,'an appeal ticket needs an active restriction');
+ check((await rpc(A,'my_account_status')).data.status==='active','before: the account is active');
  const sp=await fn(B,'support-admin',{action:'suspend',ticket_id:tid,duration:'1d',reason:'Repeated abuse of the sharing feature'});
  check(sp.status===200&&sp.body.ends_at,'suspend for 1 day',sp);
- const lg=await A.login();check(lg.status===400&&lg.body.error_code==='user_banned','a suspended user cannot sign in',lg);
- const nt=await fn(null,'account-notice',{email:A.email,password:A.password});
- check(nt.body.restricted&&nt.body.kind==='suspended'&&/Repeated abuse/.test(nt.body.reason)&&nt.body.ends_at&&nt.body.appeal==='privacy@daylightcal.com','the sign-in notice gives the reason, the end date and how to appeal',nt.body);
- const bad=await fn(null,'account-notice',{email:A.email,password:'wrong-password'});check(bad.body.restricted===false&&!bad.body.reason,'the notice reveals nothing without the right password',bad.body);
+ const lg=await A.login();check(lg.status===200,'a suspended user CAN still sign in (restricted)',lg.status);
+ const ms=(await rpc(A,'my_account_status')).data;
+ check(ms.status==='suspended'&&/Repeated abuse/.test(ms.reason)&&ms.ends_at&&ms.appeal==='privacy@daylightcal.com','their account status gives the reason, the end date and the appeal address',ms);
+ const ap=crypto.randomUUID();const apr=await rpc(A,'support_ticket_create',{p_id:ap,p_title:'Appeal: my suspension',p_body:'Please review.',p_kind:'ticket',p_category:'appeal',p_atts:[]});
+ check(apr.ok,'a suspended user can open an appeal ticket',apr.data);
+ const ctxA=(await rpc(B,'support_admin_list',{p_status:'open'})).data.find(t=>t.id===ap);check(ctxA&&ctxA.category==='appeal','the admin sees the appeal as a ticket in the Appeal category',ctxA);
  const cs=(await rpc(B,'support_admin_context',{p_ticket_id:tid})).data;check(cs.user.status==='suspended'&&cs.user.restriction.reason,'the sidebar shows Suspended with the reason',cs.user);
- const lf=await fn(B,'support-admin',{action:'lift',ticket_id:tid,reason:'Resolved'});check(lf.status===200,'lift the suspension early');
- check((await A.login()).status===200,'after lifting, the user signs in again');
- // auto expiry: a suspension whose end has passed no longer blocks (GoTrue ban window); simulate with a 1-second window
- await mgmt(`update auth.users set banned_until = now() + interval '2 seconds' where id='${A.id}'`);await new Promise(r=>setTimeout(r,3500));
- check((await A.login()).status===200,'a suspension lifts by itself when its time is up');
+ const lf=await fn(B,'support-admin',{action:'lift',ticket_id:tid,reason:'Resolved'});check(lf.status===200&&(await rpc(A,'my_account_status')).data.status==='active','lift the suspension early: the account is active again');
+ await fn(B,'support-admin',{action:'suspend',ticket_id:tid,duration:'1d',reason:'Short test window'});
+ await mgmt(`update public.account_restrictions set ends_at = now() - interval '1 minute' where user_id='${A.id}' and lifted_at is null`);
+ check((await rpc(A,'my_account_status')).data.status==='active','a suspension lifts by itself when its time is up');
  // ---- ban
  check((await fn(B,'support-admin',{action:'ban',ticket_id:tid,reason:''})).status===400,'a ban needs a reason');
  const bn=await fn(B,'support-admin',{action:'ban',ticket_id:tid,reason:'Posting harmful content'});check(bn.status===200,'ban',bn);
- check((await A.login()).body.error_code==='user_banned','a banned user cannot sign in');
- const nb=await fn(null,'account-notice',{email:A.email,password:A.password});check(nb.body.kind==='banned'&&/harmful/.test(nb.body.reason)&&nb.body.ends_at===null&&nb.body.appeal==='privacy@daylightcal.com','the ban notice gives the reason and the appeal address',nb.body);
- check((await fn(B,'support-admin',{action:'lift',ticket_id:tid,reason:'Appeal accepted'})).status===200&&(await A.login()).status===200,'an admin lifts the ban and the user can sign in');
+ check((await A.login()).status===200,'a banned user CAN still sign in (restricted)');
+ const mb=(await rpc(A,'my_account_status')).data;check(mb.status==='banned'&&/harmful/.test(mb.reason)&&mb.ends_at===null&&mb.appeal==='privacy@daylightcal.com','the ban status gives the reason and the appeal address',mb);
+ check((await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'Appeal: my ban',p_body:'Please review.',p_kind:'ticket',p_category:'appeal',p_atts:[]})).ok,'a banned user can open an appeal ticket');
+ check((await fn(B,'support-admin',{action:'lift',ticket_id:tid,reason:'Appeal accepted'})).status===200&&(await rpc(A,'my_account_status')).data.status==='active','an admin lifts the ban');
  // an owner cannot be banned from here
  const t3=crypto.randomUUID();await rpc(B,'support_ticket_create',{p_id:t3,p_title:'Owner ticket',p_body:'x',p_kind:'ticket',p_category:'other',p_atts:[]});
  check((await fn(B,'support-admin',{action:'ban',ticket_id:t3,reason:'test only'})).status===403,'an owner account cannot be suspended or banned');
@@ -87,6 +91,9 @@ try{
  // ---- give data still works from this ticket
  const gd=await fn(B,'support',{action:'give_data',ticket_id:tid});check(gd.status===200&&gd.body.ok,'Give data posts the ZIP in this ticket',gd);
  const full=await rpc(A,'support_ticket_get',{p_id:tid,p_viewing:false});check((full.data.messages||[]).some(m=>m.kind==='export'),'the customer sees the export in their ticket');
+ const t4=crypto.randomUUID();await rpc(A,'support_ticket_create',{p_id:t4,p_title:'Data request',p_body:'',p_kind:'data',p_category:'data',p_atts:[]});await rpc(A,'support_close',{p_id:t4});
+ check((await fn(B,'support',{action:'give_data',ticket_id:t4})).status===200,'Give data still works on a CLOSED data-request ticket');
+ check((await fn(B,'support',{action:'give_data',ticket_id:t2})).status===409,'but not on a closed ordinary ticket');
  const cx2=(await rpc(B,'support_admin_context',{p_ticket_id:tid})).data;check(cx2.data.exports_given>=1&&cx2.data.requests>=0,'the data section now shows the export',cx2.data);
 }finally{
  await mgmt(`delete from public.daylight_owners where user_id = any (array[${made.filter(Boolean).map(i=>`'${i}'`).join(',')||"'00000000-0000-0000-0000-000000000000'"}]::uuid[])`);

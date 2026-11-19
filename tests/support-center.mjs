@@ -145,7 +145,7 @@ try{
  check(await page.evaluate(()=>document.querySelectorAll('.dl-sup-row').length===1&&/Data request/.test(document.querySelector('.dl-sup-h2').textContent)),'tickets are grouped under their category');
  await page.click('.dl-sup-row');await sleep(900);
  const ac=await page.evaluate(()=>({btns:[...document.querySelectorAll('.dl-chat-actions button')].map(b=>b.textContent),from:[...document.querySelectorAll('.dl-msg-from')].map(x=>x.textContent.trim()),back:document.querySelector('.dl-sup-back').textContent.trim()}));
- check(ac.btns.includes('Close ticket')&&!ac.btns.includes('Give data')&&ac.from.includes('Alex Kim')&&ac.back==='Open tickets','admin chat: Give data, Close, user named, back goes to Open tickets',ac);
+ check(ac.btns.includes('Close ticket')&&!ac.btns.includes('Give data')&&ac.from.includes('Alex Kim')&&ac.back==='Tickets','admin chat: Close, user named, back goes to Tickets',ac);
  check(await page.evaluate(()=>[...document.querySelectorAll('.dl-adm-h span')].map(x=>x.textContent).join('|'))==='Ticket details|User|History|Data|Actions','the admin sidebar has the five sections in order');
  const sb=await page.evaluate(()=>{const t=document.querySelector('.dl-adm').innerText;return {ref:/#A1B2C3D4/.test(t),email:/alex@example\.com/.test(t),active:/Active/.test(t),hist:/Earlier question/.test(t),cal:/calendar|event title|task/i.test(t.replace(/Calendar content is never shown here\./,'').replace(/calendars as ICS/i,'').replace(/readable JSON files, calendars as ICS, and a summary/i,''))}});
  check(sb.ref&&sb.email&&sb.active&&sb.hist,'sidebar shows reference, e-mail, account status and the other tickets',sb);

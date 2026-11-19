@@ -175,37 +175,37 @@
       };
       function seedEvents() {
         return [
-        mkEv("Florida trip", "life", dt(2026, 9, 31), dt(2026, 10, 2), { allDay: true, loc: "Florida", desc: "Flights down to pick up the Jeep, then the drive back home." }),
-        mkEv("School — Day 2", "personal", dt(2026, 10, 2, 8, 35), dt(2026, 10, 2, 15, 15), { loc: "Hungary Creek Middle School", desc: "Day 2 rotation — periods 5–8." }),
+        mkEv("Beach trip", "life", dt(2026, 9, 31), dt(2026, 10, 2), { allDay: true, loc: "The coast", desc: "Flights down, then the drive back home." }),
+        mkEv("School — Day 2", "personal", dt(2026, 10, 2, 8, 35), dt(2026, 10, 2, 15, 15), { loc: "Lincoln Middle School", desc: "Day 2 rotation — periods 5–8." }),
         mkEv("Homework — Algebra I", "personal", dt(2026, 10, 2, 16, 0), dt(2026, 10, 2, 17, 0), { desc: "Finish the problem set in the notebook first, then enter answers online." }),
         mkEv("Team standup", "work", dt(2026, 10, 3, 9, 0), dt(2026, 10, 3, 9, 30), { loc: "Google Meet" }),
-        mkEv("Swim practice", "personal", dt(2026, 10, 3, 18, 30), dt(2026, 10, 3, 19, 45), { loc: "SwimRVA-CSAC", repeat: "weekly", reminder: 30, desc: "Advanced Novice — bring fins, kickboard, and a water bottle." }),
-        mkEv("School — Day 1", "personal", dt(2026, 10, 3, 8, 35), dt(2026, 10, 3, 15, 15), { loc: "Hungary Creek Middle School", desc: "Day 1 rotation — periods 1–4." }),
-        mkEv("School — Day 2", "personal", dt(2026, 10, 4, 8, 35), dt(2026, 10, 4, 15, 15), { loc: "Hungary Creek Middle School", desc: "Day 2 rotation — periods 5–8." }),
+        mkEv("Team practice", "personal", dt(2026, 10, 3, 18, 30), dt(2026, 10, 3, 19, 45), { loc: "Community Rec Center", repeat: "weekly", reminder: 30, desc: "Bring your gear and a water bottle." }),
+        mkEv("School — Day 1", "personal", dt(2026, 10, 3, 8, 35), dt(2026, 10, 3, 15, 15), { loc: "Lincoln Middle School", desc: "Day 1 rotation — periods 1–4." }),
+        mkEv("School — Day 2", "personal", dt(2026, 10, 4, 8, 35), dt(2026, 10, 4, 15, 15), { loc: "Lincoln Middle School", desc: "Day 2 rotation — periods 5–8." }),
         mkEv("Design review", "work", dt(2026, 10, 4, 10, 0), dt(2026, 10, 4, 11, 0), { loc: "Studio B" }),
         mkEv("Team offsite", "work", dt(2026, 10, 4, 13, 0), dt(2026, 10, 4, 16, 0), { loc: "Downtown office", declined: true }),
-        mkEv("Swim practice", "personal", dt(2026, 10, 5, 18, 30), dt(2026, 10, 5, 19, 45), { loc: "SwimRVA-CSAC", repeat: "weekly", desc: "Advanced Novice — bring fins, kickboard, and a water bottle." }),
+        mkEv("Team practice", "personal", dt(2026, 10, 5, 18, 30), dt(2026, 10, 5, 19, 45), { loc: "Community Rec Center", repeat: "weekly", desc: "Bring your gear and a water bottle." }),
         mkEv("Project check-in", "work", dt(2026, 10, 6, 14, 0), dt(2026, 10, 6, 15, 0)),
         mkEv("Dentist appointment", "life", dt(2026, 10, 6, 16, 30), dt(2026, 10, 6, 17, 15), { loc: "River Road Dental", reminder: 60 }),
         mkEv("Family dinner", "life", dt(2026, 10, 7, 18, 0), dt(2026, 10, 7, 19, 30)),
         mkEv("Grocery run", "life", dt(2026, 10, 8, 11, 0), dt(2026, 10, 8, 11, 45), { loc: "Publix" }),
         mkEv("Book club", "life", dt(2026, 10, 12, 19, 0), dt(2026, 10, 12, 20, 0)),
-        mkEv("Haircut - Amanda", "personal", dt(2026, 10, 17, 18, 30), dt(2026, 10, 17, 18, 45), { loc: "Parkside Barber Shop & Grooming Lounge, 10833 W Broad St", reminder: 30 }),
+        mkEv("Haircut", "personal", dt(2026, 10, 17, 18, 30), dt(2026, 10, 17, 18, 45), { loc: "Main Street Barber Shop", reminder: 30 }),
         mkEv("Science fair prep", "personal", dt(2026, 10, 18, 15, 30), dt(2026, 10, 18, 16, 30)),
         mkEv("Fall break", "life", dt(2026, 10, 25), dt(2026, 10, 27), { allDay: true, desc: "No school." })
         ];
       }
       state.events = seedEvents();
-      function mkTask(title, cal, due, hasTime, done) {
-        return { id: ++uid, title: title, cal: cal, due: due, hasTime: !!hasTime, done: !!done };
+      function mkTask(title, cal, due, hasTime, done, desc) {
+        return { id: ++uid, title: title, cal: cal, due: due, hasTime: !!hasTime, done: !!done, desc: desc ? String(desc) : "" };
       }
       function seedTasks() {
         return [
           mkTask("Finish Algebra I problem set — answers into the computer after the notebook", "personal", dt(2026, 10, 1, 17, 0), true, false),
           mkTask("Turn in the science lab notes", "personal", dt(2026, 10, 1), false, false),
-          mkTask("Pack swim bag — fins, kickboard, and a water bottle", "personal", dt(2026, 10, 2, 16, 0), true, false),
+          mkTask("Pack gym bag — shoes, towel, and a water bottle", "personal", dt(2026, 10, 2, 16, 0), true, false),
           mkTask("Start the English reading for tomorrow", "personal", dt(2026, 10, 2), false, false),
-          mkTask("Buy new goggles before the next meet", "life", dt(2026, 10, 5), false, false),
+          mkTask("Buy new running shoes", "life", dt(2026, 10, 5), false, false),
           mkTask("Draft the science fair poster layout", "personal", dt(2026, 10, 6), false, false),
           mkTask("Plan the weekend grocery list with Mom", "life", dt(2026, 10, 8), false, false),
           mkTask("Spanish worksheet — colors and greetings", "personal", dt(2026, 9, 30), false, true),
@@ -1042,10 +1042,7 @@
         var createMenuItems = function () {
           return [
             { icon: "calendarEvt", label: "Event", fn: function () { closeDrawer(); openEventForm(null, state.selected); } },
-            { icon: "checkSq", label: "Task", fn: function () {
-              closeDrawer(); showTasks();
-              setTimeout(function () { var ti = document.getElementById("taskTitleInput"); if (ti) ti.focus(); }, 40);
-            } }
+            { icon: "checkSq", label: "Task", fn: function () { closeDrawer(); openTaskEditor(null); } }
           ];
         };
         if (state.sidebarRail) {
@@ -2256,13 +2253,78 @@
          due (Date), hasTime, done }. The add form's draft survives
          re-renders via taskDraft, so toggling a checkbox never eats
          a half-typed title. */
-      var taskDraft = { title: "", date: null, cal: null };
+      var taskDraft = { title: "", desc: "", date: undefined, cal: null };
       function taskDueLabel(t) {
+        if (!t.due) return "No date";
         var rel = fmtRelativeDay(t.due);
         var base = rel || fmtDateShort(t.due);
         if (!rel && !sameDay(t.due, TODAY)) base = DOWS[t.due.getDay()] + " · " + base;
         if (t.hasTime) base += " · " + fmtTime(t.due);
         return base;
+      }
+      /* due date: quick options (Today / Tomorrow / No date) next to the mini calendar */
+      function dueMenu(anchor, current, onPick) {
+        var t0 = sod(TODAY), tm = addDays(t0, 1);
+        var items = [{ label2: "Due date" },
+          { label: "Today", right: current && sameDay(current, t0) ? "check" : null, fn: function () { onPick(t0); } },
+          { label: "Tomorrow", right: current && sameDay(current, tm) ? "check" : null, fn: function () { onPick(tm); } },
+          { label: "Pick a date…", fn: function () { setTimeout(function () { openDatePicker(anchor, current || t0, function (d) { onPick(sod(d)); }); }, 0); } },
+          { label: "No date", right: !current ? "check" : null, fn: function () { onPick(null); } }];
+        openMenu(anchor, items);
+      }
+      /* the task editor: title, description, due date, calendar (and delete) in the app's own dialog */
+      function openTaskEditor(t) {
+        var isNew = !t;
+        if (isNew && !writableCalendars().length) { toast("Create a calendar first"); openNewCalendar(); return; }
+        closePopover(); closeMenu();
+        var draft = isNew ? { title: "", desc: "", due: sod(state.selected || TODAY), cal: defaultCalId() } : { title: t.title, desc: t.desc || "", due: t.due ? new Date(t.due) : null, cal: t.cal };
+        var bd = el('<div class="backdrop"><div class="dialog event-form-dialog" role="dialog" aria-modal="true" aria-label="'+(isNew?"New task":"Edit task")+'">' +
+          '<div class="dialog-head"><span class="dialog-title">'+(isNew?"New task":"Edit task")+'</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
+          '<div class="dialog-body"><div class="field"><label for="teTitle">Title</label><input class="text-input" id="teTitle" maxlength="300" autocomplete="off" placeholder="Task title"></div>' +
+          '<div class="field"><label for="teDesc">Description</label><textarea class="text-area" id="teDesc" rows="4" maxlength="2000" placeholder="Add details (optional)"></textarea></div>' +
+          '<div class="field-row"><div class="field"><label>Due date</label><button type="button" class="picker-btn" id="teDue">' + icon("calendar", 15) + "<span></span></button></div>" +
+          '<div class="field"><label>Calendar</label><button type="button" class="picker-btn" id="teCal"><span></span></button></div></div>' +
+          '<div class="field-err" id="teErr" style="display:none">Add a title</div></div>' +
+          '<div class="dialog-foot">'+(isNew?"":'<button class="btn-danger-outline" data-del style="margin-right:auto">Delete</button>')+'<button class="btn-ghost" data-cancel>Cancel</button><button class="btn-primary" style="margin-left:0" data-ok>'+(isNew?"Create task":"Save changes")+'</button></div></div></div>');
+        overlayRoot.appendChild(bd);
+        var tIn = bd.querySelector("#teTitle"), dIn = bd.querySelector("#teDesc"), dueB = bd.querySelector("#teDue"), calB = bd.querySelector("#teCal");
+        tIn.value = draft.title; dIn.value = draft.desc;
+        function paintDue() { dueB.querySelector("span").textContent = taskDueLabel({ due: draft.due, hasTime: false }); }
+        function paintCal() { var c = calOf(draft.cal); calB.querySelector("span").innerHTML = '<span style="display:inline-flex;align-items:center;gap:7px"><span class="pop-dot" style="background:' + dotOf(c) + ';margin:0"></span>' + esc(c.name) + "</span>"; }
+        paintDue(); paintCal();
+        dueB.addEventListener("click", function () { dueMenu(dueB, draft.due, function (d) { draft.due = d; paintDue(); }); });
+        calB.addEventListener("click", function () {
+          var items = [{ label2: "Calendar" }];
+          writableCalendars().forEach(function (c) { items.push({ label: c.name, right: draft.cal === c.id ? "check" : null, fn: function () { draft.cal = c.id; paintCal(); } }); });
+          openMenu(calB, items);
+        });
+        function close() { document.removeEventListener("keydown", onKey, true); daylightExit(bd); }
+        function onKey(e) { if (e.key === "Escape" && overlayRoot.lastElementChild === bd && !openMenuEl && !ddState) { e.preventDefault(); e.stopPropagation(); close(); } }
+        document.addEventListener("keydown", onKey, true);
+        bd.querySelector("[data-x]").addEventListener("click", close);
+        bd.querySelector("[data-cancel]").addEventListener("click", close);
+        bd.addEventListener("mousedown", function (e) { if (e.target === bd) close(); });
+        var delB = bd.querySelector("[data-del]"); if (delB) delB.addEventListener("click", function () {
+          close();
+          openConfirm({ title: "Delete this task?", body: "“" + t.title + "” will be removed. This cannot be undone.", confirmLabel: "Delete", danger: true,
+            fn: function () { state.tasks = state.tasks.filter(function (x) { return x.id !== t.id; }); toast("Task deleted"); refreshTasks(false); renderSidebar(); } });
+        });
+        function save() {
+          var title = tIn.value.trim();
+          if (!title) { bd.querySelector("#teErr").style.display = ""; tIn.classList.add("err"); tIn.focus(); return; }
+          if (isNew) {
+            state.tasks.push(mkTask(title, draft.cal || defaultCalId(), draft.due ? sod(draft.due) : null, false, false, dIn.value.trim()));
+            close(); toast("Task created"); if (state.section !== "tasks") showTasks(); else refreshTasks(false); renderSidebar(); return;
+          }
+          t.title = title; t.desc = dIn.value.trim(); t.cal = draft.cal;
+          if (draft.due) t.due = t.hasTime && t.due ? new Date(draft.due.getFullYear(), draft.due.getMonth(), draft.due.getDate(), t.due.getHours(), t.due.getMinutes()) : sod(draft.due);
+          else { t.due = null; t.hasTime = false; }
+          close(); toast("Task updated"); refreshTasks(false); renderSidebar();
+        }
+        bd.querySelector("[data-ok]").addEventListener("click", save);
+        tIn.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); save(); } });
+        tIn.addEventListener("input", function () { tIn.classList.remove("err"); bd.querySelector("#teErr").style.display = "none"; });
+        setTimeout(function () { tIn.focus(); tIn.select(); }, 40);
       }
       function refreshTasks(focusInput) {
         renderView(false);
@@ -2272,67 +2334,20 @@
         }
       }
       function renderTasks() {
-        if (!taskDraft.date) taskDraft.date = sod(TODAY);
-        if (!taskDraft.cal) taskDraft.cal = defaultCalId();
         var wrap = el('<div class="tasks-wrap"></div>');
         var inner = el('<div class="tasks-inner"></div>');
         wrap.appendChild(inner);
         var activeCount = state.tasks.filter(function (t) { return !t.done; }).length;
         var doneCount = state.tasks.length - activeCount;
-        var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div><div class="tasks-sub">' +
-          (activeCount + " active · " + doneCount + " completed") +
-          '</div></div></div>');
-        var headAdd = el('<button class="btn-primary">' + icon("plus", 16) + "<span>Add task</span></button>");
-        headAdd.addEventListener("click", function () { var i = document.getElementById("taskTitleInput"); if (i) { i.focus(); i.scrollIntoView({ block: "nearest" }); } });
-        head.appendChild(headAdd);
+        var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div>' +
+          (state.tasks.length ? '<div class="tasks-sub">' + activeCount + " active · " + doneCount + " completed</div>" : '<div class="tasks-sub">Plan what needs doing, with details and a due date.</div>') +
+          '</div><button class="btn-primary tasks-add" id="taskAddBtn">' + icon("plus", 16) + '<span>Add task</span></button></div>');
+        head.querySelector("#taskAddBtn").addEventListener("click", function () { openTaskEditor(null); });
         inner.appendChild(head);
-        /* Add form — one card: title input, due-date picker (the
-           calendar's own date popover), calendar picker (the app's
-           menu), and the Add button. Enter in the title also adds. */
-        var addCard = el('<div class="task-add-card"></div>');
-        var titleIn = el('<input class="text-input" id="taskTitleInput" type="text" placeholder="Add a task…" aria-label="Task title" autocomplete="off">');
-        titleIn.value = taskDraft.title;
-        titleIn.addEventListener("input", function () { taskDraft.title = titleIn.value; titleIn.classList.remove("err"); });
-        titleIn.addEventListener("keydown", function (e) { if (e.key === "Enter") { e.preventDefault(); addTaskFromDraft(); } });
-        addCard.appendChild(titleIn);
-        var dueBtn = el('<button class="picker-btn" id="taskDueBtn" title="Due date" aria-label="Due date">' + icon("calendar", 15) + "<span></span></button>");
-        function paintDueBtn() { dueBtn.querySelector("span").textContent = taskDueLabel({ due: taskDraft.date, hasTime: false }); }
-        paintDueBtn();
-        dueBtn.addEventListener("click", function () {
-          openDatePicker(dueBtn, taskDraft.date, function (d) { taskDraft.date = sod(d); paintDueBtn(); titleIn.focus(); });
-        });
-        addCard.appendChild(dueBtn);
-        var calBtn = el('<button class="picker-btn" id="taskCalBtn" title="Calendar" aria-label="Calendar"><span></span><span style="margin-left:2px;color:var(--muted)">' + icon("chevD", 14) + "</span></button>");
-        function paintCalBtn() {
-          var c = calOf(taskDraft.cal);
-          calBtn.querySelector("span").innerHTML = '<span style="display:inline-flex;align-items:center;gap:7px"><span class="pop-dot" style="background:' + dotOf(c) + ';margin:0"></span>' + esc(c.name) + "</span>";
-        }
-        paintCalBtn();
-        calBtn.addEventListener("click", function () {
-          var items = [{ label2: "Calendar" }];
-          writableCalendars().forEach(function (c) {
-            items.push({ label: c.name, right: taskDraft.cal === c.id ? "check" : null, fn: function () { taskDraft.cal = c.id; paintCalBtn(); } });
-          });
-          openMenu(calBtn, items);
-        });
-        addCard.appendChild(calBtn);
-        var addBtn = el('<button class="btn-primary"><span>Add</span></button>');
-        addBtn.addEventListener("click", addTaskFromDraft);
-        addCard.appendChild(addBtn);
-        inner.appendChild(addCard);
-        function addTaskFromDraft() {
-          var title = (taskDraft.title || "").trim();
-          if (!title) { titleIn.classList.add("err"); titleIn.focus(); return; }
-          state.tasks.push(mkTask(title, taskDraft.cal || defaultCalId(), sod(taskDraft.date), false, false));
-          taskDraft.title = "";
-          toast("Task added");
-          refreshTasks(true);
-          renderSidebar();
-        }
         /* Segmented filter */
         var seg = el('<div class="task-seg" role="tablist" aria-label="Filter tasks"></div>');
         [["all", "All", state.tasks.length], ["active", "Active", activeCount], ["completed", "Completed", doneCount]].forEach(function (f) {
-          var b = el('<button role="tab" aria-selected="' + (state.taskFilter === f[0]) + '" class="' + (state.taskFilter === f[0] ? "on" : "") + '">' + f[1] + ' <span class="task-seg-n">' + f[2] + "</span></button>");
+          var b = el('<button role="tab" aria-selected="' + (state.taskFilter === f[0]) + '" class="' + (state.taskFilter === f[0] ? "on" : "") + '">' + f[1] + (state.tasks.length ? ' <span class="task-seg-n">' + f[2] + "</span>" : "") + "</button>");
           b.addEventListener("click", function () {
             if (state.taskFilter === f[0]) return;
             state.taskFilter = f[0];
@@ -2362,15 +2377,16 @@
         function fillResults(host) {
           var today0 = sod(TODAY);
           var act = state.tasks.filter(function (t) { return !t.done; });
-          var byDue = function (a, b) { return a.due - b.due; };
+          var byDue = function (a, b) { return (a.due ? a.due.getTime() : 0) - (b.due ? b.due.getTime() : 0); };
           var groups = [];
           if (state.taskFilter !== "completed") {
-            groups.push({ name: "Overdue", cls: "overdue", list: act.filter(function (t) { return sod(t.due) < today0; }).sort(byDue) });
-            groups.push({ name: "Today", cls: "", list: act.filter(function (t) { return sameDay(t.due, today0); }).sort(byDue) });
-            groups.push({ name: "Upcoming", cls: "", list: act.filter(function (t) { return sod(t.due) > today0; }).sort(byDue) });
+            groups.push({ name: "Overdue", cls: "overdue", list: act.filter(function (t) { return t.due && sod(t.due) < today0; }).sort(byDue) });
+            groups.push({ name: "Today", cls: "", list: act.filter(function (t) { return t.due && sameDay(t.due, today0); }).sort(byDue) });
+            groups.push({ name: "Upcoming", cls: "", list: act.filter(function (t) { return t.due && sod(t.due) > today0; }).sort(byDue) });
+            groups.push({ name: "No date", cls: "", list: act.filter(function (t) { return !t.due; }) });
           }
           if (state.taskFilter !== "active") {
-            groups.push({ name: "Completed", cls: "", list: state.tasks.filter(function (t) { return t.done; }).sort(function (a, b) { return b.due - a.due; }) });
+            groups.push({ name: "Completed", cls: "", list: state.tasks.filter(function (t) { return t.done; }).sort(function (a, b) { return (b.due ? b.due.getTime() : 0) - (a.due ? a.due.getTime() : 0); }) });
           }
           var shown = 0;
           groups.forEach(function (g) {
@@ -2380,19 +2396,9 @@
             g.list.forEach(function (t) { host.appendChild(taskRow(t)); });
           });
           if (!shown) {
-            if (!state.tasks.length) {
-              host.appendChild(buildEmptyState({
-                icon: "checkSq", title: "No tasks yet",
-                sub: "Add your first task above — homework, swim gear, anything you need to remember.",
-                hint: false
-              }));
-            } else if (state.taskFilter === "active") {
-              host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing active", sub: "Everything is done. Nice work.", hint: false }));
-            } else if (state.taskFilter === "completed") {
-              host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing completed yet", sub: "Tick a task's checkbox and it will land here.", hint: false }));
-            } else {
-              host.appendChild(buildEmptyState({ icon: "checkSq", title: "No tasks", sub: "Add one above to get started.", hint: false }));
-            }
+            if (state.taskFilter === "active") host.appendChild(buildEmptyState({ icon: "checkSq", title: state.tasks.length ? "All caught up" : "Nothing to do", sub: state.tasks.length ? "Every task is done. Nice work." : "You have no active tasks. Add one above.", hint: false }));
+            else if (state.taskFilter === "completed") host.appendChild(buildEmptyState({ icon: "checkSq", title: "Nothing completed yet", sub: "Tick a task’s checkbox and it will land here.", hint: false }));
+            else host.appendChild(buildEmptyState({ icon: "checkSq", title: "No tasks yet", sub: "Use Add task for errands, deadlines, anything you need to remember.", hint: false }));
           }
         }
         fillResults(resultsHost);
@@ -2401,7 +2407,7 @@
       function taskRow(t) {
         var cal = calOf(t.cal);
         var row = el('<div class="task-row' + (t.done ? " done" : "") + '"></div>');
-        var overdue = !t.done && sod(t.due) < sod(TODAY);
+        var overdue = !t.done && !!t.due && sod(t.due) < sod(TODAY);
         var chk = el('<button class="task-check' + (t.done ? " done" : "") + '" style="border-color:' + dotOf(cal) + '" title="' + (t.done ? "Mark not done" : "Mark done") + '" aria-label="' + (t.done ? "Mark not done: " : "Mark done: ") + esc(t.title) + '" aria-pressed="' + t.done + '">' + icon("check", 13) + "</button>");
         var chkBusy = false;
         chk.addEventListener("click", function () {
@@ -2446,11 +2452,14 @@
         });
         row.appendChild(chk);
         var main = el('<div class="task-main"><div class="task-title">' + esc(t.title) + '</div></div>');
+        if (t.desc) { var dsc = el('<div class="task-desc"></div>'); dsc.textContent = t.desc; main.appendChild(dsc); }
         var meta = el('<div class="task-meta"></div>');
         var due = el('<button class="tm-due' + (overdue ? " overdue" : "") + '" title="Change due date" aria-label="Change due date for ' + esc(t.title) + '">' + icon("clock", 12) + "<span>" + esc(taskDueLabel(t)) + "</span></button>");
-        due.addEventListener("click", function () {
-          openDatePicker(due, t.due, function (d) {
-            t.due = t.hasTime ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.due.getHours(), t.due.getMinutes()) : sod(d);
+        due.addEventListener("click", function (e) {
+          e.stopPropagation();
+          dueMenu(due, t.due, function (d) {
+            if (!d) { t.due = null; t.hasTime = false; }
+            else t.due = t.hasTime && t.due ? new Date(d.getFullYear(), d.getMonth(), d.getDate(), t.due.getHours(), t.due.getMinutes()) : sod(d);
             refreshTasks(false);
           });
         });
@@ -2460,9 +2469,10 @@
         row.appendChild(main);
         var acts = el('<div class="task-actions"></div>');
         var editBtn = el('<button class="icon-btn" title="Edit task" aria-label="Edit task: ' + esc(t.title) + '">' + icon("pencil", 15) + "</button>");
-        editBtn.addEventListener("click", function () { startTaskEdit(row, t); });
+        editBtn.addEventListener("click", function (e) { e.stopPropagation(); openTaskEditor(t); });
         var delBtn = el('<button class="icon-btn" title="Delete task" aria-label="Delete task: ' + esc(t.title) + '">' + icon("trash", 15) + "</button>");
-        delBtn.addEventListener("click", function () {
+        delBtn.addEventListener("click", function (e) {
+          e.stopPropagation();
           openConfirm({
             title: "Delete this task?",
             body: "“" + t.title + "” will be removed. This cannot be undone.",
@@ -2477,6 +2487,7 @@
         });
         acts.appendChild(editBtn); acts.appendChild(delBtn);
         row.appendChild(acts);
+        main.style.cursor = "pointer"; main.addEventListener("click", function (e) { if (e.target.closest("button")) return; openTaskEditor(t); });
         return row;
       }
       function startTaskEdit(row, t) {
@@ -3313,7 +3324,7 @@
               return { id: e.id, title: e.title, cal: e.cal, start: e.start.toISOString(), end: e.end.toISOString(), allDay: e.allDay, loc: e.loc, desc: e.desc, repeat: e.repeat, reminder: e.reminder, declined: e.declined };
             }),
             tasks: state.tasks.map(function (t) {
-              return { id: t.id, title: t.title, cal: t.cal, due: t.due.toISOString(), hasTime: t.hasTime, done: t.done };
+              return { id: t.id, title: t.title, desc: t.desc || "", cal: t.cal, due: t.due ? t.due.toISOString() : null, hasTime: t.hasTime, done: t.done };
             }),
             settings: settingsSnapshot()
           };
@@ -3340,8 +3351,8 @@
             }).filter(function (e) { return !isNaN(e.start) && !isNaN(e.end); });
             if (Array.isArray(data.tasks)) {
               state.tasks = data.tasks.map(function (t) {
-                return { id: +t.id || ++uid, title: String(t.title || "Untitled task"), cal: String(t.cal), due: new Date(t.due), hasTime: !!t.hasTime, done: !!t.done };
-              }).filter(function (t) { return !isNaN(t.due); });
+                return { id: +t.id || ++uid, title: String(t.title || "Untitled task"), desc: String(t.desc || ""), cal: String(t.cal), due: t.due == null ? null : new Date(t.due), hasTime: !!t.hasTime, done: !!t.done };
+              }).filter(function (t) { return t.due === null || !isNaN(t.due); });
             }
             applySettingsSnapshot(data.settings);
             renderAll(false);
@@ -3646,7 +3657,7 @@
       function paneAbout(pane) {
         paneHead(pane, "About", "");
         var g = el('<div><div class="about-logo"><span class="logo-tile"><img class="daylight-mark daylight-mark-light" src="../assets/daylight-sunarc-light-NOBG.png" alt="" width="46" height="46"><img class="daylight-mark daylight-mark-dark" src="../assets/daylight-sunarc-dark-NOBG.png" alt="" width="46" height="46"></span><span><span style="font-size:17px;font-weight:600;letter-spacing:-0.01em;display:block">Daylight</span><span style="color:var(--muted);font-size:13px">Personal calendar</span></span></div>' +
-          '<p class="pane-sub" style="margin:0 0 22px">One calm calendar for school, swim, and everything else — Month, Week, Day, and Agenda sharing the same design, plus a Tasks list that works the same way, with your settings and calendars kept together.</p>' +
+          '<p class="pane-sub" style="margin:0 0 22px">One calm calendar for work, family, and everything else — Month, Week, Day, and Agenda sharing the same design, plus a Tasks list that works the same way, with your settings and calendars kept together.</p>' +
           '<div class="set-group">' +
           setRowHTML("Version", "The build of Daylight you are using.", '<span style="font-size:14px;color:var(--muted)">1.0</span>') +
           setRowHTML("Subscribed calendars", "US Holidays is built into Daylight and read-only — it shows on your calendar but events can't be added to it.", '<span style="font-size:14px;color:var(--muted)">' + state.calendars.filter(function (c) { return isSubscribed(c); }).length + " active</span>") +
@@ -3670,7 +3681,7 @@
         var now = new Date(), y = now.getFullYear(), mo = now.getMonth();
         var first = new Date(y, mo, 1), startOffset = first.getDay(), dim = new Date(y, mo + 1, 0).getDate(), prevDim = new Date(y, mo, 0).getDate();
         var rows = Math.ceil((startOffset + dim) / 7), total = rows * 7;
-        var cardTitles = ["Swim", "Game", "Gym", "Lunch"];
+        var cardTitles = ["Practice", "Game", "Gym", "Lunch"];
         var cardTitle = cardTitles[Math.floor(Math.random() * cardTitles.length)];
         var cardKeys = ["blue", "violet", "green", "amber", "rose"];
         var cardDot = (PALETTE[cardKeys[Math.floor(Math.random() * cardKeys.length)]] || PALETTE.blue).dot;

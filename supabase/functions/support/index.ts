@@ -181,7 +181,7 @@ Deno.serve(async (req) => {
 
   const { data: t } = await sb.from("support_tickets").select("*").eq("id", body.ticket_id).maybeSingle();
   if (!t) return json({ error: "That ticket was not found." }, 404);
-  if (t.status !== "open") return json({ error: "This ticket is closed." }, 409);
+  if (t.status !== "open" && t.category !== "data") return json({ error: "This ticket is closed." }, 409);   // a data request can be fulfilled after it is closed
   try {
     const zip = await buildExport(t.user_id, t.id);
     const path = `${t.user_id}/${t.id}/export-${Date.now()}.zip`;

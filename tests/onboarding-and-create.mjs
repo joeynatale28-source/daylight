@@ -89,7 +89,7 @@ for(const theme of ['dark','light']){
   await page.keyboard.press('Escape');await sleep(300);if(await page.$('.event-form-dialog'))await page.evaluate(()=>document.querySelector('.event-form-dialog [data-x]').click());await sleep(300);
   await page.mouse.click(box.l+30,(box.t+box.b)/2);await sleep(300);
   await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(b=>/^Task/.test(b.textContent)).click());await sleep(500);
-  check(T('Task opens the task creation flow'),await page.evaluate(()=>state.section==='tasks'&&document.activeElement&&document.activeElement.id==='taskTitleInput'));
+  check(T('Task opens the task creation flow'),await page.evaluate(()=>!!document.querySelector('.event-form-dialog #teTitle')));
   check(T('no page errors'),errors.length===0,errors.join(' | '));
  }finally{await app.close()}
 }

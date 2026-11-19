@@ -171,7 +171,7 @@ for(const theme of ['dark','light']){
   check(T('row action buttons are not invisible-only (visible on keyboard focus; touch media rule present)'),await page.evaluate(()=>{const row=document.querySelector('.cal-row');row.querySelector('.cal-check').focus();return getComputedStyle(row.querySelector('.cal-menu-btn')).opacity==='1'})&&/\(hover: none\)/.test(await page.evaluate(()=>[...document.styleSheets].map(s=>{try{return [...s.cssRules].map(r=>r.cssText).join('')}catch(e){return ''}}).join(''))));
   await page.evaluate(()=>{state.section='tasks';state.tasks=[];renderAll(false)});await sleep(700);
   const tk=await page.evaluate(()=>({adds:document.querySelectorAll('.tasks-inner .btn-primary, .empty-state .btn-primary, .empty-state button').length,empty:!!document.querySelector('.empty-state'),emptyBtn:!!document.querySelector('.empty-state button'),headerBtn:!!document.querySelector('.tasks-head .btn-primary,.tasks-head button'),inline:!!document.querySelector('#taskTitleInput')}));
-  check(T('Tasks empty screen: header add + inline add only (no third button in the empty state)'),tk.empty&&!tk.emptyBtn&&tk.inline,J(tk));
+  check(T('Tasks empty screen: one add button (header), no inline composer, no third button'),tk.empty&&!tk.emptyBtn&&!tk.inline&&tk.headerBtn,J(tk));
   await shot('7-tasks-empty');
   await page.evaluate(()=>{state.section='calendar';renderAll(false)});await sleep(500);
   await page.keyboard.down('Control');await page.keyboard.press('k');await page.keyboard.up('Control');await page.waitForSelector('#palInput');await sleep(500);

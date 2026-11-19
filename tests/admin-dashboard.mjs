@@ -100,7 +100,7 @@ for(const theme of ['dark','light']){
   st=await status(0);
   check(T('an everyone send is reported'),/sent to everyone/i.test(st),st);
   const manage=await page.evaluate(()=>[...document.querySelectorAll('.dl-page .dl-ad-item-title')].map(n=>n.textContent));
-  check(T('Manage lists what was sent (newest first) with Force remove on each'),manage[0]==='For everyone'&&manage.includes('Just for you')&&(await page.$$('.dl-page [data-force]')).length===3,JSON.stringify(manage));
+  check(T('Manage lists what was sent (newest first) with Remove on each'),manage[0]==='For everyone'&&manage.includes('Just for you')&&(await page.$$('.dl-page [data-force]')).length===3,JSON.stringify(manage));
   await page.screenshot({path:path.join(out,`5-dashboard-manage-${theme}.png`)});
   await closeSettings();
   await page.evaluate(()=>daylightNotifications.refresh());await sleep(500);

@@ -16,7 +16,10 @@
     "  body.dl-printing > *:not(#dlPrint){display:none!important}",
     "  body.dl-printing #dlPrint{display:flex!important;flex-direction:column;position:static;width:100%;height:186mm;font-family:Inter,system-ui,sans-serif;color:#000;background:#fff;-webkit-print-color-adjust:exact;print-color-adjust:exact}",
     "}",
-    "#dlPrint .pm-title{font-size:20px;font-weight:650;letter-spacing:-.01em;margin:0 0 6px}",
+    "#dlPrint .pm-top{display:flex;align-items:center;justify-content:space-between;gap:16px;margin:0 0 7px;flex:none}",
+    "#dlPrint .pm-title{font-size:20px;font-weight:650;letter-spacing:-.01em;margin:0}",
+    "#dlPrint .pm-logo{display:inline-flex;align-items:center;gap:7px;color:#000;font-size:15px;font-weight:750;letter-spacing:-.02em}#dlPrint .pm-logo svg{width:26px;height:26px;display:block}",
+    "#dlPrint .pm-foot{flex:none;margin-top:6px;font-size:9.5px;color:#666;display:flex;justify-content:space-between}",
     "#dlPrint .pm-heads{display:grid;grid-template-columns:repeat(7,1fr);border:1px solid #bdbdbd;border-bottom:0}",
     "#dlPrint .pm-heads span{font-size:10px;font-weight:650;letter-spacing:.08em;text-transform:uppercase;padding:4px 6px;border-right:1px solid #d6d6d6;color:#333}",
     "#dlPrint .pm-heads span:last-child{border-right:0}",
@@ -28,10 +31,10 @@
     "#dlPrint .pm-bg i.out{background:#f4f4f4}",
     "#dlPrint .pm-grid{position:relative;display:grid;grid-template-columns:repeat(7,1fr);grid-auto-rows:min-content;height:100%;align-content:start}",
     "#dlPrint .pm-num{font-size:11px;font-weight:650;padding:3px 6px 2px;text-align:right;color:#222}#dlPrint .pm-num.out{color:#999}",
-    "#dlPrint .pm-bar{margin:1px 2px;padding:1px 5px;font-size:10px;font-weight:600;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,#fff);color:#000;border-radius:2px}",
+    "#dlPrint .pm-bar{margin:1px 2px;padding:1px 5px;font-size:10px;font-weight:600;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);background:color-mix(in srgb,var(--c) 22%,#fff);color:#000;border-radius:2px}",
     "#dlPrint .pm-bar.cl{border-top-left-radius:0;border-bottom-left-radius:0}",
     "#dlPrint .pm-list{display:flex;flex-direction:column;gap:1px;padding:1px 2px;min-width:0}",
-    "#dlPrint .pm-ev{font-size:10px;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border-left:3px solid var(--c);padding-left:4px;color:#000}",
+    "#dlPrint .pm-ev{font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);padding-left:4px;color:#000}",
     "#dlPrint .pm-ev b{font-weight:650;margin-right:4px}",
     "#dlPrint .pm-more{font-size:9.5px;color:#555;padding-left:7px}"
   ].join("\n");
@@ -53,7 +56,8 @@
     var MON = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
     var DAY = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
     var root = document.createElement("div"); root.id = "dlPrint";
-    var html = '<h1 class="pm-title">' + esc(MON[cur.getMonth()] + " " + cur.getFullYear()) + "</h1><div class=\"pm-heads\">";
+    var LOGO = '<span class="pm-logo"><svg viewBox="0 0 498 498" aria-hidden="true"><path fill="#000" d="M100 326a149 149 0 0 1 298 0z"/><path fill="#000" d="M36 339h426v12H36z"/></svg>Daylight</span>';
+    var html = '<div class="pm-top"><h1 class="pm-title">' + esc(MON[cur.getMonth()] + " " + cur.getFullYear()) + "</h1>" + LOGO + "</div><div class=\"pm-heads\">";
     for (var i = 0; i < 7; i++) html += "<span>" + DAY[((state.weekStart || 0) + i) % 7] + "</span>";
     html += '</div><div class="pm-weeks">';
     for (var w = 0; w < weeks; w++) {
@@ -98,7 +102,8 @@
       days.forEach(function (d, ci) {
         var list = timed[ci].sort(function (x, y) { return x.t - y.t; });
         if (!list.length) return;
-        var shown = list.slice(0, 4);
+        var rowPx = (186 * 3.7795 - 34 - 20 - 22) / weeks, cap = Math.max(1, Math.floor((rowPx - 22 - lanes.length * 15) / 13.5));
+        var shown = list.length > cap ? list.slice(0, Math.max(0, cap - 1)) : list;
         html += '<div class="pm-list" style="grid-column:' + (ci + 1) + ";grid-row:" + listRow + '">' + shown.map(function (e) {
           return '<div class="pm-ev" style="--c:' + esc(e.color) + '"><b>' + timeLabel(e.t) + "</b>" + esc(e.title) + "</div>";
         }).join("") + (list.length > shown.length ? '<div class="pm-more">+' + (list.length - shown.length) + " more</div>" : "") + "</div>";
@@ -106,6 +111,7 @@
       html += "</div></div>";
     }
     html += "</div>";
+    html += '<div class="pm-foot"><span>Printed ' + esc(new Date().toLocaleDateString(undefined, { month: "long", day: "numeric", year: "numeric" })) + "</span></div>";
     root.innerHTML = html;
     return root;
   }

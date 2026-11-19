@@ -76,9 +76,9 @@ for(const theme of ['dark','light']){
   check(t('recurring edit: the grid shows one "Choir (special)" among the normal "Choir" ones'),after2.filter(x=>x==='Choir (special)').length===1&&after2.filter(x=>x==='Choir').length>=b2.length-2,JSON.stringify(after2));
 
   // ---- tasks
-  await page.evaluate(()=>showTasks());await page.waitForSelector('#taskTitleInput');await sleep(400);
+  await page.evaluate(()=>showTasks());await page.waitForSelector('#taskAddBtn');await sleep(400);
   const nTasks=await page.evaluate(()=>state.tasks.length);
-  await page.type('#taskTitleInput','Pack swim bag');await page.click('.task-add-card .btn-primary');await sleep(500);
+  await page.click('#taskAddBtn');await sleep(400);await page.type('#teTitle','Pack swim bag');await page.click('[data-ok]');await sleep(600);
   check(t('tasks: adding creates the task and shows its row'),await page.evaluate(n=>state.tasks.length===n+1&&[...document.querySelectorAll('.task-row')].some(r=>/Pack swim bag/.test(r.textContent)),nTasks));
   await page.screenshot({path:path.join(out,`tasks-added-${theme}.png`)});
   await page.evaluate(()=>{[...document.querySelectorAll('.task-row')].find(r=>/Pack swim bag/.test(r.textContent)).querySelector('.task-check').click()});
