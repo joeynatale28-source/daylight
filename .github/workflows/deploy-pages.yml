@@ -1,5 +1,5 @@
 name: Deploy Daylight to GitHub Pages
-# One site: landing (/), /login, /sign-up, /dashboard, shared assets. (retrigger: Pages artifact lookup race)
+# One site: landing (/), /login, /sign-up, /dashboard, shared assets. (retrigger: Pages artifact lookup race, 2)
 
 on:
   push:
