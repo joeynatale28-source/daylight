@@ -10,9 +10,14 @@
            browser bar can make innerHeight larger than the visible area, which pushed the last month row out of reach). */
         var set = function () {
           var hs = [window.innerHeight, document.documentElement.clientHeight || 0, window.visualViewport ? window.visualViewport.height : 0].filter(function (n) { return n > 100; });
+          /* no usable height yet (a background tab or a window still opening reports 0): leave the property unset so the layout falls back to 100dvh.
+             Math.min of nothing is Infinity, and "Infinitypx" made the page grow past the window so the bottom month row was cut off and unreachable. */
+          if (!hs.length) { document.documentElement.style.removeProperty("--dl-app-h"); return; }
           document.documentElement.style.setProperty("--dl-app-h", Math.floor(Math.min.apply(null, hs)) + "px");
         };
         set(); window.addEventListener("resize", set); window.addEventListener("orientationchange", set);
+        window.addEventListener("pageshow", set); window.addEventListener("focus", set); document.addEventListener("visibilitychange", set);
+        setTimeout(set, 300); setTimeout(set, 1500);
         if (window.visualViewport) window.visualViewport.addEventListener("resize", set);
       })();
       (function () {
