@@ -2149,8 +2149,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .ts-bar { height: 7px; border-radius: 99px; background: var(--surface2); overflow: hidden; } .ts-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width 320ms var(--ease-out); }
 .ts-cal { display: flex; align-items: center; gap: 9px; padding: 7px 0; font-size: 13.5px; } .ts-cal + .ts-cal { border-top: 1px solid var(--line-soft); }
 .ts-cal-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ts-cal b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--muted); }
-.task-row { position: relative; border-left: 4px solid var(--tc, var(--accent)); padding: 14px 14px 14px 16px; background: color-mix(in srgb, var(--tc, var(--accent)) 5%, var(--surface)); }
-.task-row.done { background: var(--surface); border-left-color: color-mix(in srgb, var(--tc, var(--accent)) 45%, transparent); }
+.task-row { position: relative; padding: 14px 16px; }  /* neutral like every other card: no calendar-colour tint, border or ring (the calendar tag below still shows its dot and name) */
 .task-row .task-title { font-size: 15px; font-weight: 600; }
 .task-meta .tm-due { padding: 3px 9px; margin: 0; border-radius: 99px; background: var(--surface2); color: var(--text); font-weight: 550; }
 .task-meta .tm-due.overdue { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
@@ -2167,3 +2166,14 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .tasks-side.is-new { animation: tsSideIn 380ms var(--ease-out, cubic-bezier(.2,.7,.2,1)) both; }
 @keyframes tsSideIn { from { opacity: 0; transform: translateX(18px); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .tasks-side.is-new { animation: none; } }
+/* phone width: the four Admin tabs share one row, and the colour swatches wrap inside their card instead of running off the screen */
+@media (max-width: 640px) {
+  .dl-tabs { display: flex !important; flex-wrap: nowrap !important; overflow-x: auto !important; width: 100%; box-sizing: border-box; border-radius: 999px !important; scrollbar-width: none; }
+  .dl-tabs::-webkit-scrollbar { display: none; }
+  .dl-tabs button { padding: 7px 8px !important; font-size: 12.5px; flex: 1 1 auto; text-align: center; }
+  body .dl-mg-swatches[data-presets], body .dl-mg-saved { grid-template-columns: repeat(auto-fill, 26px); }
+}
+/* task checkbox: a neutral ring like the rest of the app (it used to take the calendar's colour) */
+.task-check { border-color: var(--muted); background: transparent; }
+.task-check:hover { border-color: var(--text); filter: none; }
+.task-check.done { background: #22c55e; border-color: #22c55e !important; }

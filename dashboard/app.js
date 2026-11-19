@@ -2438,7 +2438,7 @@
         var row = el('<div class="task-row' + (t.done ? " done" : "") + '"></div>');
         row.style.setProperty("--tc", dotOf(cal));
         var overdue = !t.done && !!t.due && sod(t.due) < sod(TODAY);
-        var chk = el('<button class="task-check' + (t.done ? " done" : "") + '" style="border-color:' + dotOf(cal) + '" title="' + (t.done ? "Mark not done" : "Mark done") + '" aria-label="' + (t.done ? "Mark not done: " : "Mark done: ") + esc(t.title) + '" aria-pressed="' + t.done + '">' + icon("check", 13) + "</button>");
+        var chk = el('<button class="task-check' + (t.done ? " done" : "") + '" title="' + (t.done ? "Mark not done" : "Mark done") + '" aria-label="' + (t.done ? "Mark not done: " : "Mark done: ") + esc(t.title) + '" aria-pressed="' + t.done + '">' + icon("check", 13) + "</button>");
         var chkBusy = false;
         chk.addEventListener("click", function () {
           if (chkBusy) return;

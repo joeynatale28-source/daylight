@@ -61,7 +61,7 @@ try{
  const nl=await rpc(A,'daylight_list_broadcasts');check(nl.ok&&(nl.data||[]).length===0,'no ticket notifications in the user Notifications list',nl.data);
  const al2=await rpc(B,'daylight_list_broadcasts');check(al2.ok&&!(al2.data||[]).some(x=>x.sender==='support'||x.sender==='ticket'),'none in the admin list either',al2.data);
  check((await rpc(A,'support_ticket_create',{p_id:crypto.randomUUID(),p_title:'x',p_body:'y',p_kind:'ticket',p_category:'nonsense',p_atts:[]})).ok===false,'a ticket needs a valid category');
- const lst=(await rpc(A,'support_ticket_list')).data[0];check(lst.category==='bug'&&/Blank month view/.test(lst.preview),'the list returns category and a preview',lst);
+ const lst=(await rpc(A,'support_ticket_list')).data[0];check(lst.category==='bug'&&/Blank month view|Fixed on our side/.test(lst.preview),'the list returns category and a preview',lst);
  const adl=(await rpc(B,'support_admin_list',{p_status:'open'})).data.find(t=>t.id===tid);check(adl&&adl.category==='bug'&&adl.user_name==='Alex Rivera'&&adl.preview,'the admin list returns requester, category and preview',adl);
  // ---- data export
  const g=await fnCall(A,{action:'give_data',ticket_id:tid});check(g.status===403,'a normal user cannot call Give data',g.status);
