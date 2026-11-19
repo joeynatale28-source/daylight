@@ -159,7 +159,10 @@
 
       /* ---------- App frame ---------- */
       /* The app fills the real window height, minus any banner strip above it (see daylight-admin.js). */
-      #app { display: flex; height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); }
+      /* The page is a column: anything above the app (an announcement strip, a status line) takes its own height and the app gets exactly what is left,
+         so the last row of a view can never be pushed below the window by a strip that was not measured. */
+      body { display: flex; flex-direction: column; height: var(--dl-app-h, 100dvh); overflow: hidden; }
+      #app { display: flex; flex: 1 1 auto; min-height: 0; height: auto; }
       html { background: var(--bg); }
       /* Calendar-area loading state (critical CSS: it paints with the shell). */
       #main{position:relative}
@@ -1235,7 +1238,7 @@
       /* Below 640px — phones: off-canvas drawer sidebar, full-width main */
       @media (max-width: 639px) {
         html, body { height: var(--dl-app-h, 100dvh); }
-        #app { height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); }
+        #app { height: auto; }
         #main { width: 100%; min-width: 0; }
         #sidebar {
           display: none;
@@ -1656,10 +1659,10 @@
 @media (min-height: 860px) { #sidebar:not(.rail) {
   --sb-pad-top: 8px; --sb-pad-bot: 12px; --sb-create-mt: 4px; --sb-mini-pb: 4px; --sb-brand-pb: 12px; --sb-create-mb: 16px; --sb-mini-day: 24px; --sb-mini-num: 22px; --sb-label-pt: 14px; --sb-label-pb: 4px;
   --sb-cal-h: 36px; --sb-cal-py: 4px; --sb-row-h: 40px; --sb-row-py: 7px; --sb-spacer: 10px; --sb-prof-mt: 10px; --sb-prof-pt: 10px; } }
-@media (min-height: 940px) { #sidebar:not(.rail) {
+@media (min-height: 1000px) { #sidebar:not(.rail) {
   --sb-pad-bot: 16px; --sb-brand-pb: 16px; --sb-create-mb: 22px; --sb-mini-day: 26px; --sb-mini-num: 24px; --sb-label-pt: 20px; --sb-label-pb: 6px;
   --sb-cal-h: 40px; --sb-cal-py: 6px; --sb-row-h: 44px; --sb-row-py: 9px; --sb-spacer: 18px; --sb-prof-mt: 14px; --sb-prof-pt: 14px; } }
-@media (min-height: 1040px) { #sidebar:not(.rail) {
+@media (min-height: 1100px) { #sidebar:not(.rail) {
   --sb-brand-pb: 20px; --sb-create-mb: 32px; --sb-mini-day: 28px; --sb-label-pt: 28px; --sb-label-pb: 8px;
   --sb-cal-h: 42px; --sb-cal-py: 7px; --sb-row-h: 46px; --sb-row-py: 10px; --sb-spacer: 34px; --sb-prof-mt: 20px; --sb-prof-pt: 16px; } }
 #sidebar:not(.rail) { padding: var(--sb-pad-top) 20px var(--sb-pad-bot); }
@@ -1675,7 +1678,7 @@
    sidebar still fits at ordinary heights; Calendar / Tasks keep the full row height. */
 #sidebar:not(.rail) .side-row[data-side-row] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
 #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
-@media (min-height: 1040px) { #sidebar:not(.rail) { --sb-spacer: 22px; --sb-label-pt: 22px; } }
+@media (min-height: 1100px) { #sidebar:not(.rail) { --sb-spacer: 22px; --sb-label-pt: 22px; } }
 @media (max-height: 859px) { #sidebar:not(.rail) { --sb-row-h: 36px; --sb-cal-h: 32px; --sb-label-pt: 8px; --sb-create-mb: 8px; --sb-mini-day: 21px; } #sidebar:not(.rail) .side-spacer { min-height: 4px; } }
 @media (max-height: 799px) { #sidebar:not(.rail) { --sb-row-h: 34px; --sb-cal-h: 30px; --sb-cal-py: 2px; --sb-mini-day: 19px; --sb-mini-num: 18px; --sb-brand-pb: 2px; --sb-pad-bot: 4px; --sb-prof-mt: 4px; --sb-prof-pt: 6px; --sb-label-pt: 6px; --sb-create-mb: 6px; } }
 @media (min-height: 860px) and (max-height: 939px) { #sidebar:not(.rail) { --sb-label-pt: 10px; --sb-cal-h: 34px; } }
@@ -1974,13 +1977,14 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 /* Day view: a one-hour event is not a screen-wide slab */
 .tg-day .ev-card { max-width: 720px; }
 /* Agenda and Tasks share one content column (same width, same left edge), and the agenda ends with a quiet line */
-.agenda-inner, .tasks-inner { max-width: 880px; }
+.agenda-inner, .tasks-inner { max-width: none; min-width: 0; }
+.agenda-inner { max-width: 880px; }
 .agenda-end { text-align: center; font-size: 13px; color: var(--faint); padding: 28px 0 8px; }
 /* Sidebar rhythm: ONE row height, ONE section gap (the same under Create as under the mini calendar); the spare space sits above the account block. */
 #sidebar:not(.rail) { --sb-gap: 16px; }
 @media (max-height: 859px) { #sidebar:not(.rail) { --sb-gap: 10px; } }
 @media (max-height: 799px) { #sidebar:not(.rail) { --sb-gap: 8px; } }
-@media (min-height: 940px) { #sidebar:not(.rail) { --sb-gap: 20px; } }
+@media (min-height: 1000px) { #sidebar:not(.rail) { --sb-gap: 20px; } }
 #sidebar:not(.rail) .create-pill { margin-bottom: var(--sb-gap); }
 #sidebar:not(.rail) #miniWrap { padding-bottom: var(--sb-gap); }
 #sidebar:not(.rail) .side-row, #sidebar:not(.rail) .side-row[data-side-row], #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 4px); padding-top: calc(var(--sb-row-py) - 1px); padding-bottom: calc(var(--sb-row-py) - 1px); }
@@ -2133,3 +2137,32 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .task-results .dl-empty, .task-results .empty-state { padding-top: 24px; }
 .task-results:has(> .empty-state) { min-height: 0; display: block; padding-top: 12px; }
 .task-results > .empty-state { margin-top: 0; padding: 48px 24px 24px; }
+
+/* Tasks page: full-width layout with a summary column, color-coded cards, visible actions */
+.tasks-wrap { padding: 28px 36px 56px; }
+.tasks-grid { display: grid; grid-template-columns: minmax(0, 1fr) 320px; gap: 28px; align-items: start; max-width: 1280px; margin: 0 auto; }
+.tasks-side { position: sticky; top: 0; display: flex; flex-direction: column; gap: 14px; padding-top: 4px; }
+.ts-card { background: var(--surface); border: 1px solid var(--line-soft); border-radius: var(--r-lg); padding: 16px 16px 14px; }
+.ts-head { font-size: 11.5px; font-weight: 650; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); margin-bottom: 12px; }
+.ts-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.ts-tile { border-radius: 12px; background: var(--surface2); padding: 11px 13px; display: flex; flex-direction: column; gap: 2px; }
+.ts-tile b { font-size: 24px; font-weight: 650; letter-spacing: -.02em; font-variant-numeric: tabular-nums; line-height: 1.1; }
+.ts-tile span { font-size: 12px; color: var(--muted); }
+.ts-tile.is-over { background: color-mix(in srgb, var(--danger) 12%, var(--surface2)); } .ts-tile.is-over b { color: var(--danger); }
+.ts-tile.is-today { background: color-mix(in srgb, var(--accent) 14%, var(--surface2)); }
+.ts-prog { margin-top: 14px; } .ts-prog-row { display: flex; justify-content: space-between; font-size: 12.5px; color: var(--muted); margin-bottom: 7px; } .ts-prog-row b { color: var(--text); font-weight: 600; }
+.ts-bar { height: 7px; border-radius: 99px; background: var(--surface2); overflow: hidden; } .ts-bar i { display: block; height: 100%; border-radius: 99px; background: var(--accent); transition: width 320ms var(--ease-out); }
+.ts-cal { display: flex; align-items: center; gap: 9px; padding: 7px 0; font-size: 13.5px; } .ts-cal + .ts-cal { border-top: 1px solid var(--line-soft); }
+.ts-cal-n { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; } .ts-cal b { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--muted); }
+.task-row { position: relative; border-left: 4px solid var(--tc, var(--accent)); padding: 14px 14px 14px 16px; background: color-mix(in srgb, var(--tc, var(--accent)) 5%, var(--surface)); }
+.task-row.done { background: var(--surface); border-left-color: color-mix(in srgb, var(--tc, var(--accent)) 45%, transparent); }
+.task-row .task-title { font-size: 15px; font-weight: 600; }
+.task-meta .tm-due { padding: 3px 9px; margin: 0; border-radius: 99px; background: var(--surface2); color: var(--text); font-weight: 550; }
+.task-meta .tm-due.overdue { background: color-mix(in srgb, var(--danger) 14%, transparent); color: var(--danger); }
+.task-actions { opacity: 1; } .task-actions .icon-btn { color: var(--muted); } .task-actions .icon-btn:hover { color: var(--text); }
+.task-group-title { margin-top: 22px; }
+@media (max-width: 1100px) { .tasks-grid { grid-template-columns: minmax(0, 1fr); } .tasks-side { position: static; order: -1; flex-direction: row; flex-wrap: wrap; } .tasks-side .ts-card { flex: 1 1 280px; } }
+@media (max-width: 639px) { .tasks-wrap { padding: 16px 14px 32px; } }
+.tasks-grid { max-width: none; margin: 0; }
+.tasks-grid > .tasks-inner { margin: 0; width: 100%; max-width: none; }
+.ts-bar { box-shadow: inset 0 0 0 1px var(--line-soft); }

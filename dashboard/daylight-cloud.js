@@ -597,6 +597,7 @@
       applyTheme();
       document.getElementById('authRoot').innerHTML = '';
       document.getElementById('app').hidden = false;
+      if (window.daylightTurnstile) setTimeout(window.daylightTurnstile.maybeRandom, 4000);
       /* Refresh behind the cache: identical data repaints nothing; changed data
          re-renders inside the same layout. */
       var unchanged = fromCache && warmShown && warmShown.id === account.id && hasRow &&
@@ -682,6 +683,7 @@
     if (!validEmail(email) || !password) return;
     if (button) { button.disabled = true; button.textContent = 'Signing in…'; }
     try {
+      if (window.daylightTurnstile) await window.daylightTurnstile.check('login');
       var result = await client.auth.signInWithPassword({email:email,password:password});
       if (result.error) throw result.error;
       if (!result.data || !result.data.user) throw new Error('No authenticated user was returned');

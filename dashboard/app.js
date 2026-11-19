@@ -1025,12 +1025,15 @@
             (state.sidebarRail ? "" : '<button class="icon-btn" id="collapseBtn" title="Collapse sidebar">' + icon("collapse", 16) + "</button>") +
           "</div>"
         );
-        /* the logo is "home": it returns the main area to the calendar from Tasks, Admin or any swapped-in view. It is navigation, not a
+        /* the logo is "home": it returns the main area to the calendar from Tasks, Admin or any swapped-in view, and on the calendar it jumps to today. It is navigation, not a
            reload: the date, view and calendar state stay as they are and nothing is re-fetched. On the calendar already, it does nothing. */
         brand.querySelector(".brand-home").addEventListener("click", function () {
           closeMenu(); closePopover();
           closeDrawer();
           if (state.section !== "calendar") { state.section = "calendar"; renderAll(true, 1); }
+          else { /* already on the calendar: home means today, in the view you are using */
+            state.cursor = sod(TODAY); state.selected = sod(TODAY); renderAll(false);
+          }
         });
         var collapseButton=brand.querySelector("#collapseBtn");
         if(collapseButton)collapseButton.addEventListener("click", function () {
@@ -2335,8 +2338,10 @@
       }
       function renderTasks() {
         var wrap = el('<div class="tasks-wrap"></div>');
+        var grid = el('<div class="tasks-grid"></div>');
         var inner = el('<div class="tasks-inner"></div>');
-        wrap.appendChild(inner);
+        var side = el('<aside class="tasks-side" aria-label="Task summary"></aside>');
+        grid.appendChild(inner); grid.appendChild(side); wrap.appendChild(grid);
         var activeCount = state.tasks.filter(function (t) { return !t.done; }).length;
         var doneCount = state.tasks.length - activeCount;
         var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div>' +
@@ -2402,11 +2407,32 @@
           }
         }
         fillResults(resultsHost);
+        /* summary: what is overdue / due today / coming up / done, a progress bar, and what each calendar has waiting */
+        (function () {
+          var t0 = sod(TODAY), act = state.tasks.filter(function (t) { return !t.done; });
+          var n = { over: act.filter(function (t) { return t.due && sod(t.due) < t0; }).length, today: act.filter(function (t) { return t.due && sameDay(t.due, t0); }).length,
+            soon: act.filter(function (t) { return t.due && sod(t.due) > t0; }).length, nodate: act.filter(function (t) { return !t.due; }).length };
+          var pct = state.tasks.length ? Math.round(doneCount / state.tasks.length * 100) : 0;
+          var html = '<div class="ts-card"><div class="ts-head">Overview</div><div class="ts-tiles">' +
+            '<div class="ts-tile' + (n.over ? " is-over" : "") + '"><b>' + n.over + "</b><span>Overdue</span></div>" +
+            '<div class="ts-tile' + (n.today ? " is-today" : "") + '"><b>' + n.today + "</b><span>Due today</span></div>" +
+            '<div class="ts-tile"><b>' + n.soon + "</b><span>Upcoming</span></div>" +
+            '<div class="ts-tile"><b>' + doneCount + "</b><span>Completed</span></div></div>" +
+            '<div class="ts-prog"><div class="ts-prog-row"><span>Progress</span><b>' + doneCount + " of " + state.tasks.length + '</b></div><div class="ts-bar"><i style="width:' + pct + '%"></i></div></div></div>';
+          var byCal = {};
+          act.forEach(function (t) { byCal[t.cal] = (byCal[t.cal] || 0) + 1; });
+          var ids = Object.keys(byCal);
+          if (ids.length) {
+            html += '<div class="ts-card"><div class="ts-head">By calendar</div>' + ids.map(function (id) { var c = calOf(id); return '<div class="ts-cal"><span class="tm-dot" style="background:' + dotOf(c) + '"></span><span class="ts-cal-n">' + esc(c.name) + "</span><b>" + byCal[id] + "</b></div>"; }).join("") + "</div>";
+          }
+          side.innerHTML = html;
+        })();
         return wrap;
       }
       function taskRow(t) {
         var cal = calOf(t.cal);
         var row = el('<div class="task-row' + (t.done ? " done" : "") + '"></div>');
+        row.style.setProperty("--tc", dotOf(cal));
         var overdue = !t.done && !!t.due && sod(t.due) < sod(TODAY);
         var chk = el('<button class="task-check' + (t.done ? " done" : "") + '" style="border-color:' + dotOf(cal) + '" title="' + (t.done ? "Mark not done" : "Mark done") + '" aria-label="' + (t.done ? "Mark not done: " : "Mark done: ") + esc(t.title) + '" aria-pressed="' + t.done + '">' + icon("check", 13) + "</button>");
         var chkBusy = false;
@@ -3103,9 +3129,9 @@
         if (paletteEl) return;
         closeMenu(); closePopover();
         var bd = el('<div class="palette-backdrop" id="paletteBd"></div>');
-        var pal = el('<div class="palette" role="dialog" aria-modal="true" aria-label="Search events">' +
+        var pal = el('<div class="palette" role="dialog" aria-modal="true" aria-label="Search">' +
           '<div class="palette-input-row">' + icon("search", 19) +
-          '<input class="palette-input" id="palInput" type="text" placeholder="Search events…" aria-label="Search events" autocomplete="off" spellcheck="false">' +
+          '<input class="palette-input" id="palInput" type="text" placeholder="Search events, tasks and calendars…" aria-label="Search" autocomplete="off" spellcheck="false">' +
           '<button class="palette-close" id="palClose" title="Close search" aria-label="Close search">' + icon("x", 17) + "</button></div>" +
           '<div class="palette-results" id="palResults"></div></div>');
         bd.appendChild(pal);
@@ -3135,7 +3161,7 @@
         var q = inp.value.trim().toLowerCase();
         results.innerHTML = "";
         if (!q) {
-          results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events.</p></div>"));
+          results.appendChild(el('<div class="empty-state" style="padding:26px 18px">' + icon("search", 24) + "<p>Start typing to search your events, tasks and calendars.</p></div>"));
           return;
         }
         var range = occsInRange(dt(2015, 0, 1), dt(2031, 0, 1)).filter(function (o) {
@@ -3160,7 +3186,9 @@
           });
           range = keep.sort(function (a, b) { return a.start - b.start; });
         })();
-        if (!range.length) {
+        var taskHits = state.tasks.filter(function (t) { return (t.title || "").toLowerCase().indexOf(q) >= 0 || (t.desc || "").toLowerCase().indexOf(q) >= 0; });
+        var calHits = state.calendars.filter(function (c) { return (c.name || "").toLowerCase().indexOf(q) >= 0; });
+        if (!range.length && !taskHits.length && !calHits.length) {
           var noRes = el('<div class="empty-state" style="padding:26px 18px"><span class="es-badge">' + icon("search", 22) + '</span><div class="es-title">No results for \u201c' + esc(inp.value.trim()) + '\u201d</div><p class="es-sub">Nothing on your calendars matches that search.</p></div>');
           var createBtn = el('<button class="btn-primary es-btn">' + icon("plus", 16) + "<span>New event</span></button>");
           createBtn.addEventListener("click", function () {
@@ -3182,8 +3210,8 @@
         var past = range.filter(function (o) { return o.start < todayS; }).sort(function (x, y) { return y.start - x.start; });
         var ordered = upcoming.concat(past), total = ordered.length;
         var selEntry = window.daylightSelect && daylightSelect.entry("search", drawSearch);
-        if (selEntry) results.appendChild(selEntry);
-        results.appendChild(el('<div class="pal-group">' + total + (total === 1 ? " result" : " results") + (total > 50 ? " · showing the first 50" : "") + "</div>"));
+        if (selEntry && total) results.appendChild(selEntry);
+        if (total) results.appendChild(el('<div class="pal-group">' + (taskHits.length || calHits.length ? "Events · " : "") + total + (total === 1 ? " result" : " results") + (total > 50 ? " · showing the first 50" : "") + "</div>"));
         ordered.slice(0, 50).forEach(function (o) {
           var cal = calOf(o.ev.cal);
           var sub = isAllDayLike(o.ev, o.start, o.end) ? fmtDateShort(o.start) + " · All day" : fmtDateShort(o.start) + " · " + fmtTimeRange(o.start, o.end);
@@ -3202,8 +3230,25 @@
           if (window.daylightSelect) daylightSelect.decorate(item, o.ev, "search");
           results.appendChild(item);
         });
+        if (taskHits.length) {
+          results.appendChild(el('<div class="pal-group">Tasks · ' + taskHits.length + "</div>"));
+          taskHits.slice(0, 20).forEach(function (t) {
+            var cal = calOf(t.cal);
+            var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(cal) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(t.title) + '</span><br><span class="pi-sub">' + esc((t.done ? "Completed" : t.due ? "Due " + fmtDateShort(t.due) : "No date") + " · " + cal.name) + "</span></span></button>");
+            item.addEventListener("click", function () { closeSearch(); inp.value = ""; state.taskFilter = "all"; showTasks(); setTimeout(function () { openTaskEditor(t); }, 60); });
+            results.appendChild(item);
+          });
+        }
+        if (calHits.length) {
+          results.appendChild(el('<div class="pal-group">Calendars · ' + calHits.length + "</div>"));
+          calHits.forEach(function (c) {
+            var item = el('<button class="pal-item"><span class="pop-dot" style="background:' + dotOf(c) + ';margin:0"></span><span class="pi-text"><span class="pi-title">' + esc(c.name) + '</span></span></button>');
+            item.addEventListener("click", function () { closeSearch(); inp.value = ""; state.section = "calendar"; renderAll(false); });
+            results.appendChild(item);
+          });
+        }
         var selBar = window.daylightSelect && daylightSelect.bar("search");
-        if (selBar) results.appendChild(selBar);
+        if (selBar && total) results.appendChild(selBar);
       }
       /* ================= Settings ================= */
       var settingsState = { section: "general", pendingView: null };
@@ -3605,7 +3650,7 @@
         paneHead(pane, "Keyboard shortcuts", "Every shortcut Daylight supports. This page is a reference — the shortcuts themselves work everywhere in the app.");
         var mod = /Mac|iPhone|iPad/.test(navigator.platform || "") ? "⌘" : "Ctrl";
         var rows = [
-          ["Search events", "Jump straight to search from anywhere.", [[mod], ["K"]]],
+          ["Search", "Jump straight to search from anywhere.", [[mod], ["K"]]],
           ["Open settings", "Toggle the settings popup.", [[mod], [","]]],
           ["New event", "Create an event on the selected day.", [["N"]]],
           ["Go to today", "Jump the calendar back to today.", [["T"]]],

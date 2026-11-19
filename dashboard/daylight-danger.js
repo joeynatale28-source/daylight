@@ -63,6 +63,7 @@
       if (!match() || ok.dataset.busy) return;
       ok.dataset.busy = "1"; ok.disabled = true; ok.textContent = "Deleting…"; err.textContent = "";
       try {
+        if (window.daylightTurnstile && !(await window.daylightTurnstile.check("delete-account", { cancel: true }))) throw new Error("Cancelled. Nothing was deleted.");
         var session = c.ensureSession ? await c.ensureSession() : null;
         var res = await c.client.functions.invoke("delete-account", { body: { confirm: input.value.trim() }, headers: session && session.access_token ? { Authorization: "Bearer " + session.access_token } : undefined });
         if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }

@@ -40,6 +40,11 @@
     ".dl-ai-act-what{font-size:13.5px;font-weight:550;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}",
     ".dl-ai-act-meta{font-size:12px;color:var(--muted)}",
     ".dl-ai-empty{font-size:13.5px;color:var(--faint);padding:4px 0 2px}",
+    ".dl-ai-toolsub{margin:0 0 12px;font-size:13px;line-height:1.5;color:var(--muted)}",
+    ".dl-ai-tools{border:1px solid var(--line-soft);border-radius:14px;padding:4px 14px 6px;margin-bottom:10px;background:var(--surface2)}",
+    ".dl-ai-tools-h{display:flex;align-items:baseline;gap:10px;padding:10px 0 6px;font-size:13px}.dl-ai-tools-h b{font-weight:650}.dl-ai-tools-h span{color:var(--muted)}",
+    ".dl-ai-tool{display:flex;align-items:baseline;gap:12px;padding:7px 0;border-top:1px solid var(--line-soft);font-size:13px}.dl-ai-tool code{flex:none;width:150px;font:12px/1.4 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text)}.dl-ai-tool span{color:var(--muted);min-width:0}",
+    "@media (max-width:560px){.dl-ai-tool{flex-direction:column;gap:2px}.dl-ai-tool code{width:auto}}",
     /* the connect panel */
     ".dl-ai-url{display:flex;gap:8px;align-items:center}.dl-ai-url .text-area{flex:1;min-width:0;min-height:0!important;height:56px;resize:none;font:500 12.5px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;padding:9px 12px;word-break:break-all}",
     ".dl-ai-steps{margin:18px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:10px;counter-reset:s}",
@@ -129,7 +134,20 @@
     paneHead(pane, "AI access", "Let an AI assistant work with your calendar. You choose what it can do, and you can disconnect it any time.");
     var group = make('<div class="set-group dl-sec-group"><div class="set-group-title">Assistants</div><div class="dl-sec-list" data-list><div class="dl-ai-empty">Loading…</div></div><div class="dl-profile-status" data-status role="status" aria-live="polite"></div></div>');
     var act = make('<div class="set-group"><div class="set-group-title">Recent AI activity</div><div data-act><div class="dl-ai-empty">Loading…</div></div></div>');
-    pane.appendChild(group); pane.appendChild(act);
+    /* the tools an assistant can use, by the permission it was given (mirrors the Daylight MCP server) */
+    var TOOLS = [
+      ["Read", "View only", [["list_calendars", "List your calendars"], ["list_events", "Find events in a date range"], ["get_event", "Read one event"], ["search_events", "Search events by title, place or notes"], ["list_tasks", "List your tasks"]]],
+      ["Write", "Can add and change", [["create_calendar", "Create a calendar"], ["create_event", "Create an event"], ["update_event", "Edit an event"], ["create_task", "Create a task, with a description"], ["complete_task", "Mark a task done or not done"], ["share_calendar", "Share a calendar by email"], ["share_event", "Share an event by email"]]],
+      ["Delete", "Can remove", [["delete_event", "Delete an event"], ["delete_task", "Delete a task"]]]
+    ];
+    var tools = make('<div class="set-group"><div class="set-group-title">What assistants can do</div><p class="dl-ai-toolsub">An assistant only gets the tools its permission allows. Everything it does shows in Recent AI activity.</p></div>');
+    TOOLS.forEach(function (g) {
+      var box = make('<div class="dl-ai-tools"><div class="dl-ai-tools-h"><b></b><span></span></div></div>');
+      box.querySelector("b").textContent = g[0]; box.querySelector("span").textContent = g[1];
+      g[2].forEach(function (t) { var r = make('<div class="dl-ai-tool"><code></code><span></span></div>'); r.querySelector("code").textContent = t[0]; r.querySelector("span").textContent = t[1]; box.appendChild(r); });
+      tools.appendChild(box);
+    });
+    pane.appendChild(group); pane.appendChild(act); pane.appendChild(tools);
     var list = group.querySelector("[data-list]"), status = group.querySelector("[data-status]"), actHost = act.querySelector("[data-act]");
     function say(msg, bad) { status.textContent = msg || ""; status.classList.toggle("is-error", !!bad); }
     var uid = cloud() && cloud().user && cloud().user.id, client = db();

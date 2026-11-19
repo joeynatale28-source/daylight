@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en" data-theme="dark">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="robots" content="noindex" />
+    <title>Security check · Daylight</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..700&display=swap" rel="stylesheet" />
+    <style>html,body{margin:0;height:100%}body{background:#0f0f10}@media (prefers-color-scheme:light){body{background:#f6f5f2}}</style>
+  </head>
+  <body>
+    <script src="../dashboard/daylight-turnstile.js?v=__BUILD_ID__"></script>
+    <script>
+      (function () {
+        /* where to go afterwards: a path inside this site only, never another address */
+        var next = new URLSearchParams(location.search).get("next") || "../dashboard/";
+        if (/^[a-z][a-z0-9+.\-]*:/i.test(next) || next.indexOf("//") === 0 || next.indexOf("\\") >= 0) next = "../dashboard/";
+        window.daylightTurnstile.check("page", { force: true }).then(function (ok) { if (ok) location.replace(next); });
+      })();
+    </script>
+  </body>
+</html>

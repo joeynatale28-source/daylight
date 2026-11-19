@@ -52,9 +52,10 @@ button{font:inherit;color:inherit}
 .is-pill .bar-in{display:flex;justify-content:space-between;gap:28px;max-width:none;padding:0 6px 0 16px}
 .brand{display:inline-flex;align-items:center;gap:8px;justify-self:start;font-size:16px;font-weight:800;letter-spacing:-0.02em;line-height:1}
 .mark{width:34px;height:34px;flex:none}
-.links{display:flex;gap:30px;font-size:14px;font-weight:500;color:var(--muted)}
-.links a{transition:color 200ms linear}
+.links{display:flex;gap:30px;flex-wrap:nowrap;font-size:14px;font-weight:500;color:var(--muted)}
+.links a{transition:color 200ms linear;white-space:nowrap}
 .links a:hover{color:var(--text)}
+.links,.brand,.right{flex:none}
 .right{display:flex;align-items:center;gap:8px;justify-self:end}
 
 /* ---------- buttons: pills, like the sign-in screen ---------- */

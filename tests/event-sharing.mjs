@@ -91,7 +91,7 @@ for(const theme of ['dark','light']){
   check(T('person cards: picture, name in bold, email in grey; same names told apart by email'),cards.length===2&&cards.every(c=>c.avatar&&c.email.includes('@'))&&new Set(cards.map(c=>c.email)).size===2,JSON.stringify(cards));
   await page.screenshot({path:path.join(out,`3-share-cards-${theme}.png`)});
   await page.evaluate(()=>{const i=document.querySelector('.dl-share-view .dl-inv-input');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))});await page.type('.dl-inv-input','zzzzzz');await sleep(500);
-  check(T('not found: "No results found — check the spelling" and nothing can be sent'),await page.evaluate(()=>/No results found — check the spelling/.test(document.querySelector('.dl-share-view .dl-inv-results').textContent)&&document.querySelector('.dl-share-view [data-send]').disabled));
+  check(T('not found: "No people found" and nothing can be sent'),await page.evaluate(()=>/No people found/.test(document.querySelector('.dl-share-view .dl-inv-results').textContent)&&document.querySelector('.dl-share-view [data-send]').disabled));
   await page.evaluate(()=>{const i=document.querySelector('.dl-share-view .dl-inv-input');i.value='';i.dispatchEvent(new Event('input',{bubbles:true}))});await page.type('.dl-inv-input','sam');await page.waitForSelector('.dl-person');await sleep(450);
   await page.evaluate(()=>[...document.querySelectorAll('.dl-share-view .dl-person')].find(c=>c.textContent.includes('Sam Lee')).click());await sleep(250);
   check(T('picking a person fills the row and Send becomes active'),await page.evaluate(()=>!document.querySelector('.dl-share-view [data-send]').disabled&&/Sam Lee/.test(document.querySelector('.dl-share-view .dl-inv-chip').textContent)));

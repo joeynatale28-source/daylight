@@ -45,6 +45,10 @@ for(const theme of ['light','dark']){
   check(/three photos/.test(row.desc)&&row.due==='No date'&&row.group.some(g=>/^No date/.test(g)),'editing saves the description and can clear the due date (No date group)',row);
   check(await page.evaluate(()=>state.tasks[0].desc==='Bring three photos and the old passport.'&&state.tasks[0].due===null),'and the change is in the task data');
   if(theme==='light')await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/tasks-list.png':undefined}).catch(()=>{});
+  await page.evaluate(()=>openSearch());await sleep(300);await page.type('#palInput','passport');await sleep(400);
+  const sr=await page.evaluate(()=>({groups:[...document.querySelectorAll('.pal-group')].map(g=>g.textContent),titles:[...document.querySelectorAll('.pal-item .pi-title')].map(x=>x.textContent),label:document.querySelector('.palette').getAttribute('aria-label')}));
+  check(sr.groups.some(g=>/^Tasks/.test(g))&&sr.titles.includes('Renew passport')&&sr.label==='Search','search finds tasks, in a TASKS section',sr);
+  await page.keyboard.press('Escape');await sleep(300);
   check(app.errors.length===0,'no page errors',app.errors);
  }finally{await app.close()}
 }

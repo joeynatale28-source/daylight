@@ -217,18 +217,21 @@
   typers.forEach(function (t) { if (reduce.matches) t.textContent = t.getAttribute('data-typ'); });
   if (fxs.length) {
     var anims = function (s) { return [].slice.call(s.querySelectorAll('.fxp *')).reduce(function (all, e) { return all.concat(e.getAnimations ? e.getAnimations() : []); }, []); };
-    if ('IntersectionObserver' in w) {
-      var fxio = new IntersectionObserver(function (es) {
-        es.forEach(function (e) {
-          var s = e.target;
-          if (e.intersectionRatio >= 0.3) {
-            if (!s.classList.contains('on')) anims(s).forEach(function (a) { try { a.currentTime = 0; } catch (x) {} });
-            s.classList.add('on');
-          } else if (!e.isIntersecting) s.classList.remove('on');
-        });
-      }, { threshold: [0, 0.3] });
-      fxs.forEach(function (s) { fxio.observe(s); });
-    } else fxs.forEach(function (s) { s.classList.add('on'); });
+    /* Visibility is measured on the panel itself (it always fits the window), by a light poll as well as scroll events, so a scene never waits on
+       an observer callback: it starts from its first frame as soon as a third of the panel is on screen, and pauses when it is off screen. */
+    var panelSeen = function (s) {
+      var p = s.querySelector('.fxp') || s, r = p.getBoundingClientRect(), vh = w.innerHeight || d.documentElement.clientHeight;
+      var vis = Math.min(r.bottom, vh) - Math.max(r.top, 0);
+      return r.height > 0 && vis / Math.min(r.height, vh) >= 0.35;
+    };
+    var fxCheck = function () {
+      fxs.forEach(function (s) {
+        var seen = panelSeen(s);
+        if (seen && !s.classList.contains('on')) { anims(s).forEach(function (a) { try { a.currentTime = 0; } catch (x) {} }); s.classList.add('on'); }
+        else if (!seen && s.classList.contains('on')) s.classList.remove('on');
+      });
+    };
+    fxCheck(); w.addEventListener('scroll', fxCheck, { passive: true }); w.addEventListener('resize', fxCheck); setInterval(fxCheck, 400);
   }
   /* AI access scene: a timer, not the animation clock, moves it along: Checking for ~2.6s, then the answer for ~2.6s, then around again.
      It starts from "Checking" each time the section comes into view and stops when it leaves. */
@@ -242,13 +245,11 @@
       aiT.push(setTimeout(aiRun, 5800));
     };
     if (reduce.matches) aiScene.classList.add('ans');
-    else if ('IntersectionObserver' in w) {
-      new IntersectionObserver(function (es) {
-        var e = es[0];
-        if (e.intersectionRatio >= 0.3 && !aiSec._aiOn) { aiSec._aiOn = true; aiRun(); }
-        else if (!e.isIntersecting && aiSec._aiOn) { aiSec._aiOn = false; aiStop(); aiScene.classList.remove('ans'); }
-      }, { threshold: [0, 0.3] }).observe(aiSec);
-    } else aiScene.classList.add('ans');
+    else setInterval(function () {
+      var on = aiSec.classList.contains('on');
+      if (on && !aiSec._aiOn) { aiSec._aiOn = true; aiRun(); }
+      else if (!on && aiSec._aiOn) { aiSec._aiOn = false; aiStop(); aiScene.classList.remove('ans'); }
+    }, 250);
   }
   /* typing is keystroke by keystroke, locked to the animation clock so it loops with the scene */
   if (typers.length && !reduce.matches) {

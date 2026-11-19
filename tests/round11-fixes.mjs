@@ -153,8 +153,8 @@ for(const theme of ['dark','light']){
   const ag=await page.evaluate(()=>({title:document.querySelector('#tbMonth').textContent,prev:document.querySelector('#tbPrev').getAttribute('aria-label'),end:(document.querySelector('.agenda-end')||{}).textContent,w:Math.round(document.querySelector('.agenda-inner').getBoundingClientRect().width)}));
   check(T('Agenda names its period, says "period" on its arrows and ends with a quiet line'),ag.title==='Dec 9–29, 2026'&&ag.prev==='Previous period'&&/^No more events in/.test(ag.end||''),J(ag));
   await page.evaluate(()=>{state.section='tasks';renderAll(false)});await sleep(700);
-  const col=await page.evaluate(()=>{const t=document.querySelector('.tasks-inner').getBoundingClientRect();return [Math.round(t.left),Math.round(t.width)]});
-  check(T('Agenda and Tasks share one content column'),col[1]===ag.w,J([col,ag.w]));
+  const col=await page.evaluate(()=>{const t=document.querySelector('.tasks-grid').getBoundingClientRect();return [Math.round(t.left),Math.round(t.width)]});
+  check(T('Tasks use the full width (wider than the Agenda column)'),col[1]>ag.w,J([col,ag.w]));
   await page.evaluate(()=>{state.section='calendar';state.view='month';state.cursor=new Date(2026,10,9);renderAll(false)});await sleep(700);
   const mo=await page.evaluate(()=>{const cell=[...document.querySelectorAll('.day-cell')].find(c=>c.querySelector('.chip')&&!c.matches(':last-child'));const ch=cell.querySelector('.chip'),cr=cell.getBoundingClientRect(),hr=ch.getBoundingClientRect();const today=document.querySelector('.day-cell.today');return {l:Math.round(hr.left-cr.left),r:Math.round(cr.right-hr.right),todayBg:getComputedStyle(today).backgroundColor,disc:getComputedStyle(today.querySelector('.day-num')).backgroundColor}});
   check(T('Month: chips span the cell with even insets (within 1px, border included)'),Math.abs(mo.l-mo.r)<=2,J(mo));

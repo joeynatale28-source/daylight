@@ -72,8 +72,8 @@ for(const theme of ['dark','light']){
   await page.click('.brand-home');await sleep(500);
   check(T('collapsed rail: the mark alone goes home'),await page.evaluate(()=>state.section==='calendar'&&window.__marker==='kept'));
   await page.evaluate(()=>{state.sidebarRail=false;renderAll(false)});await sleep(400);
-  const calendarKept=await page.evaluate(()=>{const t=document.querySelector('.month-title,#tbMonth').textContent;document.querySelector('.brand-home').click();return t===document.querySelector('#tbMonth').textContent});
-  check(T('already on the calendar, the logo changes nothing'),calendarKept);
+  const calendarKept=await page.evaluate(()=>{document.querySelector('.brand-home').click();return state.section==='calendar'&&sameDay(state.cursor,TODAY)});
+  check(T('already on the calendar, the logo jumps to today (home)'),calendarKept);
 
   // ================= Fix 5: today has ONE highlight
   await page.evaluate(()=>{state.view='month';state.cursor=new Date(TODAY);state.selected=new Date(TODAY);renderAll(false)});await sleep(600);

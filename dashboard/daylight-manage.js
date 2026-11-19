@@ -470,7 +470,7 @@
       function showResults(list, q) {
         results.innerHTML = "";
         results.hidden = false;
-        if (!list.length) { results.appendChild(make('<div class="dl-inv-none" role="status">No results found — check the spelling</div>')); return; }
+        if (!list.length) { results.appendChild(make('<div class="dl-inv-none" role="status">No people found</div>')); return; }
         list.forEach(function (p) {
           var rel = relation(p.user_id);
           var card = make('<button type="button" class="dl-person" role="option"' + (rel ? " disabled" : "") + '><span class="dl-person-text"><b></b><span class="sub"></span></span>' + (rel ? '<span class="dl-person-tag"></span>' : "") + "</button>");

@@ -232,13 +232,16 @@ export async function launch(opts={}){
  const page=await browser.newPage();
  await page.setViewport({width,height,deviceScaleFactor:1});
  await page.emulateMediaFeatures([{name:'prefers-color-scheme',value:theme}]);
- await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;if(!cfg.routing)window.__DL_NO_ROUTING=true;   // most tests drive sign-in / sign-out on one document; tests/routes.mjs turns real routing on
+ await page.evaluateOnNewDocument((cfg)=>{window.__HARNESS=cfg;try{if(!cfg.security)sessionStorage.setItem('daylight-sc-ok',String(Date.now()+864e5))}catch(e){}   // the security check counts as just passed, unless a test is about the check itself
+  if(!cfg.routing)window.__DL_NO_ROUTING=true;   // most tests drive sign-in / sign-out on one document; tests/routes.mjs turns real routing on
   if(cfg.signedIn&&cfg.seedSession!==false){try{localStorage.setItem('sb-usihrcucnreecynewgbd-auth-token',JSON.stringify({access_token:'t',refresh_token:'r',expires_at:Math.floor(Date.now()/1000)+3600,user:{id:'00000000-0000-4000-8000-000000000001',email:'demo@example.com',user_metadata:{full_name:'Calendar Demo',onboarded:true}}}))}catch(e){}}
- },{payload,delayMs,signedIn,seedSession:opts.seedSession,routing:!!opts.routing});
+ },{payload,delayMs,signedIn,seedSession:opts.seedSession,routing:!!opts.routing,security:!!opts.security});
  await page.setRequestInterception(true);
  page.on('request',r=>{
   const u=r.url();
   if(/cdn\.jsdelivr\.net\/npm\/@supabase/.test(u))return setTimeout(()=>r.respond({status:200,contentType:'text/javascript',body:STUB}),cdnDelayMs);
+  if(/challenges\.cloudflare\.com\/turnstile\/v0\/api\.js/.test(u))return r.respond({status:200,contentType:'text/javascript',body:opts.turnstileJs||''});
+  if(/turnstile-verify/.test(u)&&opts.verifyBody!==undefined)return r.respond({status:200,contentType:'application/json',headers:{'access-control-allow-origin':'*','access-control-allow-headers':'*','access-control-allow-methods':'POST, OPTIONS'},body:typeof opts.verifyBody==='function'?opts.verifyBody():opts.verifyBody});
   if(/supabase\.co/.test(u))return r.respond({status:200,contentType:'application/json',body:'{}'});
   r.continue();
  });

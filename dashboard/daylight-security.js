@@ -124,6 +124,7 @@
       var c = client(), button = this;
       if (!c || !email) { say("Sign in with an email address to change your password.", true); return; }
       button.disabled = true;
+      if (window.daylightTurnstile && !(await window.daylightTurnstile.check("change-password", { cancel: true }))) { button.disabled = false; return; }
       var result = await c.auth.resetPasswordForEmail(email, { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) });
       button.disabled = false;
       say(result.error ? "Couldn’t send the link: " + result.error.message : "Check " + email + " for a link to set a new password.", !!result.error);

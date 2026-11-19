@@ -592,6 +592,7 @@
       var button = this;
       if (!client || !email) { securityStatus.textContent = "Sign in with an email address to change your password."; securityStatus.classList.add("is-error"); return; }
       button.disabled = true;
+      if (window.daylightTurnstile && !(await window.daylightTurnstile.check("change-password", { cancel: true }))) { button.disabled = false; return; }
       var result = await client.auth.resetPasswordForEmail(email, { redirectTo: (window.daylightRoute ? window.daylightRoute.authReturn : location.origin + location.pathname) });
       button.disabled = false;
       securityStatus.classList.toggle("is-error", !!result.error);

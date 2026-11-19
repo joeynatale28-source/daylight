@@ -35,7 +35,7 @@
     "#dlPrint .pm-bar.cl{border-top-left-radius:0;border-bottom-left-radius:0}",
     "#dlPrint .pm-list{display:flex;flex-direction:column;gap:1px;padding:1px 2px;min-width:0}",
     "#dlPrint .pm-ev{font-size:10px;line-height:1.35;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;border-left:3px solid var(--c);padding-left:4px;color:#000}",
-    "#dlPrint .pm-ev b{font-weight:650;margin-right:4px}",
+    "#dlPrint .pm-ev b{font-weight:650;margin-right:0}",
     "#dlPrint .pm-more{font-size:9.5px;color:#555;padding-left:7px}"
   ].join("\n");
   document.head.appendChild(css);
@@ -105,7 +105,7 @@
         var rowPx = (186 * 3.7795 - 34 - 20 - 22) / weeks, cap = Math.max(1, Math.floor((rowPx - 22 - lanes.length * 15) / 13.5));
         var shown = list.length > cap ? list.slice(0, Math.max(0, cap - 1)) : list;
         html += '<div class="pm-list" style="grid-column:' + (ci + 1) + ";grid-row:" + listRow + '">' + shown.map(function (e) {
-          return '<div class="pm-ev" style="--c:' + esc(e.color) + '"><b>' + timeLabel(e.t) + "</b>" + esc(e.title) + "</div>";
+          return '<div class="pm-ev" style="--c:' + esc(e.color) + '"><b>' + timeLabel(e.t) + "</b> " + esc(e.title) + "</div>";
         }).join("") + (list.length > shown.length ? '<div class="pm-more">+' + (list.length - shown.length) + " more</div>" : "") + "</div>";
       });
       html += "</div></div>";

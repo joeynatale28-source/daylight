@@ -412,7 +412,7 @@
     async function reload() { people = await listEventPeople(ev); if (!view.isConnected) return; drawList(); if (people === null) say("Sharing isn\u2019t available right now.", "error"); syncSend(); placePopover(p); }
     function showResults(list) {
       results.innerHTML = ""; results.hidden = false;
-      if (!list.length) { results.appendChild(mk('<div class="dl-inv-none" role="status">No results found \u2014 check the spelling</div>')); return; }
+      if (!list.length) { results.appendChild(mk('<div class="dl-inv-none" role="status">No people found</div>')); return; }
       list.forEach(function (q) {
         var rel = relation(q.user_id);
         var card = mk('<button type="button" class="dl-person" role="option"' + (rel ? " disabled" : "") + '><span class="dl-person-text"><b></b><span class="sub"></span></span>' + (rel ? '<span class="dl-person-tag"></span>' : "") + "</button>");

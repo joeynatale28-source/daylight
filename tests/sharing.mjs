@@ -68,8 +68,8 @@ for(const theme of ['dark','light']){
   const cards=await page.evaluate(()=>[...document.querySelectorAll('.dl-person')].map(c=>({name:c.querySelector('b').textContent,bold:getComputedStyle(c.querySelector('b')).fontWeight,email:c.querySelector('.sub').textContent,emailColor:getComputedStyle(c.querySelector('.sub')).color,avatar:!!c.querySelector('.dl-person-avatar'),img:!!c.querySelector('.dl-person-avatar img')})));
   check(T('typing shows person cards: picture, name in bold, email in grey beneath; same names are told apart by email'),cards.length===2&&cards.every(c=>c.avatar&&Number(c.bold)>=600&&c.email.includes('@'))&&new Set(cards.map(c=>c.email)).size===2&&cards.some(c=>c.img),JSON.stringify(cards));
   await page.screenshot({path:path.join(out,`2-invite-typing-cards-${theme}.png`)});
-  await page.click('.dl-inv-input',{clickCount:3});await page.keyboard.type('zzzzq');await page.waitForFunction(()=>/No results found/.test((document.querySelector('.dl-inv-results')||{}).innerText||''),{timeout:3000});
-  check(T('no match: a plain "No results found — check the spelling" line, and nothing can be sent'),await page.evaluate(()=>document.querySelector('.dl-inv-results').innerText.trim()==='No results found — check the spelling'&&document.querySelector('[data-send]').disabled));
+  await page.click('.dl-inv-input',{clickCount:3});await page.keyboard.type('zzzzq');await page.waitForFunction(()=>/No people found/.test((document.querySelector('.dl-inv-results')||{}).innerText||''),{timeout:3000});
+  check(T('no match: a plain "No people found" line, and nothing can be sent'),await page.evaluate(()=>document.querySelector('.dl-inv-results').innerText.trim()==='No people found'&&document.querySelector('[data-send]').disabled));
   await page.screenshot({path:path.join(out,`3-invite-no-results-${theme}.png`)});
   await page.click('.dl-inv-input',{clickCount:3});await page.keyboard.type('sam');await page.waitForSelector('.dl-person');await sleep(350);
   await page.evaluate(()=>[...document.querySelectorAll('.dl-person')].find(c=>c.querySelector('b').textContent==='Sam Lee').click());await sleep(300);

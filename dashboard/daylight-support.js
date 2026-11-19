@@ -561,6 +561,7 @@
   function requestData() {
     var go = async function () {
       try {
+        if (window.daylightTurnstile && !(await window.daylightTurnstile.check("export-data", { cancel: true }))) return;
         var id = crypto.randomUUID();
         await rpc("support_ticket_create", { p_id: id, p_title: "Please send me a copy of my data", p_body: "", p_kind: "data", p_category: "data", p_atts: [] });
         openTicket(id, "home");
@@ -574,6 +575,7 @@
      Ticket details, the person's account, history, data, actions. Everything comes from THIS ticket's context (support_admin_context);
      it never shows calendars, events or tasks, never a password, and every action is confirmed first and logged. */
   async function invokeFn(name, body) {
+    if (window.daylightTurnstile && !(await window.daylightTurnstile.check("admin-" + (body && body.action || name), { cancel: true }))) throw new Error("Cancelled. Nothing was changed.");
     var c = cloud(), s = c.ensureSession ? await c.ensureSession() : null;
     var res = await c.client.functions.invoke(name, { body: body, headers: s && s.access_token ? { Authorization: "Bearer " + s.access_token } : undefined });
     if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }
@@ -802,6 +804,7 @@
       var go = async function () {
         btn.disabled = true; btn.textContent = "Preparing…";
         try {
+          if (window.daylightTurnstile && !(await window.daylightTurnstile.check("admin-give-data", { cancel: true }))) { btn.disabled = false; btn.textContent = "Give data"; return; }
           var c = cloud(), s = c.ensureSession ? await c.ensureSession() : null;
           var res = await c.client.functions.invoke("support", { body: { action: "give_data", ticket_id: t.id }, headers: s && s.access_token ? { Authorization: "Bearer " + s.access_token } : undefined });
           if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }
@@ -956,7 +959,7 @@
         box.appendChild(bub);
         box.appendChild(make('<div class="dl-msg-t">' + esc(timeOnly(m.created_at)) + "</div>"));
         var mrow = make('<div class="dl-mrow' + (me ? " me" : "") + (isNew ? " new" : "") + '"></div>');
-        mrow.appendChild(prev !== m.sender ? avatarFor(m.sender, t) : make('<span class="dl-mav sp" aria-hidden="true"></span>'));
+        mrow.appendChild(avatarFor(m.sender, t));
         mrow.appendChild(box);
         msgsHost.appendChild(mrow);
         prev = m.sender;
