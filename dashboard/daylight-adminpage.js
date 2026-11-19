@@ -31,9 +31,9 @@
   function adminPage() {
     var page = make('<div class="dl-page"><div class="dl-page-inner"><div class="dl-page-head"><h1 class="dl-page-title">Admin</h1></div></div></div>');
     var inner = page.querySelector(".dl-page-inner");
-    var tabs = make('<div class="dl-tabs" role="tablist" aria-label="Admin sections"><button type="button" role="tab" data-tab="notifications">Notifications</button><button type="button" role="tab" data-tab="banners">Banners</button><button type="button" role="tab" data-tab="maintenance">Maintenance</button></div>');
+    var tabs = make('<div class="dl-tabs" role="tablist" aria-label="Admin sections"><button type="button" role="tab" data-tab="notifications">Notifications</button><button type="button" role="tab" data-tab="banners">Banners</button><button type="button" role="tab" data-tab="maintenance">Maintenance</button><button type="button" role="tab" data-tab="users">Users</button></div>');
     inner.appendChild(tabs);
-    var panels = { notifications: make('<div data-panel="notifications"></div>'), banners: make('<div data-panel="banners" hidden></div>'), maintenance: make('<div data-panel="maintenance" hidden></div>') };
+    var panels = { notifications: make('<div data-panel="notifications"></div>'), banners: make('<div data-panel="banners" hidden></div>'), maintenance: make('<div data-panel="maintenance" hidden></div>'), users: make('<div data-panel="users" class="dl-um-host" hidden></div>') };
     /* daylight-admin.js builds four cards (send notification, banner, notifications sent, active banners): split them over the two tabs */
     var tmp = document.createElement("div");
     if (window.daylightAdminPane) {
@@ -49,6 +49,7 @@
     function show(name) {
       tabs.querySelectorAll("[data-tab]").forEach(function (b) { b.setAttribute("aria-selected", String(b.dataset.tab === name)); });
       Object.keys(panels).forEach(function (k) { panels[k].hidden = k !== name; });
+      if (name === "users" && window.daylightUsersPanel) window.daylightUsersPanel(panels.users);
       try { sessionStorage.setItem("daylight-admin-tab", name); } catch (e) {}
     }
     tabs.querySelectorAll("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.tab); }); });

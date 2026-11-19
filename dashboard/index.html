@@ -2,6 +2,8 @@
 <html lang="en" data-theme="dark">
   <head>
     <meta charset="utf-8" />
+    <script>/* /dashboard/tasks, /dashboard/support and /dashboard/admin are copies of this page one folder deeper: resolve every ./ and ../ path from /dashboard/ so they load the same files */
+    (function(){var m=location.pathname.match(/^(.*\/dashboard\/)/);if(m&&/^https?:/.test(location.protocol)){window.__DL_DASH=m[1];document.write('<base href="'+m[1]+'">')}})();</script>
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-dark-32.png" media="(prefers-color-scheme: dark)"><link rel="icon" type="image/png" sizes="32x32" href="../assets/favicon-light-32.png" media="(prefers-color-scheme: light)"><link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-dark-16.png" media="(prefers-color-scheme: dark)"><link rel="icon" type="image/png" sizes="16x16" href="../assets/favicon-light-16.png" media="(prefers-color-scheme: light)"><link rel="apple-touch-icon" sizes="180x180" href="../assets/apple-touch-icon.png"><meta name="theme-color" content="#121212" media="(prefers-color-scheme: dark)"><meta name="theme-color" content="#f6f5f1" media="(prefers-color-scheme: light)">
@@ -53,5 +55,6 @@
     <script src="./daylight-banners.js"></script>
     <script src="./daylight-danger.js?v=__BUILD_ID__"></script>
     <script src="./daylight-support.js?v=__BUILD_ID__"></script>
+    <script src="./daylight-routes.js?v=__BUILD_ID__"></script>
   </body>
 </html>

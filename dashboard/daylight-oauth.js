@@ -132,8 +132,8 @@ async function renderConsent(){
   }else avatarNode.textContent=profileName.charAt(0).toUpperCase();
   pane.querySelector("#dl-oauth-switch").onclick=async()=>{
     try{
-      await client().auth.signOut();
-      location.assign(new URL('../dashboard/?oauth_consent=1&authorization_id='+encodeURIComponent(id),location.href).href);
+      await client().auth.signOut({scope:"local"});
+      location.assign(new URL('?oauth_consent=1&authorization_id='+encodeURIComponent(id),(window.daylightRoute?window.daylightRoute.url('dashboard'):new URL('../dashboard/',location.href).href)).href);
     }catch(error){pane.querySelector('#dl-oauth-error').textContent=error.message||'Could not sign out'}
   };
   const read=pane.querySelector("#dl-can-read"),write=pane.querySelector("#dl-can-write"),del=pane.querySelector("#dl-can-delete");

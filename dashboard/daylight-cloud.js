@@ -703,7 +703,7 @@
     if (!client) { showSignedOut(); return; }
     try {
       if (user && !loading) await saveWorkspace();
-      var result = await client.auth.signOut();
+      var result = await client.auth.signOut({ scope: "local" }); /* local: a global sign-out would also end every connected assistant (MCP) session */
       if (result.error) throw result.error;
       showSignedOut();
     } catch (error) {
@@ -743,7 +743,7 @@
     }
     recovery = false;
     history.replaceState(null,'',location.pathname);
-    await client.auth.signOut();
+    await client.auth.signOut({ scope: "local" });
     showSignedOut();
     authState.justReset = true;
     renderAuth();

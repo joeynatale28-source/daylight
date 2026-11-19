@@ -1,0 +1,41 @@
+/** Dashboard routes: Calendar /dashboard/, Tasks /dashboard/tasks, Support Center /dashboard/support, Admin /dashboard/admin. Address updates, back/forward, direct open and refresh. */
+import fs from 'node:fs';
+import {launch} from './harness.mjs';
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+let bad=0;const check=(ok,m,x)=>{if(!ok)bad++;console.log((ok?'PASS ':'FAIL ')+m+(ok||x===undefined?'':' -> '+JSON.stringify(x).slice(0,300)))};
+const path=p=>p.evaluate(()=>location.pathname.replace(/^.*\/dashboard/,'/dashboard'));
+const which=p=>p.evaluate(()=>document.querySelector('.tasks-wrap')?'tasks':document.querySelector('.dl-sup')?'support':document.querySelector('.dl-tabs [data-tab=users]')?'admin':document.querySelector('.month-grid')?'calendar':'?');
+const app=await launch({routing:true});const {page}=app;
+try{
+ await app.load();await sleep(600);
+ check(await path(page)==='/dashboard/'&&await which(page)==='calendar','Calendar is /dashboard/');
+ await page.evaluate(()=>[...document.querySelectorAll('.side-row')].find(b=>b.title==='Tasks').click());await sleep(700);
+ check(await path(page)==='/dashboard/tasks'&&await which(page)==='tasks','clicking Tasks goes to /dashboard/tasks');
+ await page.goBack();await sleep(700);
+ check(await path(page)==='/dashboard/'&&await which(page)==='calendar','Back returns to the calendar');
+ await page.goForward();await sleep(700);
+ check(await path(page)==='/dashboard/tasks'&&await which(page)==='tasks','Forward returns to Tasks');
+ await page.evaluate(()=>window.daylightSupport.open());await sleep(700);
+ check(await path(page)==='/dashboard/support'&&await which(page)==='support','the Support Center is /dashboard/support');
+ await page.evaluate(()=>{window.daylightAdmin=window.daylightAdmin||{};window.daylightAdmin.isOwner=()=>true;state.section='admin';renderAll(true,1)});await sleep(700);
+ check(await path(page)==='/dashboard/admin'&&await which(page)==='admin','Admin is /dashboard/admin (owner)');
+ await page.goBack();await sleep(700);
+ check(await path(page)==='/dashboard/support'&&await which(page)==='support','Back from Admin returns to the Support Center');
+ await page.reload({waitUntil:'load'});await app.ready().catch(()=>{});await sleep(1200);
+ check(await path(page)==='/dashboard/support'&&await which(page)==='support','refreshing /dashboard/support stays on the Support Center');
+ const base=app.url;
+ await page.goto(base+'tasks/',{waitUntil:'load'});await sleep(2500);
+ check(await path(page)==='/dashboard/tasks'&&await which(page)==='tasks','opening /dashboard/tasks directly lands on Tasks (and drops the trailing slash)');
+ await page.goto(base+'support/',{waitUntil:'load'});await sleep(2500);
+ check(await path(page)==='/dashboard/support'&&await which(page)==='support','opening /dashboard/support directly lands on the Support Center');
+ await page.goto(base+'admin/',{waitUntil:'load'});await sleep(8000);
+ check(await path(page)==='/dashboard/'&&await which(page)==='calendar','a non-admin opening /dashboard/admin lands on the calendar, with no Admin page');
+ await page.goto(base,{waitUntil:'load'});await sleep(1500);
+ check(await page.evaluate(()=>!!document.querySelector('link[href*="app.css"]')&&document.styleSheets.length>0)&&await which(page)==='calendar','the calendar still loads its files');
+ const errs=app.errors.filter(e=>!/reading 'status'/.test(e));check(errs.length===0,'no page errors',errs);
+}finally{await app.close()}
+const priv=fs.readFileSync(new URL('../privacy/index.html',import.meta.url),'utf8'),tos=fs.readFileSync(new URL('../tos/index.html',import.meta.url),'utf8');
+check(/dashboard\/support"/.test(priv)&&!/dashboard\/\?support=1/.test(priv+tos),'the Privacy Policy links to /dashboard/support');
+const wf=fs.readFileSync(new URL('../.github/workflows/deploy-pages.yml',import.meta.url),'utf8');
+check(/for r in tasks support admin/.test(wf),'the deploy publishes the app page at /dashboard/tasks, /support and /admin');
+console.log(bad?'FAILURES '+bad:'ALL OK');process.exit(bad?1:0);

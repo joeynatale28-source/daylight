@@ -412,6 +412,8 @@
       if (initial === true) {
         pane.classList.remove("pane-in"); void pane.offsetWidth; pane.classList.add("pane-in");
         goTo(settingsState.section in secEls ? settingsState.section : "profile", false);
+        /* Settings always opens at the very top of Profile: nothing restores an earlier scroll position, and late layout cannot move it */
+        if (settingsState.section === "profile") { var top0 = function () { if (pane.isConnected && !pane._userScrolled) pane.scrollTop = 0; }; top0(); requestAnimationFrame(top0); setTimeout(top0, 120); setTimeout(top0, 400); pane.addEventListener("wheel", function () { pane._userScrolled = true; }, { once: true, passive: true }); pane.addEventListener("touchstart", function () { pane._userScrolled = true; }, { once: true, passive: true }); pane.addEventListener("keydown", function () { pane._userScrolled = true; }, { once: true }); }
       } else pane.scrollTop = keep;
     }
     drawPane(true);

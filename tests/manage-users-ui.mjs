@@ -33,15 +33,16 @@ for(const [theme,w,h] of [['light',1440,900],['dark',1440,900],['light',390,844]
   await page.evaluate(setup,false);
   await page.evaluate(()=>{state.section='support';renderAll(false)});await sleep(700);
   check(await page.evaluate(()=>!document.body.innerText.includes('Manage users')&&!document.querySelector('.dl-um-btn')),`${tag}: a regular user never sees Manage users`);
+  await page.evaluate(()=>{state.section='admin';renderAll(false)});await sleep(500);
+  check(await page.evaluate(()=>!document.querySelector('[data-tab=users]')&&state.section!=='admin'),`${tag}: a regular user never gets the Admin page or its Users tab`);
   // owner
   await page.evaluate(setup,true);
   await page.evaluate(()=>{state.section='support';renderAll(false)});await sleep(800);
-  const pos=await page.evaluate(()=>{const o=document.querySelector('.dl-sup-open:not(.dl-um-btn)'),m=document.querySelector('.dl-um-btn');return o&&m&&{open:o.textContent.replace(/\s+/g,' ').trim(),manage:m.textContent.trim(),below:m.getBoundingClientRect().top>=o.getBoundingClientRect().bottom-1}});
-  check(pos&&/Open tickets/.test(pos.open)&&pos.manage==='Manage users'&&pos.below,`${tag}: Manage users sits under Open tickets for the owner`,pos);
+  check(await page.evaluate(()=>!document.body.innerText.includes('Manage users')&&!document.querySelector('.dl-um-btn')&&/Open tickets/.test(document.querySelector('.dl-sup-open').textContent)),`${tag}: the Support Center has no Manage users button (owner too)`);
   if(SHOTS)await page.screenshot({path:`${SHOTS}/mu-home-${theme}-${w}.png`});
-  await page.click('.dl-um-btn');await page.waitForSelector('.dl-um-stats',{timeout:5000});await sleep(900);
-  await sleep(500);const lv=await page.evaluate(()=>({h:document.querySelector('.dl-sup-hello').textContent,stats:[...document.querySelectorAll('.dl-um-stat')].map(s=>s.innerText.replace(/\s+/g,' ').trim()),rows:document.querySelectorAll('.dl-um-row').length,first:document.querySelector('.dl-um-row').innerText.replace(/\s+/g,' '),pg:document.querySelector('.dl-um-pg span').textContent,back:document.querySelector('.dl-sup-back').textContent.trim()}));
-  check(lv.h==='Manage users'&&lv.stats.join('|')==='30 Total users|28 Active|1 Suspended|1 Banned'&&lv.back==='Support Center','list: title, summary strip (total / active / suspended / banned), back to Support Center',lv);
+  await page.evaluate(()=>{state.section='admin';renderAll(false)});await sleep(500);check(await page.evaluate(()=>[...document.querySelectorAll('.dl-tabs [data-tab]')].map(b=>b.textContent).join('|')==='Notifications|Banners|Maintenance|Users'),`${tag}: Admin tabs end with Users`);await page.click('[data-tab=users]');await page.waitForSelector('.dl-um-stats',{timeout:5000});await sleep(900);
+  await sleep(500);const lv=await page.evaluate(()=>({h:document.querySelector('.dl-um-host .dl-ad-lead')?'Manage users':'',stats:[...document.querySelectorAll('.dl-um-stat')].map(s=>s.innerText.replace(/\s+/g,' ').trim()),rows:document.querySelectorAll('.dl-um-row').length,first:document.querySelector('.dl-um-row').innerText.replace(/\s+/g,' '),pg:document.querySelector('.dl-um-pg span').textContent,back:'Support Center'}));
+  check(lv.h==='Manage users'&&lv.stats.join('|')==='30 Total users|28 Active|1 Suspended|1 Banned'&&lv.back==='Support Center','list: title, summary strip (total / active / suspended / banned), on the Admin Users tab',lv);
   check(lv.rows===25&&/Zed Quillfeather/.test(lv.first)&&/zed@example\.com/.test(lv.first)&&/@zedq/.test(lv.first)&&/Active/.test(lv.first)&&/Joined/.test(lv.first)&&/Active /.test(lv.first)&&/Showing 1–25 of 30/.test(lv.pg),'list: full e-mail, username, status badge, joined and last active; 25 per page',lv);
   if(SHOTS)await page.screenshot({path:`${SHOTS}/mu-list-${theme}-${w}.png`});
   // pagination
@@ -61,13 +62,13 @@ for(const [theme,w,h] of [['light',1440,900],['dark',1440,900],['light',390,844]
   // detail
   await page.click('.dl-um-row');await page.waitForSelector('.dl-um-grid',{timeout:5000});await sleep(700);
   const dv=await page.evaluate(()=>({h:document.querySelector('.dl-um-head h1').textContent,sub:document.querySelector('.dl-um-head .dl-sup-sub').textContent,meta:document.querySelector('.dl-um-meta').innerText.replace(/\s+/g,' '),cards:[...document.querySelectorAll('.dl-um-card h2')].map(h=>h.textContent),chips:[...document.querySelectorAll('.dl-um-chip')].map(c=>c.textContent),acct:document.querySelector('.dl-um-kv').innerText.replace(/\s+/g,' '),btns:[...document.querySelectorAll('.dl-um-actions button')].map(b=>b.textContent),back:document.querySelector('.dl-sup-back').textContent.trim(),text:document.querySelector('.dl-um-detail').innerText}));
-  check(dv.h==='Zed Quillfeather'&&dv.sub==='zed@example.com'&&/Active/.test(dv.meta)&&/Member since/.test(dv.meta)&&/Last active/.test(dv.meta)&&dv.cards.join('|')==='Account|Calendars|Tickets|History|Actions'&&dv.back==='Users','detail: header (name, full e-mail, status, member since, last active) and the five sections',dv);
+  check(dv.h==='Zed Quillfeather'&&dv.sub==='zed@example.com'&&/Active/.test(dv.meta)&&/Member since/.test(dv.meta)&&/Last active [A-Z0-9]/.test(dv.meta)&&dv.cards.join('|')==='Account|Calendars|Tickets|History|Actions'&&dv.back==='Users','detail: header (name, full e-mail, status, member since, last active) and the five sections',dv);
   check(/Email, Google/.test(dv.acct)&&dv.chips.join('|')==='Garden club|Night shifts'&&!/SECRET/.test(dv.text),'detail: sign-in types, calendar names only',dv);
   check(dv.btns.join('|')==='Warn|Suspend|Ban','detail: Warn, Suspend and Ban',dv.btns);
   if(SHOTS)await page.screenshot({path:`${SHOTS}/mu-detail-${theme}-${w}.png`});
   // ticket link
   await page.click('.dl-adm-tk');await sleep(600);
-  check(await page.evaluate(()=>/Users/.test(document.querySelector('.dl-sup-back').textContent)),'detail: a ticket opens, and back returns to the person');
+  check(await page.evaluate(()=>/Back to user/.test(document.querySelector('.dl-sup-back').textContent)),'detail: a ticket opens, with a way back to the person');
   await page.evaluate(()=>[...document.querySelectorAll('.dl-sup-back')][0].click());await sleep(700);
   // warn
   await page.evaluate(()=>[...document.querySelectorAll('.dl-um-actions button')].find(b=>b.textContent==='Warn').click());await sleep(400);
@@ -91,7 +92,7 @@ for(const [theme,w,h] of [['light',1440,900],['dark',1440,900],['light',390,844]
   // back to the list keeps working and shows the new summary
   await page.evaluate(()=>document.querySelector('.dl-sup-back').click());await sleep(900);
   check(await page.evaluate(()=>document.querySelector('.dl-um-stat[data-k=banned] b').textContent==='2'),'back to the list: the summary reflects the ban');
-  if(w<500)check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.querySelector('.dl-sup').scrollWidth<=document.querySelector('.dl-sup').clientWidth+1),'phone: nothing scrolls sideways');
+  if(w<500)check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1&&document.querySelector('.dl-page').scrollWidth<=document.querySelector('.dl-page').clientWidth+1),'phone: nothing scrolls sideways');
   {const errs=app.errors.filter(e=>!/reading 'status'/.test(e));check(errs.length===0,`${tag}: no page errors (the ticket chat itself has no stub in this test)`,errs)}
  }catch(e){bad++;console.log('FAIL exception: '+String(e.message).slice(0,240))}finally{await app.close()}
 }

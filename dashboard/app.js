@@ -2341,7 +2341,11 @@
         var grid = el('<div class="tasks-grid"></div>');
         var inner = el('<div class="tasks-inner"></div>');
         var side = el('<aside class="tasks-side" aria-label="Task summary"></aside>');
-        grid.appendChild(inner); grid.appendChild(side); wrap.appendChild(grid);
+        /* the Overview panel only exists while there is at least one task; the first task animates it in */
+        var hasTasks = state.tasks.length > 0;
+        grid.appendChild(inner); wrap.appendChild(grid);
+        if (hasTasks) { grid.appendChild(side); if (renderTasks.had === false && !state.reduceMotion && !reduceMotionMQ.matches) side.classList.add("is-new"); } else grid.classList.add("no-side");
+        renderTasks.had = hasTasks;
         var activeCount = state.tasks.filter(function (t) { return !t.done; }).length;
         var doneCount = state.tasks.length - activeCount;
         var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div>' +

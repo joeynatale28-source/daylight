@@ -31,6 +31,8 @@ export function serve(port=0,prefix=''){
     file=file.slice(prefix.length-1)||'/';
    }
    if(file.endsWith('/'))file+='index.html';
+   file=file.replace(/^\/dashboard\/(tasks|support|admin)\/index\.html$/,'/dashboard/index.html');   // the deploy copies the app page into these folders
+   if(/^\/dashboard\/(tasks|support|admin)$/.test(file)&&!prefix)file+='/../index.html';
    let full=path.join(ROOT,file);
    if(prefix&&!path.extname(file)&&fs.existsSync(path.join(ROOT,file,'index.html'))){res.writeHead(301,{Location:u.pathname+'/'+u.search});res.end();return}
    if(!full.startsWith(ROOT)||!fs.existsSync(full)||fs.statSync(full).isDirectory()){

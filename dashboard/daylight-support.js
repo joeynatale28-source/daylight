@@ -37,7 +37,7 @@
     ".dl-sup-hello{font-size:30px;font-weight:650;letter-spacing:-.03em;line-height:1.15;margin:0}",
     ".dl-sup-sub{margin:8px 0 0;font-size:16px;color:var(--muted)}",
     ".dl-sup-head>div:first-child{flex:1;min-width:0}",
-    ".dl-sup-admbtns{display:flex;flex-direction:column;align-items:stretch;gap:8px;flex:none}.dl-sup-admbtns .dl-sup-open{justify-content:flex-start;min-width:212px}.dl-sup-admbtns .dl-sup-open>svg:last-child{margin-left:auto;margin-right:4px}.dl-sup-admbtns .dl-sup-open>b{margin-left:2px}.dl-um-btn>svg:first-child{flex:none}",
+    ".dl-sup-admbtns{display:flex;flex-direction:column;align-items:stretch;gap:8px;flex:none}.dl-sup-admbtns .dl-sup-open{justify-content:flex-start;min-width:212px}.dl-sup-admbtns .dl-sup-open>svg:last-child{margin-left:auto;margin-right:4px}.dl-sup-admbtns .dl-sup-open>b{margin-left:2px}.dl-um-btn>svg:first-child{flex:none}.dl-um-host{padding-bottom:8px}.dl-um-host .dl-sup-back{margin-top:0}",
     ".dl-um-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 22px}",
     ".dl-um-stat{border:1px solid var(--line-soft);background:var(--surface2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:3px}.dl-um-stat b{font-size:26px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}.dl-um-stat span{font-size:12.5px;color:var(--muted)}",
     ".dl-um-stat[data-k=suspended] b{color:#b7791f}.dl-um-stat[data-k=banned] b{color:var(--danger)}",
@@ -404,10 +404,7 @@
     if (isOwner()) {
       var ob = make('<button type="button" class="dl-sup-open">' + ico("inbox", 17) + '<span>Open tickets</span><b>–</b>' + ico("chev", 15) + '</button>');
       ob.addEventListener("click", function () { show("admin", { adminTab: "open" }); });
-      var mu = make('<button type="button" class="dl-sup-open dl-um-btn">' + ico("users", 17) + '<span>Manage users</span>' + ico("chev", 15) + '</button>');
-      mu.addEventListener("click", function () { ST.usersQ = ""; ST.usersOff = 0; show("users"); });
-      var adm = make('<div class="dl-sup-admbtns"></div>'); adm.appendChild(ob); adm.appendChild(mu);
-      head.appendChild(adm);
+      head.appendChild(ob);
       rpc("support_admin_list", { p_status: "open" }).then(function (r) { ob.querySelector("b").textContent = String((r || []).length); }).catch(function () { ob.querySelector("b").textContent = "0"; });
     }
     var cta = make('<div class="dl-sup-cta"><button type="button" class="btn-primary" data-new>' + ico("plus", 16) + 'Create new ticket</button><button type="button" class="btn-ghost" data-data>Request your data</button></div>');
@@ -796,11 +793,19 @@
   function avatarOf(u, big) { var a = make('<span class="dl-sup-av' + (big ? " dl-um-avbig" : "") + '" aria-hidden="true"></span>'); a.textContent = String(nameOf(u)).trim().split(/\s+/).map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase() || "?"; return a; }
   function lastActive(iso) { return iso ? ago(iso) : "Never"; }
 
+  /* the Users tab on the Admin page hosts these views; umShow switches between the list and one person */
+  var UM = { host: null };
+  function umRender() {
+    var h = UM.host; if (!h) return;
+    h.innerHTML = "";
+    if (!isOwner()) return;
+    if (ST.usersMode === "user" && ST.userId) userView(h); else usersView(h);
+  }
+  function umShow(mode, extra) { ST.usersMode = mode; if (extra) Object.assign(ST, extra); stopTimer(); umRender(); }
+  window.daylightUsersPanel = function (host) { UM.host = host; umRender(); };
+
   function usersView(inner) {
-    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + "Support Center</button>");
-    back.addEventListener("click", function () { show("home"); });
-    inner.appendChild(back);
-    inner.appendChild(make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello">Manage users</h1><p class="dl-sup-sub">Everyone with a Daylight account, newest first.</p></div></div>'));
+    inner.appendChild(make('<p class="dl-ad-lead">Everyone with a Daylight account, newest first. Open a person to see their details and take action.</p>'));
     var strip = make('<div class="dl-um-stats" aria-label="User summary"></div>');
     [["total", "Total users"], ["active", "Active"], ["suspended", "Suspended"], ["banned", "Banned"]].forEach(function (s) { strip.appendChild(make('<div class="dl-um-stat" data-k="' + s[0] + '"><b>–</b><span>' + s[1] + "</span></div>")); });
     inner.appendChild(strip);
@@ -829,10 +834,10 @@
           text.querySelector(".dl-sup-who").textContent = nameOf(u); text.querySelector(".dl-sup-pv").textContent = u.email + (u.username ? " · @" + u.username : "");
           row.appendChild(text);
           var side = make('<span class="dl-sup-side dl-um-side"><span class="dl-um-dates"><span class="dl-sup-date"></span><span class="dl-um-la"></span></span></span>');
-          side.querySelector(".dl-sup-date").textContent = "Joined " + fullDate(u.created_at); side.querySelector(".dl-um-la").textContent = "Active " + lastActive(u.last_sign_in_at).toLowerCase();
+          side.querySelector(".dl-sup-date").textContent = "Joined " + fullDate(u.created_at); side.querySelector(".dl-um-la").textContent = "Active " + lastActive(u.last_sign_in_at);
           side.insertBefore(statusPill(u.status), side.firstChild);
           row.appendChild(side); row.appendChild(make(ico("chev", 16)));
-          row.addEventListener("click", function () { show("user", { userId: u.id }); });
+          row.addEventListener("click", function () { umShow("user", { userId: u.id }); });
           card.appendChild(row);
         });
         box.appendChild(card);
@@ -846,13 +851,17 @@
         box.appendChild(pg);
       }).catch(function () { if (mine === seq) box.innerHTML = '<div class="dl-sup-card"><div class="dl-sup-empty">Couldn’t load the users.</div></div>'; });
     }
-    q.addEventListener("input", function () { ST.usersQ = q.value; ST.usersOff = 0; clearTimeout(timer); timer = setTimeout(load, 180); });
+    var lastTerm = q.value.trim();
+    function live() { var t = q.value.trim(); if (t === lastTerm) return; lastTerm = t; ST.usersQ = q.value; ST.usersOff = 0; clearTimeout(timer); timer = setTimeout(load, 120); }
+    /* filters as you type: no Enter needed (input, plus key/search/change events for browsers that only report some of them) */
+    ["input", "keyup", "search", "change"].forEach(function (ev) { q.addEventListener(ev, live); });
+    q.addEventListener("keydown", function (e) { if (e.key === "Enter") e.preventDefault(); });
     load();
   }
 
   function userView(inner) {
     var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + "Users</button>");
-    back.addEventListener("click", function () { show("users"); });
+    back.addEventListener("click", function () { umShow("users"); });
     inner.appendChild(back);
     var host = make('<div class="dl-um-detail"><div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div></div>'); inner.appendChild(host);
     var id = ST.userId;
@@ -870,7 +879,7 @@
       hd.querySelector("h1").textContent = nameOf(u); hd.querySelector(".dl-sup-sub").textContent = u.email;
       var meta = hd.querySelector(".dl-um-meta"); meta.appendChild(statusPill(u.status));
       var m1 = make("<span></span>"); m1.textContent = "Member since " + fullDate(u.created_at); meta.appendChild(m1);
-      var m2 = make("<span></span>"); m2.textContent = "Last active " + lastActive(u.last_sign_in_at).toLowerCase(); meta.appendChild(m2);
+      var m2 = make("<span></span>"); m2.textContent = "Last active " + lastActive(u.last_sign_in_at); meta.appendChild(m2);
       host.appendChild(hd);
       if (u.restriction) {
         var rs = make('<div class="dl-um-restr"></div>');
@@ -954,8 +963,11 @@
   /* ------------------------------------------------------------------ chat */
   function chatView(inner, wrap) {
     var token = ++ST.token, data = null, pending = [], sending = false, lastSig = "";
-    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Tickets" : ST.from === "user" ? "Users" : "Support Center") + "</button>");
-    back.addEventListener("click", function () { show(ST.from === "user" && isOwner() ? "user" : ST.from === "admin" && isOwner() ? "admin" : "home"); });
+    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Tickets" : ST.from === "user" ? "Back to user" : "Support Center") + "</button>");
+    back.addEventListener("click", function () {
+      if (ST.from === "user" && isOwner()) { ST.usersMode = "user"; try { sessionStorage.setItem("daylight-admin-tab", "users"); } catch (e) {} state.section = "admin"; stopTimer(); renderAll(true, 1); return; }
+      show(ST.from === "admin" && isOwner() ? "admin" : "home");
+    });
     inner.appendChild(back);
     var headHost = make("<div></div>"), msgsHost = make('<div class="dl-msgs" role="log" aria-live="polite"></div>'), compHost = make("<div></div>");
     var split = make('<div class="dl-split"><div class="dl-split-l"></div></div>'), leftCol = split.firstChild, side = null;

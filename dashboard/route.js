@@ -8,12 +8,13 @@
 (function () {
   "use strict";
   var route = window.__DL_ROUTE || "dashboard";
-  var here = new URL(".", location.href);
+  var here = new URL(".", document.baseURI);   /* the page's <base> is /dashboard/ even on /dashboard/tasks */
   var siteRoot = new URL("../", here).href;
   function pageUrl(name) { return siteRoot + name + "/"; }
   function carry() {
     var s = new URLSearchParams(location.search), keep = new URLSearchParams();
     ["oauth_consent", "authorization_id", "settings", "support"].forEach(function (k) { if (s.has(k)) keep.set(k, s.get(k)); });
+    if (/\/dashboard\/support\/?$/.test(location.pathname)) keep.set("support", "1");   /* a signed-out visit to /dashboard/support comes back to it after signing in */
     var q = keep.toString();
     return q ? "?" + q : "";
   }
