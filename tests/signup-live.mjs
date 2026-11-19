@@ -36,6 +36,8 @@ try{
   await page.evaluate(()=>window.daylightSupport.open());await sleep(1500);
   check(await page.evaluate(()=>!!document.querySelector('.dl-sup')&&!/undefined|\[object|NaN/.test(document.querySelector('.dl-sup').innerText)),`${tag}: Support Center opens cleanly`);
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${tag}: nothing scrolls sideways`);
+  if(tag==='phone'){await page.evaluate(()=>[...document.querySelectorAll('.side-row')].find(b=>b.title==='Tasks')?.click()).catch(()=>{});await page.evaluate(()=>{state.section='tasks';renderAll(false)});await page.evaluate(()=>{state.tasks.push(mkTask('Neutral check',state.calendars[0].id,sod(TODAY),false,false,''));refreshTasks(false)});await sleep(500);
+  {const t=await page.evaluate(()=>{const r=document.querySelector('.task-row'),c=getComputedStyle(r);return {left:c.borderLeftWidth,same:c.borderLeftColor===c.borderTopColor,tag:!!r.querySelector('.tm-cal'),side:!!document.querySelector('.tasks-side')}});check(t.left==='1px'&&t.same&&t.tag&&t.side,`${tag}: live: a task row is neutral (no calendar tint), keeps its calendar tag, and the Overview panel appears`,t)}}
   check(errs.length===0,`${tag}: no console or page errors`,errs);
   await page.close();
  }
