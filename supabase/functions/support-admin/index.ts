@@ -2,9 +2,11 @@
 // (the caller can never name an arbitrary account), and every action is written to support_admin_actions with who, what, when and the reason.
 //   reset_password   { ticket_id }                     sends the existing password-reset e-mail to the person (the admin never sees or sets a password)
 //   change_email     { ticket_id, new_email }          starts GoTrue's own e-mail change: a confirmation goes to the NEW address, the change only takes effect when they confirm
+//   (suspend, ban, lift and warn may name { user_id } instead of a ticket: the Manage users page. The account is still looked up server side and owners stay protected.)
 //   suspend          { ticket_id, duration, reason }   duration: 1d | 7d | 30d | until_lifted. Limits the account to the Support Center and Settings; ends by itself at expiry
 //   ban              { ticket_id, reason }             same limits, with no end date, until an admin lifts it
 //   lift             { ticket_id, reason? }            lifts an active suspension or ban
+//   warn             { ticket_id | user_id, reason, message }  an in-app warning from Daylight Support with the reason; the person can appeal by opening a Support ticket
 //   private_message  { ticket_id, text }               an in-app notification from Daylight Support, separate from the ticket thread
 // The caller must be the owner (daylight_is_owner() is asked with the caller's own token) or hold the project's service role key (tests).
 import { createClient } from "npm:@supabase/supabase-js@2";
@@ -46,8 +48,14 @@ Deno.serve(async (req) => {
   let b: any = {};
   try { b = await req.json(); } catch { /* empty */ }
   const action = String(b.action ?? "");
-  const { data: t } = await sb.from("support_tickets").select("id,user_id,user_email,title").eq("id", b.ticket_id ?? "").maybeSingle();
-  if (!t) return json({ error: "That ticket was not found." }, 404);
+  let t: { id: string | null; user_id: string; user_email: string; title: string } | null = null;
+  if (b.ticket_id) {
+    const { data } = await sb.from("support_tickets").select("id,user_id,user_email,title").eq("id", b.ticket_id).maybeSingle();
+    t = data;
+    if (!t) return json({ error: "That ticket was not found." }, 404);
+  } else if (typeof b.user_id === "string" && /^[0-9a-f-]{36}$/i.test(b.user_id) && ["suspend", "ban", "lift", "warn"].includes(action)) {
+    t = { id: null, user_id: b.user_id, user_email: "", title: "" };
+  } else return json({ error: "That ticket was not found." }, 404);
   const uid: string = t.user_id;
   const { data: ur, error: ue } = await sb.auth.admin.getUserById(uid);
   if (ue || !ur?.user) return json({ error: "That account no longer exists." }, 404);
@@ -111,6 +119,20 @@ Deno.serve(async (req) => {
       if (error) throw new Error(error.message);
       await sb.from("account_restrictions").update({ lifted_at: new Date().toISOString(), lifted_by: admin.id }).eq("user_id", uid).is("lifted_at", null);
       await log("lift", reason, {});
+      return json({ ok: true });
+    }
+
+    if (action === "warn") {
+      if (protectedAccount) return json({ error: "Owner accounts can’t be warned from here." }, 403);
+      const msg = String(b.message ?? "").trim();
+      if (reason.length < 3) return json({ error: "Type a reason (the person is shown it)." }, 400);
+      if (msg.length > 800) return json({ error: "Keep the message under 800 characters." }, 400);
+      const text = "Reason: " + reason.slice(0, 500) + (msg ? "\n\n" + msg : "") + "\n\nIf you think this is a mistake, you can appeal by opening a Support ticket (Support Center → Create new ticket).";
+      const { data: bc, error } = await sb.from("daylight_broadcasts").insert({ title: "A warning from Daylight Support", body: text, sender: "support", audience: "specific", created_by: admin.id }).select("id").single();
+      if (error || !bc) throw new Error(error?.message ?? "could not send");
+      const { error: e2 } = await sb.from("daylight_broadcast_recipients").insert({ broadcast_id: bc.id, user_id: uid });
+      if (e2) throw new Error(e2.message);
+      await log("warn", reason, { message: msg.slice(0, 800) });
       return json({ ok: true });
     }
 

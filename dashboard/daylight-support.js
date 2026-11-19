@@ -19,7 +19,7 @@
   }
   function errText(e, fb) { var m = String((e && e.message) || "").replace(/^error:\s*/i, ""); return m && m.length < 160 ? m : fb; }
   var IC = {
-    back: '<path d="m15 18-6-6 6-6"/>', plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>', send: '<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/>',
+    back: '<path d="m15 18-6-6 6-6"/>', users: '<circle cx="9" cy="8" r="3.4"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 4.6a3.4 3.4 0 0 1 0 6.4"/><path d="M18 14.2A6.5 6.5 0 0 1 21.5 20"/>', plus: '<path d="M12 5v14M5 12h14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>', send: '<path d="M22 2 11 13"/><path d="m22 2-7 20-4-9-9-4Z"/>',
     image: '<rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="9" cy="9" r="1.6"/><path d="m21 15-4.5-4.5L8 19"/>', chev: '<path d="m9 6 6 6-6 6"/>',
     file: '<path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8Z"/><path d="M14 3v5h5"/>', dl: '<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5"/><path d="M12 15V3"/>',
     buoy: '<circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="3.5"/><path d="m5.6 5.6 3.9 3.9M14.5 14.5l3.9 3.9M18.4 5.6l-3.9 3.9M9.5 14.5l-3.9 3.9"/>',
@@ -37,6 +37,25 @@
     ".dl-sup-hello{font-size:30px;font-weight:650;letter-spacing:-.03em;line-height:1.15;margin:0}",
     ".dl-sup-sub{margin:8px 0 0;font-size:16px;color:var(--muted)}",
     ".dl-sup-head>div:first-child{flex:1;min-width:0}",
+    ".dl-sup-admbtns{display:flex;flex-direction:column;align-items:stretch;gap:8px;flex:none}.dl-sup-admbtns .dl-sup-open{justify-content:flex-start;min-width:212px}.dl-sup-admbtns .dl-sup-open>svg:last-child{margin-left:auto;margin-right:4px}.dl-sup-admbtns .dl-sup-open>b{margin-left:2px}.dl-um-btn>svg:first-child{flex:none}",
+    ".dl-um-stats{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:0 0 22px}",
+    ".dl-um-stat{border:1px solid var(--line-soft);background:var(--surface2);border-radius:16px;padding:14px 16px;display:flex;flex-direction:column;gap:3px}.dl-um-stat b{font-size:26px;font-weight:650;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1.1}.dl-um-stat span{font-size:12.5px;color:var(--muted)}",
+    ".dl-um-stat[data-k=suspended] b{color:#b7791f}.dl-um-stat[data-k=banned] b{color:var(--danger)}",
+    ".dl-um-row{display:grid;grid-template-columns:40px minmax(0,1fr) 112px 150px 16px;align-items:center;column-gap:14px;padding:14px 18px}",
+    ".dl-um-row .dl-sup-av{width:40px;height:40px;margin:0}.dl-um-row .dl-sup-rt{min-width:0}.dl-um-row .dl-sup-who,.dl-um-row .dl-sup-pv{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.dl-um-row .dl-sup-pv{margin-top:2px}",
+    ".dl-um-row .dl-um-side{display:contents}.dl-um-row .dl-um-st{justify-self:center;margin:0;min-width:88px;box-sizing:border-box;text-align:center}.dl-um-row .dl-sup-who{font-size:14.5px;font-weight:600;color:var(--text)}.dl-um-row .dl-sup-pv{font-size:13px;color:var(--muted)}",
+    ".dl-um-dates{display:flex;flex-direction:column;align-items:flex-end;gap:2px;text-align:right}.dl-um-dates .dl-sup-date{font-size:12.5px;color:var(--muted)}.dl-um-la{font-size:11.5px;color:var(--faint)}.dl-um-row>svg{justify-self:end;color:var(--faint)}",
+    ".dl-um-st.active{color:#1e8e5a;border-color:color-mix(in srgb,#1e8e5a 40%,transparent)}.dl-um-st.suspended{color:#b7791f;border-color:color-mix(in srgb,#b7791f 45%,transparent)}.dl-um-st.banned{color:var(--danger);border-color:color-mix(in srgb,var(--danger) 45%,transparent)}",
+    ".dl-um-pg{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:14px 2px 4px;font-size:13px;color:var(--muted)}.dl-um-pg div{display:flex;gap:8px}.dl-um-pg button:disabled{opacity:.45;cursor:default}",
+    ".dl-um-head{display:flex;align-items:center;gap:18px;margin:6px 0 22px}.dl-um-avbig{width:64px;height:64px;font-size:22px;flex:none}.dl-um-id{min-width:0}.dl-um-id .dl-sup-hello{font-size:26px;overflow-wrap:anywhere}.dl-um-id .dl-sup-sub{margin-top:4px;font-size:15px;overflow-wrap:anywhere}",
+    ".dl-um-meta{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;margin-top:10px;font-size:13px;color:var(--muted)}",
+    ".dl-um-restr{margin:0 0 18px;padding:12px 16px;border-radius:14px;border:1px solid color-mix(in srgb,var(--danger) 35%,transparent);background:color-mix(in srgb,var(--danger) 8%,transparent);font-size:13.5px;line-height:1.5;overflow-wrap:anywhere}",
+    ".dl-um-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;align-items:start}",
+    ".dl-um-card{border:1px solid var(--line-soft);background:var(--surface);border-radius:18px;padding:18px 20px}.dl-um-card h2{margin:0 0 12px;font-size:11.5px;font-weight:650;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}",
+    ".dl-um-kv>div{display:flex;justify-content:space-between;gap:16px;padding:8px 0;border-top:1px solid var(--line-soft);font-size:13.5px}.dl-um-kv>div:first-child{border-top:0;padding-top:0}.dl-um-kv span{color:var(--muted);flex:none}.dl-um-kv b{font-weight:550;text-align:right;overflow-wrap:anywhere}",
+    ".dl-um-chips{display:flex;flex-wrap:wrap;gap:7px}.dl-um-chip{padding:5px 12px;border-radius:999px;background:var(--surface2);border:1px solid var(--line-soft);font-size:13px;overflow-wrap:anywhere}.dl-um-none{font-size:13.5px;color:var(--faint)}.dl-um-note{margin:12px 0 0;font-size:12px;color:var(--faint)}",
+    ".dl-um-actions{display:flex;flex-wrap:wrap;gap:8px}.dl-um-actions button{flex:1 1 120px;width:auto}",
+    "@media (max-width:860px){.dl-um-grid{grid-template-columns:1fr}.dl-um-stats{grid-template-columns:repeat(2,1fr)}.dl-sup-admbtns{width:100%}.dl-um-row{grid-template-columns:40px minmax(0,1fr);row-gap:8px;padding:14px 16px}.dl-um-row .dl-um-st{grid-column:2;grid-row:2;justify-self:start}.dl-um-dates{grid-column:2;grid-row:3;flex-direction:row;flex-wrap:wrap;align-items:center;gap:2px 12px;text-align:left}.dl-um-row>svg{display:none}.dl-um-head{align-items:flex-start}}",
     ".dl-sup-open{display:inline-flex;align-items:center;gap:10px;height:42px;padding:0 8px 0 18px;border-radius:999px;border:1px solid var(--line-soft);background:var(--surface2);color:var(--text);font-size:14px;font-weight:600;cursor:pointer;flex:none;transition:background 140ms var(--ease-out),transform 140ms var(--ease-out)}",
     ".dl-sup-open:hover{background:var(--hover);border-color:color-mix(in srgb,var(--text) 28%,transparent)}.dl-sup-open>svg:last-child{color:var(--muted);margin-left:-2px;margin-right:4px}",
     ".dl-sup-open:active{transform:scale(.98)}",
@@ -332,6 +351,8 @@
     var inner = wrap.querySelector(".dl-sup-inner");
     if (ST.view === "chat") { wrap.classList.add("is-chat"); chatView(inner, wrap); }
     else if (ST.view === "admin" && isOwner()) adminView(inner);
+    else if (ST.view === "users" && isOwner()) usersView(inner);
+    else if (ST.view === "user" && isOwner() && ST.userId) userView(inner);
     else homeView(inner);
     return wrap;
   }
@@ -383,7 +404,10 @@
     if (isOwner()) {
       var ob = make('<button type="button" class="dl-sup-open">' + ico("inbox", 17) + '<span>Open tickets</span><b>–</b>' + ico("chev", 15) + '</button>');
       ob.addEventListener("click", function () { show("admin", { adminTab: "open" }); });
-      head.appendChild(ob);
+      var mu = make('<button type="button" class="dl-sup-open dl-um-btn">' + ico("users", 17) + '<span>Manage users</span>' + ico("chev", 15) + '</button>');
+      mu.addEventListener("click", function () { ST.usersQ = ""; ST.usersOff = 0; show("users"); });
+      var adm = make('<div class="dl-sup-admbtns"></div>'); adm.appendChild(ob); adm.appendChild(mu);
+      head.appendChild(adm);
       rpc("support_admin_list", { p_status: "open" }).then(function (r) { ob.querySelector("b").textContent = String((r || []).length); }).catch(function () { ob.querySelector("b").textContent = "0"; });
     }
     var cta = make('<div class="dl-sup-cta"><button type="button" class="btn-primary" data-new>' + ico("plus", 16) + 'Create new ticket</button><button type="button" class="btn-ghost" data-data>Request your data</button></div>');
@@ -581,7 +605,7 @@
     if (res.error) { var m = res.error.message; try { var j = await res.error.context.json(); m = j.error || m; } catch (e) {} throw new Error(m); }
     return res.data;
   }
-  var ACT_LABEL = { reset_password: "Password reset sent", change_email: "E-mail change started", suspend: "Suspended", ban: "Banned", lift: "Restriction lifted", private_message: "Private message sent", give_data: "Data export given" };
+  var ACT_LABEL = { reset_password: "Password reset sent", change_email: "E-mail change started", suspend: "Suspended", ban: "Banned", lift: "Restriction lifted", warn: "Warning sent", private_message: "Private message sent", give_data: "Data export given" };
   function dt(iso) { var d = new Date(iso); return isNaN(d) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" }); }
   function dOnly(iso) { var d = new Date(iso); return isNaN(d) ? "—" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }); }
 
@@ -763,11 +787,175 @@
     return { el: el0, refresh: refresh };
   }
 
+  /* ------------------------------------------------------------------ Manage users (owner only)
+     The user database inside the Support Center: a summary, a searchable paginated list, and one person's detail. Everything comes from owner-only
+     RPCs. It shows e-mails, calendar NAMES, tickets and the admin-action history; never calendar content, never a password or passkey detail. */
+  var PAGE_N = 25;
+  function statusPill(s) { var p = make('<span class="dl-sup-pill dl-um-st ' + esc(s) + '"></span>'); p.textContent = s === "banned" ? "Banned" : s === "suspended" ? "Suspended" : "Active"; return p; }
+  function nameOf(u) { return u.name || (u.email ? String(u.email).split("@")[0] : "") || "No name"; }
+  function avatarOf(u, big) { var a = make('<span class="dl-sup-av' + (big ? " dl-um-avbig" : "") + '" aria-hidden="true"></span>'); a.textContent = String(nameOf(u)).trim().split(/\s+/).map(function (w) { return w.charAt(0); }).slice(0, 2).join("").toUpperCase() || "?"; return a; }
+  function lastActive(iso) { return iso ? ago(iso) : "Never"; }
+
+  function usersView(inner) {
+    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + "Support Center</button>");
+    back.addEventListener("click", function () { show("home"); });
+    inner.appendChild(back);
+    inner.appendChild(make('<div class="dl-sup-head"><div><h1 class="dl-sup-hello">Manage users</h1><p class="dl-sup-sub">Everyone with a Daylight account, newest first.</p></div></div>'));
+    var strip = make('<div class="dl-um-stats" aria-label="User summary"></div>');
+    [["total", "Total users"], ["active", "Active"], ["suspended", "Suspended"], ["banned", "Banned"]].forEach(function (s) { strip.appendChild(make('<div class="dl-um-stat" data-k="' + s[0] + '"><b>–</b><span>' + s[1] + "</span></div>")); });
+    inner.appendChild(strip);
+    var bar = make('<div class="dl-sup-bar"><label class="dl-sup-search">' + ico("search", 15) + '<input type="search" placeholder="Search by name, e-mail or username" aria-label="Search users" autocomplete="off" spellcheck="false"></label></div>');
+    inner.appendChild(bar);
+    var box = make('<div class="dl-sup-fade"><div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div></div>'); inner.appendChild(box);
+    var q = bar.querySelector("input"); q.value = ST.usersQ || "";
+    var seq = 0, timer = null;
+    rpc("support_users_summary").then(function (s) { if (!s) return; ["total", "active", "suspended", "banned"].forEach(function (k) { var n = strip.querySelector('[data-k="' + k + '"] b'); if (n) n.textContent = String(s[k] || 0); }); }).catch(function () {});
+    function load() {
+      var mine = ++seq, term = q.value.trim(), off = ST.usersOff || 0;
+      rpc("support_users_list", { p_q: term, p_limit: PAGE_N, p_offset: off }).then(function (r) {
+        if (mine !== seq) return;
+        box.innerHTML = "";
+        var rows = (r && r.rows) || [], total = (r && r.total) || 0;
+        if (!rows.length) {
+          box.appendChild(make('<div class="dl-sup-card"><div class="dl-sup-empty">' + (term ? "Nobody matches “" + esc(term) + "”. Try a name, an e-mail or a username." : "No users yet.") + "</div></div>"));
+          return;
+        }
+        var card = make('<div class="dl-sup-card"></div>');
+        rows.forEach(function (u, i) {
+          var row = make('<button type="button" class="dl-sup-row dl-um-row"></button>');
+          row.style.setProperty("--i", Math.min(i, 12));
+          row.appendChild(avatarOf(u));
+          var text = make('<span class="dl-sup-rt"><span class="dl-sup-who"></span><span class="dl-sup-pv"></span></span>');
+          text.querySelector(".dl-sup-who").textContent = nameOf(u); text.querySelector(".dl-sup-pv").textContent = u.email + (u.username ? " · @" + u.username : "");
+          row.appendChild(text);
+          var side = make('<span class="dl-sup-side dl-um-side"><span class="dl-um-dates"><span class="dl-sup-date"></span><span class="dl-um-la"></span></span></span>');
+          side.querySelector(".dl-sup-date").textContent = "Joined " + fullDate(u.created_at); side.querySelector(".dl-um-la").textContent = "Active " + lastActive(u.last_sign_in_at).toLowerCase();
+          side.insertBefore(statusPill(u.status), side.firstChild);
+          row.appendChild(side); row.appendChild(make(ico("chev", 16)));
+          row.addEventListener("click", function () { show("user", { userId: u.id }); });
+          card.appendChild(row);
+        });
+        box.appendChild(card);
+        var from = off + 1, to = off + rows.length;
+        var pg = make('<div class="dl-um-pg"><span></span><div><button type="button" class="btn-ghost dl-btn-sm" data-prev>Previous</button><button type="button" class="btn-ghost dl-btn-sm" data-next>Next</button></div></div>');
+        pg.querySelector("span").textContent = "Showing " + from + "–" + to + " of " + total;
+        var pv = pg.querySelector("[data-prev]"), nx = pg.querySelector("[data-next]");
+        pv.disabled = off <= 0; nx.disabled = to >= total;
+        pv.addEventListener("click", function () { ST.usersOff = Math.max(0, off - PAGE_N); load(); });
+        nx.addEventListener("click", function () { ST.usersOff = off + PAGE_N; load(); });
+        box.appendChild(pg);
+      }).catch(function () { if (mine === seq) box.innerHTML = '<div class="dl-sup-card"><div class="dl-sup-empty">Couldn’t load the users.</div></div>'; });
+    }
+    q.addEventListener("input", function () { ST.usersQ = q.value; ST.usersOff = 0; clearTimeout(timer); timer = setTimeout(load, 180); });
+    load();
+  }
+
+  function userView(inner) {
+    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + "Users</button>");
+    back.addEventListener("click", function () { show("users"); });
+    inner.appendChild(back);
+    var host = make('<div class="dl-um-detail"><div class="dl-sup-skel" aria-hidden="true"><i></i><i></i></div></div>'); inner.appendChild(host);
+    var id = ST.userId;
+    function card(title, body) { var c = make('<section class="dl-um-card"><h2></h2></section>'); c.querySelector("h2").textContent = title; c.appendChild(body); return c; }
+    function kv(rows) {
+      var d = make('<div class="dl-um-kv"></div>');
+      rows.forEach(function (r) { var x = make("<div><span></span><b></b></div>"); x.querySelector("span").textContent = r[0]; x.querySelector("b").textContent = r[1]; d.appendChild(x); });
+      return d;
+    }
+    function render(d) {
+      var u = d.user; host.innerHTML = "";
+      var who = { name: u.name, email: u.email };
+      var hd = make('<div class="dl-um-head"><div class="dl-um-id"><h1 class="dl-sup-hello"></h1><p class="dl-sup-sub"></p><div class="dl-um-meta"></div></div></div>');
+      hd.insertBefore(avatarOf(u, true), hd.firstChild);
+      hd.querySelector("h1").textContent = nameOf(u); hd.querySelector(".dl-sup-sub").textContent = u.email;
+      var meta = hd.querySelector(".dl-um-meta"); meta.appendChild(statusPill(u.status));
+      var m1 = make("<span></span>"); m1.textContent = "Member since " + fullDate(u.created_at); meta.appendChild(m1);
+      var m2 = make("<span></span>"); m2.textContent = "Last active " + lastActive(u.last_sign_in_at).toLowerCase(); meta.appendChild(m2);
+      host.appendChild(hd);
+      if (u.restriction) {
+        var rs = make('<div class="dl-um-restr"></div>');
+        rs.textContent = (u.restriction.kind === "banned" ? "Banned" : "Suspended") + " · " + (u.restriction.ends_at ? "until " + fullDate(u.restriction.ends_at) : "until lifted") + (u.restriction.reason ? " · “" + u.restriction.reason + "”" : "");
+        host.appendChild(rs);
+      }
+      var grid = make('<div class="dl-um-grid"></div>'); host.appendChild(grid);
+      // account
+      grid.appendChild(card("Account", kv([["E-mail", u.email], ["Username", u.username || "None"], ["Sign-in methods", (d.sign_in && d.sign_in.length ? d.sign_in.join(", ") : "None")]])));
+      // calendars: names only
+      var cb = make('<div class="dl-um-chips"></div>');
+      if (!(d.calendars || []).length) cb.appendChild(make('<span class="dl-um-none">No calendars.</span>'));
+      (d.calendars || []).forEach(function (n) { var c = make('<span class="dl-um-chip"></span>'); c.textContent = n; cb.appendChild(c); });
+      var cc = card("Calendars", cb); cc.appendChild(make('<p class="dl-um-note">Names only. Events, tasks and descriptions are never shown here.</p>')); grid.appendChild(cc);
+      // tickets
+      var tb = make("<div></div>");
+      if (!(d.tickets || []).length) tb.appendChild(make('<span class="dl-um-none">No tickets.</span>'));
+      (d.tickets || []).forEach(function (t) {
+        var r = make('<button type="button" class="dl-adm-tk"><span class="dl-sup-rt"><b></b><span></span></span><span class="dl-sup-pill"></span></button>');
+        r.querySelector("b").textContent = t.title; r.querySelector(".dl-sup-rt span").textContent = catLabel(t.category) + " · #" + t.ref + " · " + fullDate(t.created_at);
+        var p = r.querySelector(".dl-sup-pill"); p.textContent = t.status === "open" ? "Open" : "Closed"; p.classList.add(t.status);
+        r.addEventListener("click", function () { openTicket(t.id, "user"); });
+        tb.appendChild(r);
+      });
+      grid.appendChild(card("Tickets", tb));
+      // history
+      var hb = make("<div></div>");
+      if (!(d.history || []).length) hb.appendChild(make('<span class="dl-um-none">No warnings, suspensions or actions yet.</span>'));
+      (d.history || []).forEach(function (a) {
+        var r = make('<div class="dl-adm-log"><b></b><span class="dl-adm-lm"></span><span class="dl-adm-lw"></span><span class="dl-adm-lr"></span></div>');
+        r.querySelector("b").textContent = ACT_LABEL[a.action] || a.action;
+        r.querySelector(".dl-adm-lm").textContent = dt(a.created_at) + (a.detail && a.detail.duration ? " · " + String(a.detail.duration).replace("_", " ") : "");
+        r.querySelector(".dl-adm-lw").textContent = "by " + (a.admin_email || "admin");
+        if (a.reason) r.querySelector(".dl-adm-lr").textContent = "“" + a.reason + "”"; else r.querySelector(".dl-adm-lr").remove();
+        hb.appendChild(r);
+      });
+      grid.appendChild(card("History", hb));
+      // actions
+      var ac = make('<div class="dl-adm-actions dl-um-actions"></div>');
+      function done(msg) { if (typeof toast === "function") toast(msg); return load(); }
+      function act(name, extra) { return invokeFn("support-admin", Object.assign({ action: name, user_id: u.id }, extra || {})); }
+      function b(label, cls, fn) { var x = make('<button type="button" class="' + cls + '"></button>'); x.textContent = label; x.addEventListener("click", fn); return x; }
+      ac.appendChild(b("Warn", "btn-ghost", function () {
+        actionDialog({ title: "Warn this user?", who: who, body: "They get a notification from Daylight Support with your reason. They can appeal by opening a Support ticket. Their access doesn’t change.", confirmLabel: "Send warning", need: ["reason"],
+          fields: [{ id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "What is the warning about?", max: 300 },
+                   { id: "message", label: "Message (optional)", type: "textarea", placeholder: "Anything else you want them to know", max: 800 }],
+          run: async function (v) { await act("warn", { reason: v.reason.trim(), message: (v.message || "").trim() }); await done("Warning sent."); } });
+      }));
+      if (u.status === "active") {
+        ac.appendChild(b("Suspend", "btn-ghost", function () {
+          actionDialog({ title: "Suspend this user?", who: who, body: function (v) {
+            var dd = v.duration || "7d", days = { "1d": 1, "7d": 7, "30d": 30 }[dd];
+            return days ? "They can still sign in, but only to the Support Center and Settings, until " + new Date(Date.now() + days * 864e5).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" }) + ". It lifts by itself then. They’re shown the reason and can appeal."
+                        : "They can still sign in, but only to the Support Center and Settings, until an admin lifts the suspension. They’re shown the reason and can appeal."; },
+            confirmLabel: "Suspend", danger: true, need: ["reason"],
+            fields: [{ id: "duration", label: "For how long", type: "choice", value: "7d", options: [["1d", "1 day"], ["7d", "7 days"], ["30d", "30 days"], ["until_lifted", "Until lifted"]] },
+                     { id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being suspended?", max: 300 }],
+            run: async function (v) { await act("suspend", { duration: v.duration, reason: v.reason.trim() }); await done("Suspended."); } });
+        }));
+        ac.appendChild(b("Ban", "btn-danger-outline", function () {
+          actionDialog({ title: "Ban this user?", who: who, body: "They can still sign in, but only to the Support Center and Settings, until an admin lifts the ban. They’re shown the reason and can appeal from there.", confirmLabel: "Ban user", danger: true, need: ["reason"],
+            fields: [{ id: "reason", label: "Reason (they will see this)", type: "textarea", placeholder: "Why is the account being banned?", max: 300 }],
+            run: async function (v) { await act("ban", { reason: v.reason.trim() }); await done("Banned."); } });
+        }));
+      } else {
+        ac.appendChild(b(u.status === "banned" ? "Lift ban" : "Lift suspension", "btn-primary", function () {
+          actionDialog({ title: u.status === "banned" ? "Lift this ban?" : "Lift this suspension?", who: who, body: "Full access to Daylight returns right away.", confirmLabel: "Lift", need: ["reason"],
+            fields: [{ id: "reason", label: "Reason", type: "textarea", placeholder: "Why is it being lifted?", max: 300 }],
+            run: async function (v) { await act("lift", { reason: v.reason.trim() }); await done("Restriction lifted."); } });
+        }));
+      }
+      grid.appendChild(card("Actions", ac));
+      host.appendChild(make('<p class="dl-adm-foot">Admin access is for support and safety only. Every action is logged with who, what, when and why. Calendar content is never shown here.</p>'));
+    }
+    function load() {
+      return rpc("support_user_detail", { p_id: id }).then(render).catch(function () { host.innerHTML = '<div class="dl-sup-card"><div class="dl-sup-empty">Couldn’t load this person.</div></div>'; });
+    }
+    load();
+  }
+
   /* ------------------------------------------------------------------ chat */
   function chatView(inner, wrap) {
     var token = ++ST.token, data = null, pending = [], sending = false, lastSig = "";
-    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Tickets" : "Support Center") + "</button>");
-    back.addEventListener("click", function () { show(ST.from === "admin" && isOwner() ? "admin" : "home"); });
+    var back = make('<button type="button" class="dl-sup-back">' + ico("back", 16) + (ST.from === "admin" ? "Tickets" : ST.from === "user" ? "Users" : "Support Center") + "</button>");
+    back.addEventListener("click", function () { show(ST.from === "user" && isOwner() ? "user" : ST.from === "admin" && isOwner() ? "admin" : "home"); });
     inner.appendChild(back);
     var headHost = make("<div></div>"), msgsHost = make('<div class="dl-msgs" role="log" aria-live="polite"></div>'), compHost = make("<div></div>");
     var split = make('<div class="dl-split"><div class="dl-split-l"></div></div>'), leftCol = split.firstChild, side = null;

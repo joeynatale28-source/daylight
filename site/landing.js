@@ -354,3 +354,23 @@
     d.addEventListener('visibilitychange', function () { if (!d.hidden && Date.now() - ST.at > 300000) stLoad(); });
   }
 })();
+
+/* Landing on an anchor (e.g. /#features): the page keeps settling for a moment (fonts, card sizes, the nav turning into its pill), which can leave the
+   section's top under the floating nav. Re-align to the anchor a few times while nothing has scrolled it away, so headings never sit under the pill. */
+(function () {
+  var d = document, w = window, id = (location.hash || '').slice(1);
+  if (!id) return;
+  var target = d.getElementById(decodeURIComponent(id));
+  if (!target) return;
+  var touched = false, mark = function () { touched = true; };
+  ['wheel', 'touchstart', 'keydown', 'mousedown'].forEach(function (e) { w.addEventListener(e, mark, { passive: true, once: true }); });
+  var want = function () { return (parseFloat(getComputedStyle(target).scrollMarginTop) || 0) + (parseFloat(getComputedStyle(d.documentElement).scrollPaddingTop) || 0); };
+  var align = function () {
+    if (touched) return;
+    var off = target.getBoundingClientRect().top - want();
+    if (Math.abs(off) > 3) w.scrollBy({ top: off, left: 0, behavior: 'instant' });
+  };
+  [0, 250, 700, 1500].forEach(function (t) { setTimeout(align, t); });
+  w.addEventListener('load', function () { setTimeout(align, 60); });
+  if (d.fonts && d.fonts.ready) d.fonts.ready.then(function () { setTimeout(align, 30); });
+})();

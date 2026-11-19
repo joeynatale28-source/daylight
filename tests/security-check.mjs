@@ -15,11 +15,11 @@ for(const theme of ['light','dark']){
   mode='fail';
   const p1=page.evaluate(()=>window.daylightTurnstile.check('test',{force:true,cancel:true}).then(r=>window.__r1=r).catch(()=>{}));
   await page.waitForSelector('.dl-sc .dl-sc-err',{timeout:6000});await page.evaluate(()=>{window.__m1=document.querySelector('.dl-sc-err').textContent});
-  const f=await page.evaluate(()=>({h:document.querySelector('.dl-sc h1').textContent,sub:document.querySelector('.dl-sc p').textContent,ref:document.querySelector('.dl-sc-ref').textContent,btns:[...document.querySelectorAll('.dl-sc-act button')].map(b=>b.textContent),logo:!!document.querySelector('.dl-sc-logo svg'),bg:getComputedStyle(document.querySelector('.dl-sc')).backgroundColor,site:window.__tsOpts&&window.__tsOpts.sitekey}));
-  check(f.h==='security check'&&/verification required to continue/.test(f.sub)&&/^Ref [0-9a-f]{16} · Protected by Cloudflare$/.test(f.ref)&&f.logo&&f.site==='0x4AAAAAAGIfeIbpHfLEL4Jo','the card shows the logo, heading, subtitle, reference line and uses the site key',f);
+  const f=await page.evaluate(()=>({h:document.querySelector('.dl-sc h1').textContent,sub:document.querySelector('.dl-sc p').textContent,ref:document.querySelector('.dl-sc-ref').innerText.replace(/\s+/g,' '),btns:[...document.querySelectorAll('.dl-sc-act button')].map(b=>b.textContent),logo:!!document.querySelector('.dl-sc-logo svg'),bg:getComputedStyle(document.querySelector('.dl-sc')).backgroundColor,site:window.__tsOpts&&window.__tsOpts.sitekey}));
+  check(f.h==='Security Check'&&/Verification required to continue/.test(f.sub)&&/^Ref [0-9a-f]{16} Protected by Cloudflare$/.test(f.ref)&&f.logo&&f.site==='0x4AAAAAAGIfeIbpHfLEL4Jo','the card shows the logo, heading, subtitle, reference line and uses the site key',f);
   check(f.btns.includes('Try again')&&f.btns.includes('Cancel'),'a failed check offers Try again (and Cancel for an action)',f.btns);
   if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+`/security-${theme}.png`});
-  mode='pass';await page.click('.dl-sc-act .p');await page.waitForFunction(()=>!document.querySelector('.dl-sc'),{timeout:6000});await p1;
+  mode='pass';await page.click('.dl-sc-act .p');await page.waitForSelector('.dl-sc-ok',{timeout:6000});if(process.env.SHOTS)await page.screenshot({path:process.env.SHOTS+`/security-ok-${theme}.png`});await page.waitForFunction(()=>!document.querySelector('.dl-sc'),{timeout:6000});await p1;
   check(await page.evaluate(()=>window.__r1===true),'retrying with a good token passes and continues');
   // fresh pass is remembered (no second prompt), a forced one prompts again, cancel resolves false
   check(await page.evaluate(()=>window.daylightTurnstile.check('again',{cancel:true}).then(r=>r&&!document.querySelector('.dl-sc'))),'a pass is remembered for a few minutes (no repeated prompts)');
