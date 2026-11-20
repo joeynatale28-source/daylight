@@ -985,19 +985,30 @@
   });
   /* Session rehydration is the only startup decision. Do not paint Login
      while a saved token is being restored or its workspace is loading. */
-  client.auth.getSession().then(function (result) {
-    if (recovery) return;
-    var account = result.data && result.data.session && result.data.session.user;
-    if (result.error || !account) {
+  var restoreTries = 0;
+  function restoreSession() {
+    client.auth.getSession().then(function (result) {
+      if (recovery) return;
+      var account = result.data && result.data.session && result.data.session.user;
+      if (result.error && !account && restoreTries < 3 && hasStoredSession()) {
+        /* an ERROR (a dropped connection while the saved sign-in was being refreshed) is not "signed out": try again before ever showing the login page */
+        restoreTries++; setTimeout(restoreSession, 1200 * restoreTries); return;
+      }
+      if (result.error || !account) {
+        if (!user) showSignedOut();
+        return;
+      }
+      if (signingInEmail && String(account.email || '').toLowerCase() !== signingInEmail) return;
+      if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
+      loadForUser(account);
+    }).catch(function () {
+      if (recovery) return;
+      if (restoreTries < 3 && hasStoredSession()) { restoreTries++; setTimeout(restoreSession, 1200 * restoreTries); return; }
       if (!user) showSignedOut();
-      return;
-    }
-    if (signingInEmail && String(account.email || '').toLowerCase() !== signingInEmail) return;
-    if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
-    loadForUser(account);
-  }).catch(function () {
-    if (!user && !recovery) showSignedOut();
-  });
+    });
+  }
+  function hasStoredSession() { try { return !!JSON.parse(localStorage.getItem('sb-usihrcucnreecynewgbd-auth-token') || 'null'); } catch (e) { return false; } }
+  restoreSession();
   document.addEventListener('visibilitychange', function () {
     if (document.hidden && user && !loading) saveWorkspace();
   });

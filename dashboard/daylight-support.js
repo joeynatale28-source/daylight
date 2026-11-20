@@ -165,7 +165,8 @@
     ".dl-sup-sel-f.bad{border-color:var(--danger)}",
     ".dl-selwrap{position:relative}",
     ".dl-sup-fade{animation:dlSupFade 220ms var(--ease-out) both}",
-    ".dl-sup-skel{display:grid;gap:10px}.dl-sup-skel i{display:block;height:68px;border-radius:18px;background:linear-gradient(90deg,var(--surface2),var(--surface),var(--surface2));background-size:200% 100%;animation:dlSupSh 1.2s linear infinite}",
+    /* loading placeholders look like the rows they stand for (avatar + two text bars on a bordered card) so a slow load never shows empty white cards */
+    ".dl-sup-skel{display:grid;gap:10px;--skel:color-mix(in srgb,var(--text) 11%,var(--surface))}.dl-sup-skel i{display:block;height:68px;border-radius:18px;border:1px solid var(--line);background:radial-gradient(circle at 34px 50%,var(--skel) 0 15px,transparent 16px),linear-gradient(var(--skel),var(--skel)) 66px 21px/34% 11px no-repeat,linear-gradient(var(--skel),var(--skel)) 66px 40px/56% 9px no-repeat,var(--surface);animation:dlSupPulse 1.3s ease-in-out infinite}.dl-sup-skel i:nth-child(2){animation-delay:.18s}@keyframes dlSupPulse{0%,100%{opacity:1}50%{opacity:.55}}",
     ".dl-sup-empty2{display:flex;flex-direction:column;align-items:center;text-align:center;padding:48px 24px 44px;border:1px dashed var(--line-soft);border-radius:24px;background:var(--surface2)}",
     ".dl-sup-emico{width:60px;height:60px;border-radius:50%;background:var(--bg);border:1px solid var(--line-soft);display:grid;place-items:center;color:var(--muted);margin-bottom:18px;box-shadow:0 6px 20px rgba(0,0,0,.05)}",
     ".dl-sup-empty2 h2{font-size:19px;font-weight:650;letter-spacing:-.02em;margin:0 0 8px}",

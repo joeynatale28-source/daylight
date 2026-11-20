@@ -32,12 +32,12 @@ try{
   await page.keyboard.press('Escape');await sleep(600);
   {const r=await page.evaluate(()=>({grid:!!document.querySelector('.month-grid'),rows:document.querySelectorAll('.month-week').length,own:state.events.filter(e=>!e.subscribed&&!e.holiday&&!e.builtin).length,cals:state.calendars.map(c=>c.name)}));check(r.grid&&r.rows===6&&r.own===0,`${tag}: a working month calendar with none of your own events`,r)}
   await page.evaluate(()=>[...document.querySelectorAll('.side-row')].find(b=>b.title==='Tasks').click());await sleep(900);
-  check(await page.evaluate(()=>/No tasks yet/.test(document.body.innerText)&&!document.querySelector('.tasks-side')),`${tag}: Tasks has a clean empty state`);
+  check(await page.evaluate(()=>/No tasks yet/.test(document.body.innerText)),`${tag}: Tasks has a clean empty state`);
   await page.evaluate(()=>window.daylightSupport.open());await sleep(1500);
   check(await page.evaluate(()=>!!document.querySelector('.dl-sup')&&!/undefined|\[object|NaN/.test(document.querySelector('.dl-sup').innerText)),`${tag}: Support Center opens cleanly`);
   check(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${tag}: nothing scrolls sideways`);
   if(tag==='phone'){await page.evaluate(()=>[...document.querySelectorAll('.side-row')].find(b=>b.title==='Tasks')?.click()).catch(()=>{});await page.evaluate(()=>{state.section='tasks';renderAll(false)});await page.evaluate(()=>{state.tasks.push(mkTask('Neutral check',state.calendars[0].id,sod(TODAY),false,false,''));refreshTasks(false)});await sleep(500);
-  {const t=await page.evaluate(()=>{const r=document.querySelector('.task-row'),c=getComputedStyle(r);return {left:c.borderLeftWidth,same:c.borderLeftColor===c.borderTopColor,tag:!!r.querySelector('.tm-cal'),side:!!document.querySelector('.tasks-side')}});check(t.left==='1px'&&t.same&&t.tag&&t.side,`${tag}: live: a task row is neutral (no calendar tint), keeps its calendar tag, and the Overview panel appears`,t)}}
+  {const t=await page.evaluate(()=>{const r=document.querySelector('.task-row'),c=getComputedStyle(r);return {left:c.borderLeftWidth,same:c.borderLeftColor===c.borderTopColor,tag:!!r.querySelector('.tm-cal'),side:!!document.querySelector('.tasks-side')}});check(t.left==='1px'&&t.same&&t.tag&&!t.side,`${tag}: live: a task row is neutral (no calendar tint), keeps its calendar tag, and there is no Overview panel`,t)}}
   check(errs.length===0,`${tag}: no console or page errors`,errs);
   await page.close();
  }

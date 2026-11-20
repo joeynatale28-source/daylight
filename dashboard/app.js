@@ -2340,12 +2340,7 @@
         var wrap = el('<div class="tasks-wrap"></div>');
         var grid = el('<div class="tasks-grid"></div>');
         var inner = el('<div class="tasks-inner"></div>');
-        var side = el('<aside class="tasks-side" aria-label="Task summary"></aside>');
-        /* the Overview panel only exists while there is at least one task; the first task animates it in */
-        var hasTasks = state.tasks.length > 0;
         grid.appendChild(inner); wrap.appendChild(grid);
-        if (hasTasks) { grid.appendChild(side); if (renderTasks.had === false && !state.reduceMotion && !reduceMotionMQ.matches) side.classList.add("is-new"); } else grid.classList.add("no-side");
-        renderTasks.had = hasTasks;
         var activeCount = state.tasks.filter(function (t) { return !t.done; }).length;
         var doneCount = state.tasks.length - activeCount;
         var head = el('<div class="tasks-head"><div><div class="tasks-title">Tasks</div>' +
@@ -2411,26 +2406,6 @@
           }
         }
         fillResults(resultsHost);
-        /* summary: what is overdue / due today / coming up / done, a progress bar, and what each calendar has waiting */
-        (function () {
-          var t0 = sod(TODAY), act = state.tasks.filter(function (t) { return !t.done; });
-          var n = { over: act.filter(function (t) { return t.due && sod(t.due) < t0; }).length, today: act.filter(function (t) { return t.due && sameDay(t.due, t0); }).length,
-            soon: act.filter(function (t) { return t.due && sod(t.due) > t0; }).length, nodate: act.filter(function (t) { return !t.due; }).length };
-          var pct = state.tasks.length ? Math.round(doneCount / state.tasks.length * 100) : 0;
-          var html = '<div class="ts-card"><div class="ts-head">Overview</div><div class="ts-tiles">' +
-            '<div class="ts-tile' + (n.over ? " is-over" : "") + '"><b>' + n.over + "</b><span>Overdue</span></div>" +
-            '<div class="ts-tile' + (n.today ? " is-today" : "") + '"><b>' + n.today + "</b><span>Due today</span></div>" +
-            '<div class="ts-tile"><b>' + n.soon + "</b><span>Upcoming</span></div>" +
-            '<div class="ts-tile"><b>' + doneCount + "</b><span>Completed</span></div></div>" +
-            '<div class="ts-prog"><div class="ts-prog-row"><span>Progress</span><b>' + doneCount + " of " + state.tasks.length + '</b></div><div class="ts-bar"><i style="width:' + pct + '%"></i></div></div></div>';
-          var byCal = {};
-          act.forEach(function (t) { byCal[t.cal] = (byCal[t.cal] || 0) + 1; });
-          var ids = Object.keys(byCal);
-          if (ids.length) {
-            html += '<div class="ts-card"><div class="ts-head">By calendar</div>' + ids.map(function (id) { var c = calOf(id); return '<div class="ts-cal"><span class="tm-dot" style="background:' + dotOf(c) + '"></span><span class="ts-cal-n">' + esc(c.name) + "</span><b>" + byCal[id] + "</b></div>"; }).join("") + "</div>";
-          }
-          side.innerHTML = html;
-        })();
         return wrap;
       }
       function taskRow(t) {

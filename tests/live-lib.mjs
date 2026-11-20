@@ -18,7 +18,7 @@ export async function mgmt(sql){const r=await fetch(`https://api.supabase.com/v1
 const made=[];
 export async function makeUser(tag,{owner=false,name}={}){
  const stamp=Date.now()+Math.floor(Math.random()*1000),email=`qa.daylight.${tag}${stamp}@mailinator.com`,pw=`Qa-${stamp}Zz9!`;
- const cu=await (await fetch(BASE+'/auth/v1/admin/users',{method:'POST',headers:{apikey:SVC,authorization:'Bearer '+SVC,'content-type':'application/json'},body:JSON.stringify({email,password:pw,email_confirm:true,user_metadata:{full_name:name||('QA '+tag)}})})).json();
+ const cu=await (await fetch(BASE+'/auth/v1/admin/users',{method:'POST',headers:{apikey:SVC,authorization:'Bearer '+SVC,'content-type':'application/json'},body:JSON.stringify({email,password:pw,email_confirm:true,user_metadata:{full_name:name||('QA '+tag),onboarded:true}})})).json();
  if(!cu.id)throw new Error('could not create '+tag+': '+JSON.stringify(cu).slice(0,200));
  made.push(cu.id);
  if(owner)await mgmt(`insert into public.daylight_owners(user_id) values ('${cu.id}') on conflict do nothing`);
