@@ -19,6 +19,7 @@
   var lastStatus = '';
   var committedSerialized = null;
   var authBlockedUntil = 0;
+  var signingInEmail = '';   /* set while credentials are being submitted: no other account's session may take over the page meanwhile */
   var warmShown = null; // what the cache render showed: {id, payload, name, avatar}
   // Per-user warm snapshot. Cached data is shown only after Supabase
   // authenticates the account, and it never changes the revision baseline.
@@ -678,15 +679,32 @@
     if (!client) { toast('Authentication is unavailable. Check your network and reload.'); return; }
     var root = document.getElementById('authRoot');
     var button = root.querySelector('.auth-primary');
+    /* Read what is actually in the form at the moment of submitting. The typed-value copy in authState is only updated by input events, which a
+       browser's autofill or a pasted value may never fire, so it could still hold an earlier account's address. */
+    captureAuthInputs(root);
     var email = (authState.email || '').trim();
     var password = authState.password || '';
     if (!validEmail(email) || !password) return;
     if (button) { button.disabled = true; button.textContent = 'Signing in…'; }
+    signingInEmail = email.toLowerCase();
     try {
       if (window.daylightTurnstile) await window.daylightTurnstile.check('login');
+      /* A session cached in this browser belongs to someone else the moment different credentials are submitted: drop it (this browser only,
+         other devices and connected assistants keep theirs) so it can never be what the next page loads. */
+      try {
+        var cached = await client.auth.getSession();
+        var cu = cached && cached.data && cached.data.session && cached.data.session.user;
+        if (cu && String(cu.email || '').toLowerCase() !== signingInEmail) { forgetCaches(cu.id); await client.auth.signOut({ scope: 'local' }); }
+      } catch (e0) {}
       var result = await client.auth.signInWithPassword({email:email,password:password});
       if (result.error) throw result.error;
       if (!result.data || !result.data.user) throw new Error('No authenticated user was returned');
+      /* the account that signed in must be the one whose address was submitted */
+      if (String(result.data.user.email || '').toLowerCase() !== signingInEmail) {
+        try { await client.auth.signOut({ scope: 'local' }); } catch (e1) {}
+        throw new Error('Sign-in did not match the address you entered. Please try again.');
+      }
+      if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
       await loadForUser(result.data.user);
     } catch (error) {
       console.error('Daylight sign-in failed', error);
@@ -695,6 +713,7 @@
       if (pw) authSetErr(root, pw, true, shown);
       toast(shown);
     } finally {
+      signingInEmail = '';
       if (button && document.contains(button)) { button.disabled = false; button.textContent = 'Log in'; }
     }
   };
@@ -953,10 +972,12 @@
       return;
     }
     if (event === 'SIGNED_OUT') {
+      if (signingInEmail) return;   /* dropping a cached session of another account on purpose, mid sign-in: the form stays as it is */
       showSignedOut();
       return;
     }
     if (session && session.user && !recovery) {
+      if (signingInEmail && String(session.user.email || '').toLowerCase() !== signingInEmail) return;   /* a different cached session while other credentials are being submitted */
       /* already signed in on the sign-in / sign-up page: go straight to the app */
       if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
       setTimeout(function () { loadForUser(session.user); },0);
@@ -971,6 +992,7 @@
       if (!user) showSignedOut();
       return;
     }
+    if (signingInEmail && String(account.email || '').toLowerCase() !== signingInEmail) return;
     if (window.daylightRoute && window.daylightRoute.goDashboard()) return;
     loadForUser(account);
   }).catch(function () {

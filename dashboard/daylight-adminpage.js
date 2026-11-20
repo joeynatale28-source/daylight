@@ -53,9 +53,9 @@
       try { sessionStorage.setItem("daylight-admin-tab", name); } catch (e) {}
     }
     tabs.querySelectorAll("[data-tab]").forEach(function (b) { b.addEventListener("click", function () { show(b.dataset.tab); }); });
-    var start = "notifications";
+    var start = "users";   /* Admin opens on Users unless the person last used another tab */
     try { start = sessionStorage.getItem("daylight-admin-tab") || start; } catch (e) {}
-    show(start in panels ? start : "notifications");
+    show(start in panels ? start : "users");
     return page;
   }
 
@@ -99,6 +99,8 @@
   };
 
   /* ---------------------------------------------------------------- lifecycle */
+  /* the owner answer can arrive after the sidebar was first drawn (cold load): add the Admin row the moment it is known */
+  document.addEventListener("daylight:owner-known", function () { try { if (window.state && window.daylightCloud && window.daylightCloud.user) renderSidebar(); } catch (e) {} });
   document.addEventListener("daylight:workspace-ready", function () {
     if (window.daylightAdmin && window.daylightAdmin.whenKnown) window.daylightAdmin.whenKnown().then(function (owner) { if (owner) renderSidebar(); });
   });

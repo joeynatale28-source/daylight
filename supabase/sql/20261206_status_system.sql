@@ -79,7 +79,6 @@ insert into public.status_services (key, name, grp, descr, sort, kind, src_url) 
   ('mcp',        'MCP Server',      'MCPs',                 'Daylight''s AI access endpoint.',              5,  'ping', null),
   ('claude',     'Claude',          'MCPs',                 'Claude''s status, from status.claude.com.',    6,  'statuspage', 'https://status.claude.com/api/v2/status.json'),
   ('chatgpt',    'ChatGPT',         'MCPs',                 'ChatGPT''s status, from status.openai.com.',   7,  'statuspage', 'https://status.openai.com/api/v2/status.json'),
-  ('gemini',     'Gemini',          'MCPs',                 'Gemini''s status, from Google Cloud status.',  8,  'google', 'https://status.cloud.google.com/incidents.json'),
   ('supabase',   'Supabase',        'Platform',             'Daylight''s backend: database and sign-in.',   9,  'statuspage', 'https://status.supabase.com/api/v2/status.json'),
   ('cloudflare', 'Cloudflare',      'Platform',             'DNS and the daylightcal.com host.',            10, 'statuspage', 'https://www.cloudflarestatus.com/api/v2/status.json'),
   ('github',     'GitHub Pages',    'Platform',             'The production website host.',                 11, 'statuspage', 'https://www.githubstatus.com/api/v2/status.json'),
@@ -229,3 +228,6 @@ select cron.schedule('daylight-status-check', '*/5 * * * *', $job$
     body := '{}'::jsonb,
     timeout_milliseconds := 30000);
 $job$);
+
+-- Gemini is not a supported assistant: it is no longer listed on the status page
+delete from public.status_services where key = 'gemini';

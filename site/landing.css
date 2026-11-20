@@ -377,22 +377,22 @@ button{font:inherit;color:inherit}
 .sc4 .ovl{position:absolute;inset:0}
 .sc4 .ec{position:absolute;display:flex;align-items:center;gap:.25em;height:1.4em;width:calc(100% / 7 - .5em);padding:0 .35em;border-radius:.35em;border-left:.2em solid var(--c);background:color-mix(in srgb,var(--c) 18%,var(--mkbg));font-size:.78em;font-weight:600;line-height:1.4em;white-space:nowrap;overflow:hidden}
 .sc4 .ec .ic{width:1em;height:1em;flex:none}
-.sc4 .pn{animation:s4pn 10s var(--e) infinite both}
-.sc4 .pd{opacity:0;animation:s4pd 10s var(--e) infinite both}
-.sc4 .drag{position:absolute;z-index:4;display:flex;flex-direction:column;justify-content:center;gap:0;height:2.7em;width:calc(2 * 100% / 7);padding:0 .7em;border-radius:.5em;border-left:.25em solid #1a73e8;background:color-mix(in srgb,#1a73e8 22%,var(--mkbg));font-size:.85em;font-weight:700;line-height:1.2;white-space:nowrap;opacity:0;animation:s4dg 10s var(--e) infinite both}
+.sc4 .pn{animation:s4pn 7s var(--e) infinite both}
+.sc4 .pd{opacity:0;animation:s4pd 7s var(--e) infinite both}
+.sc4 .drag{position:absolute;z-index:4;display:flex;flex-direction:column;justify-content:center;gap:0;height:2.7em;width:calc(2 * 100% / 7);padding:0 .7em;border-radius:.5em;border-left:.25em solid #1a73e8;background:color-mix(in srgb,#1a73e8 22%,var(--mkbg));font-size:.85em;font-weight:700;line-height:1.2;white-space:nowrap;opacity:0;animation:s4dg 7s var(--e) infinite both}
 .sc4 .drag i{display:none}
 .sc4 .drag small{font-size:.85em;font-weight:500;color:var(--muted)}
-.sc4 .lk{animation:s4lk 10s var(--e) infinite both}
-.sc4 .ca{opacity:0;animation:s4cur 10s var(--e) infinite both}
+.sc4 .lk{animation:s4lk 7s var(--e) infinite both}
+.sc4 .ca{opacity:0;animation:s4cur 7s var(--e) infinite both}
 .sc4 .det{position:relative;flex:1;min-height:0;margin-top:.9em;padding:1em 1.2em;border-radius:1em;background:var(--surface)}
 .sc4 .pg{position:absolute;inset:1em 1.2em}
-.sc4 .p1{animation:s4p1 10s var(--e) infinite both}.sc4 .p2{opacity:0;animation:s4p2 10s var(--e) infinite both}.sc4 .p3{opacity:0;animation:s4p3 10s var(--e) infinite both}
+.sc4 .p1{animation:s4p1 7s var(--e) infinite both}.sc4 .p2{opacity:0;animation:s4p2 7s var(--e) infinite both}.sc4 .p3{opacity:0;animation:s4p3 7s var(--e) infinite both}
 .sc4 .dt{font-size:1.4em;font-weight:700;letter-spacing:-0.01em;margin-bottom:.25em}
 .sc4 .ds{font-size:1.1em;color:var(--muted)}
 .sc4 .opts{display:flex;flex-wrap:wrap;gap:.4em .9em}
 .sc4 .opt{display:inline-flex;align-items:center;gap:.5em;padding:.35em .6em;border-radius:.6em;font-size:1.05em;font-weight:500}
 .sc4 .opt i{flex:none;width:.9em;height:.9em;border-radius:50%;box-shadow:inset 0 0 0 .17em var(--ghost)}
-.sc4 .o1{animation:s4o1 10s var(--e) infinite both}.sc4 .o2{animation:s4o2 10s var(--e) infinite both}.sc4 .o2 i{animation:s4r2 10s var(--e) infinite both}
+.sc4 .o1{animation:s4o1 7s var(--e) infinite both}.sc4 .o2{animation:s4o2 7s var(--e) infinite both}.sc4 .o2 i{animation:s4r2 7s var(--e) infinite both}
 
 /* 5 · tasks and reminders */
 .sc5 .tl{display:flex;flex-direction:column;flex:1;min-height:0}
@@ -400,24 +400,24 @@ button{font:inherit;color:inherit}
 .sc5 .bar{margin-bottom:.2em}
 .sc5 .cnt{position:relative;display:block;height:1.4em;margin-top:.2em}
 .sc5 .cnt small{position:absolute;left:0;top:0;white-space:nowrap;font-size:1.05em}
-.sc5 .c0{animation:s5c0 11s var(--e) infinite both}.sc5 .c1{opacity:0;animation:s5c1 11s var(--e) infinite both}.sc5 .c2{opacity:0;animation:s5c2 11s var(--e) infinite both}
-.sc5 .addb{animation:s5btn 11s var(--e) infinite both}
+.sc5 .c0{animation:s5c0 7.5s var(--e) infinite both}.sc5 .c1{opacity:0;animation:s5c1 7.5s var(--e) infinite both}.sc5 .c2{opacity:0;animation:s5c2 7.5s var(--e) infinite both}
+.sc5 .addb{animation:s5btn 7.5s var(--e) infinite both}
 .sc5 .field{position:relative;margin-top:.6em;padding:.9em 1.2em;font-size:1.15em;min-height:3em}
-.sc5 .field .typ{position:absolute;left:1.2em;top:50%;margin-top:-.7em;line-height:1.4;opacity:0;color:var(--text);font-weight:500;white-space:nowrap;animation:s5t 11s linear infinite both}
-.sc5 .field .ph5{animation:s5p 11s linear infinite both}
+.sc5 .field .typ{position:absolute;left:1.2em;top:50%;margin-top:-.7em;line-height:1.4;opacity:0;color:var(--text);font-weight:500;white-space:nowrap;animation:s5t 7.5s linear infinite both}
+.sc5 .field .ph5{animation:s5p 7.5s linear infinite both}
 .sc5 .remcard{position:relative;height:4.6em;margin-top:.8em}
 .sc5 .rc{position:absolute;inset:0;display:flex;align-items:center;gap:1em;padding:0 1.1em;border-radius:1.1em}
-.sc5 .rc.a{background:var(--surface);animation:s5ra 11s var(--e) infinite both}
-.sc5 .rc.b{opacity:0;animation:s5rb 11s var(--e) infinite both,s5rbg 11s var(--e) infinite both}
+.sc5 .rc.a{background:var(--surface);animation:s5ra 7.5s var(--e) infinite both}
+.sc5 .rc.b{opacity:0;animation:s5rb 7.5s var(--e) infinite both,s5rbg 7.5s var(--e) infinite both}
 .sc5 .rc > span:nth-child(2){flex:1;min-width:0}
 .sc5 .rc b{display:block;font-size:1.1em}
 .sc5 .rc em{font-style:normal;font-weight:600;color:var(--muted)}
 .sc5 .rb{flex:none;display:grid;place-items:center;width:2.6em;height:2.6em;border-radius:.8em;background:var(--mkbg)}
 .sc5 .cap.mt{margin-top:.7em}
 .sc5 .gtoday,.sc5 .gup,.sc5 .fdone{overflow:hidden}
-.sc5 .gtoday{animation:s5today 11s var(--e) infinite both}
-.sc5 .gup{max-height:0;opacity:0;animation:s5up 11s var(--e) infinite both}
-.sc5 .fdone{max-height:0;opacity:0;animation:s5fd 11s var(--e) infinite both}
+.sc5 .gtoday{animation:s5today 7.5s var(--e) infinite both}
+.sc5 .gup{max-height:0;opacity:0;animation:s5up 7.5s var(--e) infinite both}
+.sc5 .fdone{max-height:0;opacity:0;animation:s5fd 7.5s var(--e) infinite both}
 .sc5 .task2{display:flex;align-items:flex-start;gap:1em;padding:.42em 0}
 .sc5 .task2 > span:last-child{flex:1;min-width:0}
 .sc5 .task2 b{font-size:1.1em;font-weight:600}
@@ -425,9 +425,9 @@ button{font:inherit;color:inherit}
 .sc5 .cb2{position:relative;flex:none;display:grid;place-items:center;width:1.6em;height:1.6em;margin-top:.15em;border-radius:.5em;box-shadow:inset 0 0 0 .2em var(--c);font-style:normal;background:transparent;color:transparent}
 .sc5 .cb2.on{background:var(--c);color:#fff}
 .sc5 .cb2 .ic{width:1.1em;height:1.1em;stroke-width:2.6}
-.sc5 .tk1 .cb2{animation:s5cb 11s var(--e) infinite both}
-.sc5 .tk1 b{position:relative;animation:s5tx 11s var(--e) infinite both}
-.sc5 .tk1 b::after{content:"";position:absolute;left:0;right:0;top:54%;height:.12em;background:var(--muted);transform:scaleX(0);transform-origin:0 50%;animation:s5st 11s var(--e) infinite both}
+.sc5 .tk1 .cb2{animation:s5cb 7.5s var(--e) infinite both}
+.sc5 .tk1 b{position:relative;animation:s5tx 7.5s var(--e) infinite both}
+.sc5 .tk1 b::after{content:"";position:absolute;left:0;right:0;top:54%;height:.12em;background:var(--muted);transform:scaleX(0);transform-origin:0 50%;animation:s5st 7.5s var(--e) infinite both}
 .sc5 .dn b{position:relative;color:var(--muted)}
 .sc5 .dn b::after{content:"";position:absolute;left:0;right:0;top:54%;height:.12em;background:var(--muted)}
 @keyframes spin{to{transform:rotate(360deg)}}

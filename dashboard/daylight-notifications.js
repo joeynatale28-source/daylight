@@ -101,11 +101,30 @@
     ownerKnown = true;
     ownerWaiters.splice(0).forEach(function (fn) { fn(owner); });
   }
+  /* Who the owner is: asked on its own (not behind the other lookups) and asked again when the answer is an error, so a slow first
+     request after a page load (the session still being restored) is never taken for "not an owner". Only a real true/false answer settles it. */
+  var ownerCheckSeq = 0;
+  async function checkOwner() {
+    var mine = ++ownerCheckSeq, waits = [0, 600, 1500, 3000, 5000];
+    for (var i = 0; i < waits.length; i++) {
+      if (waits[i]) await new Promise(function (r) { setTimeout(r, waits[i]); });
+      if (mine !== ownerCheckSeq) return;
+      try {
+        var answer = await rpc("daylight_is_owner");
+        if (mine !== ownerCheckSeq) return;
+        owner = answer === true;   /* only an exact true shows owner-only UI */
+        settleOwner();
+        if (owner) { try { document.dispatchEvent(new Event("daylight:owner-known")); } catch (e) {} }
+        return;
+      } catch (e) { /* not answered: try again */ }
+    }
+    if (mine === ownerCheckSeq && !ownerKnown) { owner = false; settleOwner(); }   /* later failures keep the last real answer */
+  }
   async function refresh() {
     var mine = ++seq;
-    var list = [], isOwner = false;
+    var list = [];
+    checkOwner();
     try { list = (await rpc("daylight_list_broadcasts")) || []; } catch (e) { list = []; }
-    try { isOwner = (await rpc("daylight_is_owner")) === true; } catch (e) { isOwner = false; }   /* only an exact true shows owner-only UI */
     var inv = [], evInv = [];
     try { inv = (await rpc("daylight_list_my_invites")) || []; } catch (e) { inv = []; }
     try { evInv = (await rpc("daylight_list_my_event_invites")) || []; } catch (e) { evInv = []; }
@@ -113,16 +132,14 @@
     invites = Array.isArray(inv) ? inv : [];
     evInvites = Array.isArray(evInv) ? evInv : [];
     items = Array.isArray(list) ? list : [];
-    owner = isOwner;
     loaded = true;
     /* ONE source for both the badge and the panel: the same list. */
     unread = items.filter(function (x) { return !x.read; }).length + pendingInvites();
     paint();
-    settleOwner();
     if (panelRefresh) panelRefresh();
   }
   function reset() {
-    seq++; items = []; invites = []; evInvites = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
+    seq++; ownerCheckSeq++; items = []; invites = []; evInvites = []; unread = 0; owner = false; loaded = false; ownerKnown = false;
     clearInterval(pollTimer); pollTimer = null; panelRefresh = null;
     paint();
   }
@@ -389,7 +406,7 @@
   /* The Admin dashboard asks this: is the signed-in account an owner? (The database re-checks every admin action itself.) */
   window.daylightAdmin = window.daylightAdmin || {};
   window.daylightAdmin.isOwner = function () { return owner; };
-  window.daylightAdmin.whenKnown = function () { return ownerKnown ? Promise.resolve(owner) : new Promise(function (res) { ownerWaiters.push(res); setTimeout(function () { res(owner); }, 6000); }); };
+  window.daylightAdmin.whenKnown = function () { return ownerKnown ? Promise.resolve(owner) : new Promise(function (res) { ownerWaiters.push(res); setTimeout(function () { res(owner); }, 20000); }); };
   window.daylightAdmin.rpc = rpc;
 
   /* The header is redrawn from time to time (view changes, cached first paint); keep the badge on whichever bell is there. */

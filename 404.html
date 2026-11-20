@@ -19,6 +19,13 @@
     location.replace(base + "dashboard/?oauth_consent=1" + (id ? "&authorization_id=" + encodeURIComponent(id) : ""));
     return;
   }
+  /* Any other address under /dashboard (a typo, an old link, /dashboard/admin/users) goes to the nearest real page of the app, never to this page. */
+  var dm = location.pathname.match(/\/dashboard\/(.+)$/);
+  if (dm) {
+    var first = dm[1].split("/")[0];
+    location.replace(base + "dashboard/" + (/^(tasks|support|admin)$/.test(first) ? first + "/" : "") + location.search + location.hash);
+    return;
+  }
   var light = window.matchMedia && window.matchMedia("(prefers-color-scheme: light)").matches;
   document.documentElement.setAttribute("data-theme", light ? "light" : "dark");
   document.write('<link rel="icon" type="image/png" sizes="32x32" href="' + base + 'assets/favicon-' + (light ? "light" : "dark") + '-32.png">');

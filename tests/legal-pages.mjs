@@ -21,7 +21,7 @@ try{
      &&r.text.includes('For a data export, we prepare your full data as a ZIP file (your account data in readable JSON files, your calendars as ICS files, and a readable summary) and send it to you in your support ticket chat. The download expires after 24 hours.')
      &&r.text.includes('For a deletion request, we delete your data as described in Section 6 and confirm by email.'),'Section 7 reads as specified');
    check(r.text.includes('To exercise these rights, use the Support Center or email privacy@daylightcal.com.')&&!/data request flow in Settings/.test(r.text),'Section 8 says Support Center');
-   check(r.links.filter(h=>/dashboard\/\?support=1/.test(h)).length===2,'both Support Center links open the Support Center',r.links);
+   check(r.links.filter(h=>/dashboard\/support$/.test(h)).length===2,'both Support Center links open the Support Center',r.links);
   }
  }
  // no cookie banner anywhere

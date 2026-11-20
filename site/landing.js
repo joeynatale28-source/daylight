@@ -210,6 +210,21 @@
     restart();
   }
 
+  /* The rotating word in the headline is drawn by CSS, so the heading's spoken text follows it: whichever word is showing is the one in the label. */
+  var h1 = d.querySelector('.hero h1[aria-label]');
+  if (h1) {
+    var heroWords = [].slice.call(h1.querySelectorAll('.slot .word'));
+    var heroSpeak = function () {
+      var best = null, bo = -1;
+      heroWords.forEach(function (n) { var o = parseFloat(w.getComputedStyle(n).opacity); if (o > bo) { bo = o; best = n; } });
+      if (!best) return;
+      var word = best.textContent.replace(/\.$/, '');
+      var text = 'Your calendar, minus the ' + word + '.';
+      if (h1.getAttribute('aria-label') !== text) h1.setAttribute('aria-label', text);
+    };
+    heroSpeak(); setInterval(function () { if (!d.hidden) heroSpeak(); }, 200);
+  }
+
   /* Feature sections: each animation starts from its first frame when its section scrolls into view, pauses when it leaves,
      and starts again from the first frame on re-entry. */
   var fxs = [].slice.call(d.querySelectorAll('.fx'));
@@ -233,16 +248,16 @@
     };
     fxCheck(); w.addEventListener('scroll', fxCheck, { passive: true }); w.addEventListener('resize', fxCheck); setInterval(fxCheck, 400);
   }
-  /* AI access scene: a timer, not the animation clock, moves it along: Checking for ~2.6s, then the answer for ~2.6s, then around again.
+  /* AI access scene: a timer, not the animation clock, moves it along: Checking for ~1.5s, then the answer for ~2.8s, then around again.
      It starts from "Checking" each time the section comes into view and stops when it leaves. */
   var aiSec = d.getElementById('ai'), aiScene = aiSec && aiSec.querySelector('.sc1'), aiT = [];
   if (aiScene) {
     var aiStop = function () { aiT.forEach(clearTimeout); aiT = []; };
     var aiRun = function () {
       aiStop(); aiScene.classList.remove('ans');
-      aiT.push(setTimeout(function () { aiScene.classList.add('ans'); }, 2600));
-      aiT.push(setTimeout(function () { aiScene.classList.remove('ans'); }, 5400));
-      aiT.push(setTimeout(aiRun, 5800));
+      aiT.push(setTimeout(function () { aiScene.classList.add('ans'); }, 1500));
+      aiT.push(setTimeout(function () { aiScene.classList.remove('ans'); }, 4300));
+      aiT.push(setTimeout(aiRun, 4700));
     };
     if (reduce.matches) aiScene.classList.add('ans');
     else setInterval(function () {

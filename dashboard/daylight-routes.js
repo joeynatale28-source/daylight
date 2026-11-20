@@ -13,7 +13,7 @@
 
   function secFromPath() {
     var rest = location.pathname.slice(BASE.length).replace(/\/+$/, "");
-    return rest === "tasks" ? "tasks" : rest === "support" ? "support" : rest === "admin" ? "admin" : "calendar";
+    return rest === "tasks" ? "tasks" : rest === "support" ? "support" : (rest === "admin" || rest === "admin/users") ? "admin" : "calendar";
   }
   function pathFor(sec) { return BASE + (SLUG[sec] || ""); }
   function norm(p) { return p.replace(/\/+$/, ""); }
@@ -57,12 +57,15 @@
     var sec = secFromPath();
     if (sec === "calendar") { try { history.replaceState({ dlSection: "calendar" }, "", BASE); } catch (e) {} return; }
     if (sec === "admin") {
-      /* who the owner is arrives a moment after the workspace: wait for it, and fall back to the calendar for everyone else */
-      var tries = 0, t = setInterval(function () {
-        tries++;
-        if (isOwner()) { clearInterval(t); go("admin", true); }
-        else if (tries > 40) { clearInterval(t); try { history.replaceState(null, "", BASE); } catch (e) {} }
-      }, 150);
+      /* who the owner is arrives a moment after the workspace (it is asked again if the first answer fails): wait for the real answer,
+         open Admin with the Users tab for an owner, and send everyone else to the calendar */
+      if (/\/admin\/users\/?$/.test(location.pathname)) { try { sessionStorage.setItem("daylight-admin-tab", "users"); } catch (e) {} }
+      var done = false, finish = function (owner) {
+        if (done) return; done = true;
+        if (owner) go("admin", true); else { try { history.replaceState(null, "", BASE); } catch (e) {} }
+      };
+      if (window.daylightAdmin && window.daylightAdmin.whenKnown) window.daylightAdmin.whenKnown().then(finish);
+      else finish(isOwner());
       return;
     }
     go(sec, true);   /* also drops the trailing slash the static host adds */

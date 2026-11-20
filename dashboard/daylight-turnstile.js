@@ -68,11 +68,14 @@
     return { ok: j.ok === true, configured: j.configured !== false };
   }
 
+  var inFlight = null;
   function check(reason, opts) {
     opts = opts || {};
     if (!opts.force && fresh()) return Promise.resolve(true);
+    /* one check at a time: a second request while one is showing waits for that same check instead of drawing a second widget */
+    if (inFlight) return inFlight;
     css();
-    return new Promise(function (resolve) {
+    inFlight = new Promise(function (resolve) {
       var ray = rayId(), fails = 0, soft = 0, wid = null, done = false;
       var ov = document.createElement("div");
       ov.className = "dl-sc"; ov.setAttribute("role", "dialog"); ov.setAttribute("aria-modal", "true"); ov.setAttribute("aria-label", "Security Check"); ov.setAttribute("data-t", theme());
@@ -88,7 +91,12 @@
       /* a check that cannot run at all (blocked script, widget error) is not a failed check: after two of those, sign-in is let through rather
          than locking the person out of their own account. A token Cloudflare rejects is never let through. */
       function failed(msg, cannotRun) {
-        if (cannotRun && !opts.cancel && ++soft >= 2) { try { console.warn("Daylight security check unavailable; continuing"); } catch (e) {} finish(true); return; }
+        /* The first two times the widget cannot run (a script still starting, a momentary client error) the check simply tries again behind the same
+           "Verifying your browser…" spinner: no error screen, nothing to click. Only a third failure lets sign-in through (see above). */
+        if (cannotRun && !opts.cancel) {
+          if (++soft >= 3) { try { console.warn("Daylight security check unavailable; continuing"); } catch (e) {} finish(true); return; }
+          working("Verifying your browser…"); setTimeout(function () { if (!done) start(); }, 500 * soft); return;
+        }
         fails++; box.innerHTML = ""; var m = document.createElement("span"); m.className = "dl-sc-err"; m.textContent = msg; box.appendChild(m);
         act.hidden = false; act.innerHTML = "";
         var retry = document.createElement("button"); retry.type = "button"; retry.className = "dl-sc-btn p"; retry.textContent = "Try again"; retry.addEventListener("click", start); act.appendChild(retry);
@@ -108,7 +116,7 @@
           try {
             if (wid !== null) { window.turnstile.remove(wid); wid = null; }
             mount = document.createElement("div"); ov.querySelector(".dl-sc-card").appendChild(mount);
-            wid = window.turnstile.render(mount, { sitekey: SITE_KEY, theme: theme(), appearance: "interaction-only", size: "normal", callback: onToken,
+            wid = window.turnstile.render(mount, { sitekey: SITE_KEY, theme: theme(), appearance: "interaction-only", size: "normal", retry: "never", callback: onToken,
               "error-callback": function () { failed("The check couldn’t run. Please try again.", true); }, "expired-callback": function () { failed("The check expired. Please try again."); }, "timeout-callback": function () { failed("The check timed out. Please try again.", true); } });
           } catch (e) { failed("The check couldn’t start. Please try again.", true); }
         }).catch(function () { failed("Couldn’t load the security check. Check your connection and try again.", true); });
@@ -116,6 +124,8 @@
       start();
       document.addEventListener("keydown", function esc(e) { if (done) { document.removeEventListener("keydown", esc, true); return; } if (e.key === "Escape" && opts.cancel) { e.preventDefault(); finish(false); } }, true);
     });
+    inFlight.then(function () { inFlight = null; }, function () { inFlight = null; });
+    return inFlight;
   }
   /* a rare, small chance on a signed-in visit, at most once per browser session */
   function maybeRandom() {
