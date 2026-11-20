@@ -2165,3 +2165,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .settings-dialog .settings-pane, .settings-dialog .settings-rail { min-height: 0; }
 @media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { height: min(800px, calc(var(--dl-app-h, 100dvh) * .92)); } }
 @media (max-width: 640px) { .settings-dialog { height: calc(var(--dl-app-h, 100dvh) - 16px); max-height: calc(var(--dl-app-h, 100dvh) - 16px); } }
+
+/* the "No date" link under the task due-date calendar */
+.date-pop .dp-clear { display: block; width: 100%; margin-top: 6px; padding: 9px 0 3px; border: 0; border-top: 1px solid var(--line-soft); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; }
+.date-pop .dp-clear:hover { color: var(--text); }

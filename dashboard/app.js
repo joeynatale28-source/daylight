@@ -2265,15 +2265,10 @@
         if (t.hasTime) base += " · " + fmtTime(t.due);
         return base;
       }
-      /* due date: quick options (Today / Tomorrow / No date) next to the mini calendar */
+      /* due date: works exactly like the event date control: one click opens the calendar popup. A task can also have no date, so a task that has one gets a
+         "No date" link under the calendar to remove it. */
       function dueMenu(anchor, current, onPick) {
-        var t0 = sod(TODAY), tm = addDays(t0, 1);
-        var items = [{ label2: "Due date" },
-          { label: "Today", right: current && sameDay(current, t0) ? "check" : null, fn: function () { onPick(t0); } },
-          { label: "Tomorrow", right: current && sameDay(current, tm) ? "check" : null, fn: function () { onPick(tm); } },
-          { label: "Pick a date…", fn: function () { setTimeout(function () { openDatePicker(anchor, current || t0, function (d) { onPick(sod(d)); }); }, 0); } },
-          { label: "No date", right: !current ? "check" : null, fn: function () { onPick(null); } }];
-        openMenu(anchor, items);
+        openDatePicker(anchor, current || sod(TODAY), function (d) { onPick(sod(d)); }, current ? { onClear: function () { onPick(null); } } : null);
       }
       /* the task editor: title, description, due date, calendar (and delete) in the app's own dialog */
       function openTaskEditor(t) {
@@ -2292,7 +2287,7 @@
         overlayRoot.appendChild(bd);
         var tIn = bd.querySelector("#teTitle"), dIn = bd.querySelector("#teDesc"), dueB = bd.querySelector("#teDue"), calB = bd.querySelector("#teCal");
         tIn.value = draft.title; dIn.value = draft.desc;
-        function paintDue() { dueB.querySelector("span").textContent = taskDueLabel({ due: draft.due, hasTime: false }); }
+        function paintDue() { dueB.querySelector("span").textContent = draft.due ? fmtDateShort(draft.due) : "No date"; }   /* the full date, like the event date button */
         function paintCal() { var c = calOf(draft.cal); calB.querySelector("span").innerHTML = '<span style="display:inline-flex;align-items:center;gap:7px"><span class="pop-dot" style="background:' + dotOf(c) + ';margin:0"></span>' + esc(c.name) + "</span>"; }
         paintDue(); paintCal();
         dueB.addEventListener("click", function () { dueMenu(dueB, draft.due, function (d) { draft.due = d; paintDue(); }); });
@@ -2847,7 +2842,7 @@
         out.sort(function (a, b) { return a[0] - b[0]; });
         return out;
       }
-      function openDatePicker(anchorBtn, current, onPick) {
+      function openDatePicker(anchorBtn, current, onPick, opts) {
         closeDatePicker();
         var pop = el('<div class="date-pop"></div>');
         pop.id = "datePop";
@@ -2872,13 +2867,18 @@
             }
             pop.appendChild(row);
           }
+          if (opts && opts.onClear) {
+            var clr = el('<button type="button" class="dp-clear">No date</button>');
+            clr.addEventListener("click", function (e) { e.stopPropagation(); closeDatePicker(); opts.onClear(); });
+            pop.appendChild(clr);
+          }
         }
         draw();
         document.body.appendChild(pop);
         var r = anchorBtn.getBoundingClientRect();
         pop.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 260)) + "px";
         var top = r.bottom + 6;
-        if (top + 320 > window.innerHeight) top = Math.max(8, r.top - 326);
+        if (top + (opts && opts.onClear ? 364 : 320) > window.innerHeight) top = Math.max(8, r.top - (opts && opts.onClear ? 370 : 326));
         pop.style.top = top + "px";
         setTimeout(function () { document.addEventListener("mousedown", dpOutside, true); }, 0);
       }

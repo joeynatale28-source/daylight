@@ -25,9 +25,9 @@ for(const theme of ['light','dark']){
   check(fromMenu&&JSON.stringify(fromMenu)===JSON.stringify(fromPage),'the Create menu Task option opens the same dialog',fromMenu);
   await page.type('#teTitle','Renew passport');await page.type('#teDesc','Bring two photos and the old passport.');
   await page.click('#teDue');await sleep(250);
-  const opts=await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].map(x=>x.textContent.trim()));
-  check(['Today','Tomorrow','No date'].every(o=>opts.some(x=>x.startsWith(o)))&&opts.some(x=>/Pick a date/.test(x)),'the due-date control offers Today, Tomorrow, a mini calendar and No date',opts);
-  await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(x=>x.textContent.trim().startsWith('Tomorrow')).click());await sleep(200);
+  const popOpen=await page.evaluate(()=>({pop:!!document.getElementById('datePop'),menu:!!document.querySelector('.menu .menu-item')}));
+  check(popOpen.pop&&!popOpen.menu,'the due-date control opens the calendar popup on the first click (like the event date)',popOpen);
+  await page.evaluate(()=>{const start=weekStartOf(dt(TODAY.getFullYear(),TODAY.getMonth(),1));const idx=Math.round((sod(addDays(TODAY,1))-start)/864e5);document.querySelectorAll('#datePop .mini-day')[idx].click()});await sleep(250);
   await page.click('[data-ok]');await sleep(700);
   check(await page.evaluate(()=>state.section==='tasks'&&!state.events.some(e=>e.title==='Renew passport')),'the created task shows in Tasks, not on the calendar');
   let row=await page.evaluate(()=>{const r=document.querySelector('.task-row');return r&&{title:r.querySelector('.task-title').textContent,desc:(r.querySelector('.task-desc')||{}).textContent,due:r.querySelector('.tm-due').textContent.trim()}});
@@ -35,11 +35,12 @@ for(const theme of ['light','dark']){
   check(await page.evaluate(()=>/1 active · 0 completed/.test(document.querySelector('.tasks-sub').textContent)&&[...document.querySelectorAll('.task-seg button')].every(b=>/\d/.test(b.textContent))),'counts appear once there are tasks');
   // editor
   await page.click('.task-row .task-title');await sleep(400);
+  const fmtTomorrow=await page.evaluate(()=>fmtDateShort(sod(addDays(TODAY,1))));
   const ed=await page.evaluate(()=>({t:document.querySelector('#teTitle').value,d:document.querySelector('#teDesc').value,due:document.querySelector('#teDue').textContent.trim(),cal:!!document.querySelector('#teCal')}));
-  check(ed.t==='Renew passport'&&/two photos/.test(ed.d)&&/Tomorrow/.test(ed.due)&&ed.cal,'opening a task shows its editor (title, description, due date, calendar)',ed);
+  check(ed.t==='Renew passport'&&/two photos/.test(ed.d)&&ed.due===fmtTomorrow&&ed.cal,'opening a task shows its editor (title, description, due date, calendar)',ed);
   if(theme==='light')await page.screenshot({path:process.env.SHOTS?process.env.SHOTS+'/tasks-editor.png':undefined}).catch(()=>{});
   await page.$eval('#teDesc',e=>{e.value='Bring three photos and the old passport.'});
-  await page.click('#teDue');await sleep(250);await page.evaluate(()=>[...document.querySelectorAll('.menu .menu-item')].find(x=>x.textContent.trim().startsWith('No date')).click());await sleep(200);
+  await page.click('#teDue');await sleep(250);await page.click('#datePop .dp-clear');await sleep(200);
   await page.click('[data-ok]');await sleep(600);
   row=await page.evaluate(()=>{const r=document.querySelector('.task-row');return {desc:r.querySelector('.task-desc').textContent,due:r.querySelector('.tm-due').textContent.trim(),group:[...document.querySelectorAll('.task-group-title')].map(g=>g.textContent)}});
   check(/three photos/.test(row.desc)&&row.due==='No date'&&row.group.some(g=>/^No date/.test(g)),'editing saves the description and can clear the due date (No date group)',row);
