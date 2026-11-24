@@ -15,7 +15,7 @@ export const tools=[
  opt('list_events','Find calendar events within a date and time range',object({start:str,end:str},['start','end']),'read'),
  opt('get_event','Read one calendar event by its ID',object({id:str},['id']),'read'),
  opt('search_events','Search events by title, location, or description',object({query:str},['query']),'read'),
- opt('list_tasks','List your personal tasks',object(),'read'),
+ opt('list_tasks','List your tasks (the to-dos on the Tasks page). Each task has an id, title, due date and a done flag; pass the id of a task exactly as shown here to complete_task or delete_task.',object(),'read'),
  opt('create_calendar','Create a writable calendar',object({name:str,color:str},['name']),'write'),
  opt('create_event','Create a calendar EVENT: something that happens at a specific date and time (meeting, appointment, flight). Needs a start and end time. Do NOT use this for to-dos, errands or things to remember; use create_task for those.',object({calendar_id:str,title:str,starts_at:str,ends_at:str,location:str,description:str,all_day:{type:'boolean'}},['calendar_id','title','starts_at','ends_at']),'write'),
  opt('update_event','Edit a calendar event',object({id:str,title:str,starts_at:str,ends_at:str,location:str,description:str},['id']),'write'),
@@ -23,14 +23,36 @@ export const tools=[
  opt('share_calendar','Share one of your own calendars with a person by email, with view or edit permission, exactly like sharing in the Daylight app. They receive the same invitation and can accept or decline it.',object({calendar_id:str,email:str,permission:{type:'string',enum:['view','edit']}},['calendar_id','email','permission']),'write'),
  opt('share_event','Share one event with a person by email, with view or edit permission, exactly like sharing in the Daylight app. They receive the same invitation and can accept or decline it.',object({event_id:str,email:str,permission:{type:'string',enum:['view','edit']}},['event_id','email','permission']),'write'),
  opt('create_task','Create a TASK (a to-do) that appears on the Tasks page, not on the calendar. Use this whenever the person says task, to-do, reminder, errand or "add to my list". Takes a title, an optional due date (YYYY-MM-DD) and an optional description. No start or end time. Do NOT use create_event for tasks.',object({title:str,due_date:str,description:str},['title']),'write'),
- opt('delete_task','Delete a task permanently',object({id:str},['id']),'delete'),
- opt('complete_task','Mark a task complete or incomplete',object({id:str,completed:{type:'boolean'}},['id','completed']),'write'),
+ opt('delete_task','Delete a task (a to-do on the Tasks page) permanently. id is the id of the task as returned by list_tasks or create_task.',object({id:str},['id']),'delete'),
+ opt('complete_task','Mark a task (a to-do on the Tasks page) complete, or incomplete again. id is the id of the task as returned by list_tasks or create_task; completed is true to mark it done, false to reopen it.',object({id:str,completed:{type:'boolean'}},['id','completed']),'write'),
 ];
 function publicTool(def){const {permission,...rest}=def;return rest}
 export function availableTools(grant){return tools.filter(t=>grant?.can_read&&(
  t.permission==='read'||(t.permission==='write'&&grant.can_write)||(t.permission==='delete'&&grant.can_delete)
 )).map(publicTool)}
 export function rpcError(id,code,message){return {jsonrpc:'2.0',id:id??null,error:{code,message}}}
+/* Task tools only: assistants pass back what list_tasks showed them. A task id is a number there, so a numeric id is accepted as its text, and "true"/"false" as a boolean.
+   Anything else is still rejected, and the message now says which argument is wrong. */
+const TASK_TOOLS=new Set(['create_task','complete_task','delete_task']);
+function coerceTaskArgs(name,args){
+ if(!TASK_TOOLS.has(name)||!args||typeof args!=='object'||Array.isArray(args))return args;
+ const out={...args};
+ if(typeof out.id==='number'&&Number.isSafeInteger(out.id)&&out.id>0)out.id=String(out.id);
+ if(typeof out.id==='string')out.id=out.id.trim();
+ if(typeof out.completed==='string'){const v=out.completed.trim().toLowerCase();if(v==='true'||v==='false')out.completed=v==='true'}
+ return out;
+}
+function taskArgProblem(def,args){
+ if(!args||typeof args!=='object'||Array.isArray(args))return 'arguments must be an object';
+ const schema=def.inputSchema;
+ for(const key of schema.required||[])if(!(key in args))return key+' is required';
+ for(const [key,val] of Object.entries(args)){
+  const typ=schema.properties[key]?.type;
+  if(!typ)return key+' is not an argument of '+def.name;
+  if(typeof val!==typ)return key+' must be a '+typ;
+ }
+ return null;
+}
 function validArgs(def,args){
  if(!args||typeof args!=='object'||Array.isArray(args))return false;
  const schema=def.inputSchema;
@@ -70,8 +92,8 @@ export async function dispatchMcp(message,grant,invoke){
   if(!def)return {status:200,data:rpcError(id,-32601,'Unknown tool')};
   if(!grant?.can_read||(def.permission==='write'&&!grant.can_write)||(def.permission==='delete'&&!grant.can_delete))
    return {status:403,insufficientScope:true,data:{error:'insufficient_scope'}};
-  const args=message.params?.arguments||{};
-  if(!validArgs(def,args))return reply({isError:true,content:[{type:'text',text:'Invalid tool arguments'}]});
+  const args=coerceTaskArgs(name,message.params?.arguments||{});
+  if(!validArgs(def,args))return reply({isError:true,content:[{type:'text',text:TASK_TOOLS.has(name)?'Invalid tool arguments: '+taskArgProblem(def,args):'Invalid tool arguments'}]});
   try{
    const value=await invoke(name,args);
    const content=Array.isArray(value?.content)?value.content:[{type:'text',text:JSON.stringify(value)}];
