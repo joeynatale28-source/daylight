@@ -1,4 +1,5 @@
-// Daylight places: authenticated Mapbox Geocoding API proxy (forward + reverse).
+// Daylight places: authenticated Mapbox proxy — Search Box v1 for forward
+// name/POI search, Geocoding v5 for reverse geocoding.
 import { createClient } from "npm:@supabase/supabase-js@2.118.0";
 
 const admin = createClient(
@@ -69,21 +70,59 @@ function featureParts(feature: any) {
   const secondary = [streetLine, place, regionZip].filter(Boolean).join(", ");
   return { houseNumber, street, streetLine, place, region, postcode, regionZip, full, secondary };
 }
-function formatMapboxFeature(feature: any) {
-  const parts = featureParts(feature);
-  const center = Array.isArray(feature?.center) ? feature.center : [];
-  const lng = Number(center[0]), lat = Number(center[1]);
-  const position = Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : { lat: null, lng: null };
-  const isPoi = Array.isArray(feature?.place_type) && feature.place_type.includes("poi");
-  const primary = (isPoi ? string(feature?.text, 220) : "") || parts.streetLine ||
-    string(feature?.place_name, 240);
+/* A Search Box suggestion, before coordinates are retrieved. The
+   underscore fields are internal (ranking + retrieve) and never returned. */
+function formatSearchBoxSuggestion(s: any) {
+  const name = string(s?.name, 220);
+  const street = string(s?.address, 200);
+  const placeFormatted = string(s?.place_formatted, 300);
+  const fullAddress = string(s?.full_address, 500);
+  const isPoi = s?.feature_type === "poi";
+  const primary = (isPoi ? name : "") || street || name || placeFormatted;
+  if (!primary) return null;
+  const house = street.match(/^\s*(\d+[A-Za-z]?)\b/)?.[1] || "";
+  return {
+    primary,
+    secondary: placeFormatted,
+    address: fullAddress || [street, placeFormatted].filter(Boolean).join(", ") || placeFormatted,
+    lat: null,
+    lng: null,
+    _mapboxId: string(s?.mapbox_id, 100),
+    _name: name,
+    _street: street,
+    _houseNumber: house,
+    _featureType: string(s?.feature_type, 40),
+  };
+}
+function publicSuggestion(entry: any) {
+  return {
+    primary: entry.primary,
+    secondary: entry.secondary,
+    address: entry.address,
+    lat: entry.lat,
+    lng: entry.lng,
+  };
+}
+/* A retrieved Search Box feature: coordinates + full address for a
+   suggestion. Falls back to the suggestion's own fields where the
+   retrieved feature omits one. */
+function formatRetrievedFeature(feature: any, fallback: any) {
+  const props = feature?.properties || {};
+  const coords = Array.isArray(feature?.geometry?.coordinates) ? feature.geometry.coordinates : [];
+  const lng = Number(coords[0]), lat = Number(coords[1]);
+  const name = string(props?.name, 220) || fallback._name;
+  const street = string(props?.address, 200) || fallback._street;
+  const placeFormatted = string(props?.place_formatted, 300) || fallback.secondary;
+  const fullAddress = string(props?.full_address, 500) || fallback.address;
+  const isPoi = (string(props?.feature_type, 40) || fallback._featureType) === "poi";
+  const primary = (isPoi ? name : "") || street || name || placeFormatted;
   if (!primary) return null;
   return {
     primary,
-    secondary: primary === parts.streetLine ? [parts.place, parts.regionZip].filter(Boolean).join(", ") : parts.secondary,
-    address: parts.full || string(feature?.place_name, 500),
-    lat: position.lat,
-    lng: position.lng,
+    secondary: placeFormatted,
+    address: fullAddress || [street, placeFormatted].filter(Boolean).join(", ") || placeFormatted,
+    lat: Number.isFinite(lat) && Number.isFinite(lng) ? lat : null,
+    lng: Number.isFinite(lat) && Number.isFinite(lng) ? lng : null,
   };
 }
 function hasStreetComponents(feature: any) {
@@ -105,15 +144,27 @@ async function mapboxJson(uri: URL, label: string) {
   if (!response.ok) throw new Error("Mapbox " + label + " HTTP " + response.status + ": " + (text.trim() || response.statusText));
   try { return JSON.parse(text); } catch { throw new Error("Mapbox " + label + " returned invalid JSON"); }
 }
-function forwardUri(query: string, apiKey: string, bias?: { lat: number; lng: number } | null) {
-  const uri = new URL("https://api.mapbox.com/geocoding/v5/mapbox.places/" + encodeURIComponent(query) + ".json");
+/* Mapbox Search Box v1: "suggest" is the name/POI search (it matches place
+   names such as schools far better than the older Geocoding API, which
+   returned street names only for the school). "retrieve" turns one
+   suggestion into a full feature with coordinates and a full address. */
+function suggestUri(query: string, apiKey: string, sessionToken: string, bias?: { lat: number; lng: number } | null) {
+  const uri = new URL("https://api.mapbox.com/search/searchbox/v1/suggest");
+  uri.searchParams.set("q", query);
   uri.searchParams.set("access_token", apiKey);
+  uri.searchParams.set("session_token", sessionToken);
   uri.searchParams.set("country", "US");
-  uri.searchParams.set("limit", String(MAX_RESULTS));
+  uri.searchParams.set("limit", String(MAX_RESULTS + 2));
   uri.searchParams.set("language", "en");
-  uri.searchParams.set("autocomplete", "true");
   uri.searchParams.set("types", "poi,address,place");
   if (bias) uri.searchParams.set("proximity", bias.lng + "," + bias.lat);
+  return uri;
+}
+function retrieveUri(mapboxId: string, apiKey: string, sessionToken: string) {
+  const uri = new URL("https://api.mapbox.com/search/searchbox/v1/retrieve/" + encodeURIComponent(mapboxId));
+  uri.searchParams.set("access_token", apiKey);
+  uri.searchParams.set("session_token", sessionToken);
+  uri.searchParams.set("language", "en");
   return uri;
 }
 function reverseUri(position: { lat: number; lng: number }, apiKey: string) {
@@ -178,17 +229,18 @@ Deno.serve(async (req: Request) => {
   const cached = cache.get(cacheKey);
   if (cached && now - cached.time < 20000) return reply(req, cached.result);
   try {
-    const payload = await mapboxJson(forwardUri(input, apiKey, bias), "Search");
+    const sessionToken = crypto.randomUUID();
+    const payload = await mapboxJson(suggestUri(input, apiKey, sessionToken, bias), "Search");
     // Compare names with "Hungary" and "Hungry" treated the same: the
     // school is Hungary Creek, and either spelling should match it.
     const fold = (value: string) => value.toLocaleLowerCase().replace(/\bhungary\b/g, "hungry");
-    const ranked = (Array.isArray(payload.features) ? payload.features : [])
-      .map((feature: any, index: number) => ({ formatted: formatMapboxFeature(feature), feature, index }))
+    const ranked = (Array.isArray(payload.suggestions) ? payload.suggestions : [])
+      .map((s: any, index: number) => ({ formatted: formatSearchBoxSuggestion(s), s, index }))
       .filter((entry: any) => entry.formatted)
       .sort((a: any, b: any) => {
         const query = fold(input);
         const score = (entry: any) => {
-          const name = fold(string(entry.feature?.text, 220));
+          const name = fold(entry.formatted._name);
           const address = fold(string(entry.formatted?.address, 500));
           let value = 0;
           if (name === query) value += 100;
@@ -198,8 +250,8 @@ Deno.serve(async (req: Request) => {
           else if (address.includes(query)) value += 35;
           if (/hungry\s+creek\s+middle\s+school/i.test(query) && /francistown/i.test(address) && /23060/.test(address)) value += 90;
           const houseNumber = query.match(/^\s*(\d+)\s+(\S+)/);
-          if (houseNumber && featureParts(entry.feature).houseNumber === houseNumber[1] &&
-            featureParts(entry.feature).street.toLocaleLowerCase().startsWith(houseNumber[2])) value += 200;
+          if (houseNumber && entry.formatted._houseNumber === houseNumber[1] &&
+            entry.formatted._street.toLocaleLowerCase().startsWith(houseNumber[2])) value += 200;
           const words = query.split(/\s+/).filter(Boolean);
           if (words.length && words.every((word: string) => name.includes(word))) value += 25;
           return value;
@@ -208,18 +260,32 @@ Deno.serve(async (req: Request) => {
       })
       .slice(0, MAX_RESULTS);
 
-    // Results without a house number (typically POIs such as schools) are
-    // completed from Mapbox's own reverse-geocoded address; others pass through.
+    // Retrieve coordinates + full address for the top results, in parallel.
+    // A failed retrieve never fails the whole search: that result keeps its
+    // suggestion data (without coordinates). Results still without a house
+    // number (typically POIs such as schools) are completed from Mapbox's
+    // own reverse-geocoded address.
     const suggestions = (await Promise.all(ranked.map(async (entry: any) => {
-      if (hasStreetComponents(entry.feature)) return entry.formatted;
-      try {
-        const resolved = await resolveStreetAddress(entry.feature, apiKey);
-        if (!resolved) return entry.formatted;
-        return Object.assign({}, entry.formatted, { address: resolved.full, secondary: resolved.secondary });
-      } catch (failure) {
-        console.error("Daylight Mapbox address completion failure:", failure instanceof Error ? failure.message : String(failure));
-        return entry.formatted;
+      let done: any = null;
+      if (entry.formatted._mapboxId) {
+        try {
+          const retrieved = await mapboxJson(retrieveUri(entry.formatted._mapboxId, apiKey, sessionToken), "Retrieve");
+          const feature = Array.isArray(retrieved?.features) ? retrieved.features[0] : null;
+          if (feature) done = formatRetrievedFeature(feature, entry.formatted);
+        } catch (failure) {
+          console.error("Daylight Mapbox retrieve failure:", failure instanceof Error ? failure.message : String(failure));
+        }
       }
+      if (!done) return publicSuggestion(entry.formatted);
+      if (!/^\s*\d+[A-Za-z]?\b/.test(done.address || "") && done.lat !== null && done.lng !== null) {
+        try {
+          const resolved = await resolveStreetAddress({ center: [done.lng, done.lat] }, apiKey);
+          if (resolved) return Object.assign({}, done, { address: resolved.full, secondary: resolved.secondary });
+        } catch (failure) {
+          console.error("Daylight Mapbox address completion failure:", failure instanceof Error ? failure.message : String(failure));
+        }
+      }
+      return done;
     }))).filter(Boolean);
     const result = { suggestions, attribution: ATTRIBUTION };
     if (cache.size > 400) cache.clear();
