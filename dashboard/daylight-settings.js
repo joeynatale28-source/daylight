@@ -430,6 +430,11 @@
      "Safari on iPhone", "macOS", "Linux"… */
   function sessionDevice(ua) {
     ua = String(ua || "");
+    /* The Daylight apps identify themselves in their user agent, so their
+       sessions get the app name instead of a browser label. The app sends
+       "Daylight-iOS" (iPhone/iPad) or "Daylight-Android" in its user agent. */
+    if (/Daylight-iOS/i.test(ua)) return { label: "Daylight iOS", icon: "phone" };
+    if (/Daylight-Android/i.test(ua)) return { label: "Daylight for Android", icon: "phone" };
     var os = /iPhone/i.test(ua) ? "iPhone" : /iPad/i.test(ua) ? "iPad" : /Android/i.test(ua) ? "Android" :
       /CrOS/i.test(ua) ? "ChromeOS" : /Windows/i.test(ua) ? "Windows" : /Mac OS X|Macintosh|Mac OS/i.test(ua) ? "macOS" : /Linux/i.test(ua) ? "Linux" : "";
     var browser = /Edg\//.test(ua) ? "Edge" : /OPR\/|Opera/.test(ua) ? "Opera" : /Firefox\/|FxiOS/.test(ua) ? "Firefox" :

@@ -1,4 +1,4 @@
-/* TomTom Search API address suggestions for Daylight. */
+/* Mapbox Geocoding API address suggestions for Daylight. */
 (function(){
 'use strict';
 let instance=0;
@@ -11,8 +11,8 @@ function makePin(){
  svg.append(path,circle);return svg;
 }
 window.daylightAttachPlaces=function(input,draft,dirty){
- if(!input||input.dataset.tomtomAttached)return;
- input.dataset.tomtomAttached='yes';input.autocomplete='off';
+ if(!input||input.dataset.placesAttached)return;
+ input.dataset.placesAttached='yes';input.autocomplete='off';
  input.setAttribute('role','combobox');input.setAttribute('aria-autocomplete','list');input.setAttribute('aria-expanded','false');
  const parent=input.closest('.field')||input.parentElement;
  parent.classList.add('dl-place-field');
@@ -73,7 +73,7 @@ window.daylightAttachPlaces=function(input,draft,dirty){
    button.addEventListener('pointerleave',()=>{if(active===index)highlight(-1,false)});
    list.append(button);
   });
-  const credit=document.createElement('div');credit.className='dl-place-credit';credit.textContent='© TomTom';list.append(credit);
+  const credit=document.createElement('div');credit.className='dl-place-credit';credit.textContent='© Mapbox © OpenStreetMap';list.append(credit);
   list.hidden=!results.length;input.setAttribute('aria-expanded',String(!!results.length));
  }
  function showLoading(){
@@ -104,13 +104,13 @@ window.daylightAttachPlaces=function(input,draft,dirty){
     if(seq!==request||!input.isConnected)return;
     if(result.error&&result.error.context&&window.daylightCloud.noteAuthFailure)window.daylightCloud.noteAuthFailure(result.error.context.status);
     if(result.error)throw Error('Address search unavailable');
-    if(result.data?.error==='not_configured'||result.data?.error==='TOMTOM_API_KEY is not configured'){
+    if(result.data?.error==='not_configured'){
      results=[];row("Address search isn't set up yet",'quiet');return;
     }
     if(result.data?.error){
      const message=String(result.data.error);
      results=[];row(message,'quiet');
-     console.error('TomTom address lookup failed:',message);
+     console.error('Mapbox address lookup failed:',message);
      return;
     }
     results=Array.isArray(result.data?.suggestions)?result.data.suggestions.slice(0,6):[];
