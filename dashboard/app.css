@@ -2161,9 +2161,9 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 
 /* Settings: the dialog is sized from the real visible app height (--dl-app-h, the smallest height the browser reports), never from a viewport unit that can be taller than
    what is on screen, so it always fits and its content scrolls inside it. */
-.settings-dialog { min-height: 0; max-height: min(800px, calc(var(--dl-app-h, 100dvh) * .92)); }
+.settings-dialog { min-height: 0; max-height: min(880px, calc(var(--dl-app-h, 100dvh) * .92)); }
 .settings-dialog .settings-pane, .settings-dialog .settings-rail { min-height: 0; }
-@media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { height: min(800px, calc(var(--dl-app-h, 100dvh) * .92)); } }
+@media (min-width: 1680px) and (min-height: 900px) { .settings-dialog { height: min(880px, calc(var(--dl-app-h, 100dvh) * .92)); } }
 @media (max-width: 640px) { .settings-dialog { height: calc(var(--dl-app-h, 100dvh) - 16px); max-height: calc(var(--dl-app-h, 100dvh) - 16px); } }
 
 /* the "No date" link under the task due-date calendar */

@@ -9,7 +9,10 @@
         if (!boot.hint) return;
         var app = document.getElementById("app");
         try {
-          if (boot.snap) {
+          /* A saved first paint is the last view this account saw: only reuse it when the address is the calendar. On a tasks/support/admin
+             address it would flash the wrong view for a second, so fall through to the neutral loading state instead. */
+          var pathSec = (function () { try { var m = location.pathname.match(/^(.*\/dashboard\/)/); if (!m) return "calendar"; var rest = location.pathname.slice(m[1].length).replace(/\/+$/, ""); return rest === "" ? "calendar" : rest; } catch (e) { return "calendar"; } })();
+          if (boot.snap && pathSec === "calendar") {
             document.getElementById("sidebar").innerHTML = boot.snap.s;
             document.getElementById("headerBand").innerHTML = boot.snap.hd;
             document.getElementById("viewWrap").innerHTML = boot.snap.v;

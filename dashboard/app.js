@@ -128,7 +128,9 @@
       var state = {
         view: "month",
         defaultView: "month",
-        section: "calendar",
+        /* A direct load of /dashboard/tasks must first paint Tasks, not the calendar: start on the section the address names. Only tasks is
+           safe to start on here (support opens as a panel and admin waits on the owner check, both handled by the router after load). */
+        section: (function () { try { return /\/dashboard\/tasks\/?$/.test(location.pathname) ? "tasks" : "calendar"; } catch (e) { return "calendar"; } })(),
         taskFilter: "all",
         tasks: [],
         prevView: null,
