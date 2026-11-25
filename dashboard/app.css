@@ -41,7 +41,7 @@
         --sidebar-line: #232326;
         --sidebar-hover: #191a1b;
         --sidebar-selected: #232326;
-        /* Mini-calendar today disc: pale blue fill, deep ink numeral. */
+        /* Today disc: pale blue fill, deep ink numeral. */
         --today-disc-bg: #8ab4f8;
         --today-disc-text: #121212;
         /* Create pill: Linear's elevated step off the sidebar tone —
@@ -142,13 +142,13 @@
         overflow: hidden;
       }
       /* Numbers align everywhere they carry meaning — times, dates, counts. */
-      .hour-label, .now-pill, .chip-time, .ev-time, .ev-loc, .mini-day, .day-num,
+      .hour-label, .now-pill, .chip-time, .ev-time, .ev-loc, .dp-day, .day-num,
       .tg-gutter-head, .kbd, .pop-row, .palette-input, .auth-code-box {
         font-variant-numeric: tabular-nums;
       }
       /* Press feedback (Emil): every pressable dips to 0.97, fast. */
       .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-danger-outline:active,
-      .icon-btn:active, .mini-nav:active, .back-btn:active,
+      .icon-btn:active, .dp-nav:active, .back-btn:active,
       .sidebar-add-rail:active, .day-chip:active, .swatch:active {
         transform: scale(0.97);
       }
@@ -189,7 +189,7 @@
 
       /* ---------- Sidebar ---------- */
       #sidebar {
-        width: 292px; flex: none; display: flex; flex-direction: column;
+        width: 320px; flex: none; display: flex; flex-direction: column;
         border-right: 1px solid var(--sidebar-line); background: var(--bg-sidebar);
         padding: 8px 20px 16px; overflow-y: auto; overflow-x: hidden;
         transition: width 200ms var(--ease-out), transform 200ms var(--ease-out);
@@ -267,44 +267,36 @@
       .brand-row .icon-btn { margin-left: auto; }
       #sidebar.rail .brand-row .icon-btn { margin-left: 0; }
 
-      /* Mini calendar — Google Calendar's model: month name left, two
-         plain chevron buttons at the right (no outlined squares),
-         single-letter weekday headers, plain quiet numerals. Today is
-         a pale-blue filled circle; the selected day a soft accent fill. */
-      .mini-head { display: flex; align-items: center; padding: 2px 2px 8px; }
-      #miniWrap { padding-bottom: 8px; }
-      .mini-title { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
-      .mini-navs { margin-left: auto; display: flex; gap: 2px; }
-      .mini-nav {
+      /* Date picker (event and task forms): month name, plain chevron buttons,
+         weekday headers, quiet numerals. Today is a pale-blue filled circle;
+         the selected day a soft accent fill. */
+      .dp-head { display: flex; align-items: center; padding: 2px 2px 8px; }
+      .dp-title { font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; }
+      .dp-nav {
         width: 26px; height: 26px; border: none; border-radius: 50%;
         display: inline-flex; align-items: center; justify-content: center; color: var(--muted);
         transition: background 160ms var(--ease-out), color 160ms var(--ease-out);
       }
-      .mini-nav:hover { background: var(--hover); color: var(--text); }
-      .mini-weekdays, .mini-week { display: grid; grid-template-columns: repeat(7, 1fr); }
-      .mini-weekdays span { text-align: center; font-size: 10.5px; font-weight: 500; color: var(--muted); padding: 2px 0 5px; }
-      .mini-week { border-radius: var(--r-sm); }
-      .mini-day {
+      .dp-nav:hover { background: var(--hover); color: var(--text); }
+      .dp-weekdays, .dp-week { display: grid; grid-template-columns: repeat(7, 1fr); }
+      .dp-weekdays span { text-align: center; font-size: 10.5px; font-weight: 500; color: var(--muted); padding: 2px 0 5px; }
+      .dp-week { border-radius: var(--r-sm); }
+      .dp-day {
         position: relative; height: 28px; border-radius: 50%;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
         font-size: 12px; color: var(--text); transition: background 160ms var(--ease-out);
       }
-      .mini-day:hover { background: var(--hover); }
-      .mini-day.dim { color: var(--faint); }
-      .mini-day .num {
+      .dp-day:hover { background: var(--hover); }
+      .dp-day.dim { color: var(--faint); }
+      .dp-day .num {
         width: 24px; height: 24px; border-radius: 50%;
         display: flex; align-items: center; justify-content: center;
       }
-      .mini-day.edge-month .num {
-        width: auto; min-width: 24px; max-width: 100%;
-        padding: 0 2px; white-space: nowrap; font-size: 9px;
-        letter-spacing: -0.03em; border-radius: 999px;
-      }
-      .mini-day.today .num { background: var(--today-disc-bg); color: var(--today-disc-text); font-weight: 600; }
-      /* Selected mini date: Google's soft filled circle in the accent —
+      .dp-day.today .num { background: var(--today-disc-bg); color: var(--today-disc-text); font-weight: 600; }
+      /* Selected date: Google's soft filled circle in the accent —
          the filled pale disc stays reserved for today alone. */
-      .mini-day.sel .num { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); font-weight: 600; }
-      .mini-day.today.sel .num { background: var(--today-disc-bg); color: var(--today-disc-text); }
+      .dp-day.sel .num { background: color-mix(in srgb, var(--accent) 24%, transparent); color: var(--text); font-weight: 600; }
+      .dp-day.today.sel .num { background: var(--today-disc-bg); color: var(--today-disc-text); }
 
       /* Sidebar section headers — Google's model: a plain 14px label
          with quiet icon actions at the right (new calendar +, and a
@@ -467,8 +459,6 @@
          direction, never a big slide. */
       @keyframes slideNext { from { opacity: 0; transform: translateX(12px); } to { opacity: 1; transform: translateX(0); } }
       @keyframes slidePrev { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-      .mini-anim-next { animation: viewFade 160ms var(--ease-out); }
-      .mini-anim-prev { animation: viewFade 160ms var(--ease-out); }
 
       /* ---------- Month view ---------- */
       .month-wrap { flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
@@ -858,7 +848,7 @@
       body.density-compact .chip { min-height: 20px; padding: 1px 7px 1px 9px; font-size: 11.5px; }
       body.density-compact .chip.seg-mid, body.density-compact .chip.seg-start, body.density-compact .chip.seg-end { min-height: 20px; }
       body.density-compact .allday-bar { min-height: 20px; padding: 1px 8px; }
-      body.density-compact .mini-day { height: 25px; }
+      body.density-compact .dp-day { height: 25px; }
       body.density-compact .day-cell { padding: 4px 6px 3px; }
       body.density-compact .ev-card { border-radius: var(--r-sm); padding: 4px 8px 4px 10px; }
       body.density-compact .agenda-card { padding: 10px 14px; min-height: 48px; margin-bottom: 6px; }
@@ -1183,7 +1173,7 @@
          so light is unchanged. Floating surfaces (menus, popovers,
          dialogs, the date picker) are NOT in #sidebar and keep their
          lifted #232323 / #282828 tones. */
-      #sidebar .icon-btn:hover, #sidebar .mini-nav:hover, #sidebar .mini-day:hover,
+      #sidebar .icon-btn:hover,
       #sidebar .side-label-btn:hover, #sidebar .cal-row:hover, #sidebar .side-row:hover,
       #sidebar .profile-row:hover { background: var(--sidebar-hover); }
       #sidebar .side-row.active { background: var(--sidebar-selected); }
@@ -1196,14 +1186,14 @@
       /* ---------- Responsive ---------- */
       /* ≥1280px — reference layout */
       @media (min-width: 1280px) {
-        #sidebar { width: 300px; }
+        #sidebar { width: 320px; }
         #sidebar.rail { width: 64px; }
       }
       /* 900–1279px — slightly narrower sidebar, still roomy rows */
       @media (max-width: 1279px) and (min-width: 900px) {
-        #sidebar { width: 268px; padding: 8px 18px 14px; }
+        #sidebar { width: 288px; padding: 8px 18px 14px; }
         #sidebar.rail { width: 64px; padding: 9px 8px 10px; }
-        .mini-day { height: 32px; font-size: 12.5px; }
+        .dp-day { height: 32px; font-size: 12.5px; }
         .cal-row { min-height: 44px; }
         .side-row { min-height: 42px; }
         #headerBand { padding-left: 22px; padding-right: 22px; }
@@ -1243,7 +1233,7 @@
         #sidebar {
           display: none;
           position: fixed; top: var(--dl-banner-h, 0px); left: 0; bottom: 0; height: calc(var(--dl-app-h, 100dvh) - var(--dl-banner-h, 0px)); z-index: 390;
-          width: min(324px, 88vw) !important; padding: 20px 20px 14px;
+          width: min(340px, 88vw) !important; padding: 20px 24px 14px;
           box-shadow: var(--shadow-pop);
         }
         #sidebar.drawer-open { display: flex; animation: drawerIn 240ms var(--ease-spring); }
@@ -1653,24 +1643,12 @@
    tighten step by step, so the whole sidebar (account block included) always fits top to bottom without its own scroll at ordinary
    desktop heights. If a very short window still needs a scroll, the account block stays pinned at the bottom. */
 #sidebar:not(.rail) {
-  --sb-pad-top: 6px; --sb-pad-bot: 8px; --sb-create-mt: 2px; --sb-mini-pb: 2px; --sb-brand-pb: 6px; --sb-create-mb: 10px; --sb-mini-day: 22px; --sb-mini-num: 21px; --sb-label-pt: 10px; --sb-label-pb: 2px;
-  --sb-cal-h: 34px; --sb-cal-py: 3px; --sb-row-h: 38px; --sb-row-py: 6px; --sb-spacer: 6px; --sb-prof-mt: 8px; --sb-prof-pt: 8px;
+  --sb-pad-top: 14px; --sb-pad-bot: 12px; --sb-create-mt: 4px; --sb-brand-pb: 12px; --sb-create-mb: 16px; --sb-label-pt: 18px; --sb-label-pb: 6px;
+  --sb-cal-h: 42px; --sb-cal-py: 6px; --sb-row-h: 48px; --sb-row-py: 10px; --sb-spacer: 12px; --sb-prof-mt: 12px; --sb-prof-pt: 12px;
 }
-@media (min-height: 860px) { #sidebar:not(.rail) {
-  --sb-pad-top: 8px; --sb-pad-bot: 12px; --sb-create-mt: 4px; --sb-mini-pb: 4px; --sb-brand-pb: 12px; --sb-create-mb: 16px; --sb-mini-day: 24px; --sb-mini-num: 22px; --sb-label-pt: 14px; --sb-label-pb: 4px;
-  --sb-cal-h: 36px; --sb-cal-py: 4px; --sb-row-h: 40px; --sb-row-py: 7px; --sb-spacer: 10px; --sb-prof-mt: 10px; --sb-prof-pt: 10px; } }
-@media (min-height: 1000px) { #sidebar:not(.rail) {
-  --sb-pad-bot: 16px; --sb-brand-pb: 16px; --sb-create-mb: 22px; --sb-mini-day: 26px; --sb-mini-num: 24px; --sb-label-pt: 20px; --sb-label-pb: 6px;
-  --sb-cal-h: 40px; --sb-cal-py: 6px; --sb-row-h: 44px; --sb-row-py: 9px; --sb-spacer: 18px; --sb-prof-mt: 14px; --sb-prof-pt: 14px; } }
-@media (min-height: 1100px) { #sidebar:not(.rail) {
-  --sb-brand-pb: 20px; --sb-create-mb: 32px; --sb-mini-day: 28px; --sb-label-pt: 28px; --sb-label-pb: 8px;
-  --sb-cal-h: 42px; --sb-cal-py: 7px; --sb-row-h: 46px; --sb-row-py: 10px; --sb-spacer: 34px; --sb-prof-mt: 20px; --sb-prof-pt: 16px; } }
-#sidebar:not(.rail) { padding: var(--sb-pad-top) 20px var(--sb-pad-bot); }
+#sidebar:not(.rail) { padding: var(--sb-pad-top) 24px var(--sb-pad-bot); }
 #sidebar:not(.rail) .brand-row { padding: 2px 4px var(--sb-brand-pb); }
 #sidebar:not(.rail) .create-pill { margin: var(--sb-create-mt) 0 var(--sb-create-mb); }
-#sidebar:not(.rail) #miniWrap { padding-bottom: var(--sb-mini-pb); }
-#sidebar:not(.rail) .mini-day { height: var(--sb-mini-day); }
-#sidebar:not(.rail) .mini-day .num { width: var(--sb-mini-num); height: var(--sb-mini-num); }
 #sidebar:not(.rail) .side-label { padding: var(--sb-label-pt) 10px var(--sb-label-pb); }
 #sidebar:not(.rail) .cal-row { min-height: var(--sb-cal-h); padding: var(--sb-cal-py) 10px; }
 #sidebar:not(.rail) .side-row { min-height: var(--sb-row-h); padding: var(--sb-row-py) 10px; }
@@ -1678,10 +1656,8 @@
    sidebar still fits at ordinary heights; Calendar / Tasks keep the full row height. */
 #sidebar:not(.rail) .side-row[data-side-row] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
 #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 8px); padding-top: calc(var(--sb-row-py) - 2px); padding-bottom: calc(var(--sb-row-py) - 2px); }
-@media (min-height: 1100px) { #sidebar:not(.rail) { --sb-spacer: 22px; --sb-label-pt: 22px; } }
-@media (max-height: 859px) { #sidebar:not(.rail) { --sb-row-h: 36px; --sb-cal-h: 32px; --sb-label-pt: 8px; --sb-create-mb: 8px; --sb-mini-day: 21px; } #sidebar:not(.rail) .side-spacer { min-height: 4px; } }
-@media (max-height: 799px) { #sidebar:not(.rail) { --sb-row-h: 34px; --sb-cal-h: 30px; --sb-cal-py: 2px; --sb-mini-day: 19px; --sb-mini-num: 18px; --sb-brand-pb: 2px; --sb-pad-bot: 4px; --sb-prof-mt: 4px; --sb-prof-pt: 6px; --sb-label-pt: 6px; --sb-create-mb: 6px; } }
-@media (min-height: 860px) and (max-height: 939px) { #sidebar:not(.rail) { --sb-label-pt: 10px; --sb-cal-h: 34px; } }
+@media (max-height: 859px) { #sidebar:not(.rail) { --sb-row-h: 44px; --sb-cal-h: 40px; --sb-label-pt: 14px; --sb-create-mb: 12px; } #sidebar:not(.rail) .side-spacer { min-height: 6px; } }
+@media (max-height: 799px) { #sidebar:not(.rail) { --sb-row-h: 42px; --sb-cal-h: 38px; --sb-pad-top: 10px; --sb-brand-pb: 8px; --sb-label-pt: 12px; --sb-create-mb: 10px; } }
 #sidebar:not(.rail) .side-spacer { min-height: var(--sb-spacer); }
 #sidebar:not(.rail) .profile-wrap { margin-top: var(--sb-prof-mt); padding-top: var(--sb-prof-pt); position: sticky; bottom: calc(-1 * var(--sb-pad-bot)); margin-bottom: calc(-1 * var(--sb-pad-bot)); padding-bottom: var(--sb-pad-bot); background: var(--bg-sidebar); z-index: 2; }
 #sidebar:not(.rail) .profile-row { padding: 6px 8px; }
@@ -1819,7 +1795,7 @@
 
 /* Daylight sidebar: stable single-line labels and compact adaptive rows. */
 .cal-row .cal-name,.cal-row .fr-url{white-space:nowrap!important;text-overflow:ellipsis!important;overflow:hidden!important;min-width:0!important}
-.cal-row{height:var(--dl-cal-row-height,30px)!important;min-height:0!important;flex-shrink:1!important}
+.cal-row{flex-shrink:0}
 .sidebar .cal-list,.sidebar .calendars-list{min-height:0}
 .sidebar .cal-check{flex-shrink:0}
 .sidebar.collapsed .cal-check,.sidebar.rail .cal-check,
@@ -1916,7 +1892,7 @@ body.reduce-motion .dl-cb-box, body.reduce-motion .dl-cb-box svg path { transiti
 .dl-select-btn .ic { color: var(--muted); flex: none; }
 /* Fix 39: the sidebar scrolls only above a pinned bottom cluster, so no Support row or the profile block is ever sliced by a scroll edge. */
 #sidebar { overflow: hidden; }
-#sidebar > .side-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; margin: 0 -20px; padding: 0 20px; scrollbar-color: var(--sidebar-selected) transparent; }
+#sidebar > .side-scroll { flex: 1 1 0; min-height: 0; overflow-y: auto; overflow-x: hidden; display: flex; flex-direction: column; margin: 0 -24px; padding: 0 24px; scrollbar-color: var(--sidebar-selected) transparent; }
 #sidebar > .side-bottom { flex: none; display: flex; flex-direction: column; padding-top: 6px; }
 /* Fix 60/61/63 */
 .dl-sk { display: block; background: var(--hover); border-radius: 6px; animation: dlSkPulse 1.2s ease-in-out infinite; }
@@ -1937,7 +1913,7 @@ body.reduce-motion .dl-sk { animation: none; }
 .dl-notif-panel { animation: dl-overlay-show .19s var(--dl-ease-out) both; }
 .dl-place-options { animation-duration: .19s; animation-timing-function: var(--dl-ease-out); }
 /* Press and hover feedback on every kind of button (transform + opacity only: no size or position change). */
-.btn-primary, .btn-ghost, .btn-danger, .btn-danger-outline, .icon-btn, .pop-banner-btn, .create-main, .side-row, .mini-nav, .side-label-btn, .dl-opt, .dl-person, .dl-ppl-ctl, .dl-cp-toggle, .menu-item {
+.btn-primary, .btn-ghost, .btn-danger, .btn-danger-outline, .icon-btn, .pop-banner-btn, .create-main, .side-row, .dp-nav, .side-label-btn, .dl-opt, .dl-person, .dl-ppl-ctl, .dl-cp-toggle, .menu-item {
   transition: background-color 160ms var(--dl-ease-out), color 160ms var(--dl-ease-out), border-color 160ms var(--dl-ease-out), filter 160ms var(--dl-ease-out), transform 160ms var(--dl-ease-out);
 }
 .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-danger-outline:active, .icon-btn:active, .pop-banner-btn:active, .create-main:active, .dl-opt:active, .dl-cp-toggle:active { transform: scale(0.98); }
@@ -1980,13 +1956,10 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 .agenda-inner, .tasks-inner { max-width: none; min-width: 0; }
 .agenda-inner { max-width: 880px; }
 .agenda-end { text-align: center; font-size: 13px; color: var(--faint); padding: 28px 0 8px; }
-/* Sidebar rhythm: ONE row height, ONE section gap (the same under Create as under the mini calendar); the spare space sits above the account block. */
-#sidebar:not(.rail) { --sb-gap: 16px; }
-@media (max-height: 859px) { #sidebar:not(.rail) { --sb-gap: 10px; } }
-@media (max-height: 799px) { #sidebar:not(.rail) { --sb-gap: 8px; } }
-@media (min-height: 1000px) { #sidebar:not(.rail) { --sb-gap: 20px; } }
+/* Sidebar rhythm: ONE row height, ONE section gap (the gap under Create matches the gap between sections); the spare space sits above the account block. */
+#sidebar:not(.rail) { --sb-gap: 18px; }
+@media (max-height: 859px) { #sidebar:not(.rail) { --sb-gap: 12px; } }
 #sidebar:not(.rail) .create-pill { margin-bottom: var(--sb-gap); }
-#sidebar:not(.rail) #miniWrap { padding-bottom: var(--sb-gap); }
 #sidebar:not(.rail) .side-row, #sidebar:not(.rail) .side-row[data-side-row], #sidebar:not(.rail) .side-row[title="Settings"] { min-height: calc(var(--sb-row-h) - 4px); padding-top: calc(var(--sb-row-py) - 1px); padding-bottom: calc(var(--sb-row-py) - 1px); }
 /* the row action buttons (gear, +) are never invisible-only: they show on hover, on keyboard focus anywhere in the row, and on touch */
 .cal-row:focus-within .cal-menu-btn, .side-label:focus-within .side-label-btn.add { opacity: 1; }
@@ -2000,8 +1973,8 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 .auth-back { display: inline-flex; align-items: center; justify-content: center; height: 44px; padding: 0 22px; border-radius: 999px; border: 1px solid var(--auth-ghost-border); font-size: 14px; font-weight: 550; color: var(--auth-muted); }
 .auth-back:hover { background: var(--auth-ghost-hover); color: var(--auth-text); text-decoration: none; }
 .auth-headline.is-one-line { white-space: nowrap; }
-/* The Create menu is as wide as the sidebar column, so it covers the mini calendar's next-month arrow instead of leaving a stray ">" at the Event row's edge. */
-.menu.dl-create-menu { width: min(260px, calc(100vw - 24px)); }
+/* The Create menu is as wide as the sidebar column, so its rows line up with the Create button. */
+.menu.dl-create-menu { width: min(272px, calc(100vw - 24px)); }
 /* The sidebar logo is a real button ("Daylight home"): pointer cursor, a quiet hover, keyboard focus ring. */
 .brand-home { display: flex; align-items: center; gap: 12px; padding: 2px 6px 2px 2px; margin: -2px 0 -2px -2px; border-radius: 12px; text-align: left; color: inherit; cursor: pointer; min-width: 0; transition: background-color 160ms var(--dl-ease-out); }
 .brand-home:hover { background: var(--hover); }
@@ -2029,10 +2002,8 @@ body.reduce-motion .task-results, body.reduce-motion .task-results.is-in { anima
 .chip.seg-start { border-radius: 8px 0 0 8px; }
 .chip.seg-end { border-radius: 0 8px 8px 0; }
 .chip.seg-mid { border-radius: 0; }
-/* Tasks cross-fade between All / Active / Completed; the mini calendar's month change fades with the direction it moves. */
+/* Tasks cross-fade between All / Active / Completed. */
 .tasks-inner.anim-fade { animation: viewFade 200ms var(--dl-ease-out); }
-.mini-anim-next { animation: slideNext 180ms var(--dl-ease-out); }
-.mini-anim-prev { animation: slidePrev 180ms var(--dl-ease-out); }
 /* Reduce motion, OPEN direction: a 0.01ms animation still paints its first frame at the "from" keyframe (opacity 0, scale .96), so opens were
    not instant. A negative delay starts every entrance already at its end state; the animation still exists, so switching Reduce motion off
    never replays one. */
@@ -2042,14 +2013,14 @@ html body.dl-reduce-motion #overlayRoot .dialog, html body.dl-reduce-motion #ove
 html body.dl-reduce-motion #overlayRoot .date-pop, html body.dl-reduce-motion #overlayRoot .palette, html body.dl-reduce-motion #overlayRoot .palette-backdrop, html body.dl-reduce-motion #overlayRoot .dl-notif-panel { animation-delay: -1s !important; animation-duration: 0.01ms !important; }
 html body.reduce-motion > .menu, html body.reduce-motion > .popover, html body.reduce-motion > .date-pop, html body.dl-reduce-motion > .menu, html body.dl-reduce-motion > .popover, html body.dl-reduce-motion > .date-pop { animation-delay: -1s !important; animation-duration: 0.01ms !important; }
 /* Reduce motion: every motion above is switched off (the app-wide reduce-motion rules already cover the rest). */
-body.reduce-motion .tasks-inner.anim-fade, body.reduce-motion .mini-anim-next, body.reduce-motion .mini-anim-prev,
+body.reduce-motion .tasks-inner.anim-fade,
 body.reduce-motion .dl-notif-panel, body.reduce-motion .dl-place-options { animation: none !important; }
 body.reduce-motion .btn-primary, body.reduce-motion .btn-ghost, body.reduce-motion .btn-danger, body.reduce-motion .btn-danger-outline, body.reduce-motion .icon-btn,
 body.reduce-motion .chip, body.reduce-motion .dl-continuous-bar, body.reduce-motion .menu-item, body.reduce-motion .day-cell { transition: none !important; }
 body.reduce-motion .btn-primary:active, body.reduce-motion .btn-ghost:active, body.reduce-motion .btn-danger:active, body.reduce-motion .btn-danger-outline:active,
 body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, body.reduce-motion .chip:hover, body.reduce-motion .chip:active { transform: none !important; }
 @media (prefers-reduced-motion: reduce) {
-  .dl-notif-panel, .dl-place-options, .tasks-inner.anim-fade, .mini-anim-next, .mini-anim-prev { animation: none !important; }
+  .dl-notif-panel, .dl-place-options, .tasks-inner.anim-fade { animation: none !important; }
   .btn-primary, .btn-ghost, .btn-danger, .btn-danger-outline, .icon-btn, .chip, .menu-item, .day-cell { transition: none !important; }
   .btn-primary:active, .btn-ghost:active, .btn-danger:active, .btn-danger-outline:active, .icon-btn:active, .chip:hover, .chip:active { transform: none !important; }
 }
@@ -2108,7 +2079,7 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 .settings-pane #dl-sec-danger.dl-set-sec { padding-bottom: 0; }
 .settings-pane #dl-sec-danger .set-group { margin-bottom: 0; }
 /* sidebar calendar names wrap cleanly: a row grows with its wrapped name instead of overlapping the next row */
-#sidebar:not(.rail) .cal-row { height: auto !important; min-height: var(--dl-cal-row-height, 30px) !important; padding-top: 3px; padding-bottom: 3px; }
+#sidebar:not(.rail) .cal-row { height: auto !important; min-height: var(--sb-cal-h) !important; padding-top: var(--sb-cal-py); padding-bottom: var(--sb-cal-py); }
 /* month grid: rows share the view's height, but never get shorter than a readable row (120px); below that the grid scrolls (wheel, trackpad, touch, PageUp/PageDown, Home/End) so the last week is always reachable, with a little room under it */
 .month-grid { --month-row-min: 120px; }
 /* the grid never ends flush with the screen: clearance under the last row, and its bottom border stays visible. Rows share the height but are never shorter than 120px; if they cannot fit the grid scrolls, so the last week is always reachable */
@@ -2169,3 +2140,24 @@ body.reduce-motion .icon-btn:active, body.reduce-motion .create-main:active, bod
 /* the "No date" link under the task due-date calendar */
 .date-pop .dp-clear { display: block; width: 100%; margin-top: 6px; padding: 9px 0 3px; border: 0; border-top: 1px solid var(--line-soft); background: none; color: var(--muted); font: inherit; font-size: 13px; font-weight: 550; cursor: pointer; }
 .date-pop .dp-clear:hover { color: var(--text); }
+
+/* Tablet rail (640-899px): the rail is applied by media query, not by the .rail class, so it sets its own 8px gutters
+   here, after every wide-sidebar rule, instead of the wide sidebar's 24px. */
+@media (max-width: 899px) and (min-width: 640px) {
+  #sidebar:not(.rail) { padding: 9px 8px 10px; }
+  #sidebar:not(.rail) > .side-scroll { margin: 0 -8px; padding-left: 8px; padding-right: 8px; }
+  #sidebar:not(.rail) .brand-row { padding: 2px 0 12px; }
+  #sidebar:not(.rail) .cal-row { padding: 8px 0; min-height: 40px !important; }
+  #sidebar:not(.rail) .side-row, #sidebar:not(.rail) .side-row[data-side-row], #sidebar:not(.rail) .side-row[title="Settings"] { padding: 9px 0; min-height: 40px; }
+  #sidebar:not(.rail) .profile-row { padding: 4px 0; }
+}
+
+/* Full-width sidebar and drawer: Create spans the column so it lines up with the rows below it (the icon rail keeps its 44px button). */
+@media (min-width: 900px), (max-width: 639px) {
+  #sidebar:not(.rail) .create-pill { align-self: stretch; }
+  #sidebar:not(.rail) .create-main { flex: 1 1 auto; }
+  #sidebar:not(.rail) .create-chev { margin-left: auto; }
+}
+
+/* Icon rail: the same 8px gutters for the list's scroll area as the rail itself, so nothing pokes out sideways. */
+#sidebar.rail > .side-scroll { margin: 0 -8px; padding-left: 8px; padding-right: 8px; }

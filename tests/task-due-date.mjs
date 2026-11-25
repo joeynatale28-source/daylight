@@ -16,7 +16,7 @@ for(const [theme,w,h] of [['light',1440,900],['dark',390,844]]){
   let o=await page.evaluate(()=>({pop:!!document.getElementById('datePop'),menu:!!document.querySelector('.menu'),clear:!!document.querySelector('#datePop .dp-clear'),txt:document.querySelector('#datePop')?.innerText||''}));
   check(o.pop&&!o.menu&&!/Tomorrow|Pick a date/.test(o.txt),`${tag}: the first click opens the calendar popup, not the shortcut menu`,o);
   check(o.clear,`${tag}: the popup has a way to remove the date`,o);
-  const target=await page.evaluate(()=>{const d=[...document.querySelectorAll('#datePop .mini-day:not(.dim)')].find(b=>b.textContent.trim()==='27');d.click();return fmtDateShort(new Date(TODAY.getFullYear(),TODAY.getMonth(),27))});await sleep(300);
+  const target=await page.evaluate(()=>{const d=[...document.querySelectorAll('#datePop .dp-day:not(.dim)')].find(b=>b.textContent.trim()==='27');d.click();return fmtDateShort(new Date(TODAY.getFullYear(),TODAY.getMonth(),27))});await sleep(300);
   check(await page.evaluate(()=>document.querySelector('#teDue span').textContent)===target,`${tag}: picking a day sets it and the button shows the full date`);
   await page.click('#teDue');await sleep(700);await page.click('#datePop .dp-clear');await sleep(300);
   check(await page.evaluate(()=>document.querySelector('#teDue span').textContent==='No date'&&!document.getElementById('datePop')),`${tag}: "No date" removes the due date`);

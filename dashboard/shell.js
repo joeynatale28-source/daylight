@@ -16,7 +16,6 @@
             document.getElementById("sidebar").innerHTML = boot.snap.s;
             document.getElementById("headerBand").innerHTML = boot.snap.hd;
             document.getElementById("viewWrap").innerHTML = boot.snap.v;
-            if (boot.snap.rh) document.documentElement.style.setProperty("--dl-cal-row-height", boot.snap.rh);
             if (boot.snap.rail) document.getElementById("sidebar").classList.add("rail");
             if (boot.snap.bc) document.body.className = "booting " + boot.snap.bc;
             document.documentElement.setAttribute("data-dl-snapshot", "1");

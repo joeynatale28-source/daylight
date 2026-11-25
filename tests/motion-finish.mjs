@@ -3,7 +3,7 @@
  *  - one depth language: every floating surface has the Settings dialog's shadow; dialogs / menus / popover / date picker share the 12px radius;
  *  - one motion system: every surface opens with dl-overlay-show (190ms ease-out) and CLOSES with dl-overlay-hide (170ms ease-in) on Esc, the X,
  *    click-away and toggling the same event again, no instant vanish; mid-animation frames are saved;
- *  - feedback: a press scales buttons to 0.98; paging, Back to today, the mini calendar and the task filters animate;
+ *  - feedback: a press scales buttons to 0.98; paging, Back to today and the task filters animate;
  *  - Reduce motion: every one of these is switched off (surfaces leave instantly, nothing animates, no press transform);
  *  - footer buttons are the same height and padding in every popup; nothing changed size (a before/after of key box sizes is compared).
  * Frames go to ui-screenshots/motion-finish.
@@ -112,9 +112,6 @@ for(const theme of ['dark','light']){
   check(T('switching Month / Week / Day animates (never a hard cut)'),await page.evaluate(()=>/anim-/.test(document.querySelector('#viewWrap > *').className)));
   await sleep(300);
   await page.evaluate(()=>{state.view='month';renderAll(false)});await sleep(400);
-  await page.evaluate(()=>{document.querySelectorAll('.mini-nav')[1].click()});await sleep(50);
-  const mini=await page.evaluate(()=>{const w=document.querySelector('#miniWrap');return {cls:w.className,anim:getComputedStyle(w).animationName,dur:getComputedStyle(w).animationDuration}});
-  check(T('the mini calendar month change slides/fades with its direction: slideNext, 180ms, ease-out'),/mini-anim-next/.test(mini.cls)&&mini.anim==='slideNext'&&mini.dur==='0.18s',JSON.stringify(mini));
   await sleep(300);
   await page.evaluate(()=>showTasks());await sleep(500);
   await page.evaluate(()=>{[...document.querySelectorAll('.tasks-head [role=tab], [role=tab]')].find(b=>/Active/.test(b.textContent)).click()});await sleep(40);
@@ -128,9 +125,8 @@ for(const theme of ['dark','light']){
   const rm=await page.evaluate(()=>({anim:getComputedStyle(document.querySelector('.settings-dialog')).animationDuration}));
   await page.evaluate(()=>document.querySelector('.settings-close').click());await sleep(40);
   check(T('Reduce motion: dialogs open without animation and leave instantly'),parseFloat(rm.anim)<=0.001&&await gone('.settings-dialog'),JSON.stringify(rm));
-  await page.evaluate(()=>{document.querySelectorAll('.mini-nav')[1].click()});await sleep(40);
-  const rmv=await page.evaluate(()=>{const w=document.querySelector('#miniWrap');const b=document.querySelector('#headerBand .head-right .icon-btn');return {mini:getComputedStyle(w).animationName,tr:getComputedStyle(b).transitionDuration,prop:getComputedStyle(b).transitionProperty,cls:b.className}});
-  check(T('Reduce motion: the mini calendar does not animate and buttons only fade (80ms, no transform)'),rmv.mini==='none'&&parseFloat(rmv.tr)<=0.08&&!/transform/.test(rmv.prop),JSON.stringify(rmv));
+  const rmv=await page.evaluate(()=>{const b=document.querySelector('#headerBand .head-right .icon-btn');return {tr:getComputedStyle(b).transitionDuration,prop:getComputedStyle(b).transitionProperty,cls:b.className}});
+  check(T('Reduce motion: buttons only fade (80ms, no transform)'),parseFloat(rmv.tr)<=0.08&&!/transform/.test(rmv.prop),JSON.stringify(rmv));
   const rb=await page.evaluate(()=>{const b=document.querySelector('#headerBand .head-right .icon-btn'),r=b.getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}});
   await page.mouse.move(rb.x,rb.y);await page.mouse.down();await sleep(220);
   const rpress=await page.evaluate(()=>{const e=[...document.querySelectorAll(':active')].find(x=>x.classList&&x.classList.contains('icon-btn'));return e?getComputedStyle(e).transform:'none'});await page.mouse.up();

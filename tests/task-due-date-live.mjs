@@ -14,7 +14,7 @@ try{
  await page.click('#teDue');await sleep(500);
  const o=await page.evaluate(()=>({pop:!!document.getElementById('datePop'),menu:!!document.querySelector('.menu'),clear:!!document.querySelector('#datePop .dp-clear')}));
  check(o.pop&&!o.menu&&o.clear,'live: the first click opens the calendar popup (no shortcut menu) with a "No date" link',o);
- await page.evaluate(()=>{const d=[...document.querySelectorAll('#datePop .mini-day:not(.dim)')].find(b=>b.textContent.trim()==='15');d.click()});await sleep(300);
+ await page.evaluate(()=>{const d=[...document.querySelectorAll('#datePop .dp-day:not(.dim)')].find(b=>b.textContent.trim()==='15');d.click()});await sleep(300);
  check(/15, \d{4}/.test(await page.evaluate(()=>document.querySelector('#teDue span').textContent)),'live: picking a day shows it as a full date');
  await page.click('#teDue');await sleep(500);await page.click('#datePop .dp-clear');await sleep(300);
  check(await page.evaluate(()=>document.querySelector('#teDue span').textContent)==='No date','live: "No date" removes the due date');

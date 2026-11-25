@@ -37,7 +37,7 @@ function inspectPage(rootSelector){
  scope.querySelectorAll('button,span,div,p,h1,h2,h3,label,input,a').forEach(n=>{
   if(!n.getClientRects().length||seen.size>12)return;
   const cs=getComputedStyle(n);if(cs.visibility==='hidden'||cs.display==='none')return;
-  if(n.closest('.day-cell,.tg-body,.agenda-scroll,.mini-cal,.dl-sw,svg'))return;
+  if(n.closest('.day-cell,.tg-body,.agenda-scroll,.dl-sw,svg'))return;
   if(n.scrollWidth>n.clientWidth+2&&n.clientWidth>0){
    const clipped=['hidden','clip'].includes(cs.overflowX)&&cs.textOverflow!=='ellipsis'&&n.children.length===0&&n.textContent.trim().length>2;
    const spills=cs.overflowX==='visible'&&n.children.length===0&&n.textContent.trim().length>2&&cs.whiteSpace==='nowrap'&&n.getBoundingClientRect().right>(n.parentElement?n.parentElement.getBoundingClientRect().right+2:1e9);

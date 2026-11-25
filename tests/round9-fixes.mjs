@@ -127,10 +127,7 @@ for(const theme of ['dark','light']){
   const tSel=await page.evaluate(()=>{const b=[...document.querySelectorAll('#headerBand button')].find(b=>/today/i.test((b.getAttribute('aria-label')||'')+(b.title||'')));if(b)b.setAttribute('data-t','1');return !!b});
   const todayF=await slide('[data-t="1"]','today');
   check(T('Back to today slides back toward today (mid-frame has an animation class and a transform)'),todayF.some(x=>/anim-(prev|next)/.test(x.cls)&&x.tf!=='none'&&x.op<1),JSON.stringify([tSel,todayBtn,todayF.slice(0,3)]));
-  const miniF=await page.evaluate(()=>new Promise(res=>{const b=[...document.querySelectorAll('#sidebar .mini-nav')].pop();const out=[];const t0=performance.now();b.click();
-   function f(){const g=document.querySelector('#sidebar [class*="mini-anim"]');out.push({t:Math.round(performance.now()-t0),cls:g?g.className:'',op:g?+getComputedStyle(g).opacity:null,tf:g?getComputedStyle(g).transform:''});if(performance.now()-t0<260)requestAnimationFrame(f);else res(out)}f()}));
-  check(T('the mini calendar month change runs its own animation (not a hard cut)'),miniF.some(x=>/mini-anim/.test(x.cls)&&(x.op<1||x.tf!=='none')),JSON.stringify(miniF.slice(0,4)));
-  await page.evaluate(()=>{state.cursor=new Date(2026,10,9);state.selected=new Date(2026,10,9);state.miniCursor=new Date(2026,10,1);renderAll(false)});await sleep(400);
+  await page.evaluate(()=>{state.cursor=new Date(2026,10,9);state.selected=new Date(2026,10,9);renderAll(false)});await sleep(400);
 
   // ---- 7. date number -> Day view
   await page.evaluate(()=>{const n=[...document.querySelectorAll('.day-cell:not(.out) .day-num')].find(b=>b.textContent.trim()==='18');n.click()});await sleep(600);

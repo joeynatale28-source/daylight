@@ -276,7 +276,7 @@
   function lockSidebar() {
     var sb = document.getElementById("sidebar"); if (!sb) return;
     var on = !!window.daylightRestricted;
-    [].slice.call(sb.querySelectorAll("button,.cal-row,.mini,.mini-cal,.side-row,.brand-row,.side-label")).forEach(function (n) {
+    [].slice.call(sb.querySelectorAll("button,.cal-row,.side-row,.brand-row,.side-label")).forEach(function (n) {
       var ok = n.matches(ALLOWED_LOCK) || n.closest(".profile-wrap") || n.closest("[data-side-support]");
       if (on && !ok) { n.setAttribute("data-lock", "1"); n.setAttribute("aria-disabled", "true"); n.tabIndex = -1; }
       else if (n.hasAttribute("data-lock")) { n.removeAttribute("data-lock"); n.removeAttribute("aria-disabled"); n.removeAttribute("tabindex"); }

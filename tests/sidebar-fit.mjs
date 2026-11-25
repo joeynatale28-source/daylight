@@ -1,5 +1,5 @@
-// Item 6 proof: the FULL sidebar (logo/Create, mini calendar, Calendar/Tasks, My calendars, Subscriptions, Shared, Support/Settings,
-// account block) fits top to bottom without its own scroll at ordinary desktop heights, in both themes, with the account block
+// Item 6 proof: the FULL sidebar (logo/Create, Calendar/Tasks, My calendars, Subscriptions, Shared, Support/Settings,
+// account block) fits at every height: the calendar list scrolls inside the sidebar when it is long, in both themes, with the account block
 // pinned visible. Also measures the phone drawer. SHOTS picks the screenshot folder.
 import fs from 'node:fs';import path from 'node:path';import assert from 'node:assert/strict';
 import {launch,busyPayload} from './harness.mjs';
@@ -19,11 +19,11 @@ for(const theme of ['dark','light'])for(const [w,h] of sizes){
     const labels=[...sb.querySelectorAll('.side-label,.side-label-btn,[class*=label]')].map(n=>n.textContent.trim()).filter(Boolean);
     return {h:Math.round(r.height),scrollH:sb.scrollHeight,clientH:sb.clientHeight,scrolls:sb.scrollHeight>sb.clientHeight+1,
       accountBottom:pr?Math.round(pr.bottom):null,sidebarBottom:Math.round(r.bottom),vh:innerHeight,accountVisible:!!pr&&pr.bottom<=r.bottom+1&&pr.top>=r.top,
-      calRowH:rowsEl,clippedNames:clipped,support:/Support/.test(sb.innerText),settings:/Settings/.test(sb.innerText),
+      mini:!!document.querySelector('#miniWrap,.mini-day,.mini-head'),calRowH:rowsEl,clippedNames:clipped,support:/Support/.test(sb.innerText),settings:/Settings/.test(sb.innerText),
       pageScroll:document.documentElement.scrollHeight>innerHeight+1,calendarFills:(()=>{const mw=document.querySelector('.month-wrap,#view,main');return mw?Math.round(mw.getBoundingClientRect().bottom):null})()};
   });
   rows.push({theme,w,h,...m});
-  const ok=(h<768?true:!m.scrolls)&&m.accountVisible&&m.support&&!m.pageScroll;   /* below 768px the account block must stay pinned even if the list scrolls */
+  const ok=m.accountVisible&&!m.mini&&m.support&&!m.pageScroll;   /* below 768px the account block must stay pinned even if the list scrolls */
   if(!ok)failed++;
   console.log((ok?'PASS ':'FAIL ')+theme+' '+w+'x'+h+' sidebar scrolls:'+m.scrolls+' ('+m.scrollH+'/'+m.clientH+') account visible:'+m.accountVisible+' support:'+m.support+' pageScroll:'+m.pageScroll+' clippedNames:'+m.clippedNames);
   await page.screenshot({path:path.join(out,`sidebar-${theme}-${w}x${h}.png`)});

@@ -136,8 +136,6 @@
         prevView: null,
         cursor: new Date(BOOT_TODAY),
         selected: new Date(BOOT_TODAY),
-        miniCursor: dt(BOOT_TODAY.getFullYear(), BOOT_TODAY.getMonth(), 1),
-        miniSelected: new Date(BOOT_TODAY),
         themeMode: "system",
         /* No account's identity is ever baked in: these are neutral until the signed-in account's own record is loaded. */
         firstName: "Account",
@@ -1064,7 +1062,6 @@
           createPill.querySelector(".create-main").addEventListener("click", function () { openMenu(createPill, createMenuItems(), { className: "dl-create-menu" }); });
           sidebarEl.appendChild(createPill);
         }
-        if (!state.sidebarRail) sidebarEl.appendChild(renderMiniCal());
         /* App-section nav: Calendar and Tasks swap the MAIN AREA
            only — the sidebar itself never changes. The current
            section's row carries the selected fill. */
@@ -1478,57 +1475,6 @@
         return date.getDate() === 1 && date.getMonth() !== displayedMonth
           ? MONTHS_S[date.getMonth()] + " 1" : String(date.getDate());
       }
-      function renderMiniCal() {
-        /* Decoupled: the mini calendar has its OWN cursor (state.miniCursor)
-           and its OWN selection (state.miniSelected). Browsing it with the
-           ‹ › arrows changes only the mini calendar — the main calendar does
-           not move. Paging the main calendar does not change the mini month
-           either. Only an explicit click on a mini date jumps the main view
-           to that date (a deliberate pick, not browsing). */
-        var wrap = el('<div class="rail-hide" id="miniWrap"></div>');
-        var mainMonth = state.cursor.getFullYear() * 12 + state.cursor.getMonth();
-        if (state._miniFollow !== mainMonth) { state._miniFollow = mainMonth; state.miniCursor = dt(state.cursor.getFullYear(), state.cursor.getMonth(), 1); }   /* tracks the main view's month */
-        var mc = state.miniCursor;
-        var head = el('<div class="mini-head"><span class="mini-title">' + MONTHS[mc.getMonth()] + " " + mc.getFullYear() + '</span><span class="mini-navs"><button class="mini-nav" title="Previous month" aria-label="Previous month">' + icon("chevL", 14) + '</button><button class="mini-nav" title="Next month" aria-label="Next month">' + icon("chevR", 14) + "</button></span></div>");
-        var navs = head.querySelectorAll(".mini-nav");
-        var miniFade = function (dir) {
-          var w = document.getElementById("miniWrap");
-          if (w && !state.reduceMotion && !reduceMotionMQ.matches) { w.classList.add(dir < 0 ? "mini-anim-prev" : "mini-anim-next"); setTimeout(function () { w.classList.remove("mini-anim-prev", "mini-anim-next"); }, 220); }
-        };
-        navs[0].addEventListener("click", function () { state.miniCursor = addMonths(state.miniCursor, -1); renderSidebar(); miniFade(-1); });
-        navs[1].addEventListener("click", function () { state.miniCursor = addMonths(state.miniCursor, 1); renderSidebar(); miniFade(1); });
-        wrap.appendChild(head);
-        var wdLabels = ["S", "M", "T", "W", "T", "F", "S"];
-        var wd = el('<div class="mini-weekdays">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) { return "<span>" + wdLabels[(state.weekStart + i) % 7] + "</span>"; }).join("") + "</div>");
-        wrap.appendChild(wd);
-        var grid = el('<div id="miniGrid"></div>');
-        var first = new Date(mc.getFullYear(), mc.getMonth(), 1);
-        var start = weekStartOf(first);
-        for (var w = 0; w < 6; w++) {
-          var rowStart = addDays(start, w * 7);
-          var row = el('<div class="mini-week"></div>');
-          for (var d = 0; d < 7; d++) {
-            (function (date) {
-              var inMonth = date.getMonth() === mc.getMonth();
-              var b = el('<button class="mini-day' + (inMonth ? "" : " dim") + (!inMonth && date.getDate() === 1 ? " edge-month" : "") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, state.miniSelected) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
-              b.addEventListener("click", function () {
-                state.section = "calendar";
-                state.miniSelected = sod(date);
-                if (date.getMonth() !== state.miniCursor.getMonth() || date.getFullYear() !== state.miniCursor.getFullYear()) state.miniCursor = dt(date.getFullYear(), date.getMonth(), 1);
-                state.selected = sod(date); state.cursor = sod(date);
-                if (state.view === "day") state.prevView = state.prevView || "month";
-                renderAll(false);
-                closeDrawer();
-              });
-              row.appendChild(b);
-            })(addDays(rowStart, d));
-          }
-          grid.appendChild(row);
-        }
-        wrap.appendChild(grid);
-        return wrap;
-      }
-
       /* ================= Header ================= */
       /* "Nov 8–14, 2026", "Nov 29 – Dec 5, 2026", "Dec 28, 2026 – Jan 3, 2027" */
       function rangeLabel(days) {
@@ -1693,7 +1639,6 @@
         renderAll(true, state.cursor < fromCursor ? -1 : 1);
       }
       function goToday() {
-        /* Main calendar only — the sidebar mini calendar keeps its own month. */
         state.section = "calendar";
         var fromCursor = state.cursor;
         state.cursor = sod(TODAY); state.selected = sod(TODAY);
@@ -1702,8 +1647,7 @@
       function pageBy(dir, animate) {
         /* In the Tasks section the arrow keys do not page anything. */
         if (state.section === "tasks") return;
-        /* Main calendar only — do NOT sync state.miniCursor here.
-           Keyboard paging passes animate=false: keyboard-initiated actions
+        /* Keyboard paging passes animate=false: keyboard-initiated actions
            are never animated (Emil's rule). */
         var c = state.cursor;
         if (state.view === "month") state.cursor = addMonths(c, dir);
@@ -1769,7 +1713,6 @@
         viewWrap.appendChild(node);
         if (animate && !state.reduceMotion && !reduceMotionMQ.matches) {
           node.classList.add(dir < 0 ? "anim-prev" : "anim-next");
-          /* Mini calendar is decoupled — it does not slide with the main view. */
         }
         if (state.view === "week" || state.view === "day") {
           var sc = viewWrap.querySelector(".tg-scroll");
@@ -2780,7 +2723,7 @@
           '<div class="dialog-head"><span class="dialog-title">Help center</span><button class="icon-btn" data-x title="Close" aria-label="Close">' + icon("x", 17) + "</button></div>" +
           '<div class="dialog-body" style="font-size:14px;line-height:1.6;color:var(--muted)">' +
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Create.</b> Use the Create button in the sidebar, press <b style='color:var(--text)'>N</b>, or use the + on any day. Click an event to see its details, edit it, or delete it.</p>" +
-          "<p style='margin:0 0 10px'><b style='color:var(--text)'>Move around.</b> The header above the calendar shows the month and year — its ‹ › arrows move one month at a time, and the calendar-dot button jumps straight back to today in Month view. Click a date number to open that day: the header then shows that day's full date instead, and the arrows step one day at a time. The sidebar mini calendar's own ‹ › arrows browse months without moving the main view, and clicking one of its dates jumps there. The arrow keys page the calendar and <b style='color:var(--text)'>T</b> jumps back to today.</p>" +
+          "<p style='margin:0 0 10px'><b style='color:var(--text)'>Move around.</b> The header above the calendar shows the month and year — its ‹ › arrows move one month at a time, and the calendar-dot button jumps straight back to today in Month view. Click a date number to open that day: the header then shows that day's full date instead, and the arrows step one day at a time. The arrow keys page the calendar and <b style='color:var(--text)'>T</b> jumps back to today.</p>" +
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Tasks.</b> The <b style='color:var(--text)'>Tasks</b> row in the sidebar swaps the calendar for your task list — add tasks with a due date and a calendar, tick the checkbox to complete them, and use the pencil to rename or the date to move one. The <b style='color:var(--text)'>Calendar</b> row brings the calendar back.</p>" +
           "<p style='margin:0 0 10px'><b style='color:var(--text)'>Calendars.</b> Tick a calendar's square in the sidebar to show or hide it. Calendars under <b style='color:var(--text)'>My calendars</b> have a ⋮ menu to rename, recolor, or delete them. Calendars under <b style='color:var(--text)'>Subscriptions</b>, like US Holidays, are read-only — their events show on the grid but can't be added to or edited.</p>" +
           "<p style='margin:0'>Press <b style='color:var(--text)'>Ctrl/⌘ + K</b> to search and <b style='color:var(--text)'>Ctrl/⌘ + ,</b> for Settings, where you can change the view, time zone, density, and more.</p>" +
@@ -2851,18 +2794,18 @@
         var view = dt(current.getFullYear(), current.getMonth(), 1);
         function draw() {
           pop.innerHTML = "";
-          var head = el('<div class="mini-head" style="padding-bottom:6px"><button class="mini-nav" title="Previous month" aria-label="Previous month">' + icon("chevL", 14) + '</button><span class="mini-title" style="font-size:14px">' + MONTHS[view.getMonth()] + " " + view.getFullYear() + '</span><button class="mini-nav" title="Next month" aria-label="Next month">' + icon("chevR", 14) + "</button></div>");
-          var navs = head.querySelectorAll(".mini-nav");
+          var head = el('<div class="dp-head" style="padding-bottom:6px"><button class="dp-nav" title="Previous month" aria-label="Previous month">' + icon("chevL", 14) + '</button><span class="dp-title" style="font-size:14px">' + MONTHS[view.getMonth()] + " " + view.getFullYear() + '</span><button class="dp-nav" title="Next month" aria-label="Next month">' + icon("chevR", 14) + "</button></div>");
+          var navs = head.querySelectorAll(".dp-nav");
           navs[0].addEventListener("click", function (e) { e.stopPropagation(); view = addMonths(view, -1); draw(); });
           navs[1].addEventListener("click", function (e) { e.stopPropagation(); view = addMonths(view, 1); draw(); });
           pop.appendChild(head);
-          pop.appendChild(el('<div class="mini-weekdays">' + ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (l, i, arr) { return "<span>" + arr[(state.weekStart + i) % 7] + "</span>"; }).join("") + "</div>"));
+          pop.appendChild(el('<div class="dp-weekdays">' + ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map(function (l, i, arr) { return "<span>" + arr[(state.weekStart + i) % 7] + "</span>"; }).join("") + "</div>"));
           var start = weekStartOf(view);
           for (var w = 0; w < 6; w++) {
-            var row = el('<div class="mini-week"></div>');
+            var row = el('<div class="dp-week"></div>');
             for (var d = 0; d < 7; d++) {
               (function (date) {
-                var b = el('<button class="mini-day' + (date.getMonth() === view.getMonth() ? "" : " dim") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, current) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
+                var b = el('<button class="dp-day' + (date.getMonth() === view.getMonth() ? "" : " dim") + (sameDay(date, TODAY) ? " today" : "") + (sameDay(date, current) ? " sel" : "") + '"><span class="num">' + date.getDate() + "</span></button>");
                 b.addEventListener("click", function (e) { e.stopPropagation(); closeDatePicker(); onPick(sod(date)); });
                 row.appendChild(b);
               })(addDays(start, w * 7 + d));
@@ -3400,7 +3343,6 @@
         state.profileName = "Account";
         state.view = "month"; state.prevView = null;
         state.cursor = sod(TODAY); state.selected = sod(TODAY);
-        state.miniCursor = dt(TODAY.getFullYear(), TODAY.getMonth(), 1); state.miniSelected = sod(TODAY);
         applySettingsSnapshot({
           weekStart: SETTINGS_DEFAULTS.weekStart, timeFormat: SETTINGS_DEFAULTS.timeFormat,
           dateFormat: SETTINGS_DEFAULTS.dateFormat, defaultDuration: SETTINGS_DEFAULTS.defaultDuration,
@@ -3560,7 +3502,7 @@
           '<div class="set-row switch-row"><span><span class="sw-label">Show weekends</span><div class="sw-sub">Show Saturday and Sunday in Month and Week views.</div></span>' + switchHTML("csWeekends", state.showWeekends) + "</div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Show declined events</span><div class="sw-sub">Declined events stay visible on your calendar.</div></span>' + switchHTML("csSD", state.showDeclined) + "</div>" +
           '<div class="set-row switch-row"><span><span class="sw-label">Week numbers</span><div class="sw-sub">Show the ISO week number along the left edge of Month view.</div></span>' + switchHTML("csWN", state.weekNumbers) + "</div>" +
-          setRowHTML("Start week on", "Changes the first column in Month, Week, and the mini calendar.", selectHTML("csWeekStart", [[0, "Sunday"], [1, "Monday"]], state.weekStart, "sm")) +
+          setRowHTML("Start week on", "Changes the first column in Month, Week, and the date pickers.", selectHTML("csWeekStart", [[0, "Sunday"], [1, "Monday"]], state.weekStart, "sm")) +
           "</div>");
         pane.appendChild(g);
         var sel = g.querySelector("#csView");

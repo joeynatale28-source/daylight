@@ -158,16 +158,6 @@ document.addEventListener("pointerover",e=>scheduleRailTooltip(e.target));
 document.addEventListener("pointerout",e=>{if(!e.relatedTarget?.closest?.("#sidebar.rail"))hideRailTooltip()});
 document.addEventListener("focusin",e=>scheduleRailTooltip(e.target));
 document.addEventListener("focusout",hideRailTooltip);
-function fitCalendarRows(){
- const rows=[...document.querySelectorAll(".sidebar .cal-row")];
- if(!rows.length)return;
- const height=window.innerHeight;
- const rowHeight=Math.max(20,Math.min(30,Math.floor((height-455)/rows.length)));
- document.documentElement.style.setProperty("--dl-cal-row-height",rowHeight+"px");
-}
-new MutationObserver(()=>requestAnimationFrame(fitCalendarRows)).observe(document.body,{childList:true,subtree:true});
-window.addEventListener("resize",fitCalendarRows);
-document.addEventListener("daylight:workspace-ready",fitCalendarRows);
 function remember(color,options){
  color=color.toUpperCase();const saved=savedColors();if(saved.includes(color))return;
  state.customColors=[color].concat(saved).slice(0,30);

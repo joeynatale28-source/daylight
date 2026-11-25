@@ -162,10 +162,10 @@ for(const theme of ['dark','light']){
   await shot('6-month');
 
   // ================= Item 7
-  const sb=await page.evaluate(()=>{const sb=document.querySelector('#sidebar');const q=s=>sb.querySelector(s).getBoundingClientRect();const rows=[...sb.querySelectorAll('.side-row')].map(r=>Math.round(r.getBoundingClientRect().height));const create=q('.create-pill'),mini=q('.mini-head'),nav=q('.side-nav');const lastDay=[...sb.querySelectorAll('.mini-day')].pop().getBoundingClientRect();const supLabel=[...sb.querySelectorAll('.side-label')].find(l=>/Support/.test(l.textContent)).querySelector('span').getBoundingClientRect();const subs=[...sb.querySelectorAll('.cal-list')].pop().getBoundingClientRect();const prof=q('.profile-wrap'),set=[...sb.querySelectorAll('.side-row')].pop().getBoundingClientRect();
-   return {rows,gapCreateMini:Math.round(mini.top-create.bottom),gapMiniNav:Math.round(nav.top-lastDay.bottom),gapSubsSupport:Math.round(supLabel.top-subs.bottom),profBottom:Math.round(prof.bottom),sbBottom:Math.round(sb.getBoundingClientRect().bottom),gapSettingsProfile:Math.round(prof.top-set.bottom)}});
+  const sb=await page.evaluate(()=>{const sb=document.querySelector('#sidebar');const q=s=>sb.querySelector(s).getBoundingClientRect();const rows=[...sb.querySelectorAll('.side-row')].map(r=>Math.round(r.getBoundingClientRect().height));const create=q('.create-pill'),nav=q('.side-nav');const supLabel=[...sb.querySelectorAll('.side-label')].find(l=>/Support/.test(l.textContent)).querySelector('span').getBoundingClientRect();const subs=[...sb.querySelectorAll('.cal-list')].pop().getBoundingClientRect();const prof=q('.profile-wrap'),set=[...sb.querySelectorAll('.side-row')].pop().getBoundingClientRect();
+   return {rows,gapCreateNav:Math.round(nav.top-create.bottom),gapSubsSupport:Math.round(supLabel.top-subs.bottom),profBottom:Math.round(prof.bottom),sbBottom:Math.round(sb.getBoundingClientRect().bottom),gapSettingsProfile:Math.round(prof.top-set.bottom)}});
   check(T('sidebar: every nav/support row is one height'),new Set(sb.rows).size===1,J(sb));
-  check(T('sidebar: Create→mini and mini→nav gaps match, and Subscriptions→Support is a section gap (not a void)'),Math.abs(sb.gapCreateMini-sb.gapMiniNav)<=8&&sb.gapSubsSupport<=64,J(sb));
+  check(T('sidebar: Create→nav is a section gap (spare height sits above Support, by design)'),sb.gapCreateNav>=8&&sb.gapCreateNav<=40,J(sb));
   check(T('sidebar: the account block stays pinned at the bottom'),sb.sbBottom-sb.profBottom<=16,J(sb));
   await shot('7-sidebar');
   check(T('row action buttons are not invisible-only (visible on keyboard focus; touch media rule present)'),await page.evaluate(()=>{const row=document.querySelector('.cal-row');row.querySelector('.cal-check').focus();return getComputedStyle(row.querySelector('.cal-menu-btn')).opacity==='1'})&&/\(hover: none\)/.test(await page.evaluate(()=>[...document.styleSheets].map(s=>{try{return [...s.cssRules].map(r=>r.cssText).join('')}catch(e){return ''}}).join(''))));
@@ -187,8 +187,8 @@ for(const theme of ['dark','light']){
 
   // ================= Item 10
   await page.click('.create-main');await sleep(500);
-  const cm=await page.evaluate(()=>{const m=document.querySelector('.menu').getBoundingClientRect(),n=document.querySelector('#miniWrap .mini-nav:last-of-type,#miniWrap .mini-nav');const nn=[...document.querySelectorAll('#miniWrap .mini-nav')].pop().getBoundingClientRect();return {covers:m.right>=nn.right,w:Math.round(m.width)}});
-  check(T('the Create menu is as wide as the sidebar column (no stray arrow beside the Event row)'),cm.covers,J(cm));
+  const cm=await page.evaluate(()=>{const m=document.querySelector('.menu').getBoundingClientRect(),p=document.querySelector('#sidebar .create-pill').getBoundingClientRect();return {covers:m.left<=p.left+1&&m.right>=p.right-1,gone:!document.querySelector('#miniWrap,.mini-nav,.mini-day'),w:Math.round(m.width)}});
+  check(T('the Create menu is as wide as the sidebar column and the sidebar has no mini calendar'),cm.covers&&cm.gone,J(cm));
   await shot('10-create-menu');
   await page.keyboard.press('Escape');await sleep(300);
   check(T('no page errors'),errors.length===0,errors.join(' | '));

@@ -1,5 +1,5 @@
 /** QA fixes (Nov 16 pass): month grid spans, +N more list, Day view all-day lane, recurring edit scope, repeat-until, search order,
- *  mini calendar, swipe, auth page behaviors. Real pages through the harness; exits 1 on any failure. */
+ *  swipe, auth page behaviors. Real pages through the harness; exits 1 on any failure. */
 import {launch,busyPayload} from './harness.mjs';
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 let bad=0;const check=(ok,m,x)=>{if(!ok)bad++;console.log((ok?'PASS ':'FAIL ')+m+(ok||x===undefined?'':' -> '+JSON.stringify(x)))};
@@ -38,9 +38,6 @@ try{
  // ---- 19: only today carries the solid disc
  const today=await page.evaluate(()=>[...document.querySelectorAll('.day-cell.today')].filter(c=>c.dataset.today!=='1').length);
  check(today===0,'19: no stale today cells',today);
- // ---- 18: mini calendar follows
- const mini=await page.evaluate(()=>{state.cursor=new Date(2027,0,10);renderAll(false);return (document.querySelector('.mini-title')||{}).textContent});
- check(/January 2027/.test(mini),'18: mini calendar shows January 2027',mini);
  // ---- 20: drag across the grid pages the month
  await page.evaluate(()=>{state.cursor=new Date(2026,11,15);renderAll(false)});await sleep(400);
  const box=await page.evaluate(()=>{const r=document.querySelector('.month-grid').getBoundingClientRect();return {x:r.left+r.width/2,y:r.top+r.height/2}});

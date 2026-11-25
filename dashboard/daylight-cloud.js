@@ -276,8 +276,6 @@
     state.section = 'calendar';
     state.cursor = new Date(BOOT_TODAY);
     state.selected = new Date(BOOT_TODAY);
-    state.miniCursor = dt(BOOT_TODAY.getFullYear(), BOOT_TODAY.getMonth(), 1);
-    state.miniSelected = new Date(BOOT_TODAY);
     state.defaultCalendarId = null;
     state.themeMode = 'system';
     state.reduceMotion = false;
@@ -899,7 +897,6 @@
         s: document.getElementById('sidebar').innerHTML, hd: document.getElementById('headerBand').innerHTML.replace(/<span class="dl-notif-badge"[^>]*>[^<]*<\/span>/g, ''),
         v: document.getElementById('viewWrap').innerHTML,
         rail: document.getElementById('sidebar').classList.contains('rail'),
-        rh: document.documentElement.style.getPropertyValue('--dl-cal-row-height'),
         bc: document.body.className.split(/\s+/).filter(function (c) { return c && c !== 'booting' && c !== 'dl-canvas-holding'; }).join(' ')
       };
       var text = JSON.stringify(snap);

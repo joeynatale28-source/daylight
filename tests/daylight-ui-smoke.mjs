@@ -451,13 +451,13 @@ page.on('console',m=>{if(m.text().includes('DLDEBUG'))console.log(m.text())});
    const fields=['#efTitle','#efLoc','#efDesc','#efCal','#efSDate','#efEDate'];
    const present=fields.every(selector=>!!document.querySelector(selector));
    const location=document.querySelector('#efLoc');
-   const attached=!!location&&location.dataset.tomtomAttached==='yes';
+   const attached=!!location&&location.dataset.placesAttached==='yes';
    const dialog=document.querySelector('.event-form-dialog');
    return {present,attached,dialog:!!dialog};
  });
  assert.ok(eventForm.present,'event form must expose title, location, description, calendar, and date fields');
  assert.ok(eventForm.dialog,'event form dialog must be present');
- assert.ok(eventForm.attached,'TomTom autocomplete must attach to the event location field');
+ assert.ok(eventForm.attached,'Place autocomplete must attach to the event location field');
  await page.screenshot({path:path.join(out,'new-event-dialog.png')});
  await page.evaluate(()=>document.querySelector('.backdrop .dialog [data-x]')?.click());
 

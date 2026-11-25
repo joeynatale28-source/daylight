@@ -34,7 +34,7 @@ async function openNewEvent(page,startDay){
 }
 async function pickEnd(page,day){
  await page.click('#efEDate');await page.waitForSelector('#datePop');
- await page.evaluate(d=>{[...document.querySelectorAll('#datePop .mini-day:not(.dim)')].find(b=>b.textContent.trim()===String(d)).click()},day);
+ await page.evaluate(d=>{[...document.querySelectorAll('#datePop .dp-day:not(.dim)')].find(b=>b.textContent.trim()===String(d)).click()},day);
  await sleep(150);
 }
 async function setAllDay(page){

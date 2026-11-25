@@ -27,7 +27,7 @@ for(const theme of ['light','dark']){
   await page.click('#teDue');await sleep(250);
   const popOpen=await page.evaluate(()=>({pop:!!document.getElementById('datePop'),menu:!!document.querySelector('.menu .menu-item')}));
   check(popOpen.pop&&!popOpen.menu,'the due-date control opens the calendar popup on the first click (like the event date)',popOpen);
-  await page.evaluate(()=>{const start=weekStartOf(dt(TODAY.getFullYear(),TODAY.getMonth(),1));const idx=Math.round((sod(addDays(TODAY,1))-start)/864e5);document.querySelectorAll('#datePop .mini-day')[idx].click()});await sleep(250);
+  await page.evaluate(()=>{const start=weekStartOf(dt(TODAY.getFullYear(),TODAY.getMonth(),1));const idx=Math.round((sod(addDays(TODAY,1))-start)/864e5);document.querySelectorAll('#datePop .dp-day')[idx].click()});await sleep(250);
   await page.click('[data-ok]');await sleep(700);
   check(await page.evaluate(()=>state.section==='tasks'&&!state.events.some(e=>e.title==='Renew passport')),'the created task shows in Tasks, not on the calendar');
   let row=await page.evaluate(()=>{const r=document.querySelector('.task-row');return r&&{title:r.querySelector('.task-title').textContent,desc:(r.querySelector('.task-desc')||{}).textContent,due:r.querySelector('.tm-due').textContent.trim()}});
