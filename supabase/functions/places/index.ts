@@ -153,7 +153,7 @@ Deno.serve(async (req: Request) => {
   try { body = await req.json(); } catch { return reply(req, { error: "Invalid JSON" }, 400); }
   if (body.action === "diagnose") {
     // Support evidence: the raw Mapbox reverse response for one coordinate pair.
-    const apiKey = Deno.env.get("MAPBOX_ACCESS_TOKEN");
+    const apiKey = Deno.env.get("MAPBOX_API_KEY") || Deno.env.get("MAPBOX_ACCESS_TOKEN");
     if (!apiKey) return reply(req, { error: "not_configured" });
     const position = validPosition(body.position);
     if (!position) return reply(req, { error: "position required" }, 400);
@@ -168,7 +168,7 @@ Deno.serve(async (req: Request) => {
   if (body.action !== "autocomplete") return reply(req, { error: "Unsupported action" }, 400);
   const input = string(body.input, 150).replace(/\s+/g, " ");
   if (input.length < 2) return reply(req, { suggestions: [], attribution: ATTRIBUTION });
-  const apiKey = Deno.env.get("MAPBOX_ACCESS_TOKEN");
+  const apiKey = Deno.env.get("MAPBOX_API_KEY") || Deno.env.get("MAPBOX_ACCESS_TOKEN");
   if (!apiKey) return reply(req, { error: "not_configured" });
   const now = Date.now(), bucket = throttle.get(auth.user.id);
   if (!bucket || now - bucket.time >= 60000) throttle.set(auth.user.id, { time: now, count: 1 });
